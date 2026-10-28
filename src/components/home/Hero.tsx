@@ -47,43 +47,6 @@ export default function Hero() {
       <div className="absolute inset-0 grid-bg opacity-30 pointer-events-none" />
       <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[400px] rounded-full bg-violet-600/15 blur-[140px] pointer-events-none" />
 
-      {/* Floating Luxury Badges from Reference Project */}
-      <div className="hidden xl:block absolute left-10 top-[40%] z-20 pointer-events-none">
-        <motion.div
-          initial={{ opacity: 0, x: -30 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.8, delay: 0.85, ease: [0.22, 1, 0.36, 1] }}
-        >
-          <div className="glass glow-border animate-float rounded-2xl px-4 py-3 shadow-glow" style={{ animationDelay: "0s" }}>
-            <div className="flex items-center gap-2.5">
-              <span className="h-2.5 w-2.5 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.9)]" />
-              <div className="text-left">
-                <p className="font-display text-sm font-bold text-fg">12,000+ Stays</p>
-                <p className="text-[10px] text-muted/70">Verified in Saudi Arabia</p>
-              </div>
-            </div>
-          </div>
-        </motion.div>
-      </div>
-
-      <div className="hidden xl:block absolute right-10 top-[40%] z-20 pointer-events-none">
-        <motion.div
-          initial={{ opacity: 0, x: 30 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.8, delay: 0.95, ease: [0.22, 1, 0.36, 1] }}
-        >
-          <div className="glass glow-border animate-float rounded-2xl px-4 py-3 shadow-glow" style={{ animationDelay: "1.5s" }}>
-            <div className="flex items-center gap-2.5">
-              <span className="h-2.5 w-2.5 rounded-full bg-fuchsia-400 shadow-[0_0_8px_rgba(232,121,249,0.9)]" />
-              <div className="text-left">
-                <p className="font-display text-sm font-bold text-fg">Smart Digital Lock</p>
-                <p className="text-[10px] text-muted/70">100% Keyless Check-in</p>
-              </div>
-            </div>
-          </div>
-        </motion.div>
-      </div>
-
       <div className="max-w-7xl mx-auto px-5 sm:px-8 relative z-10 text-center">
         {/* Ministry License Badge */}
         <motion.div
