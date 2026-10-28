@@ -17,8 +17,12 @@ import {
   Sun,
   Moon,
   Menu,
+  User as UserIcon,
+  LogOut,
+  Sparkle,
 } from "lucide-react";
 import { useApp, Currency } from "@/context/AppContext";
+import { useAuth } from "@/context/AuthContext";
 
 export default function Navbar() {
   const {
@@ -31,9 +35,12 @@ export default function Navbar() {
     openHostModal,
   } = useApp();
 
+  const { user, profile, isHost, role, openAuthModal, signOut } = useAuth();
+
   const [copied, setCopied] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [userDropdownOpen, setUserDropdownOpen] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -164,14 +171,90 @@ export default function Navbar() {
               </button>
             </nav>
 
-            {/* Right Controls: Currency, Theme & Hamburger */}
-            <div className="flex items-center gap-2.5">
+            {/* Right Controls: User Profile, Currency, Theme & Hamburger */}
+            <div className="flex items-center gap-2 sm:gap-2.5">
+              {/* Auth Button or User Menu */}
+              {user ? (
+                <div className="relative">
+                  <button
+                    onClick={() => setUserDropdownOpen(!userDropdownOpen)}
+                    className="glass flex items-center gap-2 rounded-full py-1 px-2.5 sm:px-3 text-xs font-semibold text-fg border border-violet-400/30 hover:border-violet-400 transition-colors cursor-pointer"
+                  >
+                    <div className="h-6 w-6 rounded-full bg-gradient-to-tr from-violet-600 to-fuchsia-400 flex items-center justify-center text-white font-bold text-[10px]">
+                      {profile?.full_name?.charAt(0) || user.email?.charAt(0)?.toUpperCase() || "U"}
+                    </div>
+                    <span className="hidden sm:inline-block max-w-[90px] truncate">
+                      {profile?.full_name || user.email?.split("@")[0]}
+                    </span>
+                    <span className={`text-[9px] uppercase px-1.5 py-0.2 rounded-full font-bold ${
+                      role === "host" ? "bg-fuchsia-500/20 text-fuchsia-300" : "bg-violet-500/20 text-violet-300"
+                    }`}>
+                      {role}
+                    </span>
+                  </button>
+
+                  {/* Dropdown Menu */}
+                  {userDropdownOpen && (
+                    <div className="absolute right-0 mt-2 w-52 glass-strong rounded-2xl p-2 shadow-2xl border border-white/10 z-50 animate-in fade-in zoom-in-95 duration-150">
+                      <div className="px-3 py-2 border-b border-white/5">
+                        <p className="text-xs font-bold text-fg truncate">
+                          {profile?.full_name || "Valued User"}
+                        </p>
+                        <p className="text-[10px] text-muted truncate">{user.email}</p>
+                      </div>
+
+                      <div className="py-1 text-xs">
+                        {isHost ? (
+                          <button
+                            onClick={() => {
+                              setUserDropdownOpen(false);
+                              openHostModal();
+                            }}
+                            className="w-full text-left px-3 py-2 rounded-xl text-fuchsia-300 hover:bg-white/5 flex items-center gap-2 cursor-pointer"
+                          >
+                            <Key className="w-3.5 h-3.5 text-fuchsia-400" /> Host Portal & Listings
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => {
+                              setUserDropdownOpen(false);
+                              openHostModal();
+                            }}
+                            className="w-full text-left px-3 py-2 rounded-xl text-violet-300 hover:bg-white/5 flex items-center gap-2 cursor-pointer"
+                          >
+                            <Sparkle className="w-3.5 h-3.5 text-violet-400" /> Become a Host
+                          </button>
+                        )}
+
+                        <button
+                          onClick={() => {
+                            setUserDropdownOpen(false);
+                            signOut();
+                          }}
+                          className="w-full text-left px-3 py-2 rounded-xl text-rose-300 hover:bg-rose-500/10 flex items-center gap-2 cursor-pointer mt-1"
+                        >
+                          <LogOut className="w-3.5 h-3.5 text-rose-400" /> Sign Out
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <button
+                  onClick={() => openAuthModal("signin")}
+                  className="glass flex items-center gap-1.5 rounded-full py-1.5 px-3 sm:px-4 text-xs font-bold text-white bg-violet-600/20 border border-violet-400/40 hover:bg-violet-600/30 transition-all shadow-glow cursor-pointer"
+                >
+                  <UserIcon className="w-3.5 h-3.5 text-violet-300" />
+                  <span>Sign In</span>
+                </button>
+              )}
+
               {/* Currency Picker */}
               <div className="relative">
                 <select
                   value={currency}
                   onChange={(e) => setCurrency(e.target.value as Currency)}
-                  className="glass rounded-full text-xs font-semibold px-3 py-1.5 text-muted focus:outline-none focus:ring-1 focus:ring-violet-400 cursor-pointer"
+                  className="glass rounded-full text-xs font-semibold px-2.5 sm:px-3 py-1.5 text-muted focus:outline-none focus:ring-1 focus:ring-violet-400 cursor-pointer"
                 >
                   <option value="SAR" className="bg-gray-900 text-white">
                     SAR (﷼)
@@ -192,7 +275,7 @@ export default function Navbar() {
               <button
                 onClick={toggleTheme}
                 aria-label="Toggle Theme"
-                className="glass h-9 w-9 rounded-full flex items-center justify-center text-muted hover:text-fg transition-colors"
+                className="glass h-8 w-8 sm:h-9 sm:w-9 rounded-full flex items-center justify-center text-muted hover:text-fg transition-colors"
               >
                 {isDarkTheme ? (
                   <Sun className="w-4 h-4 text-amber-300" />
@@ -204,7 +287,7 @@ export default function Navbar() {
               {/* Mobile Menu Toggle */}
               <button
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                className="lg:hidden glass h-9 w-9 rounded-full flex items-center justify-center text-muted hover:text-fg"
+                className="lg:hidden glass h-8 w-8 sm:h-9 sm:w-9 rounded-full flex items-center justify-center text-muted hover:text-fg"
                 aria-label="Open Mobile Menu"
               >
                 {mobileMenuOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
@@ -259,6 +342,36 @@ export default function Navbar() {
               >
                 Customer FAQs
               </Link>
+              {/* Mobile Auth Button */}
+              {user ? (
+                <div className="pt-2 border-t border-white/10 flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-bold text-fg">{profile?.full_name || user.email?.split("@")[0]}</p>
+                    <span className="text-[10px] text-fuchsia-300 uppercase font-bold">{role}</span>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setMobileMenuOpen(false);
+                      signOut();
+                    }}
+                    className="text-xs text-rose-400 font-bold hover:underline"
+                  >
+                    Sign Out
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    openAuthModal("signin");
+                  }}
+                  className="w-full py-2.5 rounded-full border border-violet-400/30 bg-violet-600/20 text-white text-xs font-bold uppercase tracking-wider text-center flex items-center justify-center gap-2"
+                >
+                  <UserIcon className="w-3.5 h-3.5 text-violet-300" />
+                  Sign In / Register
+                </button>
+              )}
+
               <button
                 onClick={() => {
                   setMobileMenuOpen(false);

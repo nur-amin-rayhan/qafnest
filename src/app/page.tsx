@@ -1,6 +1,7 @@
 "use client";
 
 import { AppProvider } from "@/context/AppContext";
+import { AuthProvider } from "@/context/AuthContext";
 import Cursor from "@/components/common/Cursor";
 import ParticleField from "@/components/common/ParticleField";
 import SmoothScroll from "@/components/common/SmoothScroll";
@@ -25,79 +26,83 @@ import Footer from "@/components/common/Footer";
 import BookingModal from "@/components/modals/BookingModal";
 import HostModal from "@/components/modals/HostModal";
 import AppModal from "@/components/modals/AppModal";
+import AuthModal from "@/components/modals/AuthModal";
 
 export default function Home() {
   return (
-    <AppProvider>
-      {/* Lenis Smooth Inertia Momentum Scroll */}
-      <SmoothScroll />
+    <AuthProvider>
+      <AppProvider>
+        {/* Lenis Smooth Inertia Momentum Scroll */}
+        <SmoothScroll />
 
-      {/* Top Precision Scroll Progress Bar */}
-      <ScrollProgress />
+        {/* Top Precision Scroll Progress Bar */}
+        <ScrollProgress />
 
-      {/* Precision Dual Cursor & Ambient Spotlight */}
-      <Cursor />
+        {/* Precision Dual Cursor & Ambient Spotlight */}
+        <Cursor />
 
-      {/* Luxury Cosmic Galaxy Particle Field */}
-      <ParticleField />
+        {/* Luxury Cosmic Galaxy Particle Field */}
+        <ParticleField />
 
-      {/* Sticky Glass Navbar & Promo Banner */}
-      <Navbar />
+        {/* Sticky Glass Navbar & Promo Banner */}
+        <Navbar />
 
-      <main className="relative z-10">
-        {/* Hero Section & Multi-Search Bar */}
-        <Hero />
+        <main className="relative z-10">
+          {/* Hero Section & Multi-Search Bar */}
+          <Hero />
 
-        {/* Explore by Destination */}
-        <Destinations />
+          {/* Explore by Destination */}
+          <Destinations />
 
-        {/* Category Pills Bar */}
-        <CategoryPills />
+          {/* Category Pills Bar */}
+          <CategoryPills />
 
-        {/* Featured Properties Grid */}
-        <PropertiesGrid />
+          {/* Featured Properties Grid */}
+          <PropertiesGrid />
 
-        {/* Last-Minute Deals & Weekend Getaways */}
-        <LastMinuteDeals />
+          {/* Last-Minute Deals & Weekend Getaways */}
+          <LastMinuteDeals />
 
-        {/* Book Your Second Home - Curated Collections */}
-        <LifestyleCollections />
+          {/* Book Your Second Home - Curated Collections */}
+          <LifestyleCollections />
 
-        {/* What Can We Do For You? (The QafNest Guarantee) */}
-        <Guarantee />
+          {/* What Can We Do For You? (The QafNest Guarantee) */}
+          <Guarantee />
 
-        {/* Host Portal & Earnings Calculator */}
-        <HostPortal />
+          {/* Host Portal & Earnings Calculator */}
+          <HostPortal />
 
-        {/* Resort Amenities & Experiences */}
-        <Amenities />
+          {/* Resort Amenities & Experiences */}
+          <Amenities />
 
-        {/* Voices of Our Guests */}
-        <Reviews />
+          {/* Voices of Our Guests */}
+          <Reviews />
 
-        {/* Download QafNest Mobile App & Smart Digital Lock */}
-        <AppDownload />
+          {/* Download QafNest Mobile App & Smart Digital Lock */}
+          <AppDownload />
 
-        {/* Discover Saudi Arabia Travel Stories */}
-        <TravelStories />
+          {/* Discover Saudi Arabia Travel Stories */}
+          <TravelStories />
 
-        {/* Frequently Asked Questions Accordion */}
-        <FaqAccordion />
+          {/* Frequently Asked Questions Accordion */}
+          <FaqAccordion />
 
-        {/* Certified Safe Payment Methods */}
-        <SafePayments />
-      </main>
+          {/* Certified Safe Payment Methods */}
+          <SafePayments />
+        </main>
 
-      {/* Floating Back to Top Button */}
-      <BackToTop />
+        {/* Floating Back to Top Button */}
+        <BackToTop />
 
-      {/* Luxury Footer */}
-      <Footer />
+        {/* Luxury Footer */}
+        <Footer />
 
-      {/* Modals */}
-      <BookingModal />
-      <HostModal />
-      <AppModal />
-    </AppProvider>
+        {/* Modals */}
+        <BookingModal />
+        <HostModal />
+        <AppModal />
+        <AuthModal />
+      </AppProvider>
+    </AuthProvider>
   );
 }
