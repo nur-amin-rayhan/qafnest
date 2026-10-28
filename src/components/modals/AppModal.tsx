@@ -6,14 +6,18 @@ import { X, Smartphone } from "lucide-react";
 import { useApp } from "@/context/AppContext";
 
 export default function AppModal() {
-  const { appModalOpen, closeAppModal } = useApp();
+  const { appModalOpen, closeAppModal, language } = useApp();
   const [phone, setPhone] = useState("");
 
   if (!appModalOpen) return null;
 
   const handleSendLink = (e: React.FormEvent) => {
     e.preventDefault();
-    alert(`📱 QafNest App download link dispatched via SMS & WhatsApp to ${phone}!`);
+    alert(
+      language === "ar"
+        ? `📱 تم إرسال رابط تحميل تطبيق قف نست عبر الرسائل والواتساب إلى ${phone}!`
+        : `📱 QafNest App download link dispatched via SMS & WhatsApp to ${phone}!`
+    );
     closeAppModal();
   };
 
@@ -28,7 +32,7 @@ export default function AppModal() {
       >
         <button
           onClick={closeAppModal}
-          className="absolute top-5 right-5 h-8 w-8 rounded-full glass flex items-center justify-center text-muted hover:text-fg transition-colors cursor-pointer"
+          className="absolute top-5 right-5 rtl:right-auto rtl:left-5 h-8 w-8 rounded-full glass flex items-center justify-center text-muted hover:text-fg transition-colors cursor-pointer"
         >
           <X className="w-4 h-4" />
         </button>
@@ -39,11 +43,13 @@ export default function AppModal() {
           </div>
         </div>
 
-        <h3 className="font-display text-2xl font-bold text-fg mb-1">
-          Download QafNest App
+        <h3 className="font-display text-2xl font-bold text-gray-900 dark:text-white mb-1">
+          {language === "ar" ? "تحميل تطبيق قف نست" : "Download QafNest App"}
         </h3>
-        <p className="text-xs text-muted/70 mb-6">
-          Scan this QR code with your mobile camera to install the app and unlock digital smart lock access.
+        <p className="text-xs text-gray-600 dark:text-muted/70 mb-6">
+          {language === "ar"
+            ? "امسح رمز الاستجابة السريعة (QR) بكاميرا جوالك لتثبيت التطبيق وتفعيل الدخول الذاتي بالأقفال الرقمية."
+            : "Scan this QR code with your mobile camera to install the app and unlock digital smart lock access."}
         </p>
 
         {/* High-Tech QR Code Container */}
@@ -68,13 +74,13 @@ export default function AppModal() {
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
               placeholder="+966 5X XXX XXXX"
-              className="flex-grow rounded-xl bg-surface/[0.05] border border-white/10 px-4 py-2.5 text-xs text-fg placeholder:text-muted/40 focus:outline-none focus:border-violet-400"
+              className="flex-grow rounded-xl bg-gray-50 dark:bg-surface/[0.05] border border-gray-200 dark:border-white/10 px-4 py-2.5 text-xs text-gray-900 dark:text-fg placeholder:text-gray-400 dark:placeholder:text-muted/40 focus:outline-none focus:border-violet-400"
             />
             <button
               type="submit"
-              className="px-4 py-2.5 rounded-xl bg-luxe-gradient text-white font-bold text-xs tracking-wide shrink-0 shadow-glow cursor-pointer"
+              className="px-4 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-700 text-white font-bold text-xs tracking-wide shrink-0 shadow-md cursor-pointer"
             >
-              Send Link
+              {language === "ar" ? "إرسال الرابط" : "Send Link"}
             </button>
           </div>
         </form>

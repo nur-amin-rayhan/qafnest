@@ -1,7 +1,6 @@
 "use client";
 
 import Image from "next/image";
-import { motion } from "framer-motion";
 import { Waves, ShieldCheck, Trees, Tent, ArrowRight } from "lucide-react";
 import { LIFESTYLE_COLLECTIONS } from "@/data/properties";
 import { useApp } from "@/context/AppContext";
@@ -39,7 +38,7 @@ export default function LifestyleCollections() {
           <div>
             <span className="inline-flex items-center gap-2 rounded-full glass px-3.5 py-1 text-xs font-semibold uppercase tracking-widest text-violet-300 mb-3 border border-violet-500/20">
               <span className="h-1.5 w-1.5 rounded-full bg-fuchsia-400" />
-              Curated Vacation Homes · احجز منزلك الثاني
+              Curated Vacation Homes
             </span>
             <h2 className="font-display text-3xl sm:text-4xl font-bold tracking-tight text-fg">
               Book Your <span className="text-gradient">Second Home.</span>
@@ -56,13 +55,9 @@ export default function LifestyleCollections() {
 
         {/* 4 Curated Category Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {LIFESTYLE_COLLECTIONS.map((col, i) => (
-            <motion.div
+          {LIFESTYLE_COLLECTIONS.map((col) => (
+            <div
               key={col.id}
-              initial={{ opacity: 0, y: 35 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, amount: 0.15 }}
-              transition={{ duration: 0.6, delay: (i % 4) * 0.08, ease: [0.22, 1, 0.36, 1] }}
               onClick={() => handleSelectCollection(col.type)}
               data-cursor="hover"
               className="glass glow-border rounded-3xl p-6 group cursor-pointer transition-all duration-500 hover:-translate-y-2 hover:shadow-glow relative overflow-hidden flex flex-col justify-between h-[360px]"
@@ -118,7 +113,7 @@ export default function LifestyleCollections() {
                   <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
                 </div>
               </div>
-            </motion.div>
+            </div>
           ))}
         </div>
       </div>

@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Plus_Jakarta_Sans, Space_Grotesk, Cormorant_Garamond } from "next/font/google";
+import { Plus_Jakarta_Sans, Space_Grotesk, Cormorant_Garamond, Cairo } from "next/font/google";
 import "./globals.css";
 
 const plusJakartaSans = Plus_Jakarta_Sans({
@@ -19,6 +19,12 @@ const cormorantGaramond = Cormorant_Garamond({
   weight: ["400", "500", "600", "700"],
   style: ["normal", "italic"],
   variable: "--font-serif",
+  display: "swap",
+});
+
+const cairo = Cairo({
+  subsets: ["arabic", "latin"],
+  variable: "--font-arabic",
   display: "swap",
 });
 
@@ -52,7 +58,7 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark">
       <body
-        className={`${plusJakartaSans.variable} ${spaceGrotesk.variable} ${cormorantGaramond.variable} font-body relative min-h-screen selection:bg-violet-500/30`}
+        className={`${plusJakartaSans.variable} ${spaceGrotesk.variable} ${cormorantGaramond.variable} ${cairo.variable} font-body relative min-h-screen selection:bg-violet-500/30`}
       >
         {children}
       </body>

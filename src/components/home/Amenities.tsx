@@ -3,30 +3,45 @@
 import Image from "next/image";
 import { motion } from "framer-motion";
 import { Utensils, Sparkles, Anchor, BellRing } from "lucide-react";
+import { useApp } from "@/context/AppContext";
 
 export default function Amenities() {
+  const { language } = useApp();
+
   const AMENITIES = [
     {
-      title: "Private Gastronomy",
-      desc: "Personal Michelin-trained culinary masters preparing bespoke banquets in your villa kitchen.",
+      title: language === "ar" ? "تجارب طهي خاصة" : "Private Gastronomy",
+      desc:
+        language === "ar"
+          ? "طهاة محترفون لإعداد أفخم الولائم والمأكولات في مطبخ فيلتك الخاص بأعلى معايير الضيافة."
+          : "Personal Michelin-trained culinary masters preparing bespoke banquets in your villa kitchen.",
       image: "https://images.unsplash.com/photo-1544025162-d76694265947?w=600&fit=crop",
       icon: <Utensils className="w-5 h-5 text-fuchsia-400" />,
     },
     {
-      title: "Wellness & Spa Sanctuary",
-      desc: "Heated thermal pools, private Turkish hammams, and therapeutic organic treatments.",
+      title: language === "ar" ? "سبا واستجمام خاص" : "Wellness & Spa Sanctuary",
+      desc:
+        language === "ar"
+          ? "مسابح حرارية مدفأة، حمامات مغربية خاصة، وجلسات علاجية واستجمام طبيعية متكاملة."
+          : "Heated thermal pools, private Turkish hammams, and therapeutic organic treatments.",
       image: "https://images.unsplash.com/photo-1540555700478-4be289fbecef?w=600&fit=crop",
       icon: <Sparkles className="w-5 h-5 text-violet-400" />,
     },
     {
-      title: "Private Yacht & Marine",
-      desc: "Direct jetty berthing with bespoke Red Sea boat excursions, sunset sails, and diving safaris.",
-      image: "https://images.unsplash.com/photo-1569263979104-865ab7cd8d17?w=600&fit=crop",
+      title: language === "ar" ? "يخوت ورحلات بحرية" : "Private Yacht & Marine",
+      desc:
+        language === "ar"
+          ? "مرسى خاص مع رحلات بحرية حصرية في مياه البحر الأحمر، إبحار وقت الغروب، وتجارب غوص."
+          : "Direct jetty berthing with bespoke Red Sea boat excursions, sunset sails, and diving safaris.",
+      image: "https://images.unsplash.com/photo-1567899378494-47b22a2ae96a?w=600&fit=crop",
       icon: <Anchor className="w-5 h-5 text-cyan-400" />,
     },
     {
-      title: "24/7 Dedicated Butler",
-      desc: "Unobtrusive yet attentive hospitality specialists attending to your family's every desire.",
+      title: language === "ar" ? "خدمة مساعد شخصي 24/7" : "24/7 Dedicated Butler",
+      desc:
+        language === "ar"
+          ? "فريق ضيافة مخصص على مدار الساعة لتلبية كافة متطلباتك واحتياجات عائلتك بخصوصية تامة."
+          : "Unobtrusive yet attentive hospitality specialists attending to your family's every desire.",
       image: "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=600&fit=crop",
       icon: <BellRing className="w-5 h-5 text-amber-400" />,
     },
@@ -36,14 +51,24 @@ export default function Amenities() {
     <section id="amenities" className="py-20 relative overflow-hidden bg-surface/[0.01]">
       <div className="max-w-7xl mx-auto px-5 sm:px-8">
         <div className="text-center max-w-2xl mx-auto mb-16">
-          <span className="text-xs uppercase font-bold tracking-widest text-violet-300 block mb-2">
-            Curated Indulgence · تجارب استثنائية
+          <span className="text-xs uppercase font-bold tracking-widest text-violet-600 dark:text-violet-300 block mb-2">
+            {language === "ar" ? "تجارب استثنائية" : "Curated Indulgence"}
           </span>
-          <h2 className="font-display text-3xl sm:text-4xl font-bold tracking-tight text-fg">
-            Resort Amenities & <span className="text-gradient">Experiences.</span>
+          <h2 className="font-display text-3xl sm:text-4xl font-bold tracking-tight text-gray-900 dark:text-white">
+            {language === "ar" ? (
+              <>
+                مرافق وخدمات <span className="text-gradient">المنتجع</span>
+              </>
+            ) : (
+              <>
+                Resort Amenities & <span className="text-gradient">Experiences.</span>
+              </>
+            )}
           </h2>
-          <p className="mt-3 text-sm text-muted/70 font-light">
-            Elevate your private stay beyond accommodation with bespoke gastronomy, personal wellness, and round-the-clock royal hospitality.
+          <p className="mt-3 text-sm text-gray-600 dark:text-muted/70 font-light">
+            {language === "ar"
+              ? "ارتقِ بإقامتك الفاخرة مع تجارب طهي خاصة، عناية شخصية، وضيافة ملكية متكاملة."
+              : "Elevate your private stay beyond accommodation with bespoke gastronomy, personal wellness, and round-the-clock royal hospitality."}
           </p>
         </div>
 

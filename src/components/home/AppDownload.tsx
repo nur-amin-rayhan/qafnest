@@ -21,7 +21,7 @@ import {
 import { useApp } from "@/context/AppContext";
 
 export default function AppDownload() {
-  const { openAppModal } = useApp();
+  const { openAppModal, language } = useApp();
   const [isUnlocked, setIsUnlocked] = useState(false);
 
   return (
@@ -36,14 +36,25 @@ export default function AppDownload() {
             <div className="lg:col-span-7">
               <div className="inline-flex items-center gap-2 rounded-full glass px-3.5 py-1 text-xs font-semibold uppercase tracking-widest text-fuchsia-300 mb-4 border border-fuchsia-500/20">
                 <Smartphone className="w-3.5 h-3.5 text-fuchsia-400" />
-                QafNest Mobile Experience · حمل تطبيق قـاف نست
+                {language === "ar" ? "تطبيق قف نست الذكي" : "QafNest Mobile Experience"}
               </div>
-              <h2 className="font-display text-3xl sm:text-5xl font-bold tracking-tight text-fg mb-4">
-                You make it yourself, <br />
-                <span className="text-gradient">from your mobile!</span>
+              <h2 className="font-display text-3xl sm:text-5xl font-bold tracking-tight text-gray-900 dark:text-white mb-4">
+                {language === "ar" ? (
+                  <>
+                    كل شيء بين يديك، <br />
+                    <span className="text-gradient">من جوالك مباشرة!</span>
+                  </>
+                ) : (
+                  <>
+                    You make it yourself, <br />
+                    <span className="text-gradient">from your mobile!</span>
+                  </>
+                )}
               </h2>
-              <p className="text-sm sm:text-base text-muted/80 font-light leading-relaxed mb-8 max-w-xl">
-                Turn your smartphone into your chalet&apos;s smart door key. Manage reservations, split payments with Tabby, receive your self check-in digital PIN code, and chat live with your host anytime.
+              <p className="text-sm sm:text-base text-gray-600 dark:text-muted/80 font-light leading-relaxed mb-8 max-w-xl">
+                {language === "ar"
+                  ? "حوّل هاتفك إلى مفتاح رقمي ذكي لباب شاليهك. تحكم بحجوزاتك، قسّم دفعاتك مع تابي، استلم رمز الدخول الذاتي فوراً، وتواصل مع المضيف بكل سهولة."
+                  : "Turn your smartphone into your chalet's smart door key. Manage reservations, split payments with Tabby, receive your self check-in digital PIN code, and chat live with your host anytime."}
               </p>
 
               {/* App Feature Bullets */}
@@ -53,9 +64,13 @@ export default function AppDownload() {
                     <Key className="w-4 h-4" />
                   </div>
                   <div>
-                    <h4 className="text-xs font-bold text-fg">Smart Lock Digital Key</h4>
-                    <p className="text-[11px] text-muted/70">
-                      One-tap bluetooth unlock or instant encrypted PIN for seamless self check-in.
+                    <h4 className="text-xs font-bold text-gray-900 dark:text-fg">
+                      {language === "ar" ? "مفتاح القفل الذكي الرقمي" : "Smart Lock Digital Key"}
+                    </h4>
+                    <p className="text-[11px] text-gray-600 dark:text-muted/70">
+                      {language === "ar"
+                        ? "فتح الباب بنقرة واحدة بالبلوتوث أو برمز سري مشفر لدخول ذاتي سلس."
+                        : "One-tap bluetooth unlock or instant encrypted PIN for seamless self check-in."}
                     </p>
                   </div>
                 </div>
@@ -65,9 +80,13 @@ export default function AppDownload() {
                     <MessageSquare className="w-4 h-4" />
                   </div>
                   <div>
-                    <h4 className="text-xs font-bold text-fg">Direct In-App Host Chat</h4>
-                    <p className="text-[11px] text-muted/70">
-                      Instant messaging with property owners and 24/7 bilingual concierge.
+                    <h4 className="text-xs font-bold text-gray-900 dark:text-fg">
+                      {language === "ar" ? "محادثة فورية مع المضيف" : "Direct In-App Host Chat"}
+                    </h4>
+                    <p className="text-[11px] text-gray-600 dark:text-muted/70">
+                      {language === "ar"
+                        ? "تواصل مباشر مع مالك العقار وفريق خدمة الضيوف على مدار 24/7."
+                        : "Instant messaging with property owners and 24/7 bilingual concierge."}
                     </p>
                   </div>
                 </div>
@@ -77,9 +96,13 @@ export default function AppDownload() {
                     <FileText className="w-4 h-4" />
                   </div>
                   <div>
-                    <h4 className="text-xs font-bold text-fg">1-Click VAT Tax Invoices</h4>
-                    <p className="text-[11px] text-muted/70">
-                      Instant ZATCA-compliant digital invoices for corporate and personal records.
+                    <h4 className="text-xs font-bold text-gray-900 dark:text-fg">
+                      {language === "ar" ? "فواتير ضريبية بنقرة واحدة" : "1-Click VAT Tax Invoices"}
+                    </h4>
+                    <p className="text-[11px] text-gray-600 dark:text-muted/70">
+                      {language === "ar"
+                        ? "فواتير إلكترونية معتمدة ومتوافقة مع هيئة الزكاة والضريبة والجمارك (زاتكا)."
+                        : "Instant ZATCA-compliant digital invoices for corporate and personal records."}
                     </p>
                   </div>
                 </div>
@@ -89,9 +112,13 @@ export default function AppDownload() {
                     <Bell className="w-4 h-4" />
                   </div>
                   <div>
-                    <h4 className="text-xs font-bold text-fg">Exclusive App Only Rates</h4>
-                    <p className="text-[11px] text-muted/70">
-                      Extra 10% to 15% discount vouchers delivered directly to your device.
+                    <h4 className="text-xs font-bold text-gray-900 dark:text-fg">
+                      {language === "ar" ? "عروض وأسعار حصرية بالتطبيق" : "Exclusive App Only Rates"}
+                    </h4>
+                    <p className="text-[11px] text-gray-600 dark:text-muted/70">
+                      {language === "ar"
+                        ? "خصومات إضافية تصل إلى 15% وقسائم حصرية لمستخدمي التطبيق."
+                        : "Extra 10% to 15% discount vouchers delivered directly to your device."}
                     </p>
                   </div>
                 </div>
@@ -103,12 +130,12 @@ export default function AppDownload() {
                   onClick={openAppModal}
                   className="glass glow-border px-4 py-2.5 rounded-xl flex items-center gap-3 hover:bg-white/10 transition-all cursor-pointer"
                 >
-                  <Apple className="w-6 h-6 text-white" />
-                  <div className="text-left">
+                  <Apple className="w-6 h-6 text-gray-900 dark:text-white" />
+                  <div className="text-left rtl:text-right">
                     <span className="text-[9px] uppercase tracking-wider text-muted/80 block">
-                      Download on the
+                      {language === "ar" ? "تحميل من" : "Download on the"}
                     </span>
-                    <span className="text-xs font-bold text-white block -mt-0.5">
+                    <span className="text-xs font-bold text-gray-900 dark:text-white block -mt-0.5">
                       App Store
                     </span>
                   </div>
@@ -119,11 +146,11 @@ export default function AppDownload() {
                   className="glass glow-border px-4 py-2.5 rounded-xl flex items-center gap-3 hover:bg-white/10 transition-all cursor-pointer"
                 >
                   <Play className="w-6 h-6 text-fuchsia-400" />
-                  <div className="text-left">
+                  <div className="text-left rtl:text-right">
                     <span className="text-[9px] uppercase tracking-wider text-muted/80 block">
-                      Get it on
+                      {language === "ar" ? "متوفر على" : "Get it on"}
                     </span>
-                    <span className="text-xs font-bold text-white block -mt-0.5">
+                    <span className="text-xs font-bold text-gray-900 dark:text-white block -mt-0.5">
                       Google Play
                     </span>
                   </div>
@@ -131,10 +158,10 @@ export default function AppDownload() {
 
                 <button
                   onClick={openAppModal}
-                  className="glass px-4 py-2.5 rounded-xl flex items-center gap-2 hover:bg-white/10 transition-all text-xs font-semibold text-violet-300 cursor-pointer"
+                  className="glass px-4 py-2.5 rounded-xl flex items-center gap-2 hover:bg-white/10 transition-all text-xs font-semibold text-violet-600 dark:text-violet-300 cursor-pointer"
                 >
-                  <QrCode className="w-5 h-5 text-fuchsia-300" />
-                  <span>Scan QR Code</span>
+                  <QrCode className="w-5 h-5 text-fuchsia-400" />
+                  <span>{language === "ar" ? "مسح رمز الاستجابة (QR)" : "Scan QR Code"}</span>
                 </button>
               </div>
             </div>

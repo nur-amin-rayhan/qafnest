@@ -44,22 +44,22 @@ html.dark {
 
 html.light {
   color-scheme: light;
-  --bg: 247 245 252;        /* #F7F5FC Pearl Violet */
+  --bg: 255 255 255;        /* Pure 100% White */
   --bg-soft: 255 255 255;
   --bg-card: 255 255 255;
-  --fg: 22 16 43;           /* #16102B Dark Obsidian Indigo */
-  --fg-muted: 88 72 130;    /* #584882 Soft Purple Text */
+  --fg: 17 24 39;           /* #111827 Charcoal */
+  --fg-muted: 75 85 99;     /* #4B5563 Clear Contrast Slate */
   --on-brand: 255 255 255;
-  --violet: 147 51 234;
-  --surface: 88 28 135;
-  --line: 88 28 135;
+  --violet: 124 58 237;     /* #7C3AED Theme Violet */
+  --surface: 243 244 246;
+  --line: 229 231 235;
   --glass-bg: 255 255 255;
-  --glass-alpha: 0.85;
+  --glass-alpha: 1;
   --glass-strong-bg: 255 255 255;
-  --glass-strong-alpha: 0.95;
-  --glass-border: 147 51 234;
-  --glass-border-alpha: 0.18;
-  --grid-line-alpha: 0.08;
+  --glass-strong-alpha: 1;
+  --glass-border: 124 58 237;
+  --glass-border-alpha: 0.2;
+  --grid-line-alpha: 0.04;
 }
 
 html {
@@ -96,19 +96,69 @@ input, select, textarea {
   border-radius: 9999px;
 }
 
-/* Glass Utilities */
+/* Arabic Typography & RTL Smoothness */
+html[dir="rtl"] body {
+  font-family: var(--font-arabic), var(--font-body), system-ui, -apple-system, sans-serif;
+}
+
+html[dir="rtl"] .font-display {
+  font-family: var(--font-arabic), var(--font-display), system-ui, sans-serif;
+}
+
+/* Custom Dropdown Scrollbar - Isolated from page Lenis scroll */
+.dropdown-scroll {
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+}
+
+.dropdown-scroll::-webkit-scrollbar {
+  width: 5px;
+}
+
+.dropdown-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.dropdown-scroll::-webkit-scrollbar-thumb {
+  background: rgba(168, 85, 247, 0.35);
+  border-radius: 9999px;
+}
+
+.dropdown-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(168, 85, 247, 0.7);
+}
+
+/* Glass Utilities - Powered by CSS radial-gradient (Zero GPU blur memory overhead for Safari) */
 .glass {
-  background: rgb(var(--glass-bg) / var(--glass-alpha));
-  backdrop-filter: blur(18px);
-  -webkit-backdrop-filter: blur(18px);
+  background: radial-gradient(
+    120% 120% at 50% 0%,
+    rgba(255, 255, 255, 0.08) 0%,
+    rgba(14, 14, 26, 0.92) 100%
+  );
   border: 1px solid rgb(var(--glass-border) / var(--glass-border-alpha));
 }
 
 .glass-strong {
-  background: rgb(var(--glass-strong-bg) / var(--glass-strong-alpha));
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
+  background: radial-gradient(
+    120% 120% at 50% 0%,
+    rgba(255, 255, 255, 0.12) 0%,
+    rgba(14, 14, 26, 0.98) 100%
+  );
   border: 1px solid rgb(var(--glass-border) / calc(var(--glass-border-alpha) + 0.05));
+}
+
+html.light .glass {
+  background: #ffffff;
+  border: 1px solid rgba(124, 58, 237, 0.16);
+  box-shadow: 0 4px 20px -2px rgba(124, 58, 237, 0.05);
+}
+
+html.light .glass-strong {
+  background: #ffffff;
+  border: 1px solid rgba(124, 58, 237, 0.25);
+  box-shadow: 0 10px 25px -3px rgba(124, 58, 237, 0.08);
 }
 
 /* Double Masked Gradient Border */
@@ -146,6 +196,13 @@ input, select, textarea {
   color: transparent;
 }
 
+html.light .text-gradient {
+  background: linear-gradient(135deg, #6d28d9, #9333ea, #c026d3);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
 .glow-text {
   text-shadow: 0 0 35px rgba(168, 85, 247, 0.55);
 }
@@ -175,17 +232,21 @@ html.light body {
 }
 
 html.light .glass {
-  background: rgba(255, 255, 255, 0.82) !important;
-  backdrop-filter: blur(18px);
-  -webkit-backdrop-filter: blur(18px);
+  background: radial-gradient(
+    120% 120% at 50% 0%,
+    rgba(255, 255, 255, 1) 0%,
+    rgba(247, 245, 252, 0.95) 100%
+  ) !important;
   border: 1px solid rgba(147, 51, 234, 0.15) !important;
   box-shadow: 0 4px 20px -2px rgba(88, 28, 135, 0.05);
 }
 
 html.light .glass-strong {
-  background: rgba(255, 255, 255, 0.94) !important;
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
+  background: radial-gradient(
+    120% 120% at 50% 0%,
+    rgba(255, 255, 255, 1) 0%,
+    rgba(243, 238, 253, 0.98) 100%
+  ) !important;
   border: 1px solid rgba(147, 51, 234, 0.18) !important;
   box-shadow: 0 10px 30px -4px rgba(88, 28, 135, 0.08);
 }

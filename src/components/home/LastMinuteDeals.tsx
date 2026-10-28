@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import Image from "next/image";
-import { motion } from "framer-motion";
 import { Clock, Percent, Zap, Star, ArrowRight } from "lucide-react";
 import { DEALS } from "@/data/properties";
 import { useApp } from "@/context/AppContext";
@@ -32,20 +31,20 @@ export default function LastMinuteDeals() {
   }, []);
 
   return (
-    <section id="deals" className="py-20 relative bg-surface/[0.02] border-t border-violet-400/10">
+    <section id="daily-deals" className="py-20 relative bg-surface/[0.02] border-t border-violet-400/10">
       <div className="max-w-7xl mx-auto px-5 sm:px-8">
         {/* Section Header with Real-Time Countdown Timer */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
           <div>
             <div className="inline-flex items-center gap-2 rounded-full glass px-3.5 py-1 text-xs font-semibold uppercase tracking-widest text-fuchsia-300 mb-3 border border-fuchsia-500/20">
               <span className="h-2 w-2 rounded-full bg-fuchsia-400 animate-pulse" />
-              Limited Weekend Availability · عروض اللحظة الأخيرة
+              Limited Daily Offers
             </div>
             <h2 className="font-display text-3xl sm:text-4xl font-bold tracking-tight text-fg">
-              Last-Minute Deals & <span className="text-gradient">Weekend Getaways.</span>
+              Daily <span className="text-gradient">Deals.</span>
             </h2>
             <p className="mt-2 text-sm text-muted/70 font-light max-w-xl">
-              From warm family gatherings to spontaneous weekend escapes with friends, enjoy up to 40% OFF continuous offers on verified chalets, farms, and villas.
+              Limited-time daily discounts on verified vacation chalets, coastal villas, and mountain retreats across the Kingdom. Split into 4 installments with Tabby.
             </p>
           </div>
 
@@ -88,15 +87,11 @@ export default function LastMinuteDeals() {
           </div>
         </div>
 
-        {/* Deals Cards Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        {/* Deals Cards Grid (4 Curated Daily Deals) */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {DEALS.map((deal, i) => (
-            <motion.div
+            <div
               key={deal.id}
-              initial={{ opacity: 0, y: 35 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, amount: 0.15 }}
-              transition={{ duration: 0.6, delay: (i % 3) * 0.1, ease: [0.22, 1, 0.36, 1] }}
               data-cursor="hover"
               className="glass glow-border rounded-3xl overflow-hidden group flex flex-col justify-between transition-all duration-500 hover:-translate-y-2 hover:shadow-glow relative"
             >
@@ -117,10 +112,10 @@ export default function LastMinuteDeals() {
               />
               {/* Discount Badge Ribbon */}
               <div className="absolute top-4 left-4 z-20 flex flex-col gap-1.5 pointer-events-none">
-                <span className="px-3 py-1 rounded-full bg-rose-500/90 text-white font-bold text-xs uppercase tracking-wider shadow-lg flex items-center gap-1 backdrop-blur-sm pointer-events-auto">
+                <span className="px-3 py-1 rounded-full bg-rose-500/95 text-white font-bold text-xs uppercase tracking-wider shadow-lg flex items-center gap-1 pointer-events-auto">
                   <Percent className="w-3 h-3" /> {deal.discountPercentage}% OFF
                 </span>
-                <span className="px-2.5 py-0.5 rounded-full bg-black/60 text-emerald-300 border border-emerald-400/30 text-[10px] font-semibold backdrop-blur-sm flex items-center gap-1 pointer-events-auto">
+                <span className="px-2.5 py-0.5 rounded-full bg-black/85 text-emerald-300 border border-emerald-400/30 text-[10px] font-semibold flex items-center gap-1 pointer-events-auto">
                   <Zap className="w-2.5 h-2.5 text-emerald-400" /> Instant Book
                 </span>
               </div>
@@ -131,6 +126,7 @@ export default function LastMinuteDeals() {
                   src={deal.image}
                   alt={deal.title}
                   fill
+                  priority={i < 4}
                   className="object-cover group-hover:scale-105 transition-transform duration-700"
                   sizes="(max-width: 768px) 100vw, 33vw"
                 />
@@ -207,7 +203,7 @@ export default function LastMinuteDeals() {
                   </button>
                 </div>
               </div>
-            </motion.div>
+            </div>
           ))}
         </div>
       </div>

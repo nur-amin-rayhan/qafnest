@@ -1,245 +1,234 @@
-# 🦅 QAFNEST: কমপ্লিট মাস্টার প্ল্যান ও ডেভলপমেন্ট রোডম্যাপ
-> **Next.js 14 (App Router) + Supabase (Auth, Database, Storage) + Vercel Deployment**
+# 🦅 QAFNEST: কমপ্লিট ইউনিফায়েড মাস্টার প্ল্যান ও আর্কিটেকচার রোডম্যাপ
+> **Gathern.co (جاذر إن) ফাংশনাল বেঞ্চমার্ক + QafNest লাক্সারি ডিজাইন + Supabase ফুল-স্ট্যাক ব্যাকএন্ড**
 
 ---
 
-## ১. ওভারভিউ ও প্রজেক্ট লক্ষ্য (Executive Summary)
+## ১. নির্বাহী সারসংক্ষেপ ও গ্যাথার্ন (Gathern.co) বেঞ্চমার্ক
 
-**QAFNEST** হলো সৌদি আরবের বিলাসবহুল শ্যলে (Chalet), প্রাইভেট ভিলা (Private Villa), ঐতিহ্যবাহী ফার্ম এবং ক্যাম্পিং অবকাশ কেন্দ্র বুকিংয়ের একটি প্রিমিয়াম প্ল্যাটফর্ম।
+সৌদি আরবের শীর্ষস্থানীয় ভ্যাকেশন রেন্টাল প্ল্যাটফর্ম **Gathern.co** (সৌদি পর্যটন মন্ত্রণালয় কর্তৃক লাইসেন্সপ্রাপ্ত)-এর সমস্ত অপশন, ফিচার ও নেভিগেশনাল প্যাটার্নকে আমাদের **QafNest**-এর প্রিমিয়াম ও লাক্সারি থিমের সাথে নিখুঁতভাবে সমন্বয় করে এই মাস্টার প্ল্যানটি প্রস্তুত করা হয়েছে।
 
-বর্তমান ফ্রন্টএন্ড স্ট্যাটিক ডেমো ডেটা নির্ভর। এই মাস্টার প্ল্যানের লক্ষ্য হলো:
-1. **সুপারবেস (Supabase)** ব্যবহার করে ব্যাকএন্ড, অথেন্টিকেশন, ইউজার ও হোস্ট ম্যানেজমেন্ট, এবং ডেটাবেস সিস্টেম তৈরি করা।
-2. গিটহাবে নিরাপদভাবে কোড পুশ করা (ক্রেডেনশিয়ালস প্রোটেক্টেড রেখে)।
-3. **Vercel**-এ প্রোডাকশন লাইভ ডেপ্লয়মেন্ট সম্পন্ন করা।
-4. পরবর্তীতে ধাপে ধাপে ডেমো ডেটা রিপ্লেস করে রিয়েল হোস্ট লিস্টিং ও সিকিউর বুকিং সিস্টেম কার্যকর করা।
+### মূল দর্শন:
+- **ফাংশনালিটি ও প্যাটার্ন:** ১০০% Gathern.co এর মতো সম্পূর্ণ (Daily/Monthly Rent, Multi-Search Bar, Granular Filters, Host Verification, Tabby/Tamara Split, Smart Lock)।
+- **ডিজাইন ও ইউজার এক্সপেরিয়েন্স:** QafNest-এর সিগনেচার নিয়ন-গ্লো, ফ্রস্টেড গ্লাস মরফিজম এবং ডার্ক/লাইট মোড কমপ্লায়েন্ট।
+- **ব্যাকএন্ড ইঞ্জিন:** Supabase (Auth, PostgreSQL DB, Storage, RLS) + Next.js 14 App Router।
 
 ---
 
-## ২. সিস্টেম আর্কিটেকচার (Tech Stack & Architecture)
+## ২. নেভিগেশন বার আর্কিটেকচার (Gathern 1:1 Functional Mapping)
 
-- **Frontend:** Next.js 14.2 (App Router, React 18, TypeScript)
-- **Styling & UI:** Tailwind CSS, Framer Motion, Lenis Smooth Scroll, Lucide Icons
-- **Backend & Database:** **Supabase** (Managed PostgreSQL)
-- **Authentication & RBAC:** **Supabase Auth** (Email/Password, Phone OTP, Google/Apple OAuth)
-- **Security & Authorization:** **Row Level Security (RLS)** + Next.js `middleware.ts`
-- **File & Image Storage:** **Supabase Storage** (Buckets for Property Photos & Host KYC Docs)
-- **Hosting & CI/CD:** **GitHub** + **Vercel**
+Gathern-এর মেনুবারের প্রতিটি অপশন আমাদের নেভিগেশন বারে যেভাবে সমন্বিত হয়েছে:
 
 ```
-┌────────────────────────────────────────────────────────┐
-│                   Vercel Deployment                    │
-│   ┌────────────────────────────────────────────────┐   │
-│   │         Next.js 14 Frontend & Middleware       │   │
-│   │  (Public Landing, Guest Dash, Host Portal)     │   │
-│   └───────────────────────┬────────────────────────┘   │
-└───────────────────────────┼────────────────────────────┘
-                            │ (Secure HTTPS / Edge SSR)
-┌───────────────────────────▼────────────────────────────┐
-│                    Supabase Cloud                      │
-│   ┌─────────────────┐ ┌───────────────┐ ┌──────────┐   │
-│   │  Supabase Auth  │ │ PostgreSQL DB │ │ Storage  │   │
-│   │  (Guest / Host) │ │  (RLS Enabled)│ │ (Photos) │   │
-│   └─────────────────┘ └───────────────┘ └──────────┘   │
-└────────────────────────────────────────────────────────┘
+┌────────────────────────────────────────────────────────────────────────────────────────┐
+│ [Logo: QAF NEST]   [Stay Types ∨] [Destinations ∨] [Flash Deals 🔥] [Host Portal ∨]   │
+│                                           [🔍 Search] [☀️/🌙 Theme] [🌐 EN/SAR ∨] [👤 Profile / Sign In] [Book a Stay ↗] │
+└────────────────────────────────────────────────────────────────────────────────────────┘
+```
+
+### ২.১ মেনুবার আইটেমসমূহ:
+1. **ব্র্যান্ড লোগো (Brand Identity):**
+   - ড্যাশড অরবিট/রাডার গ্লিফ + `QAF` (বোল্ড) `NEST` (পার্পল গ্রেডিয়েন্ট) + Ministry License Badge।
+2. **প্রোপার্টি ক্যাটাগরি মেনু (Property Categories ∨):**
+   - **Private Chalets & Resorts (شاليهات ومنتجعات):** ব্যক্তিগত সুইমিং পুল ও গার্ডেন সহ।
+   - **Luxury Private Villas (فلل خاصة فاخرة):** ফ্যামিলি ও গেট-টুগেদার ভিলা।
+   - **Heritage & Organic Farms (مزارع واستراحات):** প্রাকৃতিক ও গ্রামীণ অবকাশ কেন্দ্র।
+   - **Desert Glamping & Camps (مخيمات وقباب العلا):** মরুভূমির তাঁবু ও কারাফান।
+   - **Serviced VIP Penthouses (بنتهاوس وشقق مخدومة):** শহরের প্রাইম লোকেশনের প্রিমিয়াম অ্যাপার্টমেন্ট।
+3. **ডেস্টিনেশন মেনু (Destinations ∨):**
+   - রিয়াদ (Al-Ammariyah, Diriyah), জেদ্দা (Obhur Waterfront), আল-উলা (Desert Stargazing), আল-খোবার (Eastern Corniche), আবহা (Asir Highlands), তায়েফ।
+4. **ইজারার ধরন (Rental Duration Mode):**
+   - **Daily Rent (إيجار يومي):** সাপ্তাহিক ছুটি ও স্বল্পমেয়াদি অবকাশ যাপনের জন্য।
+   - **Monthly Rent (إيجار شهري):** দীর্ঘমেয়াদি স্টে (৩৫% পর্যন্ত সেভিংস সহ)।
+5. **হোস্ট পোর্টাল (Gathern Business / Host with Us ∨):**
+   - "List Your Property (سجل عقارك)"
+   - "Host Earnings Calculator (حاسبة أرباح المضيف)"
+   - "1,000,000 SAR Host Protection Guarantee"
+6. **টুলস ও একাউন্ট সেকশন (Right Utility Controls):**
+   - 🔍 **ইন্টারেক্টিভ সার্চ আইকন:** ক্লিক করলেই পূর্ণাঙ্গ সার্চ ও ফিল্টার উইন্ডো ওপেন হওয়া।
+   - 🌙/☀️ **ডার্ক ও লাইট থিম সুইচ:** লোকালস্টোরেজে পারসিস্টেন্ট থিম সেভ।
+   - 🌐 **গ্লোব ড্রপডাউন:** ভাষা নির্বাচন (English / العربية) এবং কারেন্সি (SAR ﷼, USD $, AED د.إ, EUR €)।
+   - 👤 **ইউজার স্টেট / প্রোফাইল:**
+     - লগইন না থাকলে: `Sign In / Register` মোডাল।
+     - লগইন থাকলে: অবতার, নাম, রোল ব্যাজ (`Guest` / `Host`), বুকিংস হিস্ট্রি এবং ১-ক্লিকে `Sign Out` বাটন।
+   - 🚀 **প্রাইমারি CTA:** `Book a Stay ↗` (সরাসরি ফিল্টার ও সার্চ উইন্ডো অ্যাক্টিভেশন)।
+
+---
+
+## ৩. মাল্টি-সেগমেন্টেড সিগনেচার সার্চ বার (Gathern Search Pattern)
+
+Gathern-এর মূল সার্চ সিস্টেমটি ৪টি প্রধান সেগমেন্টে বিভক্ত, যা আমাদের হোমপেজ হিরো এবং সার্চ মোডালে হুবহু থাকবে:
+
+```
+┌─────────────────┬───────────────────┬───────────────────┬──────────────────────┐
+│ 📍 Where?       │ 📅 Dates          │ 👥 Who?           │ ⚡ Rent Type & Search │
+│ City / District │ Check-in ➔ Out    │ Adults & Children │ [Daily/Monthly] [ 🔍]│
+└─────────────────┴───────────────────┴───────────────────┴──────────────────────┘
+```
+
+1. **সেগমেন্ট ১: কোথায় যেতে চান? (Where / Destination):**
+   - সৌদি আরবের প্রধান ১৮০+ শহর ও লোকালিটির ড্রপডাউন ও অটো-কমপ্লিট ইনপুট।
+2. **সেগমেন্ট ২: চেক-ইন ও চেক-আউট (Calendar Date-Range):**
+   - ইন্টারেক্টিভ ডুয়েল ক্যালেন্ডার (বুক করা বা ব্লকড ডেট স্বয়ংক্রিয়ভাবে ডিসেবল থাকবে)।
+3. **সেগমেন্ট ৩: অতিথি সংখ্যা ও মজলিস ক্যাপাসিটি (Guests & Capacity):**
+   - প্রাপ্তবয়স্ক (Adults), শিশু (Children) এবং পারিবারিক মজলিস বা ইভেন্ট ক্যাপাসিটি সিলেক্টর।
+4. **সেগমেন্ট ৪: রেন্ট টাইপ টগল এবং সার্চ ট্রিগার:**
+   - ডেইলি রেন্ট বনাম মান্থলি রেন্ট সুইচ এবং সার্চ এক্সিকিউশন বাটন।
+
+---
+
+## ৪. গ্র্যানুলার ফিল্টারিং সিস্টেম (Granular Filter Engine)
+
+Gathern-এর সমস্ত অ্যাডভান্সড ফিল্টার আমাদের সিস্টেমে অন্তর্ভুক্ত:
+
+| ফিল্টার ক্যাটাগরি | ফিল্টার অপশনসমূহ |
+| :--- | :--- |
+| **মূল্য পরিসীমা (Price Range)** | SAR ১০০ থেকে SAR ১৫,০০০+ (মিনিমাম-ম্যাক্সিমাম স্লাইডার ও ইনপুট বক্স) |
+| **লাইসেন্স ও ভেরিফিকেশন** | পর্যটন মন্ত্রণালয় অনুমোদিত ভেরিফায়েড লাইসেন্স (`Ministry of Tourism Licensed`) |
+| **বুকিং টাইপ** | তাৎক্ষণিক বুকিং (`Instant Book` - হোস্টের অনুমোদনের অপেক্ষায় না থেকে সরাসরি কনফার্মেশন) |
+| **সুযোগ-সুবিধা (Amenities)** | • ব্যক্তিগত সুইমিং পুল (ইনডোর/আউটডোর/হিটেড পুল)<br>• প্রাইভেট জ্যাকিউজি (Jacuzzi / Hot Tub)<br>• আউটডোর সিটিং ও বারবিকিউ এরিয়া (جلسة خارجية وشواء)<br>• স্মার্ট লক সেলফ চেক-ইন (Keyless Smart Lock PIN)<br>• ফ্রি হাই-স্পিড ওয়াই-ফাই ও স্মার্ট টিভি<br>• পুরুষ ও মহিলাদের পৃথক মজলিস<br>• বাচ্চাদের খেলার জায়গা (Kids Playground) |
+| **পেমেন্ট ফ্লেক্সিবিলিটি** | ৪ কিস্তিতে পরিশোধের সুবিধা (`Tabby / Tamara` ৪ মাসের সহজ কিস্তি) |
+| **বাতিলকরণ নীতি** | বিনামূল্যে বাতিলকরণ (`Free Cancellation` ২৪-৪৮ ঘণ্টা আগে) |
+
+---
+
+## ৫. প্রোপার্টি ডিটেইলস পেজ ও বুকিং চেকআউট ইঞ্জিন
+
+Gathern-এর বুকিং ফ্লো অনুসারে প্রতিটি প্রোপার্টির জন্য ডাইনামিক পেজ (`/properties/[id]`):
+
+### ৫.১ পেজের উপাদানসমূহ:
+- **হাই-রেজ্যুলেশন ফটো গ্যালারি:** ফুল-স্ক্রিন লাইটবক্স ভিউয়ার এবং ৩৬০° ভার্চুয়াল ট্যুর সাপোর্ট।
+- **হোস্ট পরিচিতি ও লাইসেন্স ব্যাজ:** হোস্টের রেসপন্স রেট, সুপারহোস্ট ব্যাজ এবং মন্ত্রণালয় লাইসেন্স নং (CR / Tourism License No.)।
+- **স্বচ্ছ মূল্য বিভাজন (Transparent Pricing Breakdown):**
+  - মূল ভাড়া (Base Rate × রাতের সংখ্যা)
+  - ক্লিনিং ফি (Cleaning Fee)
+  - ১৫% সৌদি ভ্যাট (15% VAT)
+  - সর্বমোট প্রদেয় মূল্য (Total SAR)
+  - Tabby / Tamara প্রতি মাসের কিস্তির হিসাব (যেমন: `﷼৪৬২ / মাস`)
+- **স্মার্ট লক ও স্বয়ংক্রিয় এক্সেস:** বুকিং কনফার্ম হওয়ার পর অতিথির WhatsApp ও SMS-এ চেক-ইনের ডিজিটাল পিন কোড পৌঁছানো।
+- **গেস্ট রিভিউ ও স্কোরবোর্ড:** পরিচ্ছন্নতা (Cleanliness), লোকেশন (Location), হোস্ট কমিউনিকেশন (Host Communication) এবং ভ্যালু ফর মানি (Value) অনুযায়ী আলাদা রেটিং।
+
+---
+
+## ৬. হোস্ট অনবোর্ডিং ও গ্যাথার্ন বিজনেস পোর্টাল (Gathern Business Flow)
+
+হোস্টদের জন্য সম্পূর্ণ ৭-ধাপের অনবোর্ডিং ও প্রোপার্টি লিস্টিং সিস্টেম:
+
+```mermaid
+flowchart LR
+    Step1["১. লোকেশন ও শহর"] --> 
+    Step2["২. প্রোপার্টি ক্যাটাগরি"] --> 
+    Step3["৩. রুম ও ক্যাপাসিটি"] --> 
+    Step4["৪. সুযোগ-সুবিধা"] --> 
+    Step5["৫. ফটো আপলোড"] --> 
+    Step6["৬. প্রাইস ও ক্যালেন্ডার"] --> 
+    Step7["৭. লাইসেন্স KYC ভেরিফিকেশন"]
+```
+
+1. **ধাপ ১: লোকেশন ও ঠিকানা:** গুগল ম্যাপ পিন, শহর, জেলা ও ল্যান্ডমার্ক।
+2. **ধাপ ২: প্রোপার্টির ধরণ:** শ্যালে, ভিলা, ফার্ম, ক্যাম্প, অথবা পেন্টহাউস।
+3. **ধাপ ৩: স্পেসিফিকেশন:** বেডরুম সংখ্যা, বাথরুম, বেড সাইজ এবং সর্বোচ্চ অতিথি ধারণক্ষমতা।
+4. **ধাপ ৪: সুযোগ-সুবিধা টিকলিস্ট:** সুইমিং পুলের সাইজ, জ্যাকিউজি, কিচেন, মজলিস, স্মার্ট লক ইত্যাদি।
+5. **ধাপ ৫: ছবি আপলোড:** ড্র্যাগ-অ্যান্ড-ড্রপ মাল্টিপল ফটো আপলোড (Supabase Storage Bucket)।
+6. **ধাপ ৬: ক্যালেন্ডার ও প্রাইসিং:** সাধারণ দিনের ভাড়া, উইকেন্ড (বৃহস্পতি-শুক্রবার) ভাড়া এবং ব্লকড ডেটস।
+7. **ধাপ ৭: হোস্ট কেওয়াইসি ও পর্যটন লাইসেন্স:** জাতীয় পরিচয়পত্র (Iqama/National ID), সৌদি পর্যটন মন্ত্রণালয় লাইসেন্স নং এবং পে-আউটের জন্য সৌদি IBAN ব্যাংক অ্যাকাউন্ট।
+
+---
+
+## ৭. সুসংহত Supabase ডাটাবেস আর্কিটেকচার (Unified Schema)
+
+```mermaid
+erDiagram
+    PROFILES ||--o{ PROPERTIES : "owns/hosts"
+    PROFILES ||--o{ BOOKINGS : "books"
+    PROFILES ||--o{ REVIEWS : "writes"
+    PROPERTIES ||--o{ BOOKINGS : "receives"
+    PROPERTIES ||--o{ REVIEWS : "rated"
+    BOOKINGS ||--|| PAYMENTS : "settled_via"
+
+    PROFILES {
+        uuid id PK
+        string full_name
+        string phone
+        enum role "guest | host | admin"
+        enum host_status "none | pending | verified | suspended"
+        string tourism_license_no
+        string national_id
+        string iban_number
+        timestamp created_at
+    }
+
+    PROPERTIES {
+        uuid id PK
+        uuid host_id FK
+        string title
+        enum category "chalet | villa | farm | camp | penthouse"
+        string city
+        string district
+        decimal base_price
+        decimal weekend_price
+        decimal monthly_discount_pct
+        int bedrooms
+        int bathrooms
+        int max_guests
+        string[] features
+        string[] images
+        boolean instant_book
+        boolean has_pool
+        boolean self_checkin
+        boolean is_licensed
+        boolean is_approved
+    }
+
+    BOOKINGS {
+        uuid id PK
+        uuid property_id FK
+        uuid guest_id FK
+        date check_in
+        date check_out
+        enum rental_type "daily | monthly"
+        int total_nights
+        int guest_count
+        decimal total_price
+        enum status "pending | confirmed | cancelled | completed"
+        string smart_lock_pin
+    }
+
+    PAYMENTS {
+        uuid id PK
+        uuid booking_id FK
+        decimal amount
+        enum method "mada | visa | tabby | tamara | apple_pay"
+        enum status "initiated | success | failed | refunded"
+        string transaction_ref
+    }
 ```
 
 ---
 
-## ৩. সুপারবেস ডাটাবেস ও ইউজার আর্কিটেকচার (Supabase Schema & SQL)
+## ৮. বাস্তবায়ন রোডম্যাপ (Implementation Phases)
 
-সুপারবেসে `auth.users` টেবিলটি ডিফল্ট থাকে। আমরা একটি পাবলিক `profiles` টেবিল তৈরি করব যা ইউজার তৈরি হওয়ার সাথে সাথে অটোমেটিক ট্রিগারের মাধ্যমে ডেটা সংরক্ষণ করবে।
+### 🔹 ধাপ ১: লোকাল ভেরিফিকেশন ও সার্চ সিস্টেম (সম্পন্ন ✅)
+- নেভিগেশন বার রিডিজাইন (Gathern + রেফারেন্স স্টাইল অনুযায়ী ফুল-উইডথ)।
+- ডার্ক ও লাইট থিমের সম্পূর্ণ ফাংশনালিটি ও লোকালস্টোরেজ পারসিস্টেন্স।
+- ইন্টারেক্টিভ ও ফ্লেক্সিবল সার্চ মোডাল (`SearchModal.tsx`) চালু—ডেইলি/মান্থলি রেন্ট, সিটি ও ক্যাটাগরি ফিল্টার এবং লাইভ সার্চ রেজাল্ট সহ।
+- লোকাল ডেভেলপমেন্ট সার্ভার সক্রিয় (`http://localhost:3000`)।
 
-### ৩.১ ইউজার রোলস (User Roles)
-1. **`guest`**: সাধারণ ব্যবহারকারী (বুকিং, উইশলিস্ট, রিভিউ)।
-2. **`host`**: প্রোপার্টির মালিক (লিস্টিং তৈরি, ক্যালেন্ডার ম্যানেজ, আয় হিসাব)।
-3. **`admin`**: সুপার অ্যাডমিন (হোস্ট লাইসেন্স ভেরিফিকেশন, প্ল্যাটফর্ম মনিটরিং)।
+### 🔹 ধাপ ২: প্রোপার্টি ডিটেইলস ডাইনামিক পেজ (`/properties/[id]`)
+- Gathern স্টাইলের ফটো গ্যালারি ভিউয়ার।
+- ক্যালেন্ডার ডেট-পিকার সহ লাইভ প্রাইস ক্যালকুলেটর (ট্যাক্স + Tabby ৪ কিস্তির হিসাব)।
+- হোস্ট ইনফো ও লাইসেন্স ব্যাজ ডিসপ্লে।
 
-### ৩.২ Supabase SQL Editor-এ রান করার জন্য প্রস্তুত স্ক্রিপ্ট
+### 🔹 ধাপ ৩: হোস্ট পোর্টাল ও প্রোপার্টি লিস্টিং উইজার্ড (Gathern Business)
+- ৭-স্টেপ প্রোপার্টি সাবমিশন ফর্ম।
+- ছবি আপলোড (Supabase Storage Bucket Integration)।
+- হোস্ট ড্যাশবোর্ড (প্রোপার্টি এডিট, ক্যালেন্ডার ডেট লক/আনলক ও আয় হিসাব)।
 
-```sql
--- ১. ইউজার রোলস এর জন্য ENUM তৈরি
-CREATE TYPE user_role AS ENUM ('guest', 'host', 'admin');
-CREATE TYPE host_status AS ENUM ('none', 'pending', 'verified', 'suspended');
+### 🔹 ধাপ ৪: বুকিং চেকআউট ও পেমেন্ট ইন্টিগ্রেশন
+- চেকআউট পেজ (Mada, Apple Pay, Tabby/Tamara)।
+- বুকিং কনফার্মেশন ও ডিজিটাল স্মার্ট লক পিন অটো-জেনারেটর।
+- গেস্ট ড্যাশবোর্ড (মাই বুকিংস, ইনভয়েস ও উইশলিস্ট)।
 
--- ২. পাবলিক প্রোফাইল টেবিল
-CREATE TABLE public.profiles (
-  id UUID REFERENCES auth.users(id) ON DELETE CASCADE PRIMARY KEY,
-  full_name TEXT,
-  phone TEXT,
-  role user_role DEFAULT 'guest'::user_role NOT NULL,
-  host_status host_status DEFAULT 'none'::host_status NOT NULL,
-  tourism_license_no TEXT,
-  national_id TEXT,
-  avatar_url TEXT,
-  created_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now()) NOT NULL,
-  updated_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now()) NOT NULL
-);
-
--- ৩. Row Level Security (RLS) সক্রিয়করণ
-ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
-
--- ইউজার শুধু নিজের প্রোফাইল দেখতে ও এডিট করতে পারবে
-CREATE POLICY "Public profiles are viewable by authenticated users" 
-ON public.profiles FOR SELECT USING (true);
-
-CREATE POLICY "Users can update own profile" 
-ON public.profiles FOR UPDATE USING (auth.uid() = id);
-
--- ৪. স্বয়ংক্রিয় প্রোফাইল তৈরি করার ট্রিগার (যখন নতুন ইউজার সাইন আপ করবে)
-CREATE OR REPLACE FUNCTION public.handle_new_user()
-RETURNS TRIGGER AS $$
-BEGIN
-  INSERT INTO public.profiles (id, full_name, role, host_status)
-  VALUES (
-    NEW.id,
-    NEW.raw_user_meta_data->>'full_name',
-    COALESCE((NEW.raw_user_meta_data->>'role')::user_role, 'guest'::user_role),
-    CASE 
-      WHEN NEW.raw_user_meta_data->>'role' = 'host' THEN 'pending'::host_status
-      ELSE 'none'::host_status
-    END
-  );
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-
-CREATE OR REPLACE TRIGGER on_auth_user_created
-  AFTER INSERT ON auth.users
-  FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
-
--- ৫. প্রোপার্টি টেবিল (ভবিষ্যতে হোস্টের রিয়েল লিস্টিংয়ের জন্য)
-CREATE TABLE public.properties (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  host_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
-  title TEXT NOT NULL,
-  category TEXT NOT NULL, -- 'chalet', 'villa', 'farm', 'camp', 'penthouse'
-  city TEXT NOT NULL,     -- 'riyadh', 'jeddah', 'alula', etc.
-  specs TEXT,
-  base_price DECIMAL NOT NULL,
-  images TEXT[] DEFAULT '{}',
-  features TEXT[] DEFAULT '{}',
-  instant_book BOOLEAN DEFAULT false,
-  has_pool BOOLEAN DEFAULT false,
-  self_checkin BOOLEAN DEFAULT false,
-  is_approved BOOLEAN DEFAULT false,
-  created_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now()) NOT NULL
-);
-
-ALTER TABLE public.properties ENABLE ROW LEVEL SECURITY;
-
--- যেকেউ অনুমোদিত প্রোপার্টি দেখতে পারবে
-CREATE POLICY "Approved properties are viewable by everyone" 
-ON public.properties FOR SELECT USING (is_approved = true OR auth.uid() = host_id);
-
--- কেবল ভেরিফায়েড হোস্ট নতুন প্রোপার্টি ইনসার্ট করতে পারবে
-CREATE POLICY "Verified hosts can create properties" 
-ON public.properties FOR INSERT 
-WITH CHECK (
-  auth.uid() = host_id AND 
-  EXISTS (
-    SELECT 1 FROM public.profiles 
-    WHERE id = auth.uid() AND (role = 'host' OR role = 'admin')
-  )
-);
-```
-
----
-
-## ৪. ডেমো ডেটা ট্রানজিশন পলিসি (Demo Data Transition)
-
-ডেমো ডেটা মুছে ফেলা হবে না, এটি হবে **স্মার্ট ট্রানজিশন**:
-1. **Fallback Strategy:**
-   - যখন ডাটাবেস সম্পূর্ণ নতুন থাকবে, তখন অ্যাপ বর্তমান [`src/data/properties.ts`](file:///Volumes/APPLE%20SSD/Build/qafnest-next/src/data/properties.ts) থেকে ডেটা দেখাবে।
-2. **Database Seeding:**
-   - ডেমো ডাটাকে একটি সিড স্ক্রিপ্ট দিয়ে সুপারবেসে ইমপোর্ট করে রাখা যাবে, যাতে প্রথম থেকেই ডাটাবেস কার্যকর থাকে।
-3. **Real Host Insertion:**
-   - হোস্ট যখন লগইন করে নতুন কোনো লিস্টিং তৈরি করবে, সেটি সরাসরি ডাটাবেসে সেভ হবে এবং হোমপেজের ফিল্টারে যুক্ত হবে।
-4. **Admin Toggle:**
-   - পরবর্তীতে অ্যাডমিন সেটিংস থেকে এক ক্লিকেই "Show Demo Listings: Off" করা যাবে।
-
----
-
-## ৫. ক্রেডেনশিয়াল ম্যানেজমেন্ট ও নিরাপদ গিটহাব পুশ (GitHub & Security)
-
-গিটহাবে কোড পুশ করার সময় যেন কোনো গোপন তথ্য ফাঁস না হয়, তার সুনির্দিষ্ট প্রোটোকল:
-
-### ৫.১ ফাইল বিভাজন:
-- **`.env.local`**: এতে থাকবে আপনার মূল Supabase API Keys। এই ফাইলটি গিটহাবে **কখনোই আপলোড হবে না** (এটি `.gitignore`-এ যুক্ত আছে)।
-- **`.env.example`**: এতে ডামি ভ্যালু থাকবে, যাতে প্রজেক্ট ক্লোন করলে যেকেউ বুঝতে পারে কোন কোন কি (Keys) লাগবে।
-
-### ৫.২ গিটহাব পুশ সিকোয়েন্স:
-```bash
-# ১. গিট স্ট্যাটাস চেক
-git status
-
-# ২. নিশ্চিত হওয়া যে .env.local ফাইলে কোনো কী কমিট হচ্ছে না
-# ৩. পরিবর্তনগুলো স্টেজ ও কমিট করা
-git add .
-git commit -m "feat: complete master plan, supabase schema and env setup"
-
-# ৪. গিটহাব রিমোট যুক্ত করা (যদি এখনো না করা থাকে)
-git remote add origin https://github.com/YOUR_USERNAME/qafnest-next.git
-git branch -M main
-
-# ৫. গিটহাবে পুশ
-git push -u origin main
-```
-
----
-
-## ৬. ভারসেল লাইভ ডেপ্লয়মেন্ট গাইড (Vercel Live Deployment)
-
-1. [vercel.com](https://vercel.com)-এ লগইন করুন এবং **Add New Project** বাটনে ক্লিক করুন।
-2. আপনার GitHub অ্যাকাউন্ট কানেক্ট করে `qafnest-next` রিপোজিটরিটি **Import** করুন।
-3. **Environment Variables** সেকশনে নিচের তিনটি ভ্যালু দিন:
-   - `NEXT_PUBLIC_SUPABASE_URL` = `https://your-project.supabase.co`
-   - `NEXT_PUBLIC_SUPABASE_ANON_KEY` = `your-anon-key`
-   - `SUPABASE_SERVICE_ROLE_KEY` = `your-service-role-key` (ঐচ্ছিক/সার্ভার সাইড ব্যবহারের জন্য)
-4. **Deploy** বাটনে ক্লিক করুন। ২ মিনিটের মধ্যে আপনার ওয়েবসাইট লাইভ ইউআরএল (যেমন: `qafnest.vercel.app`)-এ চালু হয়ে যাবে!
-
----
-
-## ৭. সম্পূর্ণ বাস্তবায়ন রোডম্যাপ (Step-by-Step Roadmap)
-
-```
-[Phase 1: Setup & Deploy] ──► [Phase 2: Auth & Profiles] ──► [Phase 3: Host Portal]
-           │                                │                              │
-           ▼                                ▼                              ▼
-Supabase Project + Keys             Guest & Host Login             Add/Edit Properties
-Git Push & Vercel Live              Role Middleware & Guard         Storage & KYC Upload
-           │                                │                              │
-           ▼                                ▼                              ▼
-[Phase 4: Dynamic Pages]  ──► [Phase 5: Payments]        ──► [Phase 6: Admin Audit]
-           │                                │                              │
-Property Details (/id)              Tabby, Tamara, Mada            Host Approval Panel
-Booking Calendar Locking            Instant SMS/WhatsApp           Final Production Launch
-```
-
-### 🔹 ফেজ ১: সুপারবেস সেটআপ ও লাইভ ডেপ্লয়মেন্ট (বর্তমান ধাপ)
-- সুপারবেস প্রোজেক্ট ওপেন করে URL ও Anon Key সংগ্রহ।
-- `.env.local` কনফিগারেশন।
-- `@supabase/ssr` ও `@supabase/supabase-js` লাইব্রেরি ইন্সটলেশন।
-- গিটহাবে পুশ এবং ভারসেলে লাইভ করা।
-
-### 🔹 ফেজ ২: অথেন্টিকেশন ও ইউজার সিস্টেম (Guest & Host)
-- ইউনিফাইড সাইন-ইন ও সাইন-আপ মোডাল/পেজ তৈরি।
-- হোস্ট রেজিস্ট্রেশনের জন্য পৃথক অনবোর্ডিং (ট্যুরিজম লাইসেন্স ফিল্ড সহ)।
-- Next.js Middleware তৈরি করে হোস্ট রুট প্রটেক্ট করা (`/dashboard/host/*`)।
-
-### 🔹 ফেজ ৩: হোস্ট প্রোপার্টি লিস্টিং ও সুপারবেস স্টোরেজ
-- হোস্টদের জন্য নতুন প্রোপার্টি যোগ করার মাল্টিপল-স্টেপ ফর্ম।
-- প্রোপার্টির ছবি আপলোডের জন্য Supabase Storage Bucket সেটআপ।
-- লিস্টিং এডিট এবং প্রাইস ম্যানেজমেন্ট ড্যাশবোর্ড।
-
-### 🔹 ফেজ ৪: ডাইনামিক প্রোপার্টি ও বুকিং ইঞ্জিন
-- `/properties/[id]` ডাইনামিক পেজ তৈরি (ফটো গ্যালারি, সুবিধা, হোস্ট ডিটেইলস)।
-- লাইভ বুকিং ক্যালেন্ডার (বুক করা ডেট স্বয়ংক্রিয় লক হয়ে যাওয়া)।
-- প্রাইস সামারি ও ট্যাক্স ক্যালকুলেটর।
-
-### 🔹 ফেজ ৫: পেমেন্ট গেটওয়ে ও কনফার্মেশন অটোমেশন
-- সৌদি পেমেন্ট গেটওয়ে (Mada, Apple Pay, Tabby/Tamara) ওয়েব-হুক ইন্টিগ্রেশন।
-- পেমেন্ট কনফার্মেশনের পর স্বয়ংক্রিয় স্মার্ট লক পিন প্রদান ও মেসেজিং।
-
-### 🔹 ফেজ ৬: সুপার অ্যাডমিন ও প্রোডাকশন হার্ডেনিং
-- অ্যাডমিনদের জন্য হোস্ট লাইসেন্স ও লিস্টিং রিভিউ ড্যাশবোর্ড।
-- সিকিউরিটি হেডার্স ও রেট লিমিটিং পলিসি ফাইনাল অডিট।
+### 🔹 ধাপ ৫: সুপার অ্যাডমিন মডারেশন ও ফাইনাল প্রোডাকশন
+- অ্যাডমিন প্যানেল: হোস্ট পর্যটন লাইসেন্স রিভিউ ও লিস্টিং অ্যাপ্রুভাল।
+- ডিসপিউট ও প্ল্যাটফর্ম কমিশন ট্র্যাকিং।
+- ইউজার রিভিউ ও টেস্টিংয়ের পর অনুমতিক্রমে GitHub পুশ ও Vercel লাইভ ডিপ্লয়মেন্ট।

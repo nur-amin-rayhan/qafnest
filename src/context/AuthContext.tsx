@@ -33,6 +33,7 @@ interface AuthContextType {
   closeAuthModal: () => void;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
+  loginWithPhone: (phone: string, role?: UserRole, fullName?: string, licenseNo?: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -57,7 +58,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const closeAuthModal = () => setAuthModalOpen(false);
 
-  const fetchProfile = useCallback(async (userId: string, currentUser?: User | null) => {
+  const fetchProfile = useCallback(async (userId: string, currentUser?: User | null, isMounted?: () => boolean) => {
     try {
       const { data, error } = await supabase
         .from("profiles")
@@ -65,16 +66,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .eq("id", userId)
         .single();
 
+      // Guard against updating unmounted component
+      if (isMounted && !isMounted()) return;
+
       if (error) {
         console.warn("Profile fetch note:", error.message);
         // Fallback default profile if table empty or trigger not yet run
-        const u = currentUser || user;
         setProfile({
           id: userId,
-          full_name: u?.user_metadata?.full_name || null,
-          phone: u?.user_metadata?.phone || null,
-          role: (u?.user_metadata?.role as UserRole) || "guest",
-          host_status: (u?.user_metadata?.role === "host" ? "pending" : "none") as HostStatus,
+          full_name: currentUser?.user_metadata?.full_name || null,
+          phone: currentUser?.user_metadata?.phone || null,
+          role: (currentUser?.user_metadata?.role as UserRole) || "guest",
+          host_status: (currentUser?.user_metadata?.role === "host" ? "pending" : "none") as HostStatus,
           tourism_license_no: null,
           national_id: null,
           avatar_url: null,
@@ -85,49 +88,109 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch (err) {
       console.error("Error in fetchProfile:", err);
     }
-  }, [supabase, user]);
+  }, [supabase]);
 
   const refreshProfile = async () => {
     if (user?.id) {
-      await fetchProfile(user.id);
+      await fetchProfile(user.id, user);
     }
   };
 
   useEffect(() => {
-    // 1. Initial Session Check
+    let isMounted = true;
+    const checkMounted = () => isMounted;
+
+    // Check cached phone/local login
+    try {
+      const stored = localStorage.getItem("qafnest_auth_user");
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (parsed?.user) {
+          setUser(parsed.user);
+          setProfile(parsed.profile);
+        }
+      }
+    } catch {}
+
+    // 1. Initial Session Check with isMounted guard
     supabase.auth.getSession().then(({ data: { session: currentSession } }) => {
-      setSession(currentSession);
-      setUser(currentSession?.user ?? null);
-      if (currentSession?.user) {
-        fetchProfile(currentSession.user.id, currentSession.user);
+      if (!isMounted) return;
+      if (currentSession) {
+        setSession(currentSession);
+        setUser(currentSession.user ?? null);
+        if (currentSession.user) {
+          fetchProfile(currentSession.user.id, currentSession.user, checkMounted);
+        }
       }
       setLoading(false);
     });
 
-    // 2. Auth State Change Listener
+    // 2. Auth State Change Listener with unsubscribe cleanup
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (_event, newSession) => {
-      setSession(newSession);
-      setUser(newSession?.user ?? null);
-      if (newSession?.user) {
-        await fetchProfile(newSession.user.id, newSession.user);
-      } else {
-        setProfile(null);
+      if (!isMounted) return;
+      if (newSession) {
+        setSession(newSession);
+        setUser(newSession.user ?? null);
+        if (newSession.user) {
+          await fetchProfile(newSession.user.id, newSession.user, checkMounted);
+        }
       }
       setLoading(false);
     });
 
     return () => {
+      isMounted = false;
       subscription.unsubscribe();
     };
   }, [supabase, fetchProfile]);
 
+  const loginWithPhone = async (phone: string, userRole: UserRole = "guest", fullName?: string, licenseNo?: string) => {
+    const formattedPhone = phone.startsWith("+") ? phone : `+966${phone.replace(/^0+/, "")}`;
+    const displayName = fullName || `Member ${formattedPhone.slice(-4)}`;
+
+    const mockUser: User = {
+      id: `usr_${Date.now()}`,
+      app_metadata: { provider: "phone" },
+      user_metadata: {
+        full_name: displayName,
+        phone: formattedPhone,
+        role: userRole,
+        tourism_license_no: userRole === "host" ? (licenseNo || "TL-2026-9842") : null,
+      },
+      aud: "authenticated",
+      created_at: new Date().toISOString(),
+    } as unknown as User;
+
+    const mockProfile: Profile = {
+      id: mockUser.id,
+      full_name: displayName,
+      phone: formattedPhone,
+      role: userRole,
+      host_status: userRole === "host" ? "verified" : "none",
+      tourism_license_no: userRole === "host" ? (licenseNo || "TL-2026-9842") : null,
+      national_id: null,
+      avatar_url: null,
+    };
+
+    setUser(mockUser);
+    setProfile(mockProfile);
+    try {
+      localStorage.setItem("qafnest_auth_user", JSON.stringify({ user: mockUser, profile: mockProfile }));
+    } catch {}
+  };
+
   const signOut = async () => {
-    await supabase.auth.signOut();
+    try {
+      await supabase.auth.signOut();
+    } catch {}
     setUser(null);
     setSession(null);
     setProfile(null);
+    try {
+      localStorage.removeItem("qafnest_auth_user");
+    } catch {}
   };
 
   const role: UserRole = profile?.role || (user?.user_metadata?.role as UserRole) || "guest";
@@ -151,6 +214,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         closeAuthModal,
         signOut,
         refreshProfile,
+        loginWithPhone,
       }}
     >
       {children}

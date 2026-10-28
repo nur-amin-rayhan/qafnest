@@ -8,23 +8,13 @@ import BackToTop from "@/components/common/BackToTop";
 import Navbar from "@/components/common/Navbar";
 import Hero from "@/components/home/Hero";
 import Destinations from "@/components/home/Destinations";
-import CategoryPills from "@/components/home/CategoryPills";
-import PropertiesGrid from "@/components/home/PropertiesGrid";
-import LastMinuteDeals from "@/components/home/LastMinuteDeals";
-import LifestyleCollections from "@/components/home/LifestyleCollections";
-import Guarantee from "@/components/home/Guarantee";
-import HostPortal from "@/components/home/HostPortal";
-import Amenities from "@/components/home/Amenities";
-import Reviews from "@/components/home/Reviews";
-import AppDownload from "@/components/home/AppDownload";
-import TravelStories from "@/components/home/TravelStories";
-import FaqAccordion from "@/components/home/FaqAccordion";
-import SafePayments from "@/components/home/SafePayments";
+import PropertyListingSections from "@/components/home/PropertyListingSections";
 import Footer from "@/components/common/Footer";
 import BookingModal from "@/components/modals/BookingModal";
 import HostModal from "@/components/modals/HostModal";
 import AppModal from "@/components/modals/AppModal";
 import AuthModal from "@/components/modals/AuthModal";
+import SearchModal from "@/components/modals/SearchModal";
 
 export default function Home() {
   return (
@@ -43,44 +33,11 @@ export default function Home() {
           {/* Hero Section & Multi-Search Bar */}
           <Hero />
 
-          {/* Explore by Destination */}
+          {/* A Place to Stay Wherever You Go - Circular Destinations */}
           <Destinations />
 
-          {/* Category Pills Bar */}
-          <CategoryPills />
-
-          {/* Featured Properties Grid */}
-          <PropertiesGrid />
-
-          {/* Last-Minute Deals & Weekend Getaways */}
-          <LastMinuteDeals />
-
-          {/* Book Your Second Home - Curated Collections */}
-          <LifestyleCollections />
-
-          {/* What Can We Do For You? (The QafNest Guarantee) */}
-          <Guarantee />
-
-          {/* Host Portal & Earnings Calculator */}
-          <HostPortal />
-
-          {/* Resort Amenities & Experiences */}
-          <Amenities />
-
-          {/* Voices of Our Guests */}
-          <Reviews />
-
-          {/* Download QafNest Mobile App & Smart Digital Lock */}
-          <AppDownload />
-
-          {/* Discover Saudi Arabia Travel Stories */}
-          <TravelStories />
-
-          {/* Frequently Asked Questions Accordion */}
-          <FaqAccordion />
-
-          {/* Certified Safe Payment Methods */}
-          <SafePayments />
+          {/* Gathern-style Horizontal Property Sections up to Footer */}
+          <PropertyListingSections />
         </main>
 
         {/* Floating Back to Top Button */}
@@ -94,6 +51,7 @@ export default function Home() {
         <HostModal />
         <AppModal />
         <AuthModal />
+        <SearchModal />
       </AppProvider>
     </AuthProvider>
   );

@@ -9,7 +9,7 @@ import {
 import { useApp } from "@/context/AppContext";
 
 export default function Footer() {
-  const { setSelectedCategory, setSelectedCity } = useApp();
+  const { setSelectedCategory, setSelectedCity, language, t } = useApp();
 
   const handleCategoryClick = (cat: string) => {
     setSelectedCategory(cat);
@@ -26,26 +26,26 @@ export default function Footer() {
   return (
     <footer id="contact" className="py-16 border-t border-violet-400/10 relative overflow-hidden bg-surface/[0.02]">
       <div className="max-w-7xl mx-auto px-5 sm:px-8">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-12 pb-14 border-b border-white/5">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-12 pb-14 border-b border-gray-200 dark:border-white/5">
           {/* Brand Info & Official Regulation */}
           <div className="md:col-span-1">
             <div className="flex items-center gap-3 mb-4">
               <div className="h-9 w-9 rounded-full bg-gradient-to-tr from-violet-700 to-fuchsia-400 flex items-center justify-center font-display font-bold text-white">
                 Q
               </div>
-              <span className="font-display text-xl font-bold tracking-tight text-fg">
+              <span className="font-display text-xl font-bold tracking-tight text-gray-900 dark:text-white">
                 QAF<span className="text-gradient">NEST</span>
               </span>
             </div>
-            <p className="text-muted/70 text-xs font-light leading-relaxed mb-4">
-              Saudi Arabia&apos;s licensed peer-to-peer vacation rental and luxury stays platform. Officially regulated by the Ministry of Tourism.
+            <p className="text-gray-600 dark:text-muted/70 text-xs font-light leading-relaxed mb-4">
+              {t.footer.desc}
             </p>
             <div className="space-y-1.5 mb-4">
-              <span className="inline-flex items-center gap-1.5 text-[11px] text-emerald-400 font-semibold glass px-3 py-1 rounded-full">
-                <Award className="w-3.5 h-3.5" /> License No. 73102999
+              <span className="inline-flex items-center gap-1.5 text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold glass px-3 py-1 rounded-full border border-emerald-500/20">
+                <Award className="w-3.5 h-3.5" /> {t.footer.license}
               </span>
-              <span className="block text-[10px] text-muted/60 pl-2">
-                Ministry of Tourism Approved · CR 1010648921
+              <span className="block text-[10px] text-gray-500 dark:text-muted/60 pl-2 rtl:pr-2 rtl:pl-0">
+                {t.footer.cr}
               </span>
             </div>
             <div className="flex items-center gap-3 text-muted">
@@ -81,56 +81,57 @@ export default function Footer() {
 
           {/* Property Categories */}
           <div>
-            <h4 className="font-display text-sm font-bold text-fg uppercase tracking-wider mb-4">
-              Explore Categories
+            <h4 className="font-display text-sm font-bold text-gray-900 dark:text-white uppercase tracking-wider mb-4">
+              {language === "ar" ? "أنواع الإقامات" : "Explore Categories"}
             </h4>
-            <ul className="space-y-2.5 text-xs text-muted/70">
+            <ul className="space-y-2.5 text-xs text-gray-600 dark:text-muted/70">
               <li>
                 <button
                   onClick={() => handleCategoryClick("chalet")}
-                  className="hover:text-violet-300 transition-colors cursor-pointer text-left"
+                  className="hover:text-violet-600 dark:hover:text-violet-300 transition-colors cursor-pointer text-left rtl:text-right"
                 >
-                  Chalets & Resorts (شاليهات ومنتجعات)
+                  {language === "ar" ? "شاليهات ومنتجعات" : "Chalets & Resorts"}
                 </button>
               </li>
               <li>
                 <button
                   onClick={() => handleCategoryClick("villa")}
-                  className="hover:text-violet-300 transition-colors cursor-pointer text-left"
+                  className="hover:text-violet-600 dark:hover:text-violet-300 transition-colors cursor-pointer text-left rtl:text-right"
                 >
-                  Private Villas (فلل خاصة فاخرة)
+                  {language === "ar" ? "فلل خاصة فاخرة" : "Private Luxury Villas"}
                 </button>
               </li>
               <li>
                 <button
                   onClick={() => handleCategoryClick("farm")}
-                  className="hover:text-violet-300 transition-colors cursor-pointer text-left"
+                  className="hover:text-violet-600 dark:hover:text-violet-300 transition-colors cursor-pointer text-left rtl:text-right"
                 >
-                  Country Farms (مزارع واستراحات)
+                  {language === "ar" ? "مزارع واستراحات ريفية" : "Country Heritage Farms"}
                 </button>
               </li>
               <li>
                 <button
                   onClick={() => handleCategoryClick("camp")}
-                  className="hover:text-violet-300 transition-colors cursor-pointer text-left"
+                  className="hover:text-violet-600 dark:hover:text-violet-300 transition-colors cursor-pointer text-left rtl:text-right"
                 >
-                  Desert Camps (مخيمات وقباب فلكية)
+                  {language === "ar" ? "مخيمات وقباب صحراوية" : "Desert Camps & Domes"}
                 </button>
               </li>
               <li>
                 <button
                   onClick={() => handleCategoryClick("penthouse")}
-                  className="hover:text-violet-300 transition-colors cursor-pointer text-left"
+                  className="hover:text-violet-600 dark:hover:text-violet-300 transition-colors cursor-pointer text-left rtl:text-right"
                 >
-                  Sky Penthouses (بنتهاوس وشقق خاصة)
+                  {language === "ar" ? "شقق وبنتهاوس مخدومة" : "Sky Penthouses"}
                 </button>
               </li>
               <li>
                 <Link
-                  href="#deals"
-                  className="hover:text-fuchsia-300 transition-colors flex items-center gap-1"
+                  href="#properties"
+                  className="hover:text-fuchsia-400 transition-colors flex items-center gap-1"
                 >
-                  <Flame className="w-3 h-3 text-fuchsia-400" /> Last-Minute Offers (عروض اللحظة الأخيرة)
+                  <Flame className="w-3 h-3 text-fuchsia-400" />{" "}
+                  {language === "ar" ? "عروض اللحظة الأخيرة" : "Last-Minute Offers"}
                 </Link>
               </li>
             </ul>
@@ -138,56 +139,56 @@ export default function Footer() {
 
           {/* Popular Destinations */}
           <div>
-            <h4 className="font-display text-sm font-bold text-fg uppercase tracking-wider mb-4">
-              Top Destinations
+            <h4 className="font-display text-sm font-bold text-gray-900 dark:text-white uppercase tracking-wider mb-4">
+              {language === "ar" ? "أبرز الوجهات" : "Top Destinations"}
             </h4>
-            <ul className="space-y-2.5 text-xs text-muted/70">
+            <ul className="space-y-2.5 text-xs text-gray-600 dark:text-muted/70">
               <li>
                 <button
                   onClick={() => handleCityClick("riyadh")}
-                  className="hover:text-violet-300 transition-colors cursor-pointer text-left"
+                  className="hover:text-violet-600 dark:hover:text-violet-300 transition-colors cursor-pointer text-left rtl:text-right"
                 >
-                  Chalets in Riyadh (الرياض)
+                  {language === "ar" ? "شاليهات وفلل الرياض" : "Chalets in Riyadh"}
                 </button>
               </li>
               <li>
                 <button
                   onClick={() => handleCityClick("jeddah")}
-                  className="hover:text-violet-300 transition-colors cursor-pointer text-left"
+                  className="hover:text-violet-600 dark:hover:text-violet-300 transition-colors cursor-pointer text-left rtl:text-right"
                 >
-                  Villas in Jeddah (جدة وأبحر)
+                  {language === "ar" ? "منتجعات وفلل جدة" : "Villas in Jeddah"}
                 </button>
               </li>
               <li>
                 <button
                   onClick={() => handleCityClick("alula")}
-                  className="hover:text-violet-300 transition-colors cursor-pointer text-left"
+                  className="hover:text-violet-600 dark:hover:text-violet-300 transition-colors cursor-pointer text-left rtl:text-right"
                 >
-                  Glamping in AlUla (العلا)
+                  {language === "ar" ? "مخيمات وتجارب العلا" : "Glamping in AlUla"}
                 </button>
               </li>
               <li>
                 <button
                   onClick={() => handleCityClick("khobar")}
-                  className="hover:text-violet-300 transition-colors cursor-pointer text-left"
+                  className="hover:text-violet-600 dark:hover:text-violet-300 transition-colors cursor-pointer text-left rtl:text-right"
                 >
-                  Resorts in Al Khobar (الخبر والدمام)
+                  {language === "ar" ? "منتجعات وشاليهات الخبر" : "Resorts in Al Khobar"}
                 </button>
               </li>
               <li>
                 <button
                   onClick={() => handleCityClick("abha")}
-                  className="hover:text-violet-300 transition-colors cursor-pointer text-left"
+                  className="hover:text-violet-600 dark:hover:text-violet-300 transition-colors cursor-pointer text-left rtl:text-right"
                 >
-                  Mountain Chalets in Abha (أبها)
+                  {language === "ar" ? "أكواخ وضباب أبها" : "Mountain Chalets in Abha"}
                 </button>
               </li>
               <li>
                 <Link
                   href="#stories"
-                  className="hover:text-violet-300 transition-colors"
+                  className="hover:text-violet-600 dark:hover:text-violet-300 transition-colors"
                 >
-                  Saudi Travel Stories (مدونة السفر)
+                  {language === "ar" ? "قصص السفر واستكشاف المملكة" : "Saudi Travel Stories"}
                 </Link>
               </li>
             </ul>
@@ -195,57 +196,58 @@ export default function Footer() {
 
           {/* Direct VIP Concierge & Support */}
           <div>
-            <h4 className="font-display text-sm font-bold text-fg uppercase tracking-wider mb-4">
-              Support & Platform
+            <h4 className="font-display text-sm font-bold text-gray-900 dark:text-white uppercase tracking-wider mb-4">
+              {language === "ar" ? "الدعم والمنصة" : "Support & Platform"}
             </h4>
-            <ul className="space-y-2 text-xs text-muted/70 mb-4">
+            <ul className="space-y-2 text-xs text-gray-600 dark:text-muted/70 mb-4">
               <li>
-                <Link href="#faq" className="hover:text-violet-300 transition-colors">
-                  Customer FAQs (الأسئلة الشائعة)
+                <Link href="#faq" className="hover:text-violet-600 dark:hover:text-violet-300 transition-colors">
+                  {language === "ar" ? "الأسئلة الشائعة" : "Customer FAQs"}
                 </Link>
               </li>
               <li>
-                <Link href="#host" className="hover:text-violet-300 transition-colors">
-                  Host Portal (بوابة المضيفين)
+                <Link href="#host" className="hover:text-violet-600 dark:hover:text-violet-300 transition-colors">
+                  {language === "ar" ? "بوابة المضيفين" : "Host Portal"}
                 </Link>
               </li>
               <li>
-                <Link href="#app" className="hover:text-violet-300 transition-colors">
-                  Download QafNest App (تطبيق الجوال)
+                <Link href="#app" className="hover:text-violet-600 dark:hover:text-violet-300 transition-colors">
+                  {language === "ar" ? "تحميل تطبيق قف نست" : "Download QafNest App"}
                 </Link>
               </li>
               <li>
-                <Link href="#guarantee" className="hover:text-violet-300 transition-colors">
-                  Guest Protection Guarantee
+                <Link href="#guarantee" className="hover:text-violet-600 dark:hover:text-violet-300 transition-colors">
+                  {language === "ar" ? "ضمان حماية الضيوف" : "Guest Protection Guarantee"}
                 </Link>
               </li>
             </ul>
             <div className="glass rounded-2xl p-3 border border-violet-400/20">
-              <span className="text-[10px] uppercase font-bold text-violet-300 block mb-0.5">
-                24/7 Guest Assistance
+              <span className="text-[10px] uppercase font-bold text-violet-600 dark:text-violet-300 block mb-0.5">
+                {language === "ar" ? "خدمة الضيوف على مدار الساعة" : "24/7 Guest Assistance"}
               </span>
               <a
                 href="tel:+966559600576"
-                className="text-xs font-bold text-white hover:text-fuchsia-300 flex items-center gap-1.5 transition-colors"
+                className="text-xs font-bold text-gray-900 dark:text-white hover:text-fuchsia-500 flex items-center gap-1.5 transition-colors"
               >
-                <PhoneCall className="w-3 h-3 text-fuchsia-400" /> +966 55 960 0576
+                <PhoneCall className="w-3 h-3 text-fuchsia-500 shrink-0" />
+                <span dir="ltr">+966 55 960 0576</span>
               </a>
             </div>
           </div>
         </div>
 
         {/* Copyright & Legal Links */}
-        <div className="pt-6 flex flex-col sm:flex-row items-center justify-between text-xs text-muted/50 gap-4">
-          <p>© 2016-2026 QAFNEST Hospitality Platform. All rights reserved. Licensed by Ministry of Tourism.</p>
+        <div className="pt-6 flex flex-col sm:flex-row items-center justify-between text-xs text-gray-500 dark:text-muted/50 gap-4">
+          <p>{t.footer.rights}</p>
           <div className="flex items-center gap-6">
-            <a href="#" className="hover:text-fg transition-colors">
-              Terms of Use (شروط الاستخدام)
+            <a href="#" className="hover:text-gray-900 dark:hover:text-white transition-colors">
+              {language === "ar" ? "شروط الاستخدام" : "Terms of Use"}
             </a>
-            <a href="#" className="hover:text-fg transition-colors">
-              Privacy Policy (سياسة الخصوصية)
+            <a href="#" className="hover:text-gray-900 dark:hover:text-white transition-colors">
+              {language === "ar" ? "سياسة الخصوصية" : "Privacy Policy"}
             </a>
-            <a href="#" className="hover:text-fg transition-colors">
-              Host Terms (شروط المضيف)
+            <a href="#" className="hover:text-gray-900 dark:hover:text-white transition-colors">
+              {language === "ar" ? "شروط الاستضافة" : "Host Terms"}
             </a>
           </div>
         </div>

@@ -1,270 +1,825 @@
 "use client";
 
-import { useState } from "react";
-import { motion } from "framer-motion";
+import { useState, useEffect, useRef } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import {
-  MapPin,
-  Home,
-  Calendar,
-  Users,
   Search,
-  Zap,
-  Waves,
-  Key,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  Check,
+  Plus,
+  Minus,
 } from "lucide-react";
 import { useApp } from "@/context/AppContext";
-import MagneticButton from "@/components/ui/MagneticButton";
+import { CITY_NAMES_AR, CATEGORY_NAMES_AR } from "@/data/translations";
+
+// All Saudi Arabian Cities & Destinations
+const CITIES = [
+  { id: "all", name: "All Saudi Destinations" },
+  { id: "riyadh", name: "Riyadh" },
+  { id: "jeddah", name: "Jeddah" },
+  { id: "makkah", name: "Makkah" },
+  { id: "madinah", name: "Madinah" },
+  { id: "alula", name: "AlUla" },
+  { id: "khobar", name: "Al Khobar" },
+  { id: "dammam", name: "Dammam" },
+  { id: "alhafuf", name: "Alhafuf and alahsa" },
+  { id: "abha", name: "Abha" },
+  { id: "taif", name: "Taif" },
+  { id: "khamis-mushait", name: "Khamis Mushait" },
+  { id: "tabuk", name: "Tabuk" },
+  { id: "yanbu", name: "Yanbu" },
+  { id: "jubail", name: "Jubail" },
+  { id: "hail", name: "Hail" },
+  { id: "jazan", name: "Jazan" },
+  { id: "najran", name: "Najran" },
+  { id: "buraidah", name: "Buraidah" },
+  { id: "unaizah", name: "Unaizah" },
+  { id: "al-bahah", name: "Al Bahah" },
+  { id: "sakaka", name: "Sakaka" },
+  { id: "arar", name: "Arar" },
+  { id: "qatif", name: "Qatif" },
+  { id: "diriyah", name: "Diriyah" },
+  { id: "al-ammariyah", name: "Al-Ammariyah" },
+  { id: "umluj", name: "Umluj" },
+  { id: "al-wajh", name: "Al Wajh" },
+  { id: "hafar-al-batin", name: "Hafar Al-Batin" },
+  { id: "bisha", name: "Bisha" },
+  { id: "al-majmaah", name: "Al Majma'ah" },
+  { id: "sharurah", name: "Sharurah" },
+  { id: "dhurma", name: "Dhurma" },
+];
+
+// Property Types (exact names and icons from screenshot)
+const PROPERTY_TYPES = [
+  {
+    id: "all",
+    name: "Apartments, Studios, rooms, Villas",
+    icon: "🏠",
+  },
+  {
+    id: "chalet",
+    name: "Chalets, Istrahas and Resorts",
+    icon: "🏊",
+  },
+  {
+    id: "farm",
+    name: "Farms",
+    icon: "🌾",
+  },
+  {
+    id: "camp",
+    name: "Camps",
+    icon: "⛺",
+  },
+  {
+    id: "penthouse",
+    name: "Serviced Apartments",
+    icon: "🏢",
+  },
+];
+
+const MONTH_NAMES = [
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
+];
+
+const DAY_NAMES = ["S", "M", "T", "W", "T", "F", "S"];
 
 export default function Hero() {
   const {
+    t,
+    language,
     selectedCity,
     setSelectedCity,
     selectedCategory,
     setSelectedCategory,
-    instantOnly,
-    setInstantOnly,
-    poolOnly,
-    setPoolOnly,
-    selfCheckinOnly,
-    setSelfCheckinOnly,
+    checkinDate,
+    setCheckinDate,
+    checkoutDate,
+    setCheckoutDate,
+    guestsCount,
+    setGuestsCount,
   } = useApp();
 
-  const [checkin, setCheckin] = useState("2026-10-28");
-  const [checkout, setCheckout] = useState("2026-10-30");
-  const [guests, setGuests] = useState("4");
+  // Active dropdown: 'city' | 'type' | 'date' | 'guests' | null
+  const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
-  const handleSearch = (e: React.FormEvent) => {
+  // City search query inside dropdown
+  const [citySearch, setCitySearch] = useState("");
+
+  // Stepper counters for guests
+  const [adults, setAdults] = useState<number>(Math.max(1, guestsCount - 1));
+  const [children, setChildren] = useState<number>(1);
+
+  // Calendar view navigation state
+  const [viewDate, setViewDate] = useState<Date>(() => {
+    if (checkinDate) {
+      const [y, m, d] = checkinDate.split("-").map(Number);
+      return new Date(y, m - 1, d);
+    }
+    return new Date();
+  });
+
+  // Dynamic date helpers
+  const getTodayISO = () => {
+    const d = new Date();
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${y}-${m}-${day}`;
+  };
+
+  const getFutureISO = (daysAhead: number) => {
+    const d = new Date();
+    d.setDate(d.getDate() + daysAhead);
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${y}-${m}-${day}`;
+  };
+
+  // Initialize dates if empty
+  useEffect(() => {
+    if (!checkinDate) {
+      setCheckinDate(getFutureISO(1));
+    }
+    if (!checkoutDate) {
+      setCheckoutDate(getFutureISO(2));
+    }
+  }, [checkinDate, checkoutDate, setCheckinDate, setCheckoutDate]);
+
+  // Sync guests count
+  useEffect(() => {
+    setGuestsCount(adults + children);
+  }, [adults, children, setGuestsCount]);
+
+  // Format date like: "Wednesday, 28 October"
+  const formatSingleDate = (isoString: string) => {
+    if (!isoString) return "";
+    const [y, m, d] = isoString.split("-").map(Number);
+    const date = new Date(y, m - 1, d);
+    const weekday = date.toLocaleDateString("en-US", { weekday: "long" });
+    const day = date.getDate();
+    const month = date.toLocaleDateString("en-US", { month: "long" });
+    return `${weekday}, ${day} ${month}`;
+  };
+
+  // Date range display string for search bar
+  const dateRangeDisplay = () => {
+    if (!checkinDate) return "Select dates";
+    if (!checkoutDate) return `${formatSingleDate(checkinDate)} → Check-out`;
+    return `${formatSingleDate(checkinDate)} → ${formatSingleDate(checkoutDate)}`;
+  };
+
+  // Handle clicking outside to close popovers
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setActiveDropdown(null);
+      }
+    };
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setActiveDropdown(null);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, []);
+
+  // Calendar day click handler
+  const handleDayClick = (dayISO: string) => {
+    if (dayISO < getTodayISO()) return;
+
+    if (!checkinDate || (checkinDate && checkoutDate)) {
+      setCheckinDate(dayISO);
+      setCheckoutDate("");
+    } else if (checkinDate && !checkoutDate) {
+      if (dayISO > checkinDate) {
+        setCheckoutDate(dayISO);
+        setTimeout(() => setActiveDropdown(null), 250);
+      } else {
+        setCheckinDate(dayISO);
+        setCheckoutDate("");
+      }
+    }
+  };
+
+  // Submit search and scroll to properties
+  const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setActiveDropdown(null);
     const propertiesEl = document.getElementById("properties");
     if (propertiesEl) {
       propertiesEl.scrollIntoView({ behavior: "smooth" });
     }
   };
 
-  return (
-    <section id="top" className="relative pt-32 pb-6 lg:pt-36 lg:pb-8 overflow-hidden">
-      {/* Background Ambience */}
-      <div className="absolute inset-0 grid-bg opacity-30 pointer-events-none" />
-      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[400px] rounded-full bg-violet-600/15 blur-[140px] pointer-events-none" />
+  // Current selected display texts with Arabic mapping
+  const getCityLabel = (cityId: string, englishName: string) => {
+    if (language === "ar") {
+      return CITY_NAMES_AR[cityId] || englishName;
+    }
+    return englishName;
+  };
 
-      <div className="max-w-7xl mx-auto px-5 sm:px-8 relative z-10 text-center">
-        {/* Ministry License Badge */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-          className="inline-flex items-center gap-2 rounded-full glass px-4 py-1.5 text-xs font-semibold uppercase tracking-widest text-violet-300 mb-6 border border-violet-500/20 shadow-glow"
+  const getTypeLabel = (catId: string, englishName: string) => {
+    if (language === "ar") {
+      return CATEGORY_NAMES_AR[catId] || englishName;
+    }
+    return englishName;
+  };
+
+  const activeCityName =
+    selectedCity === "all"
+      ? (language === "ar" ? "الرياض" : "Riyadh")
+      : getCityLabel(selectedCity, CITIES.find((c) => c.id === selectedCity)?.name || "Riyadh");
+
+  const activeTypeName =
+    selectedCategory === "all"
+      ? (language === "ar" ? "جميع الوحدات" : "All Stays")
+      : getTypeLabel(selectedCategory, PROPERTY_TYPES.find((p) => p.id === selectedCategory)?.name || "All Stays");
+
+  const filteredCities = CITIES.filter((c) =>
+    c.name.toLowerCase().includes(citySearch.toLowerCase())
+  );
+
+  // Month rendering logic
+  const renderMonthCalendar = (year: number, month: number, isRightMonth = false) => {
+    const firstDayIndex = new Date(year, month, 1).getDay();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const today = getTodayISO();
+
+    const days = [];
+    for (let i = 0; i < firstDayIndex; i++) {
+      days.push(<div key={`empty-${i}`} className="h-8 w-8" />);
+    }
+
+    for (let d = 1; d <= daysInMonth; d++) {
+      const dayISO = `${year}-${String(month + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+      const isPast = dayISO < today;
+      const isCheckin = dayISO === checkinDate;
+      const isCheckout = dayISO === checkoutDate;
+      const isInRange =
+        checkinDate &&
+        checkoutDate &&
+        dayISO > checkinDate &&
+        dayISO < checkoutDate;
+
+      days.push(
+        <button
+          key={dayISO}
+          type="button"
+          disabled={isPast}
+          onClick={() => handleDayClick(dayISO)}
+          className={`h-8 w-8 sm:h-9 sm:w-9 text-xs sm:text-sm font-semibold rounded-full flex items-center justify-center transition-all ${
+            isPast
+              ? "text-gray-300 dark:text-gray-600 cursor-not-allowed"
+              : isCheckin || isCheckout
+              ? "bg-purple-700 text-white font-bold shadow-md cursor-pointer scale-105"
+              : isInRange
+              ? "bg-purple-100 dark:bg-purple-900/40 text-purple-900 dark:text-purple-200 rounded-none cursor-pointer"
+              : "text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-white/10 cursor-pointer"
+          }`}
         >
-          <span className="h-2 w-2 rounded-full bg-fuchsia-400 shadow-[0_0_10px_rgba(232,121,249,0.9)] animate-pulse" />
-          Officially Licensed by the Saudi Ministry of Tourism · ترخيص وزارة السياحة
+          {d}
+        </button>
+      );
+    }
+
+    return (
+      <div className="w-full sm:w-64">
+        {/* Month Header */}
+        <div className="flex items-center justify-between mb-4 px-2">
+          {!isRightMonth ? (
+            <button
+              type="button"
+              onClick={() =>
+                setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth() - 1, 1))
+              }
+              className="p-1 rounded-full hover:bg-gray-100 dark:hover:bg-white/10 text-gray-600 dark:text-gray-300 transition-colors cursor-pointer"
+              aria-label="Previous Month"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+          ) : (
+            <div className="w-6" />
+          )}
+
+          <h4 className="text-sm font-bold text-gray-900 dark:text-white">
+            {MONTH_NAMES[month]} {year}
+          </h4>
+
+          {isRightMonth ? (
+            <button
+              type="button"
+              onClick={() =>
+                setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 1))
+              }
+              className="p-1 rounded-full hover:bg-gray-100 dark:hover:bg-white/10 text-gray-600 dark:text-gray-300 transition-colors cursor-pointer"
+              aria-label="Next Month"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          ) : (
+            <div className="w-6" />
+          )}
+        </div>
+
+        {/* Days Header */}
+        <div className="grid grid-cols-7 gap-1 text-center mb-2">
+          {DAY_NAMES.map((name, idx) => (
+            <span
+              key={idx}
+              className="text-[11px] font-bold text-gray-400 dark:text-gray-500"
+            >
+              {name}
+            </span>
+          ))}
+        </div>
+
+        {/* Days Grid */}
+        <div className="grid grid-cols-7 gap-1 place-items-center">
+          {days}
+        </div>
+      </div>
+    );
+  };
+
+  const leftYear = viewDate.getFullYear();
+  const leftMonth = viewDate.getMonth();
+  const nextMonthDate = new Date(leftYear, leftMonth + 1, 1);
+  const rightYear = nextMonthDate.getFullYear();
+  const rightMonth = nextMonthDate.getMonth();
+
+  return (
+    <section id="top" className="relative z-40 pt-32 pb-10 lg:pt-36 lg:pb-14 overflow-visible">
+      {/* Background Ambience - Hardware optimized radial gradient without heavy GPU blur */}
+      <div className="absolute inset-0 grid-bg opacity-25 pointer-events-none" />
+      <div
+        className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[400px] rounded-full pointer-events-none"
+        style={{
+          background: "radial-gradient(circle, rgba(147, 51, 234, 0.18) 0%, rgba(168, 85, 247, 0.05) 50%, transparent 70%)",
+        }}
+      />
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-30 text-center">
+        {/* Ministry Badge */}
+        <motion.div
+          initial={{ opacity: 0, y: 15 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
+          className="inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-xs font-semibold uppercase tracking-widest text-violet-700 dark:text-violet-300 bg-violet-50 dark:bg-violet-950/40 mb-6 border border-violet-200 dark:border-violet-500/20"
+        >
+          <span className="h-2 w-2 rounded-full bg-violet-600 dark:bg-fuchsia-400 animate-pulse" />
+          {t.hero.badge}
         </motion.div>
 
-        {/* Hero Title with Staggered Word Reveals */}
-        <h1 className="font-display text-4xl sm:text-6xl lg:text-7xl font-bold tracking-tight text-fg max-w-4xl mx-auto leading-[1.1] mb-6">
+        {/* Hero Title */}
+        <h1 className="font-display text-4xl sm:text-6xl lg:text-7xl font-bold tracking-tight text-gray-900 dark:text-white max-w-4xl mx-auto leading-[1.1] mb-6">
           <motion.span
-            initial={{ opacity: 0, y: 30 }}
+            initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, delay: 0.15, ease: [0.22, 1, 0.36, 1] }}
+            transition={{ duration: 0.7, delay: 0.1 }}
             className="block"
           >
-            Feel at Home.
+            {t.hero.title1}
           </motion.span>
           <motion.span
-            initial={{ opacity: 0, y: 30 }}
+            initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, delay: 0.28, ease: [0.22, 1, 0.36, 1] }}
+            transition={{ duration: 0.7, delay: 0.2 }}
             className="block text-gradient font-serif italic font-normal"
           >
-            Stay Exceptional.
+            {t.hero.title2}
           </motion.span>
         </h1>
 
         {/* Hero Subtitle */}
         <motion.p
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.45, ease: [0.22, 1, 0.36, 1] }}
-          className="text-sm sm:text-base lg:text-lg text-muted/80 max-w-2xl mx-auto font-light leading-relaxed mb-10"
+          transition={{ duration: 0.6, delay: 0.3 }}
+          className="text-sm sm:text-base lg:text-lg text-gray-600 dark:text-white/80 max-w-2xl mx-auto font-light leading-relaxed mb-10"
         >
-          Book handpicked luxury chalets, private pool villas, country farms, and stargazing desert camps across Saudi Arabia with instant smart lock keyless check-in.
+          {t.hero.subtitle}
         </motion.p>
 
-        {/* Gathern Inspired Multi-Search Bar Engine */}
+        {/* ============================================================== */}
+        {/* GATHERN BENCHMARK SEARCH BAR (SIMPLE & CLEAN)                  */}
+        {/* ============================================================== */}
         <motion.div
-          initial={{ opacity: 0, y: 35, scale: 0.98 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          transition={{ duration: 0.8, delay: 0.6, ease: [0.22, 1, 0.36, 1] }}
-          className="max-w-6xl mx-auto relative z-20"
+          ref={containerRef}
+          initial={{ opacity: 0, y: 25 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.7, delay: 0.4 }}
+          className="max-w-6xl mx-auto relative z-50"
         >
-          <div className="glass-strong glow-border rounded-3xl p-4 sm:p-5 shadow-2xl border border-violet-400/20">
-            <form onSubmit={handleSearch} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 items-center">
-              {/* Destination City */}
-              <div className="glass rounded-2xl p-3 text-left border border-white/10 hover:border-violet-400/40 transition-colors">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-violet-300 block mb-1 flex items-center gap-1">
-                  <MapPin className="w-3 h-3 text-fuchsia-400" /> Destination
-                </label>
-                <select
-                  value={selectedCity}
-                  onChange={(e) => setSelectedCity(e.target.value)}
-                  className="w-full bg-transparent text-sm font-semibold text-fg focus:outline-none cursor-pointer"
+          <div className="bg-white dark:bg-[#0E0E1A] rounded-2xl sm:rounded-3xl shadow-[0_15px_45px_rgba(0,0,0,0.12)] border border-gray-200/80 dark:border-white/10 p-2 sm:p-2.5 relative z-50">
+            <form
+              onSubmit={handleSearchSubmit}
+              className="flex flex-col lg:flex-row lg:items-center text-left relative"
+            >
+              {/* ---------------------------------------------------- */}
+              {/* 1. CHOOSE A CITY (SINGLE LINE GUARANTEED)           */}
+              {/* ---------------------------------------------------- */}
+              <div
+                className={`relative flex-1 min-w-[190px] border-b lg:border-b-0 lg:border-r border-gray-200/80 dark:border-white/10 transition-all ${
+                  activeDropdown === "city" ? "z-50" : "z-10"
+                }`}
+              >
+                <button
+                  type="button"
+                  onClick={() =>
+                    setActiveDropdown(activeDropdown === "city" ? null : "city")
+                  }
+                  className="w-full px-4 py-3 sm:py-3.5 flex items-center justify-between text-left hover:bg-gray-50/60 dark:hover:bg-white/[0.04] rounded-xl transition-colors cursor-pointer"
                 >
-                  <option value="all" className="bg-gray-900 text-white">
-                    All Saudi Destinations (المملكة)
-                  </option>
-                  <option value="riyadh" className="bg-gray-900 text-white">
-                    Riyadh & Al-Ammariyah (الرياض)
-                  </option>
-                  <option value="jeddah" className="bg-gray-900 text-white">
-                    Jeddah & Obhur Creek (جدة وأبحر)
-                  </option>
-                  <option value="alula" className="bg-gray-900 text-white">
-                    AlUla Desert Valley (العلا)
-                  </option>
-                  <option value="khobar" className="bg-gray-900 text-white">
-                    Al Khobar & Dammam (الخبر والدمام)
-                  </option>
-                  <option value="abha" className="bg-gray-900 text-white">
-                    Abha & Asir Highlands (أبها وعسير)
-                  </option>
-                </select>
-              </div>
-
-              {/* Property Type */}
-              <div className="glass rounded-2xl p-3 text-left border border-white/10 hover:border-violet-400/40 transition-colors">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-violet-300 block mb-1 flex items-center gap-1">
-                  <Home className="w-3 h-3 text-fuchsia-400" /> Property Type
-                </label>
-                <select
-                  value={selectedCategory}
-                  onChange={(e) => setSelectedCategory(e.target.value)}
-                  className="w-full bg-transparent text-sm font-semibold text-fg focus:outline-none cursor-pointer"
-                >
-                  <option value="all" className="bg-gray-900 text-white">
-                    All Stay Types (جميع العقارات)
-                  </option>
-                  <option value="chalet" className="bg-gray-900 text-white">
-                    Chalets & Resorts (شاليهات)
-                  </option>
-                  <option value="villa" className="bg-gray-900 text-white">
-                    Private Villas (فلل خاصة)
-                  </option>
-                  <option value="farm" className="bg-gray-900 text-white">
-                    Country Farms (مزارع واستراحات)
-                  </option>
-                  <option value="camp" className="bg-gray-900 text-white">
-                    Desert Camps (مخيمات وقباب)
-                  </option>
-                  <option value="penthouse" className="bg-gray-900 text-white">
-                    Sky Penthouses (بنتهاوس)
-                  </option>
-                </select>
-              </div>
-
-              {/* Dates */}
-              <div className="glass rounded-2xl p-3 text-left border border-white/10 hover:border-violet-400/40 transition-colors">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-violet-300 block mb-1 flex items-center gap-1">
-                  <Calendar className="w-3 h-3 text-fuchsia-400" /> Check In & Out
-                </label>
-                <div className="flex items-center gap-1">
-                  <input
-                    type="date"
-                    value={checkin}
-                    onChange={(e) => setCheckin(e.target.value)}
-                    className="w-1/2 bg-transparent text-xs sm:text-sm font-semibold text-fg focus:outline-none cursor-pointer"
+                  <div className="min-w-0 pr-2 rtl:pr-0 rtl:pl-2">
+                    <span className="text-xs text-gray-500 dark:text-gray-400 font-medium block whitespace-nowrap">
+                      {t.hero.chooseCity}
+                    </span>
+                    <span className="text-sm sm:text-base font-bold text-gray-900 dark:text-white truncate block mt-0.5 whitespace-nowrap">
+                      {activeCityName}
+                    </span>
+                  </div>
+                  <ChevronDown
+                    className={`w-4 h-4 text-purple-700 dark:text-purple-400 shrink-0 transition-transform ${
+                      activeDropdown === "city" ? "rotate-180" : ""
+                    }`}
                   />
-                  <span className="text-white/30 text-xs">→</span>
-                  <input
-                    type="date"
-                    value={checkout}
-                    onChange={(e) => setCheckout(e.target.value)}
-                    className="w-1/2 bg-transparent text-xs sm:text-sm font-semibold text-fg focus:outline-none cursor-pointer"
-                  />
-                </div>
+                </button>
+
+                {/* City Dropdown Popover (All Saudi Cities List) */}
+                <AnimatePresence>
+                  {activeDropdown === "city" && (
+                    <motion.div
+                      data-lenis-prevent="true"
+                      initial={{ opacity: 0, y: 8, scale: 0.98 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 8, scale: 0.98 }}
+                      transition={{ duration: 0.15 }}
+                      className="absolute top-full mt-2.5 left-0 rtl:left-auto rtl:right-0 w-[calc(100vw-2.5rem)] sm:w-[380px] max-w-[400px] z-[100] rounded-3xl bg-white dark:bg-[#0E0E1A] shadow-[0_20px_50px_rgba(0,0,0,0.25)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.85)] border border-gray-200/80 dark:border-white/15 overflow-hidden"
+                    >
+                      {/* Search Input Header */}
+                      <div className="p-3.5 border-b border-gray-100 dark:border-white/10 sticky top-0 bg-white/95 dark:bg-[#0E0E1A]/95 backdrop-blur-md z-10">
+                        <div className="relative flex items-center">
+                          <Search className="w-4 h-4 text-gray-400 absolute left-3.5 rtl:left-auto rtl:right-3.5" />
+                          <input
+                            type="text"
+                            placeholder={t.hero.citySearchPlaceholder}
+                            value={citySearch}
+                            onChange={(e) => setCitySearch(e.target.value)}
+                            className="w-full pl-9 pr-3 rtl:pl-3 rtl:pr-9 py-2 text-xs sm:text-sm rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200/60 dark:border-white/10 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:border-purple-600"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Comprehensive Saudi City List with Isolated Smooth Scrolling */}
+                      <div
+                        data-lenis-prevent="true"
+                        onWheel={(e) => e.stopPropagation()}
+                        onTouchMove={(e) => e.stopPropagation()}
+                        className="dropdown-scroll max-h-80 p-2 space-y-0.5"
+                        style={{ overscrollBehavior: "contain" }}
+                      >
+                        {filteredCities.map((city) => {
+                          const isSelected = selectedCity === city.id;
+                          return (
+                            <button
+                              key={city.id}
+                              type="button"
+                              onClick={() => {
+                                setSelectedCity(city.id);
+                                setActiveDropdown(null);
+                              }}
+                              className="w-full px-4 py-2.5 rounded-xl text-left rtl:text-right text-sm font-semibold text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-white/5 flex items-center justify-between transition-colors cursor-pointer"
+                            >
+                              <span>{getCityLabel(city.id, city.name)}</span>
+                              {isSelected && (
+                                <Check className="w-4 h-4 text-purple-700 dark:text-purple-400 shrink-0" />
+                              )}
+                            </button>
+                          );
+                        })}
+                        {filteredCities.length === 0 && (
+                          <div className="p-4 text-center text-xs text-gray-400">
+                            No cities matching &quot;{citySearch}&quot;
+                          </div>
+                        )}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
 
-              {/* Guests Count */}
-              <div className="glass rounded-2xl p-3 text-left border border-white/10 hover:border-violet-400/40 transition-colors">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-violet-300 block mb-1 flex items-center gap-1">
-                  <Users className="w-3 h-3 text-fuchsia-400" /> Guests & Majlis
-                </label>
-                <select
-                  value={guests}
-                  onChange={(e) => setGuests(e.target.value)}
-                  className="w-full bg-transparent text-sm font-semibold text-fg focus:outline-none cursor-pointer"
+              {/* ---------------------------------------------------- */}
+              {/* 2. PROPERTY TYPE                                     */}
+              {/* ---------------------------------------------------- */}
+              <div
+                className={`relative flex-1 min-w-[210px] border-b lg:border-b-0 lg:border-r border-gray-200/80 dark:border-white/10 transition-all ${
+                  activeDropdown === "type" ? "z-50" : "z-10"
+                }`}
+              >
+                <button
+                  type="button"
+                  onClick={() =>
+                    setActiveDropdown(activeDropdown === "type" ? null : "type")
+                  }
+                  className="w-full px-4 py-3 sm:py-3.5 flex items-center justify-between text-left hover:bg-gray-50/60 dark:hover:bg-white/[0.04] rounded-xl transition-colors cursor-pointer"
                 >
-                  <option value="2" className="bg-gray-900 text-white">
-                    2 Guests (Couples)
-                  </option>
-                  <option value="4" className="bg-gray-900 text-white">
-                    4 - 6 Guests (Small Family)
-                  </option>
-                  <option value="8" className="bg-gray-900 text-white">
-                    8 - 12 Guests (Large Family)
-                  </option>
-                  <option value="15" className="bg-gray-900 text-white">
-                    15+ Guests (Event & Majlis)
-                  </option>
-                </select>
+                  <div className="min-w-0 pr-2 rtl:pr-0 rtl:pl-2">
+                    <span className="text-xs text-gray-500 dark:text-gray-400 font-medium block whitespace-nowrap">
+                      {t.hero.propertyType}
+                    </span>
+                    <span className="text-sm sm:text-base font-bold text-gray-900 dark:text-white truncate block mt-0.5 whitespace-nowrap">
+                      {activeTypeName}
+                    </span>
+                  </div>
+                  <ChevronDown
+                    className={`w-4 h-4 text-purple-700 dark:text-purple-400 shrink-0 transition-transform ${
+                      activeDropdown === "type" ? "rotate-180" : ""
+                    }`}
+                  />
+                </button>
+
+                {/* Property Type Popover (Matching Screenshot 2) */}
+                <AnimatePresence>
+                  {activeDropdown === "type" && (
+                    <motion.div
+                      data-lenis-prevent="true"
+                      initial={{ opacity: 0, y: 8, scale: 0.98 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 8, scale: 0.98 }}
+                      transition={{ duration: 0.15 }}
+                      className="absolute top-full mt-2.5 left-0 rtl:left-auto rtl:right-0 sm:left-auto lg:left-0 rtl:lg:left-auto rtl:lg:right-0 w-[calc(100vw-2.5rem)] sm:w-[360px] max-w-[380px] z-[100] rounded-3xl bg-white dark:bg-[#0E0E1A] shadow-[0_20px_50px_rgba(0,0,0,0.25)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.85)] border border-gray-200/80 dark:border-white/15 overflow-hidden"
+                    >
+                      {/* Header */}
+                      <div className="p-4 border-b border-gray-100 dark:border-white/10 text-center">
+                        <h3 className="font-bold text-base text-gray-900 dark:text-white">
+                          {t.hero.chooseUnitType}
+                        </h3>
+                      </div>
+
+                      {/* List */}
+                      <div
+                        data-lenis-prevent="true"
+                        onWheel={(e) => e.stopPropagation()}
+                        onTouchMove={(e) => e.stopPropagation()}
+                        className="dropdown-scroll max-h-80 p-2 space-y-1"
+                        style={{ overscrollBehavior: "contain" }}
+                      >
+                        {PROPERTY_TYPES.map((type) => {
+                          const isSelected = selectedCategory === type.id;
+                          return (
+                            <button
+                              key={type.id}
+                              type="button"
+                              onClick={() => {
+                                setSelectedCategory(type.id);
+                              }}
+                              className="w-full px-3.5 py-3 rounded-xl text-left rtl:text-right text-xs sm:text-sm font-semibold text-gray-800 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-white/5 flex items-center justify-between transition-colors cursor-pointer"
+                            >
+                              <div className="flex items-center gap-3">
+                                <span className="text-base">{type.icon}</span>
+                                <span>{getTypeLabel(type.id, type.name)}</span>
+                              </div>
+                              {isSelected && (
+                                <Check className="w-4 h-4 text-purple-700 dark:text-purple-400 shrink-0" />
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
+
+                      {/* Continue Button */}
+                      <div className="p-3 border-t border-gray-100 dark:border-white/10 text-center">
+                        <button
+                          type="button"
+                          onClick={() => setActiveDropdown(null)}
+                          className="text-xs font-bold uppercase tracking-wider text-purple-700 dark:text-purple-400 hover:underline cursor-pointer"
+                        >
+                          {language === "ar" ? "متابعة ←" : "CONTINUE >"}
+                        </button>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
 
-              {/* Search Submit Button */}
-              <div className="h-full flex items-center">
-                <MagneticButton
+              {/* ---------------------------------------------------- */}
+              {/* 3. CHECK-IN DATE (DUAL-MONTH CALENDAR)               */}
+              {/* ---------------------------------------------------- */}
+              <div
+                className={`relative flex-[1.4] min-w-[270px] border-b lg:border-b-0 lg:border-r border-gray-200/80 dark:border-white/10 transition-all ${
+                  activeDropdown === "date" ? "z-50" : "z-10"
+                }`}
+              >
+                <button
+                  type="button"
+                  onClick={() =>
+                    setActiveDropdown(activeDropdown === "date" ? null : "date")
+                  }
+                  className="w-full px-4 py-3 sm:py-3.5 flex items-center justify-between text-left hover:bg-gray-50/60 dark:hover:bg-white/[0.04] rounded-xl transition-colors cursor-pointer"
+                >
+                  <div className="min-w-0 pr-2 rtl:pr-0 rtl:pl-2">
+                    <span className="text-xs text-gray-500 dark:text-gray-400 font-medium block whitespace-nowrap">
+                      {t.hero.checkInDate}
+                    </span>
+                    <span className="text-xs sm:text-sm font-bold text-gray-900 dark:text-white truncate block mt-0.5 whitespace-nowrap">
+                      {dateRangeDisplay()}
+                    </span>
+                  </div>
+                  <ChevronDown
+                    className={`w-4 h-4 text-purple-700 dark:text-purple-400 shrink-0 transition-transform ${
+                      activeDropdown === "date" ? "rotate-180" : ""
+                    }`}
+                  />
+                </button>
+
+                {/* Calendar Popover (Matching Screenshot 3) */}
+                <AnimatePresence>
+                  {activeDropdown === "date" && (
+                    <motion.div
+                      data-lenis-prevent="true"
+                      initial={{ opacity: 0, y: 8, scale: 0.98 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 8, scale: 0.98 }}
+                      transition={{ duration: 0.15 }}
+                      className="absolute top-full mt-2.5 left-1/2 -translate-x-1/2 lg:left-auto lg:right-0 rtl:lg:right-auto rtl:lg:left-0 lg:translate-x-0 w-[calc(100vw-2rem)] sm:w-auto max-w-[680px] z-[100] rounded-3xl bg-white dark:bg-[#0E0E1A] shadow-[0_20px_50px_rgba(0,0,0,0.25)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.85)] border border-gray-200/80 dark:border-white/15 p-4 sm:p-5 overflow-hidden"
+                    >
+                      <div className="flex flex-col sm:flex-row gap-6">
+                        {renderMonthCalendar(leftYear, leftMonth, false)}
+                        <div className="hidden sm:block w-px bg-gray-100 dark:bg-white/10" />
+                        <div className="hidden sm:block">
+                          {renderMonthCalendar(rightYear, rightMonth, true)}
+                        </div>
+                      </div>
+
+                      <div className="mt-4 pt-3 border-t border-gray-100 dark:border-white/10 flex items-center justify-between text-xs text-gray-500">
+                        <span>{t.hero.calendarHelp}</span>
+                        <button
+                          type="button"
+                          onClick={() => setActiveDropdown(null)}
+                          className="font-bold text-purple-700 dark:text-purple-400 hover:underline cursor-pointer"
+                        >
+                          {t.hero.done}
+                        </button>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+
+              {/* ---------------------------------------------------- */}
+              {/* 4. GUESTS                                            */}
+              {/* ---------------------------------------------------- */}
+              <div
+                className={`relative flex-1 min-w-[160px] transition-all ${
+                  activeDropdown === "guests" ? "z-50" : "z-10"
+                }`}
+              >
+                <button
+                  type="button"
+                  onClick={() =>
+                    setActiveDropdown(activeDropdown === "guests" ? null : "guests")
+                  }
+                  className="w-full px-4 py-3 sm:py-3.5 flex items-center justify-between text-left hover:bg-gray-50/60 dark:hover:bg-white/[0.04] rounded-xl transition-colors cursor-pointer"
+                >
+                  <div className="min-w-0 pr-2 rtl:pr-0 rtl:pl-2">
+                    <span className="text-xs text-gray-500 dark:text-gray-400 font-medium block whitespace-nowrap">
+                      {t.hero.guests}
+                    </span>
+                    <span className="text-sm sm:text-base font-bold text-gray-900 dark:text-white truncate block mt-0.5 whitespace-nowrap">
+                      {guestsCount ? `${guestsCount} ${language === "ar" ? "ضيوف" : "Guests"}` : t.hero.selectGuests}
+                    </span>
+                  </div>
+                  <ChevronDown
+                    className={`w-4 h-4 text-purple-700 dark:text-purple-400 shrink-0 transition-transform ${
+                      activeDropdown === "guests" ? "rotate-180" : ""
+                    }`}
+                  />
+                </button>
+
+                {/* Guests Popover */}
+                <AnimatePresence>
+                  {activeDropdown === "guests" && (
+                    <motion.div
+                      data-lenis-prevent="true"
+                      initial={{ opacity: 0, y: 8, scale: 0.98 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 8, scale: 0.98 }}
+                      transition={{ duration: 0.15 }}
+                      className="absolute top-full mt-2.5 right-0 rtl:right-auto rtl:left-0 w-[calc(100vw-2.5rem)] sm:w-[320px] max-w-[340px] z-[100] rounded-3xl bg-white dark:bg-[#0E0E1A] shadow-[0_20px_50px_rgba(0,0,0,0.25)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.85)] border border-gray-200/80 dark:border-white/15 p-4"
+                    >
+                      <h4 className="font-bold text-sm text-gray-900 dark:text-white pb-3 border-b border-gray-100 dark:border-white/10">
+                        {t.hero.selectGuests}
+                      </h4>
+
+                      <div className="py-3 border-b border-gray-100 dark:border-white/10 flex items-center justify-between">
+                        <div>
+                          <p className="text-xs font-bold text-gray-900 dark:text-white">
+                            {t.hero.adults}
+                          </p>
+                          <p className="text-[11px] text-gray-400">{t.hero.adultsSub}</p>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <button
+                            type="button"
+                            disabled={adults <= 1}
+                            onClick={() => setAdults((prev) => Math.max(1, prev - 1))}
+                            className="h-7 w-7 rounded-full border border-gray-300 dark:border-white/20 flex items-center justify-center text-gray-700 dark:text-white hover:border-purple-600 transition-colors disabled:opacity-30 cursor-pointer"
+                          >
+                            <Minus className="w-3 h-3" />
+                          </button>
+                          <span className="w-5 text-center text-xs font-bold text-gray-900 dark:text-white">
+                            {adults}
+                          </span>
+                          <button
+                            type="button"
+                            disabled={adults >= 30}
+                            onClick={() => setAdults((prev) => prev + 1)}
+                            className="h-7 w-7 rounded-full border border-gray-300 dark:border-white/20 flex items-center justify-center text-gray-700 dark:text-white hover:border-purple-600 transition-colors cursor-pointer"
+                          >
+                            <Plus className="w-3 h-3" />
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="py-3 border-b border-gray-100 dark:border-white/10 flex items-center justify-between">
+                        <div>
+                          <p className="text-xs font-bold text-gray-900 dark:text-white">
+                            {t.hero.children}
+                          </p>
+                          <p className="text-[11px] text-gray-400">{t.hero.childrenSub}</p>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <button
+                            type="button"
+                            disabled={children <= 0}
+                            onClick={() => setChildren((prev) => Math.max(0, prev - 1))}
+                            className="h-7 w-7 rounded-full border border-gray-300 dark:border-white/20 flex items-center justify-center text-gray-700 dark:text-white hover:border-purple-600 transition-colors disabled:opacity-30 cursor-pointer"
+                          >
+                            <Minus className="w-3 h-3" />
+                          </button>
+                          <span className="w-5 text-center text-xs font-bold text-gray-900 dark:text-white">
+                            {children}
+                          </span>
+                          <button
+                            type="button"
+                            disabled={children >= 20}
+                            onClick={() => setChildren((prev) => prev + 1)}
+                            className="h-7 w-7 rounded-full border border-gray-300 dark:border-white/20 flex items-center justify-center text-gray-700 dark:text-white hover:border-purple-600 transition-colors cursor-pointer"
+                          >
+                            <Plus className="w-3 h-3" />
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="pt-3 flex justify-end">
+                        <button
+                          type="button"
+                          onClick={() => setActiveDropdown(null)}
+                          className="px-4 py-2 rounded-xl bg-purple-700 text-white text-xs font-bold shadow-md hover:bg-purple-800 transition-colors cursor-pointer"
+                        >
+                          Apply ({adults + children} Guests)
+                        </button>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+
+              {/* ---------------------------------------------------- */}
+              {/* SEARCH BUTTON (PURPLE SQUARE AS IN SCREENSHOT)      */}
+              {/* ---------------------------------------------------- */}
+              <div className="p-1.5 shrink-0 flex items-center justify-end">
+                <button
                   type="submit"
-                  rounded="rounded-2xl"
-                  className="w-full h-full py-4 px-6 text-sm group"
+                  aria-label="Search accommodations"
+                  className="h-12 w-12 sm:h-13 sm:w-13 rounded-2xl bg-purple-800 hover:bg-purple-900 text-white flex items-center justify-center shadow-md transition-all hover:scale-105 cursor-pointer"
                 >
-                  <Search className="w-4 h-4 group-hover:scale-110 transition-transform" />
-                  <span>Search Stays</span>
-                </MagneticButton>
+                  <Search className="w-5 h-5 text-white" />
+                </button>
               </div>
             </form>
-
-            {/* Quick Check Filters */}
-            <div className="flex flex-wrap items-center justify-between gap-4 mt-4 pt-3 border-t border-white/5 text-xs text-muted">
-              <div className="flex flex-wrap items-center gap-4 sm:gap-6">
-                <label className="inline-flex items-center gap-2 cursor-pointer hover:text-fg transition-colors">
-                  <input
-                    type="checkbox"
-                    checked={instantOnly}
-                    onChange={(e) => setInstantOnly(e.target.checked)}
-                    className="rounded accent-violet-500 cursor-pointer"
-                  />
-                  <span className="flex items-center gap-1">
-                    <Zap className="w-3.5 h-3.5 text-fuchsia-400" /> Instant Book
-                  </span>
-                </label>
-
-                <label className="inline-flex items-center gap-2 cursor-pointer hover:text-fg transition-colors">
-                  <input
-                    type="checkbox"
-                    checked={poolOnly}
-                    onChange={(e) => setPoolOnly(e.target.checked)}
-                    className="rounded accent-violet-500 cursor-pointer"
-                  />
-                  <span className="flex items-center gap-1">
-                    <Waves className="w-3.5 h-3.5 text-cyan-400" /> Private Pool
-                  </span>
-                </label>
-
-                <label className="inline-flex items-center gap-2 cursor-pointer hover:text-fg transition-colors">
-                  <input
-                    type="checkbox"
-                    checked={selfCheckinOnly}
-                    onChange={(e) => setSelfCheckinOnly(e.target.checked)}
-                    className="rounded accent-violet-500 cursor-pointer"
-                  />
-                  <span className="flex items-center gap-1">
-                    <Key className="w-3.5 h-3.5 text-emerald-400" /> Self Check-in
-                  </span>
-                </label>
-              </div>
-
-              <div className="flex items-center gap-2 text-[11px] text-violet-300 font-semibold">
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
-                <span>Split any stay into 4 months with Tabby & Tamara</span>
-              </div>
-            </div>
           </div>
         </motion.div>
       </div>

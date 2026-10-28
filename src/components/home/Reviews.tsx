@@ -3,9 +3,50 @@
 import Image from "next/image";
 import { motion } from "framer-motion";
 import { Star } from "lucide-react";
-import { REVIEWS } from "@/data/properties";
+import { useApp } from "@/context/AppContext";
 
 export default function Reviews() {
+  const { language, t } = useApp();
+
+  const LOCALIZED_REVIEWS = [
+    {
+      quote:
+        language === "ar"
+          ? "كان حجز شاليه عطلة نهاية الأسبوع في الرياض عبر قف نست في غاية السهولة. الدخول الذكي الفوري، نظافة المسبح، وتقسيط تابي جعلتها أفضل إجازة عائلية."
+          : "Booking our Riyadh weekend chalet through QafNest was effortless. The instant check-in, spotless pool, and Tabby installment option made it the best family getaway.",
+      author: language === "ar" ? "طارق المنصور" : "Tariq Al-Mansoor",
+      location:
+        language === "ar"
+          ? "الرياض · أقام في شاليه العمارية الملكي"
+          : "Riyadh · Stayed at Al-Ammariyah Chalet",
+      avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&fit=crop&crop=face",
+    },
+    {
+      quote:
+        language === "ar"
+          ? "فيلا أبحر الشاطئية كانت بخصوصية تامة ونظافة فائقة. توثيق وترخيص وزارة السياحة يمنح راحة بال تامة. خدمة عملاء ممتازة وراقية!"
+          : "The Obhur seaside villa was completely private and clean. Having the Ministry of Tourism guarantee gives true peace of mind. Outstanding customer care!",
+      author: language === "ar" ? "نوف الحربي" : "Nouf Al-Harbi",
+      location:
+        language === "ar"
+          ? "جدة · أقامت في فيلا ساحل البحر الأحمر"
+          : "Jeddah · Stayed at Red Sea Shoreline Villa",
+      avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&fit=crop&crop=face",
+    },
+    {
+      quote:
+        language === "ar"
+          ? "تجربة المخيم الفاخر في العلا كانت خيالية وفوق الوصف. مراقبة النجوم بجوار الموقد وخدمة العشاء الخاصة كانت في غاية الروعة."
+          : "Our glamping pavilion in AlUla was out of this world. Stargazing by the firepit while enjoying private dinner service was truly exceptional.",
+      author: language === "ar" ? "إلينا روستوفا" : "Elena Rostova",
+      location:
+        language === "ar"
+          ? "دبي · أقامت في مخيم العلا الصحراوي"
+          : "Dubai · Stayed at AlUla Desert Camp",
+      avatar: "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=100&fit=crop&crop=face",
+    },
+  ];
+
   return (
     <section id="reviews" className="py-24 relative">
       <div className="max-w-7xl mx-auto px-5 sm:px-8">
@@ -18,16 +59,22 @@ export default function Reviews() {
               />
             ))}
           </div>
-          <h2 className="font-display text-3xl sm:text-4xl font-bold tracking-tight text-fg">
-            Voices of Our{" "}
+          <span className="text-xs uppercase font-bold tracking-widest text-violet-600 dark:text-violet-300 block mb-2">
+            {t.reviews.badge}
+          </span>
+          <h2 className="font-display text-3xl sm:text-4xl font-bold tracking-tight text-gray-900 dark:text-white">
+            {t.reviews.title}{" "}
             <span className="text-gradient font-serif italic font-normal">
-              Guests.
+              {t.reviews.titleHighlight}
             </span>
           </h2>
+          <p className="mt-3 text-sm text-gray-600 dark:text-muted/70 font-light">
+            {t.reviews.sub}
+          </p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {REVIEWS.map((rev, i) => (
+          {LOCALIZED_REVIEWS.map((rev, i) => (
             <motion.div
               key={i}
               initial={{ opacity: 0, y: 35 }}
@@ -53,7 +100,7 @@ export default function Reviews() {
                 }}
               />
 
-              <p className="font-serif italic text-lg text-white/90 leading-relaxed mb-6">
+              <p className="font-serif italic text-lg text-gray-800 dark:text-white/90 leading-relaxed mb-6">
                 &ldquo;{rev.quote}&rdquo;
               </p>
               <div className="flex items-center gap-4">
@@ -66,8 +113,8 @@ export default function Reviews() {
                   />
                 </div>
                 <div>
-                  <h4 className="font-bold text-sm text-fg">{rev.author}</h4>
-                  <p className="text-xs text-muted/70">{rev.location}</p>
+                  <h4 className="font-bold text-sm text-gray-900 dark:text-fg">{rev.author}</h4>
+                  <p className="text-xs text-gray-500 dark:text-muted/70">{rev.location}</p>
                 </div>
               </div>
             </motion.div>

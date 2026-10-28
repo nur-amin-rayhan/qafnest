@@ -13,20 +13,40 @@ export default function SmoothScroll() {
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
 
     const lenis = new Lenis({
-      duration: 1.1,
+      duration: 1.0,
       easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
       smoothWheel: true,
     });
 
     let raf = 0;
+    let isRunning = true;
+
     const loop = (time: number) => {
-      lenis.raf(time);
-      raf = requestAnimationFrame(loop);
+      if (isRunning) {
+        lenis.raf(time);
+        raf = requestAnimationFrame(loop);
+      }
     };
     raf = requestAnimationFrame(loop);
 
+    const onVisibilityChange = () => {
+      if (document.hidden) {
+        isRunning = false;
+        cancelAnimationFrame(raf);
+      } else {
+        if (!isRunning) {
+          isRunning = true;
+          raf = requestAnimationFrame(loop);
+        }
+      }
+    };
+
+    document.addEventListener("visibilitychange", onVisibilityChange);
+
     return () => {
+      isRunning = false;
       cancelAnimationFrame(raf);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
       lenis.destroy();
     };
   }, []);

@@ -6,15 +6,15 @@ import { Key, Shield, CalendarCheck, Banknote, ArrowRight } from "lucide-react";
 import { useApp } from "@/context/AppContext";
 import MagneticButton from "@/components/ui/MagneticButton";
 
-const RATES_BY_TYPE: Record<number, { name: string; rate: number }> = {
-  1: { name: "Chalet with Private Pool", rate: 1850 },
-  2: { name: "Private Luxury Villa", rate: 2900 },
-  3: { name: "Heritage Organic Farm", rate: 2200 },
-  4: { name: "Desert Glamping Camp", rate: 1450 },
+const RATES_BY_TYPE: Record<number, { nameEn: string; nameAr: string; rate: number }> = {
+  1: { nameEn: "Chalet with Private Pool", nameAr: "شاليه بمسبح خاص", rate: 1850 },
+  2: { nameEn: "Private Luxury Villa", nameAr: "فيلا خاصة فاخرة", rate: 2900 },
+  3: { nameEn: "Heritage Organic Farm", nameAr: "مزرعة ريفية تراثية", rate: 2200 },
+  4: { nameEn: "Desert Glamping Camp", nameAr: "مخيم صحراوي فاخر", rate: 1450 },
 };
 
 export default function HostPortal() {
-  const { openHostModal } = useApp();
+  const { openHostModal, language, t } = useApp();
 
   const [typeIndex, setTypeIndex] = useState(2);
   const [nights, setNights] = useState(12);
@@ -35,35 +35,47 @@ export default function HostPortal() {
             >
               <span className="inline-flex items-center gap-2 rounded-full glass px-3.5 py-1 text-xs font-semibold uppercase tracking-widest text-fuchsia-300 mb-4">
                 <Key className="w-3.5 h-3.5 text-fuchsia-400" />
-                Host Portal · انضم كمضيف
+                {t.host.badge}
               </span>
-              <h2 className="font-display text-3xl sm:text-4xl font-bold tracking-tight text-fg mb-4">
-                Share Your Property. <br />
-                <span className="text-gradient">Earn with QafNest.</span>
+              <h2 className="font-display text-3xl sm:text-4xl font-bold tracking-tight text-gray-900 dark:text-white mb-4">
+                {t.host.title} <br />
+                <span className="text-gradient">{t.host.titleHighlight}</span>
               </h2>
-              <p className="text-sm text-muted/80 font-light leading-relaxed mb-6">
-                Turn your luxury villa, private chalet, or farm into continuous high-yield revenue. We handle guest verification, damage insurance, and automated payouts.
+              <p className="text-sm text-gray-600 dark:text-muted/80 font-light leading-relaxed mb-6">
+                {t.host.sub}
               </p>
 
               {/* Host Perks */}
               <div className="space-y-3 mb-8">
-                <div className="flex items-center gap-3 text-xs sm:text-sm text-fg">
+                <div className="flex items-center gap-3 text-xs sm:text-sm text-gray-900 dark:text-white">
                   <div className="h-6 w-6 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
                     <Shield className="w-3.5 h-3.5" />
                   </div>
-                  <span>1,000,000 SAR Property Host Protection Guarantee</span>
+                  <span>
+                    {language === "ar"
+                      ? "ضمان حماية المضيف والعقار بقيمة تصل إلى 1,000,000 ر.س"
+                      : "1,000,000 SAR Property Host Protection Guarantee"}
+                  </span>
                 </div>
-                <div className="flex items-center gap-3 text-xs sm:text-sm text-fg">
+                <div className="flex items-center gap-3 text-xs sm:text-sm text-gray-900 dark:text-white">
                   <div className="h-6 w-6 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
                     <CalendarCheck className="w-3.5 h-3.5" />
                   </div>
-                  <span>Complete control over calendar pricing & booking approval</span>
+                  <span>
+                    {language === "ar"
+                      ? "تحكم كامل ومباشر في التقويم وتحديد الأسعار وقبول الحجوزات"
+                      : "Complete control over calendar pricing & booking approval"}
+                  </span>
                 </div>
-                <div className="flex items-center gap-3 text-xs sm:text-sm text-fg">
+                <div className="flex items-center gap-3 text-xs sm:text-sm text-gray-900 dark:text-white">
                   <div className="h-6 w-6 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
                     <Banknote className="w-3.5 h-3.5" />
                   </div>
-                  <span>Instant bi-weekly direct bank transfers to your Saudi IBAN</span>
+                  <span>
+                    {language === "ar"
+                      ? "تحويلات بنكية مباشرة وسريعة إلى حساب الآيبان السعودي الخاص بك"
+                      : "Instant bi-weekly direct bank transfers to your Saudi IBAN"}
+                  </span>
                 </div>
               </div>
 
@@ -71,8 +83,8 @@ export default function HostPortal() {
                 onClick={openHostModal}
                 className="px-8 py-3.5 text-xs tracking-wider"
               >
-                <span>List Your Property</span>
-                <ArrowRight className="w-4 h-4" />
+                <span>{t.host.cta}</span>
+                <ArrowRight className="w-4 h-4 rtl:rotate-180" />
               </MagneticButton>
             </motion.div>
 
@@ -84,23 +96,25 @@ export default function HostPortal() {
               transition={{ duration: 0.7, delay: 0.15, ease: [0.22, 1, 0.36, 1] }}
               className="glass glow-border rounded-3xl p-6 sm:p-8 border border-violet-400/20 relative overflow-hidden"
             >
-              <span className="text-[10px] uppercase tracking-wider font-bold text-violet-300 block mb-1">
-                Estimated Monthly Earnings
+              <span className="text-[10px] uppercase tracking-wider font-bold text-violet-400 block mb-1">
+                {t.host.earningsTitle}
               </span>
               <div className="font-display text-4xl sm:text-5xl font-bold text-gradient mb-2">
-                {monthlyEarnings.toLocaleString()} ﷼
+                {monthlyEarnings.toLocaleString()} {language === "ar" ? "ر.س" : "SAR"}
               </div>
-              <p className="text-xs text-muted/70 mb-6">
-                Based on seasonal average occupancy rates in Riyadh & Jeddah.
+              <p className="text-xs text-gray-500 dark:text-muted/70 mb-6">
+                {t.host.earningsSub}
               </p>
 
               {/* Sliders */}
               <div className="space-y-5">
                 <div>
                   <div className="flex justify-between text-xs mb-2">
-                    <span className="text-muted">Property Category:</span>
-                    <span className="text-white font-semibold">
-                      {currentType.name}
+                    <span className="text-gray-500 dark:text-muted">
+                      {language === "ar" ? "نوع العقار:" : "Property Category:"}
+                    </span>
+                    <span className="text-gray-900 dark:text-white font-semibold">
+                      {language === "ar" ? currentType.nameAr : currentType.nameEn}
                     </span>
                   </div>
                   <input
@@ -115,9 +129,11 @@ export default function HostPortal() {
 
                 <div>
                   <div className="flex justify-between text-xs mb-2">
-                    <span className="text-muted">Estimated Booked Nights / Month:</span>
-                    <span className="text-white font-semibold">
-                      {nights} Nights
+                    <span className="text-gray-500 dark:text-muted">
+                      {language === "ar" ? "الليالي المحجوزة شهرياً:" : "Estimated Booked Nights / Month:"}
+                    </span>
+                    <span className="text-gray-900 dark:text-white font-semibold">
+                      {language === "ar" ? `${nights} ليالٍ` : `${nights} Nights`}
                     </span>
                   </div>
                   <input

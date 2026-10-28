@@ -4,11 +4,9 @@ import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  Search,
   Moon,
   Sun,
   Globe,
-  ArrowUpRight,
   ChevronDown,
   Menu,
   X,
@@ -16,16 +14,16 @@ import {
   Key,
   Home,
   MapPin,
-  Flame,
-  Check,
 } from "lucide-react";
-import { useApp, Currency } from "@/context/AppContext";
+import { useApp } from "@/context/AppContext";
 import { useAuth } from "@/context/AuthContext";
+import { CITY_NAMES_AR } from "@/data/translations";
 
 export default function Navbar() {
   const {
-    currency,
-    setCurrency,
+    language,
+    toggleLanguage,
+    t,
     isDarkTheme,
     toggleTheme,
     openHostModal,
@@ -38,17 +36,22 @@ export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
-  const [langDropdownOpen, setLangDropdownOpen] = useState(false);
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
-  const [selectedLang, setSelectedLang] = useState<"EN" | "AR">("EN");
 
   const navRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
+    let ticking = false;
     const handleScroll = () => {
-      setScrolled(window.scrollY > 20);
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          setScrolled(window.scrollY > 20);
+          ticking = false;
+        });
+        ticking = true;
+      }
     };
-    window.addEventListener("scroll", handleScroll);
+    window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
@@ -57,20 +60,12 @@ export default function Navbar() {
     const handleClickOutside = (e: MouseEvent) => {
       if (navRef.current && !navRef.current.contains(e.target as Node)) {
         setActiveDropdown(null);
-        setLangDropdownOpen(false);
         setUserDropdownOpen(false);
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
-
-  const handleSearchClick = () => {
-    const heroSearch = document.getElementById("hero-search") || document.getElementById("properties");
-    if (heroSearch) {
-      heroSearch.scrollIntoView({ behavior: "smooth" });
-    }
-  };
 
   const handleCitySelect = (city: string) => {
     setSelectedCity(city);
@@ -98,6 +93,24 @@ export default function Navbar() {
     ? "text-white/80 hover:text-white hover:bg-white/[0.06]"
     : "text-gray-700 hover:text-purple-900 hover:bg-purple-50";
 
+  const citiesList = [
+    { id: "all", name: language === "ar" ? "جميع الوجهات" : "All Destinations" },
+    { id: "riyadh", name: language === "ar" ? CITY_NAMES_AR.riyadh : "Riyadh" },
+    { id: "jeddah", name: language === "ar" ? CITY_NAMES_AR.jeddah : "Jeddah" },
+    { id: "alula", name: language === "ar" ? CITY_NAMES_AR.alula : "AlUla" },
+    { id: "khobar", name: language === "ar" ? CITY_NAMES_AR.khobar : "Al Khobar" },
+    { id: "abha", name: language === "ar" ? CITY_NAMES_AR.abha : "Abha" },
+  ];
+
+  const categoriesList = [
+    { id: "all", name: language === "ar" ? "جميع الوحدات" : "All Stays" },
+    { id: "chalet", name: language === "ar" ? "شاليهات ومنتجعات" : "Private Chalets & Resorts" },
+    { id: "villa", name: language === "ar" ? "فلل خاصة" : "Luxury Villas" },
+    { id: "farm", name: language === "ar" ? "مزارع واستراحات" : "Heritage Country Farms" },
+    { id: "camp", name: language === "ar" ? "مخيمات صحراوية" : "Desert Camps & Domes" },
+    { id: "penthouse", name: language === "ar" ? "شقق مخدومة" : "Serviced Penthouses" },
+  ];
+
   return (
     <header
       ref={navRef}
@@ -113,7 +126,7 @@ export default function Navbar() {
       }`}
     >
       <div className="max-w-[1440px] mx-auto px-5 sm:px-8 lg:px-12 flex items-center justify-between">
-        {/* ================= LEFT: BRAND LOGO ================= */}
+        {/* ================= BRAND LOGO ================= */}
         <Link href="#top" className="flex items-center gap-3 group shrink-0">
           <div className="relative flex items-center justify-center h-8 w-8 rounded-full border border-violet-500/40 bg-violet-950/40 shadow-[0_0_14px_rgba(168,85,247,0.4)]">
             <div className="absolute inset-0 rounded-full border border-dashed border-violet-400/50 animate-[spin_10s_linear_infinite]" />
@@ -122,7 +135,7 @@ export default function Navbar() {
 
           <div className="flex items-center font-display font-bold tracking-[0.14em] text-base sm:text-lg">
             <span className={isDarkTheme ? "text-white" : "text-gray-900"}>QAF</span>
-            <span className="text-fuchsia-400 ml-1.5 font-extrabold text-gradient">NEST</span>
+            <span className="text-fuchsia-400 ml-1.5 rtl:mr-1.5 rtl:ml-0 font-extrabold text-gradient">NEST</span>
           </div>
         </Link>
 
@@ -138,7 +151,7 @@ export default function Navbar() {
               onClick={() => setActiveDropdown(activeDropdown === "destinations" ? null : "destinations")}
               className={`flex items-center gap-1.5 transition-colors cursor-pointer py-1 ${textLinkClass}`}
             >
-              <span>Destinations</span>
+              <span>{t.nav.destinations}</span>
               <ChevronDown
                 className={`w-3.5 h-3.5 opacity-60 transition-transform duration-200 ${
                   activeDropdown === "destinations" ? "rotate-180 opacity-100 text-fuchsia-400" : ""
@@ -153,25 +166,18 @@ export default function Navbar() {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: 8 }}
                   transition={{ duration: 0.15 }}
-                  className={`absolute top-full left-0 mt-2 w-56 rounded-2xl backdrop-blur-xl border p-2 shadow-2xl z-50 ${dropdownContainerClass}`}
+                  className={`absolute top-full left-0 rtl:left-auto rtl:right-0 mt-2 w-56 rounded-2xl backdrop-blur-xl border p-2 shadow-2xl z-50 ${dropdownContainerClass}`}
                 >
                   <p className="px-3 py-1.5 text-[10px] uppercase font-bold text-violet-500 tracking-wider">
-                    Popular Cities
+                    {language === "ar" ? "وجهات مميزة" : "Popular Cities"}
                   </p>
-                  {[
-                    { id: "all", name: "All Destinations" },
-                    { id: "riyadh", name: "Riyadh (الرياض)" },
-                    { id: "jeddah", name: "Jeddah (جدة)" },
-                    { id: "alula", name: "AlUla (العلا)" },
-                    { id: "khobar", name: "Khobar (الخبر)" },
-                    { id: "abha", name: "Abha (أبها)" },
-                  ].map((city) => (
+                  {citiesList.map((city) => (
                     <button
                       key={city.id}
                       onClick={() => handleCitySelect(city.id)}
-                      className={`w-full text-left px-3 py-2 text-xs rounded-xl transition-colors flex items-center gap-2 cursor-pointer ${dropdownItemClass}`}
+                      className={`w-full text-left rtl:text-right px-3 py-2 text-xs rounded-xl transition-colors flex items-center gap-2 cursor-pointer ${dropdownItemClass}`}
                     >
-                      <MapPin className="w-3.5 h-3.5 text-violet-500" />
+                      <MapPin className="w-3.5 h-3.5 text-violet-500 shrink-0" />
                       <span>{city.name}</span>
                     </button>
                   ))}
@@ -180,7 +186,7 @@ export default function Navbar() {
             </AnimatePresence>
           </div>
 
-          {/* Chalets & Villas Dropdown */}
+          {/* Property Types Dropdown */}
           <div
             className="relative"
             onMouseEnter={() => setActiveDropdown("categories")}
@@ -190,7 +196,7 @@ export default function Navbar() {
               onClick={() => setActiveDropdown(activeDropdown === "categories" ? null : "categories")}
               className={`flex items-center gap-1.5 transition-colors cursor-pointer py-1 ${textLinkClass}`}
             >
-              <span>Chalets & Villas</span>
+              <span>{t.nav.vacationRentals}</span>
               <ChevronDown
                 className={`w-3.5 h-3.5 opacity-60 transition-transform duration-200 ${
                   activeDropdown === "categories" ? "rotate-180 opacity-100 text-fuchsia-400" : ""
@@ -205,25 +211,18 @@ export default function Navbar() {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: 8 }}
                   transition={{ duration: 0.15 }}
-                  className={`absolute top-full left-0 mt-2 w-56 rounded-2xl backdrop-blur-xl border p-2 shadow-2xl z-50 ${dropdownContainerClass}`}
+                  className={`absolute top-full left-0 rtl:left-auto rtl:right-0 mt-2 w-56 rounded-2xl backdrop-blur-xl border p-2 shadow-2xl z-50 ${dropdownContainerClass}`}
                 >
                   <p className="px-3 py-1.5 text-[10px] uppercase font-bold text-violet-500 tracking-wider">
-                    Property Types
+                    {language === "ar" ? "أنواع العقارات" : "Property Types"}
                   </p>
-                  {[
-                    { id: "all", name: "All Types" },
-                    { id: "chalet", name: "Private Chalets (شاليهات)" },
-                    { id: "villa", name: "Luxury Villas (فلل فاخرة)" },
-                    { id: "farm", name: "Heritage Farms (مزارع)" },
-                    { id: "camp", name: "Desert Camps (مخيمات)" },
-                    { id: "penthouse", name: "VIP Penthouses" },
-                  ].map((cat) => (
+                  {categoriesList.map((cat) => (
                     <button
                       key={cat.id}
                       onClick={() => handleCategorySelect(cat.id)}
-                      className={`w-full text-left px-3 py-2 text-xs rounded-xl transition-colors flex items-center gap-2 cursor-pointer ${dropdownItemClass}`}
+                      className={`w-full text-left rtl:text-right px-3 py-2 text-xs rounded-xl transition-colors flex items-center gap-2 cursor-pointer ${dropdownItemClass}`}
                     >
-                      <Home className="w-3.5 h-3.5 text-violet-500" />
+                      <Home className="w-3.5 h-3.5 text-violet-500 shrink-0" />
                       <span>{cat.name}</span>
                     </button>
                   ))}
@@ -232,99 +231,33 @@ export default function Navbar() {
             </AnimatePresence>
           </div>
 
-          {/* Flash Deals Link */}
+          {/* Guarantee Link */}
           <Link
-            href="#deals"
-            className="flex items-center gap-1.5 hover:opacity-85 transition-opacity cursor-pointer py-1 text-fuchsia-400 font-semibold"
-          >
-            <span>Flash Deals</span>
-            <Flame className="w-3.5 h-3.5 text-fuchsia-400" />
-          </Link>
-
-          {/* Second Home / Collections Link */}
-          <Link
-            href="#collections"
+            href="#guarantee"
             className={`flex items-center gap-1.5 transition-colors cursor-pointer py-1 ${textLinkClass}`}
           >
-            <span>Second Home</span>
+            <span>{t.nav.guarantee}</span>
           </Link>
 
           {/* Host with Us */}
-          <div
-            className="relative"
-            onMouseEnter={() => setActiveDropdown("host")}
-            onMouseLeave={() => setActiveDropdown(null)}
+          <button
+            onClick={openHostModal}
+            className={`flex items-center gap-1.5 transition-colors cursor-pointer py-1 text-violet-600 dark:text-violet-400 font-semibold hover:opacity-85`}
           >
-            <button
-              onClick={openHostModal}
-              className={`flex items-center gap-1.5 transition-colors cursor-pointer py-1 text-violet-400 font-semibold`}
-            >
-              <span>Host with Us</span>
-              <ChevronDown
-                className={`w-3.5 h-3.5 opacity-60 transition-transform duration-200 ${
-                  activeDropdown === "host" ? "rotate-180 opacity-100 text-fuchsia-400" : ""
-                }`}
-              />
-            </button>
-
-            <AnimatePresence>
-              {activeDropdown === "host" && (
-                <motion.div
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: 8 }}
-                  transition={{ duration: 0.15 }}
-                  className={`absolute top-full left-0 mt-2 w-60 rounded-2xl backdrop-blur-xl border p-2 shadow-2xl z-50 ${dropdownContainerClass}`}
-                >
-                  <button
-                    onClick={() => {
-                      setActiveDropdown(null);
-                      openHostModal();
-                    }}
-                    className={`w-full text-left px-3 py-2 text-xs rounded-xl transition-colors flex items-center gap-2 cursor-pointer text-fuchsia-400 hover:bg-fuchsia-500/10`}
-                  >
-                    <Key className="w-3.5 h-3.5 text-fuchsia-400" />
-                    <span>List Your Property</span>
-                  </button>
-                  <Link
-                    href="#host"
-                    onClick={() => setActiveDropdown(null)}
-                    className={`w-full text-left px-3 py-2 text-xs rounded-xl transition-colors flex items-center gap-2 cursor-pointer ${dropdownItemClass}`}
-                  >
-                    <span>Host Earnings Calculator</span>
-                  </Link>
-                  <Link
-                    href="#faq"
-                    onClick={() => setActiveDropdown(null)}
-                    className={`w-full text-left px-3 py-2 text-xs rounded-xl transition-colors flex items-center gap-2 cursor-pointer ${dropdownItemClass}`}
-                  >
-                    <span>Host FAQs & Protection</span>
-                  </Link>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
+            <span>{t.nav.host}</span>
+          </button>
         </nav>
 
-        {/* ================= RIGHT: SEARCH, THEME, LANG/CURRENCY, AUTH & CTA ================= */}
+        {/* ================= RIGHT: THEME, SIGN IN & DEDICATED LANGUAGE BUTTON ================= */}
         <div className="flex items-center gap-3 sm:gap-4">
-          {/* Search Icon */}
-          <button
-            onClick={handleSearchClick}
-            aria-label="Search"
-            className={`p-1.5 transition-colors cursor-pointer ${
-              isDarkTheme ? "text-white/70 hover:text-white" : "text-gray-600 hover:text-gray-900"
-            }`}
-          >
-            <Search className="w-4 h-4" />
-          </button>
-
           {/* Theme Toggle (Moon / Sun) */}
           <button
             onClick={toggleTheme}
             aria-label="Toggle Theme"
-            className={`p-1.5 transition-colors cursor-pointer ${
-              isDarkTheme ? "text-white/70 hover:text-white" : "text-amber-500 hover:text-amber-600"
+            className={`p-2 rounded-full transition-colors cursor-pointer ${
+              isDarkTheme
+                ? "text-white/80 hover:text-white hover:bg-white/10"
+                : "text-amber-500 hover:text-amber-600 hover:bg-amber-50"
             }`}
           >
             {isDarkTheme ? (
@@ -334,81 +267,12 @@ export default function Navbar() {
             )}
           </button>
 
-          {/* Globe & Language / Currency Selector */}
-          <div className="relative">
-            <button
-              onClick={() => setLangDropdownOpen(!langDropdownOpen)}
-              className={`flex items-center gap-1.5 text-xs font-semibold py-1 px-1.5 rounded-lg transition-colors cursor-pointer ${
-                isDarkTheme ? "text-white/80 hover:text-white" : "text-gray-700 hover:text-gray-900"
-              }`}
-            >
-              <Globe className="w-4 h-4 opacity-70" />
-              <span>{selectedLang}</span>
-              <span className="text-[10px] text-violet-400">({currency})</span>
-            </button>
-
-            <AnimatePresence>
-              {langDropdownOpen && (
-                <motion.div
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: 8 }}
-                  transition={{ duration: 0.15 }}
-                  className={`absolute right-0 top-full mt-2 w-48 rounded-2xl backdrop-blur-xl border p-2 shadow-2xl z-50 text-xs ${dropdownContainerClass}`}
-                >
-                  <p className="px-3 py-1 text-[10px] uppercase font-bold text-muted tracking-wider">
-                    Language
-                  </p>
-                  <button
-                    onClick={() => {
-                      setSelectedLang("EN");
-                      setLangDropdownOpen(false);
-                    }}
-                    className={`w-full text-left px-3 py-1.5 rounded-lg flex items-center justify-between ${dropdownItemClass}`}
-                  >
-                    <span>English</span>
-                    {selectedLang === "EN" && <Check className="w-3.5 h-3.5 text-emerald-400" />}
-                  </button>
-                  <button
-                    onClick={() => {
-                      setSelectedLang("AR");
-                      setLangDropdownOpen(false);
-                    }}
-                    className={`w-full text-left px-3 py-1.5 rounded-lg flex items-center justify-between ${dropdownItemClass}`}
-                  >
-                    <span>العربية (Saudi Arabia)</span>
-                    {selectedLang === "AR" && <Check className="w-3.5 h-3.5 text-emerald-400" />}
-                  </button>
-
-                  <div className="my-1.5 border-t border-purple-500/20" />
-
-                  <p className="px-3 py-1 text-[10px] uppercase font-bold text-muted tracking-wider">
-                    Currency
-                  </p>
-                  {(["SAR", "USD", "AED", "EUR"] as Currency[]).map((c) => (
-                    <button
-                      key={c}
-                      onClick={() => {
-                        setCurrency(c);
-                        setLangDropdownOpen(false);
-                      }}
-                      className={`w-full text-left px-3 py-1.5 rounded-lg flex items-center justify-between ${dropdownItemClass}`}
-                    >
-                      <span>{c}</span>
-                      {currency === c && <Check className="w-3.5 h-3.5 text-fuchsia-400" />}
-                    </button>
-                  ))}
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-
-          {/* User Profile Menu (If Logged In) */}
+          {/* User Profile Menu (If Logged In) or Sign In button */}
           {user ? (
             <div className="relative">
               <button
                 onClick={() => setUserDropdownOpen(!userDropdownOpen)}
-                className={`flex items-center gap-2 rounded-full p-1 pl-2 border transition-colors cursor-pointer ${
+                className={`flex items-center gap-2 rounded-full p-1 pl-2 rtl:pl-1 rtl:pr-2 border transition-colors cursor-pointer ${
                   isDarkTheme
                     ? "bg-white/[0.05] border-white/10 hover:border-violet-400/40 text-white"
                     : "bg-purple-50 border-purple-200 hover:border-purple-300 text-gray-900"
@@ -420,7 +284,7 @@ export default function Navbar() {
                 <span className="hidden xl:inline-block max-w-[80px] truncate text-xs font-semibold">
                   {profile?.full_name?.split(" ")[0] || user.email?.split("@")[0]}
                 </span>
-                <ChevronDown className="w-3 h-3 opacity-60 mr-1" />
+                <ChevronDown className="w-3 h-3 opacity-60 mr-1 rtl:ml-1 rtl:mr-0" />
               </button>
 
               <AnimatePresence>
@@ -430,7 +294,7 @@ export default function Navbar() {
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: 8 }}
                     transition={{ duration: 0.15 }}
-                    className={`absolute right-0 top-full mt-2 w-56 rounded-2xl backdrop-blur-xl border p-2 shadow-2xl z-50 text-xs ${dropdownContainerClass}`}
+                    className={`absolute right-0 rtl:right-auto rtl:left-0 top-full mt-2 w-56 rounded-2xl backdrop-blur-xl border p-2 shadow-2xl z-50 text-xs ${dropdownContainerClass}`}
                   >
                     <div className="px-3 py-2 border-b border-purple-500/15">
                       <p className="font-bold truncate">
@@ -449,9 +313,9 @@ export default function Navbar() {
                             setUserDropdownOpen(false);
                             openHostModal();
                           }}
-                          className="w-full text-left px-3 py-2 rounded-xl text-fuchsia-400 hover:bg-fuchsia-500/10 flex items-center gap-2 cursor-pointer"
+                          className="w-full text-left rtl:text-right px-3 py-2 rounded-xl text-fuchsia-400 hover:bg-fuchsia-500/10 flex items-center gap-2 cursor-pointer"
                         >
-                          <Key className="w-3.5 h-3.5 text-fuchsia-400" /> Host Portal & Listings
+                          <Key className="w-3.5 h-3.5 text-fuchsia-400" /> {t.nav.hostPortal}
                         </button>
                       ) : (
                         <button
@@ -459,9 +323,9 @@ export default function Navbar() {
                             setUserDropdownOpen(false);
                             openHostModal();
                           }}
-                          className={`w-full text-left px-3 py-2 rounded-xl flex items-center gap-2 cursor-pointer text-violet-400 hover:bg-purple-500/10`}
+                          className="w-full text-left rtl:text-right px-3 py-2 rounded-xl flex items-center gap-2 cursor-pointer text-violet-400 hover:bg-purple-500/10"
                         >
-                          <Key className="w-3.5 h-3.5 text-violet-400" /> Become a Host
+                          <Key className="w-3.5 h-3.5 text-violet-400" /> {t.nav.host}
                         </button>
                       )}
 
@@ -470,9 +334,9 @@ export default function Navbar() {
                           setUserDropdownOpen(false);
                           signOut();
                         }}
-                        className="w-full text-left px-3 py-2 rounded-xl text-rose-400 hover:bg-rose-500/10 flex items-center gap-2 cursor-pointer mt-1 font-semibold"
+                        className="w-full text-left rtl:text-right px-3 py-2 rounded-xl text-rose-400 hover:bg-rose-500/10 flex items-center gap-2 cursor-pointer mt-1 font-semibold"
                       >
-                        <LogOut className="w-3.5 h-3.5 text-rose-400" /> Sign Out
+                        <LogOut className="w-3.5 h-3.5 text-rose-400" /> {t.nav.signOut}
                       </button>
                     </div>
                   </motion.div>
@@ -482,22 +346,23 @@ export default function Navbar() {
           ) : (
             <button
               onClick={() => openAuthModal("signin")}
-              className={`hidden sm:inline-flex text-xs font-semibold transition-colors cursor-pointer px-2 ${
-                isDarkTheme ? "text-white/80 hover:text-white" : "text-gray-700 hover:text-gray-900"
+              className={`text-xs font-bold transition-colors cursor-pointer px-3 py-2 rounded-full ${
+                isDarkTheme ? "text-white/80 hover:text-white hover:bg-white/5" : "text-gray-700 hover:text-gray-900 hover:bg-gray-100"
               }`}
             >
-              Sign In
+              {t.nav.signIn}
             </button>
           )}
 
-          {/* ================= PRIMARY CTA BUTTON ================= */}
-          <Link
-            href="#properties"
-            className="group relative inline-flex items-center gap-1.5 px-5 sm:px-6 py-2 sm:py-2.5 rounded-full text-xs sm:text-sm font-semibold text-white bg-gradient-to-r from-violet-600 via-purple-600 to-fuchsia-500 hover:from-violet-500 hover:to-fuchsia-400 shadow-[0_0_24px_rgba(168,85,247,0.4)] transition-all duration-300 cursor-pointer shrink-0"
+          {/* ================= DEDICATED LANGUAGE SELECTION BUTTON ================= */}
+          <button
+            onClick={toggleLanguage}
+            aria-label="Switch Language"
+            className="group relative inline-flex items-center gap-2 px-4 py-2 sm:px-5 sm:py-2.5 rounded-full text-xs sm:text-sm font-bold text-white bg-gradient-to-r from-violet-600 via-purple-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 shadow-[0_0_20px_rgba(168,85,247,0.35)] transition-all duration-300 cursor-pointer shrink-0 active:scale-95"
           >
-            <span>Book a Stay</span>
-            <ArrowUpRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
-          </Link>
+            <Globe className="w-4 h-4 text-white group-hover:rotate-45 transition-transform duration-300" />
+            <span>{language === "en" ? "العربية" : "English"}</span>
+          </button>
 
           {/* Mobile Hamburger Toggle */}
           <button
@@ -528,38 +393,45 @@ export default function Navbar() {
               onClick={() => setMobileMenuOpen(false)}
               className="block text-sm font-semibold hover:text-fuchsia-400"
             >
-              Destinations
+              {t.nav.destinations}
             </Link>
             <Link
               href="#properties"
               onClick={() => setMobileMenuOpen(false)}
               className="block text-sm font-semibold hover:text-fuchsia-400"
             >
-              Chalets & Villas
+              {t.nav.vacationRentals}
             </Link>
             <Link
-              href="#deals"
-              onClick={() => setMobileMenuOpen(false)}
-              className="block text-sm font-semibold text-fuchsia-400 flex items-center gap-1.5"
-            >
-              <Flame className="w-4 h-4" /> Flash Deals
-            </Link>
-            <Link
-              href="#collections"
+              href="#guarantee"
               onClick={() => setMobileMenuOpen(false)}
               className="block text-sm font-semibold hover:text-fuchsia-400"
             >
-              Second Home
+              {t.nav.guarantee}
             </Link>
             <button
               onClick={() => {
                 setMobileMenuOpen(false);
                 openHostModal();
               }}
-              className="block text-left text-sm font-semibold text-violet-400"
+              className="block text-left rtl:text-right text-sm font-semibold text-violet-400"
             >
-              Host with Us
+              {t.nav.host}
             </button>
+
+            {/* Language Switch Button inside Mobile Menu */}
+            <div className="pt-2">
+              <button
+                onClick={() => {
+                  toggleLanguage();
+                  setMobileMenuOpen(false);
+                }}
+                className="w-full py-2.5 rounded-full border border-violet-500/30 bg-violet-600/15 text-xs font-bold text-violet-300 flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <Globe className="w-4 h-4" />
+                <span>{language === "en" ? "تبديل إلى العربية" : "Switch to English"}</span>
+              </button>
+            </div>
 
             <div className="pt-3 border-t border-purple-500/15 flex items-center justify-between">
               {user ? (
@@ -575,7 +447,7 @@ export default function Navbar() {
                     }}
                     className="text-xs text-rose-400 font-bold"
                   >
-                    Sign Out
+                    {t.nav.signOut}
                   </button>
                 </div>
               ) : (
@@ -586,7 +458,7 @@ export default function Navbar() {
                   }}
                   className="w-full py-2.5 rounded-full border border-violet-400/40 bg-violet-600/20 text-xs font-bold uppercase tracking-wider text-violet-300"
                 >
-                  Sign In / Register
+                  {t.nav.signIn}
                 </button>
               )}
             </div>

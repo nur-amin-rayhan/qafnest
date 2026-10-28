@@ -1,55 +1,166 @@
 "use client";
 
-import { useState } from "react";
-import { X, Lock, Mail, User as UserIcon, Phone, ShieldCheck, Key, CheckCircle2, AlertCircle, Loader2 } from "lucide-react";
+import { useState, useRef, useEffect } from "react";
+import {
+  X,
+  Phone,
+  ShieldCheck,
+  CheckCircle2,
+  AlertCircle,
+  Loader2,
+  ArrowRight,
+  Mail,
+  Lock,
+  User as UserIcon,
+} from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
+import { useApp } from "@/context/AppContext";
 import { createClient } from "@/lib/supabase/client";
 
 export default function AuthModal() {
-  const { authModalOpen, closeAuthModal, authMode, signupRole } = useAuth();
+  const { authModalOpen, closeAuthModal, signupRole, loginWithPhone } = useAuth();
+  const { language } = useApp();
   const supabase = createClient();
 
-  const [isSignIn, setIsSignIn] = useState(authMode === "signin");
-  const [selectedRole, setSelectedRole] = useState<"guest" | "host">(signupRole);
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [fullName, setFullName] = useState("");
+  // Auth Method: 'phone' | 'email'
+  const [authMethod, setAuthMethod] = useState<"phone" | "email">("phone");
+  // Phone flow step: 'phone_input' | 'otp_verify'
+  const [phoneStep, setPhoneStep] = useState<"phone_input" | "otp_verify">("phone_input");
+
+  // State
   const [phone, setPhone] = useState("");
+  const [fullName, setFullName] = useState("");
+  const [selectedRole, setSelectedRole] = useState<"guest" | "host">(signupRole);
   const [licenseNo, setLicenseNo] = useState("");
 
+  // OTP Digits (4-box input like Gathern)
+  const [otp, setOtp] = useState(["", "", "", ""]);
+  const otpInputRefs = [
+    useRef<HTMLInputElement>(null),
+    useRef<HTMLInputElement>(null),
+    useRef<HTMLInputElement>(null),
+    useRef<HTMLInputElement>(null),
+  ];
+
+  // Resend Countdown Timer
+  const [timer, setTimer] = useState(45);
+
+  // Email Flow State
+  const [isEmailSignIn, setIsEmailSignIn] = useState(true);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+
+  // UI state
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
+  // Reset state on open
+  useEffect(() => {
+    if (authModalOpen) {
+      setPhoneStep("phone_input");
+      setErrorMsg(null);
+      setSuccessMsg(null);
+      setOtp(["", "", "", ""]);
+      setTimer(45);
+    }
+  }, [authModalOpen]);
+
+  // Countdown timer effect
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (phoneStep === "otp_verify" && timer > 0) {
+      interval = setInterval(() => {
+        setTimer((prev) => prev - 1);
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [phoneStep, timer]);
+
   if (!authModalOpen) return null;
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  // Handle Step 1: Send OTP to Mobile Number
+  const handleSendOtp = (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorMsg(null);
+
+    const cleanPhone = phone.trim().replace(/\s+/g, "");
+    if (!cleanPhone || cleanPhone.length < 9) {
+      setErrorMsg("Please enter a valid 9-digit Saudi mobile number (e.g. 50 123 4567).");
+      return;
+    }
+
+    setLoading(true);
+    setTimeout(() => {
+      setLoading(false);
+      setPhoneStep("otp_verify");
+      setTimer(45);
+      setTimeout(() => otpInputRefs[0].current?.focus(), 150);
+    }, 600);
+  };
+
+  // Handle OTP Digit Input
+  const handleOtpChange = (index: number, value: string) => {
+    if (value.length > 1) {
+      value = value.slice(-1);
+    }
+    const newOtp = [...otp];
+    newOtp[index] = value;
+    setOtp(newOtp);
+
+    // Auto-focus next input box
+    if (value && index < 3) {
+      otpInputRefs[index + 1].current?.focus();
+    }
+  };
+
+  const handleOtpKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Backspace" && !otp[index] && index > 0) {
+      otpInputRefs[index - 1].current?.focus();
+    }
+  };
+
+  // Handle Step 2: Verify OTP and Login
+  const handleVerifyOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorMsg(null);
+    const enteredCode = otp.join("");
+
+    if (enteredCode.length < 4) {
+      setErrorMsg("Please enter the complete 4-digit verification code.");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      // Complete phone login & store user session
+      await loginWithPhone(phone, selectedRole, fullName, licenseNo);
+      setSuccessMsg(`Welcome to QafNest as a ${selectedRole === "host" ? "Verified Host" : "Guest"}!`);
+      setTimeout(() => {
+        closeAuthModal();
+      }, 1000);
+    } catch {
+      setErrorMsg("Verification failed. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Handle Email Fallback Login / Signup
+  const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg(null);
     setSuccessMsg(null);
     setLoading(true);
 
     try {
-      if (isSignIn) {
-        // Sign In
-        const { error } = await supabase.auth.signInWithPassword({
-          email,
-          password,
-        });
-
-        if (error) {
-          setErrorMsg(error.message);
-          setLoading(false);
-          return;
-        }
-
-        setSuccessMsg("Welcome back! Redirecting...");
-        setTimeout(() => {
-          closeAuthModal();
-        }, 1000);
+      if (isEmailSignIn) {
+        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) throw error;
+        setSuccessMsg("Welcome back! Signing you in...");
+        setTimeout(() => closeAuthModal(), 800);
       } else {
-        // Sign Up
-        const { error, data } = await supabase.auth.signUp({
+        const { error } = await supabase.auth.signUp({
           email,
           password,
           options: {
@@ -61,26 +172,12 @@ export default function AuthModal() {
             },
           },
         });
-
-        if (error) {
-          setErrorMsg(error.message);
-          setLoading(false);
-          return;
-        }
-
-        if (data.session) {
-          setSuccessMsg(`Welcome to QafNest as a ${selectedRole === "host" ? "Verified Host" : "Guest"}!`);
-        } else {
-          setSuccessMsg("Account created! Please check your email to verify your account.");
-        }
-
-        setTimeout(() => {
-          closeAuthModal();
-        }, 1500);
+        if (error) throw error;
+        setSuccessMsg("Account created successfully!");
+        setTimeout(() => closeAuthModal(), 1000);
       }
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "An unexpected error occurred.";
-      setErrorMsg(msg);
+      setErrorMsg(err instanceof Error ? err.message : "Authentication failed.");
     } finally {
       setLoading(false);
     }
@@ -88,264 +185,380 @@ export default function AuthModal() {
 
   return (
     <div
-      className="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-black/85 backdrop-blur-md transition-opacity duration-300"
+      className="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm transition-opacity duration-300"
       onClick={closeAuthModal}
     >
       <div
-        className="glass-strong glow-border max-w-md w-full rounded-3xl p-6 sm:p-8 relative shadow-2xl max-h-[92vh] overflow-y-auto"
+        className="max-w-md w-full rounded-3xl p-6 sm:p-8 relative shadow-2xl bg-white dark:bg-[#0E0E1A] border border-gray-100 dark:border-white/10 max-h-[92vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Close Button */}
         <button
           onClick={closeAuthModal}
-          className="absolute top-5 right-5 h-8 w-8 rounded-full glass flex items-center justify-center text-muted hover:text-fg transition-colors cursor-pointer"
+          className="absolute top-5 right-5 h-8 w-8 rounded-full bg-gray-100 dark:bg-white/10 flex items-center justify-center text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors cursor-pointer"
+          aria-label="Close modal"
         >
           <X className="w-4 h-4" />
         </button>
 
-        {/* Brand Monogram */}
-        <div className="flex items-center gap-3 mb-4">
-          <div className="h-9 w-9 rounded-full bg-gradient-to-tr from-violet-700 to-fuchsia-400 flex items-center justify-center font-display font-bold text-white text-base">
-            Q
-          </div>
-          <div>
-            <h3 className="font-display text-xl font-bold text-fg">
-              QAF<span className="text-gradient">NEST</span>
-            </h3>
-            <span className="text-[10px] uppercase tracking-widest text-violet-300 font-semibold block">
-              {isSignIn ? "Account Login" : "Create New Account"}
-            </span>
-          </div>
+        {/* Ministry Badge */}
+        <div className="flex items-center gap-1.5 mb-3">
+          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800/40 flex items-center gap-1">
+            <ShieldCheck className="w-3 h-3 text-purple-600 dark:text-purple-400" />
+            {language === "ar" ? "معتمد ومرخص من وزارة السياحة" : "Saudi Tourism Verified"}
+          </span>
         </div>
 
-        {/* Tab Switcher: Sign In vs Sign Up */}
-        <div className="grid grid-cols-2 p-1 rounded-2xl bg-white/[0.04] border border-white/10 mb-5">
-          <button
-            type="button"
-            onClick={() => {
-              setIsSignIn(true);
-              setErrorMsg(null);
-            }}
-            className={`py-2 text-xs font-bold rounded-xl transition-all cursor-pointer ${
-              isSignIn ? "bg-violet-600/40 text-white shadow-glow" : "text-muted hover:text-fg"
-            }`}
-          >
-            Sign In
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setIsSignIn(false);
-              setErrorMsg(null);
-            }}
-            className={`py-2 text-xs font-bold rounded-xl transition-all cursor-pointer ${
-              !isSignIn ? "bg-fuchsia-600/40 text-white shadow-glow" : "text-muted hover:text-fg"
-            }`}
-          >
-            Create Account
-          </button>
-        </div>
-
-        {/* Role Selector (Only on Sign Up) */}
-        {!isSignIn && (
-          <div className="mb-4">
-            <label className="block text-[11px] font-semibold text-muted mb-1.5">
-              Account Type · نوع الحساب
-            </label>
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                onClick={() => setSelectedRole("guest")}
-                className={`p-3 rounded-2xl border text-left transition-all cursor-pointer ${
-                  selectedRole === "guest"
-                    ? "border-violet-400 bg-violet-500/15 text-white shadow-glow"
-                    : "border-white/10 bg-white/[0.02] text-muted hover:border-white/20"
-                }`}
-              >
-                <div className="flex items-center gap-1.5 text-xs font-bold text-fg mb-0.5">
-                  <UserIcon className="w-3.5 h-3.5 text-violet-400" /> Guest (نزيل)
-                </div>
-                <p className="text-[10px] text-muted/70">Book chalets & villas</p>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setSelectedRole("host")}
-                className={`p-3 rounded-2xl border text-left transition-all cursor-pointer ${
-                  selectedRole === "host"
-                    ? "border-fuchsia-400 bg-fuchsia-500/15 text-white shadow-glow"
-                    : "border-white/10 bg-white/[0.02] text-muted hover:border-white/20"
-                }`}
-              >
-                <div className="flex items-center gap-1.5 text-xs font-bold text-fg mb-0.5">
-                  <Key className="w-3.5 h-3.5 text-fuchsia-400" /> Host (مضيف)
-                </div>
-                <p className="text-[10px] text-muted/70">List & earn revenue</p>
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Error / Success Messages */}
-        {errorMsg && (
-          <div className="mb-4 p-3 rounded-2xl bg-rose-500/15 border border-rose-500/30 flex items-center gap-2.5 text-rose-300 text-xs">
-            <AlertCircle className="w-4 h-4 shrink-0 text-rose-400" />
-            <span>{errorMsg}</span>
-          </div>
-        )}
-
-        {successMsg && (
-          <div className="mb-4 p-3 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 flex items-center gap-2.5 text-emerald-300 text-xs">
-            <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-400" />
-            <span>{successMsg}</span>
-          </div>
-        )}
-
-        {/* Auth Form */}
-        <form onSubmit={handleSubmit} className="space-y-3.5 text-xs">
-          {!isSignIn && (
-            <div>
-              <label className="block text-[11px] font-semibold text-muted mb-1">
-                Full Name · الاسم الكامل
-              </label>
-              <div className="relative">
-                <UserIcon className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-muted" />
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. Faisal Al-Otaibi"
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  className="w-full rounded-xl bg-surface/[0.05] border border-white/10 pl-10 pr-4 py-2.5 text-fg focus:outline-none focus:border-violet-400"
-                />
-              </div>
-            </div>
-          )}
-
+        {/* ============================================================== */}
+        {/* PHONE NUMBER AUTH FLOW (GATHERN BENCHMARK)                     */}
+        {/* ============================================================== */}
+        {authMethod === "phone" && (
           <div>
-            <label className="block text-[11px] font-semibold text-muted mb-1">
-              Email Address · البريد الإلكتروني
-            </label>
-            <div className="relative">
-              <Mail className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-muted" />
-              <input
-                type="email"
-                required
-                placeholder="name@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full rounded-xl bg-surface/[0.05] border border-white/10 pl-10 pr-4 py-2.5 text-fg focus:outline-none focus:border-violet-400"
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-[11px] font-semibold text-muted mb-1">
-              Password · كلمة المرور
-            </label>
-            <div className="relative">
-              <Lock className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-muted" />
-              <input
-                type="password"
-                required
-                minLength={6}
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full rounded-xl bg-surface/[0.05] border border-white/10 pl-10 pr-4 py-2.5 text-fg focus:outline-none focus:border-violet-400"
-              />
-            </div>
-          </div>
-
-          {!isSignIn && (
-            <div>
-              <label className="block text-[11px] font-semibold text-muted mb-1">
-                Phone Number (WhatsApp) · رقم الجوال
-              </label>
-              <div className="relative">
-                <Phone className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-muted" />
-                <input
-                  type="tel"
-                  placeholder="+966 5X XXX XXXX"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  className="w-full rounded-xl bg-surface/[0.05] border border-white/10 pl-10 pr-4 py-2.5 text-fg focus:outline-none focus:border-violet-400"
-                />
-              </div>
-            </div>
-          )}
-
-          {/* Host Specific Tourism License Field */}
-          {!isSignIn && selectedRole === "host" && (
-            <div>
-              <label className="block text-[11px] font-semibold text-muted mb-1 flex items-center justify-between">
-                <span>Tourism License (Optional) · ترخيص السياحة</span>
-                <span className="text-[10px] text-fuchsia-300">Verified Badge</span>
-              </label>
-              <div className="relative">
-                <ShieldCheck className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-muted" />
-                <input
-                  type="text"
-                  placeholder="e.g. 73102999 (Ministry of Tourism)"
-                  value={licenseNo}
-                  onChange={(e) => setLicenseNo(e.target.value)}
-                  className="w-full rounded-xl bg-surface/[0.05] border border-white/10 pl-10 pr-4 py-2.5 text-fg focus:outline-none focus:border-fuchsia-400"
-                />
-              </div>
-            </div>
-          )}
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full py-3 rounded-xl bg-luxe-gradient text-white font-bold tracking-wider uppercase text-xs shadow-glow hover:opacity-95 transition-opacity flex items-center justify-center gap-2 cursor-pointer mt-2 disabled:opacity-50"
-          >
-            {loading ? (
+            {phoneStep === "phone_input" ? (
               <>
-                <Loader2 className="w-4 h-4 animate-spin" />
-                <span>Processing...</span>
-              </>
-            ) : isSignIn ? (
-              "Sign In to QafNest"
-            ) : selectedRole === "host" ? (
-              "Register as Host · تسجيل كمضيف"
-            ) : (
-              "Create Guest Account"
-            )}
-          </button>
-        </form>
+                <div className="mb-6">
+                  <h3 className="font-display text-2xl font-bold text-gray-900 dark:text-white">
+                    {language === "ar" ? "تسجيل الدخول أو إنشاء حساب" : "Login or Sign up"}
+                  </h3>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    {language === "ar"
+                      ? "أدخل رقم جوالك لتصلك رسالة نصية برمز التحقق"
+                      : "Enter your mobile number to receive a verification code"}
+                  </p>
+                </div>
 
-        <div className="mt-5 text-center text-xs text-muted/70">
-          {isSignIn ? (
-            <p>
-              Don&apos;t have an account yet?{" "}
+                {/* Role Selector Tabs (Guest vs Host) */}
+                <div className="grid grid-cols-2 gap-2 p-1 rounded-2xl bg-gray-100 dark:bg-white/5 mb-5 border border-gray-200/50 dark:border-white/10">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedRole("guest")}
+                    className={`py-2 text-xs font-bold rounded-xl transition-all cursor-pointer ${
+                      selectedRole === "guest"
+                        ? "bg-purple-700 text-white shadow-sm"
+                        : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+                    }`}
+                  >
+                    {language === "ar" ? "ضيف (حجز إقامات)" : "Guest (Book Stays)"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedRole("host")}
+                    className={`py-2 text-xs font-bold rounded-xl transition-all cursor-pointer ${
+                      selectedRole === "host"
+                        ? "bg-purple-700 text-white shadow-sm"
+                        : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+                    }`}
+                  >
+                    {language === "ar" ? "مضيف (إضافة عقارات)" : "Host (List Stays)"}
+                  </button>
+                </div>
+
+                <form onSubmit={handleSendOtp} className="space-y-4">
+                  {/* Name Input */}
+                  <div>
+                    <label className="text-xs font-bold text-gray-700 dark:text-gray-300 block mb-1.5">
+                      {language === "ar" ? "الاسم الكامل" : "Full Name"}
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={fullName}
+                      onChange={(e) => setFullName(e.target.value)}
+                      placeholder={language === "ar" ? "مثال: فيصل العتيبي" : "e.g. Faisal Al-Otaibi"}
+                      className="w-full px-4 py-3 rounded-2xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-sm font-semibold text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:border-purple-600"
+                    />
+                  </div>
+
+                  {/* Saudi Mobile Number Input */}
+                  <div>
+                    <label className="text-xs font-bold text-gray-700 dark:text-gray-300 block mb-1.5">
+                      {language === "ar" ? "رقم الجوال" : "Mobile Number"}
+                    </label>
+                    <div className="flex items-center gap-2" dir="ltr">
+                      {/* Country Prefix Box */}
+                      <div className="px-3 py-3 rounded-2xl bg-gray-100 dark:bg-white/10 border border-gray-200 dark:border-white/10 flex items-center gap-1.5 shrink-0">
+                        <span className="text-base">🇸🇦</span>
+                        <span className="text-xs font-bold text-gray-900 dark:text-white">+966</span>
+                      </div>
+
+                      {/* Phone Input */}
+                      <input
+                        type="tel"
+                        required
+                        value={phone}
+                        onChange={(e) => setPhone(e.target.value.replace(/[^0-9]/g, ""))}
+                        placeholder="5X XXX XXXX"
+                        maxLength={9}
+                        className="w-full px-4 py-3 rounded-2xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-sm font-semibold text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:border-purple-600"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Optional Host License Input */}
+                  {selectedRole === "host" && (
+                    <div>
+                      <label className="text-xs font-bold text-gray-700 dark:text-gray-300 block mb-1.5">
+                        {language === "ar" ? "رقم ترخيص وزارة السياحة (اختياري)" : "Ministry Tourism License No (Optional)"}
+                      </label>
+                      <input
+                        type="text"
+                        value={licenseNo}
+                        onChange={(e) => setLicenseNo(e.target.value)}
+                        placeholder="e.g. TL-2026-9842"
+                        className="w-full px-4 py-3 rounded-2xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-sm font-semibold text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:border-purple-600"
+                      />
+                    </div>
+                  )}
+
+                  {/* Error & Success Messages */}
+                  {errorMsg && (
+                    <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300 text-xs flex items-center gap-2">
+                      <AlertCircle className="w-4 h-4 shrink-0" />
+                      <span>{errorMsg}</span>
+                    </div>
+                  )}
+
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="w-full py-3.5 rounded-2xl bg-purple-700 hover:bg-purple-800 text-white font-bold text-sm shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                  >
+                    {loading ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <>
+                        <span>{language === "ar" ? "متابعة" : "Continue"}</span>
+                        <ArrowRight className="w-4 h-4 rtl:rotate-180" />
+                      </>
+                    )}
+                  </button>
+                </form>
+              </>
+            ) : (
+              /* OTP Verification Step */
+              <div>
+                <div className="mb-6">
+                  <h3 className="font-display text-2xl font-bold text-gray-900 dark:text-white">
+                    {language === "ar" ? "أدخل رمز التحقق" : "Enter Verification Code"}
+                  </h3>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    {language === "ar" ? "أدخل الرمز المكون من 4 أرقام المرسل إلى " : "Enter the 4-digit code sent via SMS to "}
+                    <span className="font-bold text-gray-900 dark:text-white" dir="ltr">
+                      +966 {phone}
+                    </span>{" "}
+                    <button
+                      type="button"
+                      onClick={() => setPhoneStep("phone_input")}
+                      className="text-purple-600 dark:text-purple-400 underline font-semibold ml-1 rtl:mr-1 rtl:ml-0 cursor-pointer"
+                    >
+                      {language === "ar" ? "تغيير" : "Change"}
+                    </button>
+                  </p>
+                </div>
+
+                <form onSubmit={handleVerifyOtp} className="space-y-5">
+                  {/* 4 Digit Boxes */}
+                  <div className="flex items-center justify-center gap-3" dir="ltr">
+                    {otp.map((digit, index) => (
+                      <input
+                        key={index}
+                        ref={otpInputRefs[index]}
+                        type="text"
+                        inputMode="numeric"
+                        maxLength={1}
+                        value={digit}
+                        onChange={(e) => handleOtpChange(index, e.target.value)}
+                        onKeyDown={(e) => handleOtpKeyDown(index, e)}
+                        className="w-14 h-14 text-center font-mono text-xl font-bold rounded-2xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-900 dark:text-white focus:outline-none focus:border-purple-600 focus:ring-2 focus:ring-purple-600/20 transition-all"
+                      />
+                    ))}
+                  </div>
+
+                  {/* Demo Helper Note */}
+                  <p className="text-[11px] text-center text-gray-400 dark:text-gray-500">
+                    {language === "ar"
+                      ? "💡 تجربة: أدخل 1234 أو أي 4 أرقام للتجربة"
+                      : "💡 Test Demo: Enter 1234 or any 4 digits"}
+                  </p>
+
+                  {/* Resend Timer */}
+                  <div className="text-center text-xs text-gray-500">
+                    {timer > 0 ? (
+                      <span>
+                        {language === "ar"
+                          ? `إعادة الإرسال بعد 00:${String(timer).padStart(2, "0")}`
+                          : `Resend code in 00:${String(timer).padStart(2, "0")}`}
+                      </span>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => setTimer(45)}
+                        className="font-bold text-purple-600 dark:text-purple-400 hover:underline cursor-pointer"
+                      >
+                        {language === "ar" ? "إعادة إرسال الرمز الآن" : "Resend Code Now"}
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Error & Success */}
+                  {errorMsg && (
+                    <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300 text-xs flex items-center gap-2">
+                      <AlertCircle className="w-4 h-4 shrink-0" />
+                      <span>{errorMsg}</span>
+                    </div>
+                  )}
+
+                  {successMsg && (
+                    <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 text-xs flex items-center gap-2">
+                      <CheckCircle2 className="w-4 h-4 shrink-0" />
+                      <span>{successMsg}</span>
+                    </div>
+                  )}
+
+                  <button
+                    type="submit"
+                    disabled={loading || otp.join("").length < 4}
+                    className="w-full py-3.5 rounded-2xl bg-purple-700 hover:bg-purple-800 text-white font-bold text-sm shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                  >
+                    {loading ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <span>{language === "ar" ? "تحقق ومتابعة" : "Verify & Continue"}</span>
+                    )}
+                  </button>
+                </form>
+              </div>
+            )}
+
+            {/* Switch to Email Button */}
+            <div className="mt-6 pt-4 border-t border-gray-100 dark:border-white/10 text-center">
               <button
                 type="button"
-                onClick={() => {
-                  setIsSignIn(false);
-                  setErrorMsg(null);
-                }}
-                className="text-violet-400 font-bold hover:underline cursor-pointer"
+                onClick={() => setAuthMethod("email")}
+                className="text-xs font-semibold text-gray-500 hover:text-purple-700 dark:hover:text-purple-400 transition-colors flex items-center justify-center gap-1.5 mx-auto cursor-pointer"
               >
-                Sign up
+                <Mail className="w-3.5 h-3.5" />
+                <span>{language === "ar" ? "أو المتابعة عبر البريد الإلكتروني" : "Or continue with Email"}</span>
               </button>
-            </p>
-          ) : (
-            <p>
-              Already registered?{" "}
+            </div>
+          </div>
+        )}
+
+        {/* ============================================================== */}
+        {/* EMAIL & PASSWORD FLOW (ALTERNATIVE)                           */}
+        {/* ============================================================== */}
+        {authMethod === "email" && (
+          <div>
+            <div className="mb-6">
+              <h3 className="font-display text-2xl font-bold text-gray-900 dark:text-white">
+                {isEmailSignIn ? "Sign In with Email" : "Create Account"}
+              </h3>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                Enter your credentials to access your booking dashboard
+              </p>
+            </div>
+
+            <form onSubmit={handleEmailSubmit} className="space-y-4">
+              {!isEmailSignIn && (
+                <div>
+                  <label className="text-xs font-bold text-gray-700 dark:text-gray-300 block mb-1">
+                    Full Name
+                  </label>
+                  <div className="relative">
+                    <UserIcon className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="text"
+                      required
+                      value={fullName}
+                      onChange={(e) => setFullName(e.target.value)}
+                      placeholder="Your full name"
+                      className="w-full pl-10 pr-4 py-3 rounded-2xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-sm font-semibold text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:border-purple-600"
+                    />
+                  </div>
+                </div>
+              )}
+
+              <div>
+                <label className="text-xs font-bold text-gray-700 dark:text-gray-300 block mb-1">
+                  Email Address
+                </label>
+                <div className="relative">
+                  <Mail className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="email"
+                    required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="name@example.com"
+                    className="w-full pl-10 pr-4 py-3 rounded-2xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-sm font-semibold text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:border-purple-600"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-gray-700 dark:text-gray-300 block mb-1">
+                  Password
+                </label>
+                <div className="relative">
+                  <Lock className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="password"
+                    required
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="••••••••"
+                    className="w-full pl-10 pr-4 py-3 rounded-2xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-sm font-semibold text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:border-purple-600"
+                  />
+                </div>
+              </div>
+
+              {errorMsg && (
+                <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300 text-xs flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 shrink-0" />
+                  <span>{errorMsg}</span>
+                </div>
+              )}
+
+              {successMsg && (
+                <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 text-xs flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 shrink-0" />
+                  <span>{successMsg}</span>
+                </div>
+              )}
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full py-3.5 rounded-2xl bg-purple-700 hover:bg-purple-800 text-white font-bold text-sm shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+              >
+                {loading ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <span>{isEmailSignIn ? "Sign In" : "Create Account"}</span>
+                )}
+              </button>
+            </form>
+
+            <div className="mt-4 flex items-center justify-between text-xs text-gray-500">
               <button
                 type="button"
-                onClick={() => {
-                  setIsSignIn(true);
-                  setErrorMsg(null);
-                }}
-                className="text-fuchsia-400 font-bold hover:underline cursor-pointer"
+                onClick={() => setIsEmailSignIn(!isEmailSignIn)}
+                className="hover:underline font-semibold text-purple-600 dark:text-purple-400 cursor-pointer"
               >
-                Log in
+                {isEmailSignIn ? "Need an account? Sign up" : "Already have an account? Sign in"}
               </button>
-            </p>
-          )}
-        </div>
+
+              <button
+                type="button"
+                onClick={() => setAuthMethod("phone")}
+                className="hover:underline font-semibold text-gray-600 dark:text-gray-400 flex items-center gap-1 cursor-pointer"
+              >
+                <Phone className="w-3 h-3" />
+                <span>Mobile Login</span>
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
