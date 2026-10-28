@@ -86,34 +86,48 @@ export default function Navbar() {
     if (el) el.scrollIntoView({ behavior: "smooth" });
   };
 
+  const textLinkClass = isDarkTheme
+    ? "text-white/80 hover:text-white"
+    : "text-gray-700 hover:text-purple-700";
+
+  const dropdownContainerClass = isDarkTheme
+    ? "bg-[#0B0B14]/95 border-white/10 text-white/90"
+    : "bg-white/98 border-purple-100 shadow-[0_12px_40px_rgba(88,28,135,0.12)] text-gray-800";
+
+  const dropdownItemClass = isDarkTheme
+    ? "text-white/80 hover:text-white hover:bg-white/[0.06]"
+    : "text-gray-700 hover:text-purple-900 hover:bg-purple-50";
+
   return (
     <header
       ref={navRef}
       id="navbar"
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 border-b ${
-        scrolled
-          ? "bg-[#06060B]/90 backdrop-blur-xl border-white/[0.08] shadow-[0_10px_30px_rgba(0,0,0,0.5)] py-3"
-          : "bg-[#06060B]/75 backdrop-blur-md border-white/[0.05] py-4"
+        isDarkTheme
+          ? scrolled
+            ? "bg-[#06060B]/90 backdrop-blur-xl border-white/[0.08] shadow-[0_10px_30px_rgba(0,0,0,0.5)] py-3"
+            : "bg-[#06060B]/75 backdrop-blur-md border-white/[0.05] py-4"
+          : scrolled
+            ? "bg-white/92 backdrop-blur-xl border-purple-900/[0.08] shadow-[0_4px_25px_rgba(88,28,135,0.06)] py-3 text-gray-900"
+            : "bg-white/85 backdrop-blur-md border-purple-900/[0.05] py-4 text-gray-900"
       }`}
     >
       <div className="max-w-[1440px] mx-auto px-5 sm:px-8 lg:px-12 flex items-center justify-between">
         {/* ================= LEFT: BRAND LOGO ================= */}
         <Link href="#top" className="flex items-center gap-3 group shrink-0">
-          {/* Circular Orbit / Radar Glyph matching the reference icon */}
           <div className="relative flex items-center justify-center h-8 w-8 rounded-full border border-violet-500/40 bg-violet-950/40 shadow-[0_0_14px_rgba(168,85,247,0.4)]">
             <div className="absolute inset-0 rounded-full border border-dashed border-violet-400/50 animate-[spin_10s_linear_infinite]" />
             <div className="h-2.5 w-2.5 rounded-full bg-fuchsia-400 shadow-[0_0_10px_rgba(232,121,249,0.95)]" />
           </div>
 
-          {/* Brand Typography: DIGITIZE STUDIO style -> QAF NEST */}
           <div className="flex items-center font-display font-bold tracking-[0.14em] text-base sm:text-lg">
-            <span className="text-white">QAF</span>
+            <span className={isDarkTheme ? "text-white" : "text-gray-900"}>QAF</span>
             <span className="text-fuchsia-400 ml-1.5 font-extrabold text-gradient">NEST</span>
           </div>
         </Link>
 
         {/* ================= MIDDLE: NAVIGATION LINKS WITH CHEVRONS ================= */}
-        <nav className="hidden lg:flex items-center gap-7 text-[13px] font-medium text-white/80">
+        <nav className="hidden lg:flex items-center gap-7 text-[13px] font-medium">
           {/* Destinations Dropdown */}
           <div
             className="relative"
@@ -122,7 +136,7 @@ export default function Navbar() {
           >
             <button
               onClick={() => setActiveDropdown(activeDropdown === "destinations" ? null : "destinations")}
-              className="flex items-center gap-1.5 hover:text-white transition-colors cursor-pointer py-1"
+              className={`flex items-center gap-1.5 transition-colors cursor-pointer py-1 ${textLinkClass}`}
             >
               <span>Destinations</span>
               <ChevronDown
@@ -139,9 +153,9 @@ export default function Navbar() {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: 8 }}
                   transition={{ duration: 0.15 }}
-                  className="absolute top-full left-0 mt-2 w-56 rounded-2xl bg-[#0B0B14]/95 backdrop-blur-xl border border-white/10 p-2 shadow-2xl z-50"
+                  className={`absolute top-full left-0 mt-2 w-56 rounded-2xl backdrop-blur-xl border p-2 shadow-2xl z-50 ${dropdownContainerClass}`}
                 >
-                  <p className="px-3 py-1.5 text-[10px] uppercase font-bold text-violet-300/80 tracking-wider">
+                  <p className="px-3 py-1.5 text-[10px] uppercase font-bold text-violet-500 tracking-wider">
                     Popular Cities
                   </p>
                   {[
@@ -155,9 +169,9 @@ export default function Navbar() {
                     <button
                       key={city.id}
                       onClick={() => handleCitySelect(city.id)}
-                      className="w-full text-left px-3 py-2 text-xs rounded-xl text-white/80 hover:text-white hover:bg-white/[0.06] transition-colors flex items-center gap-2 cursor-pointer"
+                      className={`w-full text-left px-3 py-2 text-xs rounded-xl transition-colors flex items-center gap-2 cursor-pointer ${dropdownItemClass}`}
                     >
-                      <MapPin className="w-3.5 h-3.5 text-violet-400" />
+                      <MapPin className="w-3.5 h-3.5 text-violet-500" />
                       <span>{city.name}</span>
                     </button>
                   ))}
@@ -174,7 +188,7 @@ export default function Navbar() {
           >
             <button
               onClick={() => setActiveDropdown(activeDropdown === "categories" ? null : "categories")}
-              className="flex items-center gap-1.5 hover:text-white transition-colors cursor-pointer py-1"
+              className={`flex items-center gap-1.5 transition-colors cursor-pointer py-1 ${textLinkClass}`}
             >
               <span>Chalets & Villas</span>
               <ChevronDown
@@ -191,9 +205,9 @@ export default function Navbar() {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: 8 }}
                   transition={{ duration: 0.15 }}
-                  className="absolute top-full left-0 mt-2 w-56 rounded-2xl bg-[#0B0B14]/95 backdrop-blur-xl border border-white/10 p-2 shadow-2xl z-50"
+                  className={`absolute top-full left-0 mt-2 w-56 rounded-2xl backdrop-blur-xl border p-2 shadow-2xl z-50 ${dropdownContainerClass}`}
                 >
-                  <p className="px-3 py-1.5 text-[10px] uppercase font-bold text-violet-300/80 tracking-wider">
+                  <p className="px-3 py-1.5 text-[10px] uppercase font-bold text-violet-500 tracking-wider">
                     Property Types
                   </p>
                   {[
@@ -207,9 +221,9 @@ export default function Navbar() {
                     <button
                       key={cat.id}
                       onClick={() => handleCategorySelect(cat.id)}
-                      className="w-full text-left px-3 py-2 text-xs rounded-xl text-white/80 hover:text-white hover:bg-white/[0.06] transition-colors flex items-center gap-2 cursor-pointer"
+                      className={`w-full text-left px-3 py-2 text-xs rounded-xl transition-colors flex items-center gap-2 cursor-pointer ${dropdownItemClass}`}
                     >
-                      <Home className="w-3.5 h-3.5 text-violet-400" />
+                      <Home className="w-3.5 h-3.5 text-violet-500" />
                       <span>{cat.name}</span>
                     </button>
                   ))}
@@ -221,7 +235,7 @@ export default function Navbar() {
           {/* Flash Deals Link */}
           <Link
             href="#deals"
-            className="flex items-center gap-1.5 hover:text-white transition-colors cursor-pointer py-1 text-fuchsia-300 font-semibold"
+            className="flex items-center gap-1.5 hover:opacity-85 transition-opacity cursor-pointer py-1 text-fuchsia-400 font-semibold"
           >
             <span>Flash Deals</span>
             <Flame className="w-3.5 h-3.5 text-fuchsia-400" />
@@ -230,7 +244,7 @@ export default function Navbar() {
           {/* Second Home / Collections Link */}
           <Link
             href="#collections"
-            className="flex items-center gap-1.5 hover:text-white transition-colors cursor-pointer py-1"
+            className={`flex items-center gap-1.5 transition-colors cursor-pointer py-1 ${textLinkClass}`}
           >
             <span>Second Home</span>
           </Link>
@@ -243,7 +257,7 @@ export default function Navbar() {
           >
             <button
               onClick={openHostModal}
-              className="flex items-center gap-1.5 hover:text-white transition-colors cursor-pointer py-1 text-violet-300"
+              className={`flex items-center gap-1.5 transition-colors cursor-pointer py-1 text-violet-400 font-semibold`}
             >
               <span>Host with Us</span>
               <ChevronDown
@@ -260,14 +274,14 @@ export default function Navbar() {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: 8 }}
                   transition={{ duration: 0.15 }}
-                  className="absolute top-full left-0 mt-2 w-60 rounded-2xl bg-[#0B0B14]/95 backdrop-blur-xl border border-white/10 p-2 shadow-2xl z-50"
+                  className={`absolute top-full left-0 mt-2 w-60 rounded-2xl backdrop-blur-xl border p-2 shadow-2xl z-50 ${dropdownContainerClass}`}
                 >
                   <button
                     onClick={() => {
                       setActiveDropdown(null);
                       openHostModal();
                     }}
-                    className="w-full text-left px-3 py-2 text-xs rounded-xl text-fuchsia-300 hover:bg-white/[0.06] transition-colors flex items-center gap-2 cursor-pointer"
+                    className={`w-full text-left px-3 py-2 text-xs rounded-xl transition-colors flex items-center gap-2 cursor-pointer text-fuchsia-400 hover:bg-fuchsia-500/10`}
                   >
                     <Key className="w-3.5 h-3.5 text-fuchsia-400" />
                     <span>List Your Property</span>
@@ -275,14 +289,14 @@ export default function Navbar() {
                   <Link
                     href="#host"
                     onClick={() => setActiveDropdown(null)}
-                    className="w-full text-left px-3 py-2 text-xs rounded-xl text-white/80 hover:text-white hover:bg-white/[0.06] transition-colors flex items-center gap-2 cursor-pointer"
+                    className={`w-full text-left px-3 py-2 text-xs rounded-xl transition-colors flex items-center gap-2 cursor-pointer ${dropdownItemClass}`}
                   >
                     <span>Host Earnings Calculator</span>
                   </Link>
                   <Link
                     href="#faq"
                     onClick={() => setActiveDropdown(null)}
-                    className="w-full text-left px-3 py-2 text-xs rounded-xl text-white/80 hover:text-white hover:bg-white/[0.06] transition-colors flex items-center gap-2 cursor-pointer"
+                    className={`w-full text-left px-3 py-2 text-xs rounded-xl transition-colors flex items-center gap-2 cursor-pointer ${dropdownItemClass}`}
                   >
                     <span>Host FAQs & Protection</span>
                   </Link>
@@ -298,7 +312,9 @@ export default function Navbar() {
           <button
             onClick={handleSearchClick}
             aria-label="Search"
-            className="p-1.5 text-white/70 hover:text-white transition-colors cursor-pointer"
+            className={`p-1.5 transition-colors cursor-pointer ${
+              isDarkTheme ? "text-white/70 hover:text-white" : "text-gray-600 hover:text-gray-900"
+            }`}
           >
             <Search className="w-4 h-4" />
           </button>
@@ -307,12 +323,14 @@ export default function Navbar() {
           <button
             onClick={toggleTheme}
             aria-label="Toggle Theme"
-            className="p-1.5 text-white/70 hover:text-white transition-colors cursor-pointer"
+            className={`p-1.5 transition-colors cursor-pointer ${
+              isDarkTheme ? "text-white/70 hover:text-white" : "text-amber-500 hover:text-amber-600"
+            }`}
           >
             {isDarkTheme ? (
               <Moon className="w-4 h-4" />
             ) : (
-              <Sun className="w-4 h-4 text-amber-300" />
+              <Sun className="w-4 h-4 text-amber-500" />
             )}
           </button>
 
@@ -320,11 +338,13 @@ export default function Navbar() {
           <div className="relative">
             <button
               onClick={() => setLangDropdownOpen(!langDropdownOpen)}
-              className="flex items-center gap-1.5 text-xs font-semibold text-white/80 hover:text-white py-1 px-1.5 rounded-lg transition-colors cursor-pointer"
+              className={`flex items-center gap-1.5 text-xs font-semibold py-1 px-1.5 rounded-lg transition-colors cursor-pointer ${
+                isDarkTheme ? "text-white/80 hover:text-white" : "text-gray-700 hover:text-gray-900"
+              }`}
             >
-              <Globe className="w-4 h-4 text-white/70" />
+              <Globe className="w-4 h-4 opacity-70" />
               <span>{selectedLang}</span>
-              <span className="text-[10px] text-violet-300">({currency})</span>
+              <span className="text-[10px] text-violet-400">({currency})</span>
             </button>
 
             <AnimatePresence>
@@ -334,7 +354,7 @@ export default function Navbar() {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: 8 }}
                   transition={{ duration: 0.15 }}
-                  className="absolute right-0 top-full mt-2 w-48 rounded-2xl bg-[#0B0B14]/95 backdrop-blur-xl border border-white/10 p-2 shadow-2xl z-50 text-xs"
+                  className={`absolute right-0 top-full mt-2 w-48 rounded-2xl backdrop-blur-xl border p-2 shadow-2xl z-50 text-xs ${dropdownContainerClass}`}
                 >
                   <p className="px-3 py-1 text-[10px] uppercase font-bold text-muted tracking-wider">
                     Language
@@ -344,7 +364,7 @@ export default function Navbar() {
                       setSelectedLang("EN");
                       setLangDropdownOpen(false);
                     }}
-                    className="w-full text-left px-3 py-1.5 rounded-lg text-white/80 hover:text-white hover:bg-white/[0.06] flex items-center justify-between"
+                    className={`w-full text-left px-3 py-1.5 rounded-lg flex items-center justify-between ${dropdownItemClass}`}
                   >
                     <span>English</span>
                     {selectedLang === "EN" && <Check className="w-3.5 h-3.5 text-emerald-400" />}
@@ -354,13 +374,13 @@ export default function Navbar() {
                       setSelectedLang("AR");
                       setLangDropdownOpen(false);
                     }}
-                    className="w-full text-left px-3 py-1.5 rounded-lg text-white/80 hover:text-white hover:bg-white/[0.06] flex items-center justify-between"
+                    className={`w-full text-left px-3 py-1.5 rounded-lg flex items-center justify-between ${dropdownItemClass}`}
                   >
                     <span>العربية (Saudi Arabia)</span>
                     {selectedLang === "AR" && <Check className="w-3.5 h-3.5 text-emerald-400" />}
                   </button>
 
-                  <div className="my-1.5 border-t border-white/10" />
+                  <div className="my-1.5 border-t border-purple-500/20" />
 
                   <p className="px-3 py-1 text-[10px] uppercase font-bold text-muted tracking-wider">
                     Currency
@@ -372,7 +392,7 @@ export default function Navbar() {
                         setCurrency(c);
                         setLangDropdownOpen(false);
                       }}
-                      className="w-full text-left px-3 py-1.5 rounded-lg text-white/80 hover:text-white hover:bg-white/[0.06] flex items-center justify-between"
+                      className={`w-full text-left px-3 py-1.5 rounded-lg flex items-center justify-between ${dropdownItemClass}`}
                     >
                       <span>{c}</span>
                       {currency === c && <Check className="w-3.5 h-3.5 text-fuchsia-400" />}
@@ -388,15 +408,19 @@ export default function Navbar() {
             <div className="relative">
               <button
                 onClick={() => setUserDropdownOpen(!userDropdownOpen)}
-                className="flex items-center gap-2 rounded-full p-1 pl-2 bg-white/[0.05] border border-white/10 hover:border-violet-400/40 transition-colors cursor-pointer"
+                className={`flex items-center gap-2 rounded-full p-1 pl-2 border transition-colors cursor-pointer ${
+                  isDarkTheme
+                    ? "bg-white/[0.05] border-white/10 hover:border-violet-400/40 text-white"
+                    : "bg-purple-50 border-purple-200 hover:border-purple-300 text-gray-900"
+                }`}
               >
                 <div className="h-6 w-6 rounded-full bg-gradient-to-tr from-violet-600 to-fuchsia-400 flex items-center justify-center text-white font-bold text-[10px]">
                   {profile?.full_name?.charAt(0) || user.email?.charAt(0)?.toUpperCase() || "U"}
                 </div>
-                <span className="hidden xl:inline-block max-w-[80px] truncate text-xs font-semibold text-white">
+                <span className="hidden xl:inline-block max-w-[80px] truncate text-xs font-semibold">
                   {profile?.full_name?.split(" ")[0] || user.email?.split("@")[0]}
                 </span>
-                <ChevronDown className="w-3 h-3 text-white/60 mr-1" />
+                <ChevronDown className="w-3 h-3 opacity-60 mr-1" />
               </button>
 
               <AnimatePresence>
@@ -406,14 +430,14 @@ export default function Navbar() {
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: 8 }}
                     transition={{ duration: 0.15 }}
-                    className="absolute right-0 top-full mt-2 w-56 rounded-2xl bg-[#0B0B14]/95 backdrop-blur-xl border border-white/10 p-2 shadow-2xl z-50 text-xs"
+                    className={`absolute right-0 top-full mt-2 w-56 rounded-2xl backdrop-blur-xl border p-2 shadow-2xl z-50 text-xs ${dropdownContainerClass}`}
                   >
-                    <div className="px-3 py-2 border-b border-white/5">
-                      <p className="font-bold text-white truncate">
+                    <div className="px-3 py-2 border-b border-purple-500/15">
+                      <p className="font-bold truncate">
                         {profile?.full_name || "Valued User"}
                       </p>
                       <p className="text-[10px] text-muted truncate">{user.email}</p>
-                      <span className="inline-block mt-1 text-[9px] px-2 py-0.5 rounded-full bg-fuchsia-500/20 text-fuchsia-300 font-bold uppercase">
+                      <span className="inline-block mt-1 text-[9px] px-2 py-0.5 rounded-full bg-fuchsia-500/20 text-fuchsia-400 font-bold uppercase">
                         {role}
                       </span>
                     </div>
@@ -425,7 +449,7 @@ export default function Navbar() {
                             setUserDropdownOpen(false);
                             openHostModal();
                           }}
-                          className="w-full text-left px-3 py-2 rounded-xl text-fuchsia-300 hover:bg-white/[0.06] flex items-center gap-2 cursor-pointer"
+                          className="w-full text-left px-3 py-2 rounded-xl text-fuchsia-400 hover:bg-fuchsia-500/10 flex items-center gap-2 cursor-pointer"
                         >
                           <Key className="w-3.5 h-3.5 text-fuchsia-400" /> Host Portal & Listings
                         </button>
@@ -435,7 +459,7 @@ export default function Navbar() {
                             setUserDropdownOpen(false);
                             openHostModal();
                           }}
-                          className="w-full text-left px-3 py-2 rounded-xl text-violet-300 hover:bg-white/[0.06] flex items-center gap-2 cursor-pointer"
+                          className={`w-full text-left px-3 py-2 rounded-xl flex items-center gap-2 cursor-pointer text-violet-400 hover:bg-purple-500/10`}
                         >
                           <Key className="w-3.5 h-3.5 text-violet-400" /> Become a Host
                         </button>
@@ -446,7 +470,7 @@ export default function Navbar() {
                           setUserDropdownOpen(false);
                           signOut();
                         }}
-                        className="w-full text-left px-3 py-2 rounded-xl text-rose-300 hover:bg-rose-500/10 flex items-center gap-2 cursor-pointer mt-1 font-semibold"
+                        className="w-full text-left px-3 py-2 rounded-xl text-rose-400 hover:bg-rose-500/10 flex items-center gap-2 cursor-pointer mt-1 font-semibold"
                       >
                         <LogOut className="w-3.5 h-3.5 text-rose-400" /> Sign Out
                       </button>
@@ -458,13 +482,15 @@ export default function Navbar() {
           ) : (
             <button
               onClick={() => openAuthModal("signin")}
-              className="hidden sm:inline-flex text-xs font-semibold text-white/80 hover:text-white transition-colors cursor-pointer px-2"
+              className={`hidden sm:inline-flex text-xs font-semibold transition-colors cursor-pointer px-2 ${
+                isDarkTheme ? "text-white/80 hover:text-white" : "text-gray-700 hover:text-gray-900"
+              }`}
             >
               Sign In
             </button>
           )}
 
-          {/* ================= PRIMARY CTA BUTTON (Matching "Book Consultation ↗") ================= */}
+          {/* ================= PRIMARY CTA BUTTON ================= */}
           <Link
             href="#properties"
             className="group relative inline-flex items-center gap-1.5 px-5 sm:px-6 py-2 sm:py-2.5 rounded-full text-xs sm:text-sm font-semibold text-white bg-gradient-to-r from-violet-600 via-purple-600 to-fuchsia-500 hover:from-violet-500 hover:to-fuchsia-400 shadow-[0_0_24px_rgba(168,85,247,0.4)] transition-all duration-300 cursor-pointer shrink-0"
@@ -476,7 +502,7 @@ export default function Navbar() {
           {/* Mobile Hamburger Toggle */}
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="lg:hidden p-2 text-white/80 hover:text-white"
+            className={`lg:hidden p-2 ${isDarkTheme ? "text-white/80 hover:text-white" : "text-gray-700 hover:text-gray-900"}`}
             aria-label="Open Mobile Menu"
           >
             {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
@@ -491,33 +517,37 @@ export default function Navbar() {
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
-            className="lg:hidden bg-[#0B0B14]/98 border-b border-white/10 px-6 py-5 space-y-4"
+            className={`lg:hidden border-b px-6 py-5 space-y-4 ${
+              isDarkTheme
+                ? "bg-[#0B0B14]/98 border-white/10 text-white"
+                : "bg-white/98 border-purple-100 text-gray-900 shadow-xl"
+            }`}
           >
             <Link
               href="#destinations"
               onClick={() => setMobileMenuOpen(false)}
-              className="block text-sm font-semibold text-white/90 hover:text-fuchsia-300"
+              className="block text-sm font-semibold hover:text-fuchsia-400"
             >
               Destinations
             </Link>
             <Link
               href="#properties"
               onClick={() => setMobileMenuOpen(false)}
-              className="block text-sm font-semibold text-white/90 hover:text-fuchsia-300"
+              className="block text-sm font-semibold hover:text-fuchsia-400"
             >
               Chalets & Villas
             </Link>
             <Link
               href="#deals"
               onClick={() => setMobileMenuOpen(false)}
-              className="block text-sm font-semibold text-fuchsia-300 flex items-center gap-1.5"
+              className="block text-sm font-semibold text-fuchsia-400 flex items-center gap-1.5"
             >
               <Flame className="w-4 h-4" /> Flash Deals
             </Link>
             <Link
               href="#collections"
               onClick={() => setMobileMenuOpen(false)}
-              className="block text-sm font-semibold text-white/90 hover:text-fuchsia-300"
+              className="block text-sm font-semibold hover:text-fuchsia-400"
             >
               Second Home
             </Link>
@@ -526,17 +556,17 @@ export default function Navbar() {
                 setMobileMenuOpen(false);
                 openHostModal();
               }}
-              className="block text-left text-sm font-semibold text-violet-300"
+              className="block text-left text-sm font-semibold text-violet-400"
             >
               Host with Us
             </button>
 
-            <div className="pt-3 border-t border-white/10 flex items-center justify-between">
+            <div className="pt-3 border-t border-purple-500/15 flex items-center justify-between">
               {user ? (
                 <div className="flex items-center justify-between w-full">
                   <div>
-                    <p className="text-xs font-bold text-white">{profile?.full_name || user.email}</p>
-                    <span className="text-[10px] text-fuchsia-300 font-bold uppercase">{role}</span>
+                    <p className="text-xs font-bold">{profile?.full_name || user.email}</p>
+                    <span className="text-[10px] text-fuchsia-400 font-bold uppercase">{role}</span>
                   </div>
                   <button
                     onClick={() => {
@@ -554,7 +584,7 @@ export default function Navbar() {
                     setMobileMenuOpen(false);
                     openAuthModal("signin");
                   }}
-                  className="w-full py-2.5 rounded-full border border-violet-400/40 bg-violet-600/20 text-white text-xs font-bold uppercase tracking-wider"
+                  className="w-full py-2.5 rounded-full border border-violet-400/40 bg-violet-600/20 text-xs font-bold uppercase tracking-wider text-violet-300"
                 >
                   Sign In / Register
                 </button>

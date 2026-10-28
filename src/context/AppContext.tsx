@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useState } from "react";
+import React, { createContext, useContext, useState, useEffect } from "react";
 
 export type Currency = "SAR" | "AED" | "USD" | "EUR";
 
@@ -68,6 +68,22 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [promoBannerVisible, setPromoBannerVisible] = useState<boolean>(true);
   const [isDarkTheme, setIsDarkTheme] = useState<boolean>(true);
 
+  // Sync theme with localStorage & documentElement
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem("qafnest_theme");
+      if (stored === "light") {
+        setIsDarkTheme(false);
+        document.documentElement.classList.add("light");
+        document.documentElement.classList.remove("dark");
+      } else {
+        setIsDarkTheme(true);
+        document.documentElement.classList.add("dark");
+        document.documentElement.classList.remove("light");
+      }
+    } catch {}
+  }, []);
+
   const [bookingModal, setBookingModal] = useState<BookingModalState>({
     isOpen: false,
     propertyTitle: "Al-Ammariyah Royal Chalet",
@@ -122,9 +138,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       if (next) {
         document.documentElement.classList.add("dark");
         document.documentElement.classList.remove("light");
+        try {
+          localStorage.setItem("qafnest_theme", "dark");
+        } catch {}
       } else {
         document.documentElement.classList.add("light");
         document.documentElement.classList.remove("dark");
+        try {
+          localStorage.setItem("qafnest_theme", "light");
+        } catch {}
       }
       return next;
     });
