@@ -2,8 +2,6 @@
 
 import { AppProvider } from "@/context/AppContext";
 import { AuthProvider } from "@/context/AuthContext";
-import Cursor from "@/components/common/Cursor";
-import ParticleField from "@/components/common/ParticleField";
 import SmoothScroll from "@/components/common/SmoothScroll";
 import ScrollProgress from "@/components/common/ScrollProgress";
 import BackToTop from "@/components/common/BackToTop";
@@ -37,12 +35,6 @@ export default function Home() {
 
         {/* Top Precision Scroll Progress Bar */}
         <ScrollProgress />
-
-        {/* Precision Dual Cursor & Ambient Spotlight */}
-        <Cursor />
-
-        {/* Luxury Cosmic Galaxy Particle Field */}
-        <ParticleField />
 
         {/* Sticky Glass Navbar & Promo Banner */}
         <Navbar />

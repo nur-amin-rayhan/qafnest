@@ -54,20 +54,6 @@ body {
   transition: background-color 0.4s ease, color 0.4s ease;
 }
 
-/* Custom Cursor Hide Native Cursor on Desktop with Mouse */
-@media (hover: hover) and (pointer: fine) {
-  body.custom-cursor,
-  body.custom-cursor * {
-    cursor: none !important;
-  }
-}
-
-#cursor-dot {
-  z-index: 999999 !important;
-}
-#cursor-ring {
-  z-index: 999998 !important;
-}
 input, select, textarea {
   caret-color: #E879F9;
 }

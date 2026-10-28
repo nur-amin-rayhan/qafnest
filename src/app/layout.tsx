@@ -52,7 +52,7 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark">
       <body
-        className={`${plusJakartaSans.variable} ${spaceGrotesk.variable} ${cormorantGaramond.variable} font-body custom-cursor relative min-h-screen selection:bg-violet-500/30`}
+        className={`${plusJakartaSans.variable} ${spaceGrotesk.variable} ${cormorantGaramond.variable} font-body relative min-h-screen selection:bg-violet-500/30`}
       >
         {children}
       </body>
