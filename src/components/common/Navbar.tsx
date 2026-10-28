@@ -20,6 +20,7 @@ import {
   User as UserIcon,
   LogOut,
   Sparkle,
+  ChevronDown,
 } from "lucide-react";
 import { useApp, Currency } from "@/context/AppContext";
 import { useAuth } from "@/context/AuthContext";
@@ -175,69 +176,85 @@ export default function Navbar() {
             <div className="flex items-center gap-2 sm:gap-2.5">
               {/* Auth Button or User Menu */}
               {user ? (
-                <div className="relative">
+                <div className="flex items-center gap-1.5">
+                  <div className="relative">
+                    <button
+                      onClick={() => setUserDropdownOpen(!userDropdownOpen)}
+                      className="glass flex items-center gap-1.5 sm:gap-2 rounded-full py-1 px-2 sm:px-3 text-xs font-semibold text-fg border border-violet-400/30 hover:border-violet-400 transition-colors cursor-pointer"
+                    >
+                      <div className="h-6 w-6 rounded-full bg-gradient-to-tr from-violet-600 to-fuchsia-400 flex items-center justify-center text-white font-bold text-[10px]">
+                        {profile?.full_name?.charAt(0) || user.email?.charAt(0)?.toUpperCase() || "U"}
+                      </div>
+                      <span className="hidden sm:inline-block max-w-[100px] truncate text-left">
+                        {profile?.full_name || user.email?.split("@")[0]}
+                      </span>
+                      <span className={`text-[9px] uppercase px-1.5 py-0.5 rounded-full font-bold ${
+                        role === "host" ? "bg-fuchsia-500/20 text-fuchsia-300" : "bg-violet-500/20 text-violet-300"
+                      }`}>
+                        {role}
+                      </span>
+                      <ChevronDown className={`w-3 h-3 text-muted transition-transform ${userDropdownOpen ? "rotate-180" : ""}`} />
+                    </button>
+
+                    {/* Dropdown Menu */}
+                    {userDropdownOpen && (
+                      <div className="absolute right-0 mt-2 w-56 glass-strong rounded-2xl p-2 shadow-2xl border border-white/10 z-50 animate-in fade-in zoom-in-95 duration-150">
+                        <div className="px-3 py-2 border-b border-white/5">
+                          <p className="text-xs font-bold text-fg truncate">
+                            {profile?.full_name || "Valued Guest"}
+                          </p>
+                          <p className="text-[10px] text-muted truncate">{user.email}</p>
+                          <span className="inline-block mt-1 text-[9px] px-2 py-0.5 rounded-full bg-violet-500/20 text-violet-300 font-bold uppercase">
+                            Role: {role}
+                          </span>
+                        </div>
+
+                        <div className="py-1 text-xs">
+                          {isHost ? (
+                            <button
+                              onClick={() => {
+                                setUserDropdownOpen(false);
+                                openHostModal();
+                              }}
+                              className="w-full text-left px-3 py-2 rounded-xl text-fuchsia-300 hover:bg-white/5 flex items-center gap-2 cursor-pointer"
+                            >
+                              <Key className="w-3.5 h-3.5 text-fuchsia-400" /> Host Portal & Listings
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => {
+                                setUserDropdownOpen(false);
+                                openHostModal();
+                              }}
+                              className="w-full text-left px-3 py-2 rounded-xl text-violet-300 hover:bg-white/5 flex items-center gap-2 cursor-pointer"
+                            >
+                              <Sparkle className="w-3.5 h-3.5 text-violet-400" /> Become a Host
+                            </button>
+                          )}
+
+                          <button
+                            onClick={() => {
+                              setUserDropdownOpen(false);
+                              signOut();
+                            }}
+                            className="w-full text-left px-3 py-2 rounded-xl text-rose-300 hover:bg-rose-500/10 flex items-center gap-2 cursor-pointer mt-1 font-semibold"
+                          >
+                            <LogOut className="w-3.5 h-3.5 text-rose-400" /> Sign Out (লগআউট)
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Direct 1-Click Sign Out Icon Button */}
                   <button
-                    onClick={() => setUserDropdownOpen(!userDropdownOpen)}
-                    className="glass flex items-center gap-2 rounded-full py-1 px-2.5 sm:px-3 text-xs font-semibold text-fg border border-violet-400/30 hover:border-violet-400 transition-colors cursor-pointer"
+                    onClick={() => signOut()}
+                    title="Sign Out / লগআউট"
+                    className="glass h-8 w-8 sm:h-9 sm:w-9 rounded-full flex items-center justify-center text-rose-400/80 hover:text-rose-300 hover:bg-rose-500/10 transition-colors cursor-pointer"
+                    aria-label="Sign Out"
                   >
-                    <div className="h-6 w-6 rounded-full bg-gradient-to-tr from-violet-600 to-fuchsia-400 flex items-center justify-center text-white font-bold text-[10px]">
-                      {profile?.full_name?.charAt(0) || user.email?.charAt(0)?.toUpperCase() || "U"}
-                    </div>
-                    <span className="hidden sm:inline-block max-w-[90px] truncate">
-                      {profile?.full_name || user.email?.split("@")[0]}
-                    </span>
-                    <span className={`text-[9px] uppercase px-1.5 py-0.2 rounded-full font-bold ${
-                      role === "host" ? "bg-fuchsia-500/20 text-fuchsia-300" : "bg-violet-500/20 text-violet-300"
-                    }`}>
-                      {role}
-                    </span>
+                    <LogOut className="w-3.5 h-3.5" />
                   </button>
-
-                  {/* Dropdown Menu */}
-                  {userDropdownOpen && (
-                    <div className="absolute right-0 mt-2 w-52 glass-strong rounded-2xl p-2 shadow-2xl border border-white/10 z-50 animate-in fade-in zoom-in-95 duration-150">
-                      <div className="px-3 py-2 border-b border-white/5">
-                        <p className="text-xs font-bold text-fg truncate">
-                          {profile?.full_name || "Valued User"}
-                        </p>
-                        <p className="text-[10px] text-muted truncate">{user.email}</p>
-                      </div>
-
-                      <div className="py-1 text-xs">
-                        {isHost ? (
-                          <button
-                            onClick={() => {
-                              setUserDropdownOpen(false);
-                              openHostModal();
-                            }}
-                            className="w-full text-left px-3 py-2 rounded-xl text-fuchsia-300 hover:bg-white/5 flex items-center gap-2 cursor-pointer"
-                          >
-                            <Key className="w-3.5 h-3.5 text-fuchsia-400" /> Host Portal & Listings
-                          </button>
-                        ) : (
-                          <button
-                            onClick={() => {
-                              setUserDropdownOpen(false);
-                              openHostModal();
-                            }}
-                            className="w-full text-left px-3 py-2 rounded-xl text-violet-300 hover:bg-white/5 flex items-center gap-2 cursor-pointer"
-                          >
-                            <Sparkle className="w-3.5 h-3.5 text-violet-400" /> Become a Host
-                          </button>
-                        )}
-
-                        <button
-                          onClick={() => {
-                            setUserDropdownOpen(false);
-                            signOut();
-                          }}
-                          className="w-full text-left px-3 py-2 rounded-xl text-rose-300 hover:bg-rose-500/10 flex items-center gap-2 cursor-pointer mt-1"
-                        >
-                          <LogOut className="w-3.5 h-3.5 text-rose-400" /> Sign Out
-                        </button>
-                      </div>
-                    </div>
-                  )}
                 </div>
               ) : (
                 <button
