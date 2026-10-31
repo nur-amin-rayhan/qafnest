@@ -12,7 +12,8 @@ import {
   ArrowRight,
 } from "lucide-react";
 import { useApp } from "@/context/AppContext";
-import { PROPERTIES, Property } from "@/data/properties";
+import { Property } from "@/data/properties";
+import { useProperties } from "@/hooks/useProperties";
 import {
   CITY_NAMES_AR,
   CATEGORY_NAMES_AR,
@@ -21,6 +22,7 @@ import {
 } from "@/data/translations";
 
 export default function SearchModal() {
+  const { properties } = useProperties();
   const {
     searchModalOpen,
     closeSearchModal,
@@ -71,7 +73,7 @@ export default function SearchModal() {
   if (!searchModalOpen) return null;
 
   // Filter properties based on live query and active filters
-  const filteredResults = PROPERTIES.filter((p: Property) => {
+  const filteredResults = properties.filter((p: Property) => {
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
       const matchTitle = p.title.toLowerCase().includes(q);

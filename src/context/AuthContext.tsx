@@ -32,8 +32,7 @@ interface AuthContextType {
   openAuthModal: (mode?: "signin" | "signup", defaultRole?: "guest" | "host") => void;
   closeAuthModal: () => void;
   signOut: () => Promise<void>;
-  refreshProfile: () => Promise<void>;
-  loginWithPhone: (phone: string, role?: UserRole, fullName?: string, licenseNo?: string) => Promise<void>;
+  refreshProfile: (userId?: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -93,27 +92,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [supabase]);
 
-  const refreshProfile = async () => {
-    if (user?.id) {
-      await fetchProfile(user.id, user);
-    }
+  const refreshProfile = async (userId?: string) => {
+    const profileUserId = userId || user?.id;
+    if (profileUserId) await fetchProfile(profileUserId, userId ? undefined : user);
   };
 
   useEffect(() => {
     let isMounted = true;
     const checkMounted = () => isMounted;
 
-    // Check cached phone/local login
-    try {
-      const stored = localStorage.getItem("qafnest_auth_user");
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        if (parsed?.user) {
-          setUser(parsed.user);
-          setProfile(parsed.profile);
-        }
-      }
-    } catch {}
+    // Drop sessions written by the previous client-side OTP simulator.
+    try { localStorage.removeItem("qafnest_auth_user"); } catch {}
 
     // 1. Initial Session Check with isMounted guard
     supabase.auth.getSession().then(({ data: { session: currentSession } }) => {
@@ -139,6 +128,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (newSession.user) {
           await fetchProfile(newSession.user.id, newSession.user, checkMounted);
         }
+      } else {
+        setSession(null);
+        setUser(null);
+        setProfile(null);
       }
       setLoading(false);
     });
@@ -149,41 +142,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
   }, [supabase, fetchProfile]);
 
-  const loginWithPhone = async (phone: string, userRole: UserRole = "guest", fullName?: string, licenseNo?: string) => {
-    const formattedPhone = phone.startsWith("+") ? phone : `+966${phone.replace(/^0+/, "")}`;
-    const displayName = fullName || `Member ${formattedPhone.slice(-4)}`;
-
-    const mockUser: User = {
-      id: `usr_${Date.now()}`,
-      app_metadata: { provider: "phone" },
-      user_metadata: {
-        full_name: displayName,
-        phone: formattedPhone,
-        role: userRole,
-        tourism_license_no: userRole === "host" ? (licenseNo || "TL-2026-9842") : null,
-      },
-      aud: "authenticated",
-      created_at: new Date().toISOString(),
-    } as unknown as User;
-
-    const mockProfile: Profile = {
-      id: mockUser.id,
-      full_name: displayName,
-      phone: formattedPhone,
-      role: userRole,
-      host_status: userRole === "host" ? "verified" : "none",
-      tourism_license_no: userRole === "host" ? (licenseNo || "TL-2026-9842") : null,
-      national_id: null,
-      avatar_url: null,
-    };
-
-    setUser(mockUser);
-    setProfile(mockProfile);
-    try {
-      localStorage.setItem("qafnest_auth_user", JSON.stringify({ user: mockUser, profile: mockProfile }));
-    } catch {}
-  };
-
   const signOut = async () => {
     try {
       await supabase.auth.signOut();
@@ -191,9 +149,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(null);
     setSession(null);
     setProfile(null);
-    try {
-      localStorage.removeItem("qafnest_auth_user");
-    } catch {}
+    try { localStorage.removeItem("qafnest_auth_user"); } catch {}
   };
 
   const role: UserRole = profile?.role || (user?.user_metadata?.role as UserRole) || "guest";
@@ -217,7 +173,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         closeAuthModal,
         signOut,
         refreshProfile,
-        loginWithPhone,
       }}
     >
       {children}

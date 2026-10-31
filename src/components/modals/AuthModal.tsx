@@ -17,8 +17,18 @@ import { useAuth } from "@/context/AuthContext";
 import { useApp } from "@/context/AppContext";
 import { createClient } from "@/lib/supabase/client";
 
+const OTP_LENGTH = process.env.NEXT_PUBLIC_SUPABASE_OTP_LENGTH === "4" ? 4 : 6;
+const EMPTY_OTP = () => Array.from({ length: OTP_LENGTH }, () => "");
+
+function normalizeSaudiPhone(value: string) {
+  let digits = value.replace(/\D/g, "");
+  if (digits.startsWith("966")) digits = digits.slice(3);
+  if (digits.startsWith("0")) digits = digits.slice(1);
+  return /^5\d{8}$/.test(digits) ? `+966${digits}` : null;
+}
+
 export default function AuthModal() {
-  const { authModalOpen, closeAuthModal, signupRole, loginWithPhone } = useAuth();
+  const { authModalOpen, closeAuthModal, signupRole, refreshProfile } = useAuth();
   const { language } = useApp();
   const supabase = createClient();
 
@@ -33,14 +43,9 @@ export default function AuthModal() {
   const [selectedRole, setSelectedRole] = useState<"guest" | "host">(signupRole);
   const [licenseNo, setLicenseNo] = useState("");
 
-  // OTP Digits (4-box input like Gathern)
-  const [otp, setOtp] = useState(["", "", "", ""]);
-  const otpInputRefs = [
-    useRef<HTMLInputElement>(null),
-    useRef<HTMLInputElement>(null),
-    useRef<HTMLInputElement>(null),
-    useRef<HTMLInputElement>(null),
-  ];
+  // OTP length follows the Supabase SMS template configuration.
+  const [otp, setOtp] = useState<string[]>(EMPTY_OTP);
+  const otpInputRefs = useRef<Array<HTMLInputElement | null>>([]);
 
   // Resend Countdown Timer
   const [timer, setTimer] = useState(45);
@@ -61,10 +66,11 @@ export default function AuthModal() {
       setPhoneStep("phone_input");
       setErrorMsg(null);
       setSuccessMsg(null);
-      setOtp(["", "", "", ""]);
+      setOtp(EMPTY_OTP());
       setTimer(45);
+      setSelectedRole(signupRole);
     }
-  }, [authModalOpen]);
+  }, [authModalOpen, signupRole]);
 
   // Countdown timer effect
   useEffect(() => {
@@ -80,43 +86,73 @@ export default function AuthModal() {
   if (!authModalOpen) return null;
 
   // Handle Step 1: Send OTP to Mobile Number
-  const handleSendOtp = (e: React.FormEvent) => {
+  const handleSendOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg(null);
 
-    const cleanPhone = phone.trim().replace(/\s+/g, "");
-    if (!cleanPhone || cleanPhone.length < 9) {
+    const formattedPhone = normalizeSaudiPhone(phone);
+    if (!formattedPhone) {
       setErrorMsg("Please enter a valid 9-digit Saudi mobile number (e.g. 50 123 4567).");
       return;
     }
 
     setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
+    try {
+      const { error } = await supabase.auth.signInWithOtp({
+        phone: formattedPhone,
+        options: {
+          channel: "sms",
+          data: {
+            full_name: fullName.trim(),
+            role: selectedRole,
+            tourism_license_no: selectedRole === "host" ? licenseNo.trim() || null : null,
+          },
+        },
+      });
+      if (error) throw error;
+      setPhone(formattedPhone.slice(4));
+      setOtp(EMPTY_OTP());
       setPhoneStep("otp_verify");
       setTimer(45);
-      setTimeout(() => otpInputRefs[0].current?.focus(), 150);
-    }, 600);
+      window.setTimeout(() => otpInputRefs.current[0]?.focus(), 150);
+    } catch (error) {
+      setErrorMsg(error instanceof Error ? error.message : "We couldn't send the verification code.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   // Handle OTP Digit Input
   const handleOtpChange = (index: number, value: string) => {
-    if (value.length > 1) {
-      value = value.slice(-1);
+    const digits = value.replace(/\D/g, "");
+    if (!digits) {
+      const nextOtp = [...otp];
+      nextOtp[index] = "";
+      setOtp(nextOtp);
+      return;
+    }
+    if (digits.length > 1) {
+      const nextOtp = [...otp];
+      digits.slice(0, OTP_LENGTH - index).split("").forEach((digit, offset) => {
+        nextOtp[index + offset] = digit;
+      });
+      setOtp(nextOtp);
+      otpInputRefs.current[Math.min(index + digits.length, OTP_LENGTH - 1)]?.focus();
+      return;
     }
     const newOtp = [...otp];
-    newOtp[index] = value;
+    newOtp[index] = digits;
     setOtp(newOtp);
 
     // Auto-focus next input box
-    if (value && index < 3) {
-      otpInputRefs[index + 1].current?.focus();
+    if (digits && index < OTP_LENGTH - 1) {
+      otpInputRefs.current[index + 1]?.focus();
     }
   };
 
   const handleOtpKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Backspace" && !otp[index] && index > 0) {
-      otpInputRefs[index - 1].current?.focus();
+      otpInputRefs.current[index - 1]?.focus();
     }
   };
 
@@ -126,21 +162,60 @@ export default function AuthModal() {
     setErrorMsg(null);
     const enteredCode = otp.join("");
 
-    if (enteredCode.length < 4) {
-      setErrorMsg("Please enter the complete 4-digit verification code.");
+    if (enteredCode.length !== OTP_LENGTH) {
+      setErrorMsg(`Please enter the complete ${OTP_LENGTH}-digit verification code.`);
       return;
     }
 
     setLoading(true);
     try {
-      // Complete phone login & store user session
-      await loginWithPhone(phone, selectedRole, fullName, licenseNo);
-      setSuccessMsg(`Welcome to QafNest as a ${selectedRole === "host" ? "Verified Host" : "Guest"}!`);
+      const formattedPhone = normalizeSaudiPhone(phone);
+      if (!formattedPhone) throw new Error("Please enter a valid Saudi mobile number.");
+      const { data, error } = await supabase.auth.verifyOtp({
+        phone: formattedPhone,
+        token: enteredCode,
+        type: "sms",
+      });
+      if (error) throw error;
+      if (!data.user) throw new Error("Phone verification did not complete.");
+
+      const profile = {
+        id: data.user.id,
+        full_name: fullName.trim(),
+        phone: formattedPhone,
+        role: selectedRole,
+        host_status: selectedRole === "host" ? "pending" : "none",
+        tourism_license_no: selectedRole === "host" ? licenseNo.trim() || null : null,
+      };
+      const { error: metadataError } = await supabase.auth.updateUser({ data: { ...profile, role: selectedRole } });
+      if (metadataError) throw metadataError;
+      const { error: profileError } = await supabase.from("profiles").upsert(profile, { onConflict: "id" });
+      if (profileError) throw profileError;
+      await refreshProfile(data.user.id);
+      setSuccessMsg(`Welcome to QafNest as a ${selectedRole === "host" ? "Host" : "Guest"}!`);
       setTimeout(() => {
         closeAuthModal();
       }, 1000);
-    } catch {
-      setErrorMsg("Verification failed. Please try again.");
+    } catch (error) {
+      setErrorMsg(error instanceof Error ? error.message : "Verification failed. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResendOtp = async () => {
+    if (timer > 0 || loading) return;
+    setLoading(true);
+    setErrorMsg(null);
+    try {
+      const formattedPhone = normalizeSaudiPhone(phone);
+      if (!formattedPhone) throw new Error("Please enter a valid Saudi mobile number.");
+      const { error } = await supabase.auth.signInWithOtp({ phone: formattedPhone, options: { channel: "sms" } });
+      if (error) throw error;
+      setTimer(45);
+      setOtp(EMPTY_OTP());
+    } catch (error) {
+      setErrorMsg(error instanceof Error ? error.message : "We couldn't resend the code.");
     } finally {
       setLoading(false);
     }
@@ -342,7 +417,7 @@ export default function AuthModal() {
                     {language === "ar" ? "أدخل رمز التحقق" : "Enter Verification Code"}
                   </h3>
                   <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                    {language === "ar" ? "أدخل الرمز المكون من 4 أرقام المرسل إلى " : "Enter the 4-digit code sent via SMS to "}
+                    {language === "ar" ? `أدخل الرمز المكون من ${OTP_LENGTH} أرقام المرسل عبر SMS إلى ` : `Enter the ${OTP_LENGTH}-digit code sent via SMS to `}
                     <span className="font-bold text-gray-900 dark:text-white" dir="ltr">
                       +966 {phone}
                     </span>{" "}
@@ -357,14 +432,15 @@ export default function AuthModal() {
                 </div>
 
                 <form onSubmit={handleVerifyOtp} className="space-y-5">
-                  {/* 4 Digit Boxes */}
+                  {/* OTP boxes */}
                   <div className="flex items-center justify-center gap-3" dir="ltr">
                     {otp.map((digit, index) => (
                       <input
                         key={index}
-                        ref={otpInputRefs[index]}
+                        ref={(element) => { otpInputRefs.current[index] = element; }}
                         type="text"
                         inputMode="numeric"
+                        autoComplete={index === 0 ? "one-time-code" : "off"}
                         maxLength={1}
                         value={digit}
                         onChange={(e) => handleOtpChange(index, e.target.value)}
@@ -373,13 +449,6 @@ export default function AuthModal() {
                       />
                     ))}
                   </div>
-
-                  {/* Demo Helper Note */}
-                  <p className="text-[11px] text-center text-gray-400 dark:text-gray-500">
-                    {language === "ar"
-                      ? "💡 تجربة: أدخل 1234 أو أي 4 أرقام للتجربة"
-                      : "💡 Test Demo: Enter 1234 or any 4 digits"}
-                  </p>
 
                   {/* Resend Timer */}
                   <div className="text-center text-xs text-gray-500">
@@ -392,7 +461,8 @@ export default function AuthModal() {
                     ) : (
                       <button
                         type="button"
-                        onClick={() => setTimer(45)}
+                        onClick={handleResendOtp}
+                        disabled={loading}
                         className="font-bold text-purple-600 dark:text-purple-400 hover:underline cursor-pointer"
                       >
                         {language === "ar" ? "إعادة إرسال الرمز الآن" : "Resend Code Now"}
@@ -417,7 +487,7 @@ export default function AuthModal() {
 
                   <button
                     type="submit"
-                    disabled={loading || otp.join("").length < 4}
+                    disabled={loading || otp.join("").length !== OTP_LENGTH}
                     className="w-full py-3.5 rounded-2xl bg-purple-700 hover:bg-purple-800 text-white font-bold text-sm shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
                   >
                     {loading ? (

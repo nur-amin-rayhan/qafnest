@@ -33,7 +33,7 @@ import HostModal from "@/components/modals/HostModal";
 import AppModal from "@/components/modals/AppModal";
 import SearchModal from "@/components/modals/SearchModal";
 import InteractiveMapView from "@/components/search/InteractiveMapView";
-import { getPropertyCapacity, normalizeCityId, Property } from "@/data/properties";
+import { getPropertyCapacity, getStayTotal, normalizeCityId, Property } from "@/data/properties";
 import {
   CATEGORY_NAMES_AR,
   CITY_NAMES_AR,
@@ -100,6 +100,7 @@ function ReservationPanel({
   const hasDiscount = Boolean(
     property.originalPrice && property.originalPrice > property.basePrice
   );
+  const estimatedTotal = getStayTotal(property, checkinDate, nights);
 
   return (
     <section className="rounded-3xl border border-violet-200 bg-white p-5 shadow-[0_18px_55px_rgba(70,35,130,0.12)] dark:border-violet-400/20 dark:bg-[#12101a] dark:shadow-[0_18px_55px_rgba(0,0,0,0.34)] sm:p-6">
@@ -247,12 +248,12 @@ function ReservationPanel({
               {formatPrice(property.basePrice)} × {nights} {language === "ar" ? "ليلة" : nights === 1 ? "night" : "nights"}
             </span>
             <span className="font-semibold text-gray-900 dark:text-white">
-              {formatPrice(property.basePrice * nights)}
+              {formatPrice(estimatedTotal)}
             </span>
           </div>
           <div className="flex justify-between border-t border-gray-100 pt-3 font-bold text-gray-900 dark:border-white/10 dark:text-white">
             <span>{language === "ar" ? "تقدير الإقامة" : "Estimated stay total"}</span>
-            <span>{formatPrice(property.basePrice * nights)}</span>
+            <span>{formatPrice(estimatedTotal)}</span>
           </div>
         </div>
       )}
@@ -314,10 +315,13 @@ export default function PropertyDetail({ property }: PropertyDetailProps) {
     if (checkin) setCheckinDate(checkin);
     if (checkout) setCheckoutDate(checkout);
     if (checkinAt) setCheckinTime(checkinAt);
+    else if (property.checkinTime) setCheckinTime(property.checkinTime);
     if (checkoutAt) setCheckoutTime(checkoutAt);
+    else if (property.checkoutTime) setCheckoutTime(property.checkoutTime);
     if (Number.isInteger(guests) && guests > 0) setGuestsCount(guests);
   }, [
     searchParamString,
+    property,
     setCheckinDate,
     setCheckinTime,
     setCheckoutDate,
@@ -343,6 +347,7 @@ export default function PropertyDetail({ property }: PropertyDetailProps) {
     const duration = Math.ceil((end - start) / 86_400_000);
     return Number.isFinite(duration) && duration > 0 ? duration : 1;
   }, [checkinDate, checkoutDate]);
+  const estimatedTotal = getStayTotal(property, checkinDate, nights);
 
   const handleCheckinChange = (value: string) => {
     setCheckinDate(value);
@@ -515,7 +520,7 @@ export default function PropertyDetail({ property }: PropertyDetailProps) {
                 <div>
                   <h2 className="text-xl font-bold text-gray-950 dark:text-white">{anchorLabel(`About this ${categoryName.toLowerCase()}`, `عن ${categoryName}`)}</h2>
                   <p className="mt-2 max-w-3xl text-sm leading-7 text-gray-600 dark:text-gray-300">
-                    {anchorLabel(
+                    {property.description || anchorLabel(
                       `${title} is listed in ${district}. This ${categoryName.toLowerCase()} is set up for up to ${capacity} guests${bedrooms ? ` with ${bedrooms} ${bedrooms === 1 ? "bedroom" : "bedrooms"}` : ""}. Review the available features and stay details below before booking.`,
                       `${title} في ${district}. يستوعب هذا المكان حتى ${capacity} ضيوف${bedrooms ? ` ويضم ${bedrooms} غرف نوم` : ""}. راجع المرافق وتفاصيل الإقامة أدناه قبل الحجز.`
                     )}
@@ -618,7 +623,7 @@ export default function PropertyDetail({ property }: PropertyDetailProps) {
         <div className="mx-auto flex max-w-xl items-center justify-between gap-4">
           <div>
             <span className="block text-[10px] text-gray-500 dark:text-gray-400">{nights} {anchorLabel(nights === 1 ? "night" : "nights", "ليلة")}</span>
-            <span className="font-extrabold text-gray-950 dark:text-white">{new Intl.NumberFormat(language === "ar" ? "ar-SA" : "en-US", { maximumFractionDigits: 2 }).format(property.basePrice * nights)} {language === "ar" ? "ر.س" : "SAR"}</span>
+            <span className="font-extrabold text-gray-950 dark:text-white">{new Intl.NumberFormat(language === "ar" ? "ar-SA" : "en-US", { maximumFractionDigits: 2 }).format(estimatedTotal)} {language === "ar" ? "ر.س" : "SAR"}</span>
           </div>
           <button type="button" onClick={handleReserve} className="rounded-xl bg-violet-700 px-5 py-3 text-sm font-bold text-white shadow-md transition hover:bg-violet-800">{anchorLabel("Continue", "متابعة")}</button>
         </div>

@@ -3,7 +3,8 @@
 import Image from "next/image";
 import Link from "next/link";
 import { Star, ShieldCheck, Zap, Heart, ArrowRight, ArrowLeft, RotateCcw, MapPin } from "lucide-react";
-import { getPropertyCapacity, normalizeCityId, PROPERTIES, Property } from "@/data/properties";
+import { getPropertyCapacity, normalizeCityId, Property } from "@/data/properties";
+import { useProperties } from "@/hooks/useProperties";
 import { useApp } from "@/context/AppContext";
 import { propertyDetailHref } from "@/lib/propertyUrls";
 import {
@@ -14,6 +15,7 @@ import {
 } from "@/data/translations";
 
 export default function PropertiesGrid() {
+  const { properties } = useProperties();
   const {
     selectedCity,
     setSelectedCity,
@@ -47,7 +49,7 @@ export default function PropertiesGrid() {
     return true;
   };
 
-  const allFiltered = PROPERTIES.filter((p) => {
+  const allFiltered = properties.filter((p) => {
     if (!filterProperty(p)) return false;
     if (selectedCategory !== "all" && p.category !== selectedCategory) return false;
     return true;

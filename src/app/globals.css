@@ -3,6 +3,10 @@
 @tailwind utilities;
 
 :root {
+  --font-body: var(--font-geist);
+  --font-display: var(--font-geist);
+  --font-serif: Georgia;
+  --font-arabic: Tahoma;
   color-scheme: dark;
   --bg: 6 6 11;             /* #06060B Deep Obsidian */
   --bg-soft: 10 10 20;      /* #0A0A14 */

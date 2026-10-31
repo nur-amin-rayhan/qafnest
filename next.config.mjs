@@ -11,6 +11,7 @@ const nextConfig = {
     minimumCacheTTL: 86400,
     remotePatterns: [
       { protocol: 'https', hostname: 'images.unsplash.com' },
+      { protocol: 'https', hostname: '**.supabase.co' },
       { protocol: 'https', hostname: 'cdn.gathern.co' },
       { protocol: 'https', hostname: 'api.qrserver.com' },
     ],

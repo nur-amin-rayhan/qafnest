@@ -1,31 +1,13 @@
 import type { Metadata, Viewport } from "next";
-import { Plus_Jakarta_Sans, Space_Grotesk, Cormorant_Garamond, Cairo } from "next/font/google";
+import localFont from "next/font/local";
+import Script from "next/script";
 import ClientProviders from "@/components/providers/ClientProviders";
 import "./globals.css";
 
-const plusJakartaSans = Plus_Jakarta_Sans({
-  subsets: ["latin"],
-  variable: "--font-body",
-  display: "swap",
-});
-
-const spaceGrotesk = Space_Grotesk({
-  subsets: ["latin"],
-  variable: "--font-display",
-  display: "swap",
-});
-
-const cormorantGaramond = Cormorant_Garamond({
-  subsets: ["latin"],
-  weight: ["400", "600"],
-  style: ["normal", "italic"],
-  variable: "--font-serif",
-  display: "swap",
-});
-
-const cairo = Cairo({
-  subsets: ["arabic", "latin"],
-  variable: "--font-arabic",
+const geist = localFont({
+  src: "./fonts/GeistVF.woff",
+  variable: "--font-geist",
+  weight: "100 900",
   display: "swap",
 });
 
@@ -57,9 +39,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="dark">
+    <html lang="en" className={`${geist.variable} dark`} suppressHydrationWarning>
+      <Script id="qafnest-preferences" strategy="beforeInteractive">
+        {`try { const root = document.documentElement; const lang = localStorage.getItem('qafnest_lang'); const theme = localStorage.getItem('qafnest_theme'); if (lang === 'ar' || lang === 'en') { root.lang = lang; root.dir = lang === 'ar' ? 'rtl' : 'ltr'; root.classList.toggle('rtl', lang === 'ar'); } if (theme === 'light') { root.classList.add('light'); root.classList.remove('dark'); } else { root.classList.add('dark'); root.classList.remove('light'); } } catch {}`}
+      </Script>
       <body
-        className={`${plusJakartaSans.variable} ${spaceGrotesk.variable} ${cormorantGaramond.variable} ${cairo.variable} font-body relative min-h-screen selection:bg-violet-500/30`}
+        className="font-body relative min-h-screen selection:bg-violet-500/30"
       >
         <ClientProviders>{children}</ClientProviders>
       </body>

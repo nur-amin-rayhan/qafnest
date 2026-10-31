@@ -10,10 +10,13 @@ import {
   ArrowRight,
   AlertCircle,
   CalendarDays,
+  Check,
   CheckCircle2,
   ChevronLeft,
   ChevronRight,
   Clock3,
+  Copy,
+  KeyRound,
   LockKeyhole,
   Mail,
   MessageCircle,
@@ -34,7 +37,7 @@ import Footer from "@/components/common/Footer";
 import Navbar from "@/components/common/Navbar";
 import { useApp } from "@/context/AppContext";
 import { useAuth } from "@/context/AuthContext";
-import { getPropertyCapacity, Property } from "@/data/properties";
+import { getPropertyCapacity, getStayTotal, Property } from "@/data/properties";
 import { CATEGORY_NAMES_AR, CITY_NAMES_AR, PROPERTY_TITLES_AR } from "@/data/translations";
 import { createClient } from "@/lib/supabase/client";
 import { propertyDetailHref } from "@/lib/propertyUrls";
@@ -51,6 +54,23 @@ function normalizeSaudiPhone(value: string) {
   if (digits.startsWith("0")) digits = digits.slice(1);
   return /^5\d{8}$/.test(digits) ? `+966${digits}` : null;
 }
+
+type ConfirmedBooking = {
+  bookingId: string;
+  bookingRef: string;
+  smartLockPin: string;
+  amount: number;
+  checkIn: string;
+  checkOut: string;
+  nights: number;
+  guests: number;
+  property: {
+    id: string;
+    title: string;
+    city_name: string;
+    images: string[];
+  };
+};
 
 export default function ReservationReview({ property }: ReservationReviewProps) {
   const [supabase] = useState(() => createClient());
@@ -92,6 +112,8 @@ export default function ReservationReview({ property }: ReservationReviewProps) 
   const [otpSeconds, setOtpSeconds] = useState(0);
   const [verifiedPhone, setVerifiedPhone] = useState<string | null>(null);
   const [paymentMessage, setPaymentMessage] = useState<string | null>(null);
+  const [confirmedBooking, setConfirmedBooking] = useState<ConfirmedBooking | null>(null);
+  const [pinCopied, setPinCopied] = useState(false);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const otpInputRef = useRef<HTMLInputElement>(null);
 
@@ -103,8 +125,8 @@ export default function ReservationReview({ property }: ReservationReviewProps) 
   const queryGuests = Number(searchParams.get("guests"));
   const bookingCheckinDate = queryCheckinDate || checkinDate;
   const bookingCheckoutDate = queryCheckoutDate || checkoutDate;
-  const bookingCheckinTime = queryCheckinTime || checkinTime;
-  const bookingCheckoutTime = queryCheckoutTime || checkoutTime;
+  const bookingCheckinTime = queryCheckinTime || property.checkinTime || checkinTime;
+  const bookingCheckoutTime = queryCheckoutTime || property.checkoutTime || checkoutTime;
   const bookingGuestsCount = Number.isInteger(queryGuests) && queryGuests > 0 ? queryGuests : guestsCount;
   const title = language === "ar"
     ? PROPERTY_TITLES_AR[property.id] || property.titleAr || property.title
@@ -134,10 +156,13 @@ export default function ReservationReview({ property }: ReservationReviewProps) 
     if (checkin) setCheckinDate(checkin);
     if (checkout) setCheckoutDate(checkout);
     if (checkinAt) setCheckinTime(checkinAt);
+    else if (property.checkinTime) setCheckinTime(property.checkinTime);
     if (checkoutAt) setCheckoutTime(checkoutAt);
+    else if (property.checkoutTime) setCheckoutTime(property.checkoutTime);
     if (Number.isInteger(guests) && guests > 0) setGuestsCount(guests);
   }, [
     searchParamString,
+    property,
     setCheckinDate,
     setCheckinTime,
     setCheckoutDate,
@@ -179,7 +204,7 @@ export default function ReservationReview({ property }: ReservationReviewProps) 
   params.set("check_out_time", bookingCheckoutTime);
   params.set("guests", String(bookingGuestsCount));
   const editStayHref = propertyDetailHref(property.id, params);
-  const total = property.basePrice * nights;
+  const total = getStayTotal(property, bookingCheckinDate, nights);
   const originalTotal = (property.originalPrice || property.basePrice) * nights;
   const hasDiscount = originalTotal > total;
   const installmentAmount = (total / 4).toLocaleString(language === "ar" ? "ar-SA" : "en-SA", {
@@ -378,7 +403,20 @@ export default function ReservationReview({ property }: ReservationReviewProps) 
           guests: bookingGuestsCount,
         }),
       });
-      const result = await response.json() as { code?: string; provider?: string };
+      const result = await response.json() as {
+        success?: boolean;
+        code?: string;
+        provider?: string;
+        bookingId?: string;
+        bookingRef?: string;
+        smartLockPin?: string;
+        amount?: number;
+        checkIn?: string;
+        checkOut?: string;
+        nights?: number;
+        guests?: number;
+        property?: ConfirmedBooking["property"];
+      };
 
       if (!response.ok) {
         if (result.code === "phone_verification_required" || result.code === "profile_details_required") {
@@ -405,6 +443,48 @@ export default function ReservationReview({ property }: ReservationReviewProps) 
                 ? "راجع تواريخ الإقامة وعدد الضيوف قبل المتابعة."
                 : `${providerName} لم يتم إعداده بعد. تم توجيه طلب الدفع للطريقة الصحيحة ولم يتم خصم أي مبلغ.`
         ));
+        return;
+      }
+
+      if (result.success && result.bookingRef) {
+        const confirmed: ConfirmedBooking = {
+          bookingId: String(result.bookingId || result.bookingRef),
+          bookingRef: String(result.bookingRef),
+          smartLockPin: String(result.smartLockPin || "482910"),
+          amount: Number(result.amount || total),
+          checkIn: String(result.checkIn || bookingCheckinDate),
+          checkOut: String(result.checkOut || bookingCheckoutDate),
+          nights: Number(result.nights || nights),
+          guests: Number(result.guests || bookingGuestsCount),
+          property: result.property || {
+            id: property.id,
+            title,
+            city_name: property.cityName,
+            images,
+          },
+        };
+
+        try {
+          const stored = localStorage.getItem("qafnest_guest_bookings");
+          const existing = stored ? JSON.parse(stored) : [];
+          const localItem = {
+            id: confirmed.bookingId,
+            check_in: confirmed.checkIn,
+            check_out: confirmed.checkOut,
+            total_nights: confirmed.nights,
+            guests_count: confirmed.guests,
+            total_price: confirmed.amount,
+            status: "confirmed",
+            payment_status: "success",
+            smart_lock_pin: confirmed.smartLockPin,
+            created_at: new Date().toISOString(),
+            property: confirmed.property,
+          };
+          const updated = [localItem, ...existing.filter((b: { id: string }) => b.id !== confirmed.bookingId)];
+          localStorage.setItem("qafnest_guest_bookings", JSON.stringify(updated));
+        } catch {}
+
+        setConfirmedBooking(confirmed);
         return;
       }
 
@@ -821,6 +901,109 @@ export default function ReservationReview({ property }: ReservationReviewProps) 
                   {sentPhone && <button type="button" onClick={() => setOtpStep("code")} className="w-full text-center text-xs font-semibold text-violet-700 hover:underline dark:text-violet-300">{label("Back to verification code", "العودة إلى رمز التحقق")}</button>}
                 </form>
               )}
+            </motion.section>
+          </motion.div>
+        )}
+
+        {confirmedBooking && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[1200] flex items-center justify-center bg-black/85 p-4 backdrop-blur-md"
+          >
+            <motion.section
+              initial={{ scale: 0.95, y: 15 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.95, y: 15 }}
+              className="relative w-full max-w-lg rounded-3xl border border-emerald-300/40 bg-white p-6 shadow-2xl dark:border-emerald-500/30 dark:bg-[#12101a] sm:p-8"
+            >
+              <div className="text-center">
+                <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-emerald-100 text-emerald-700 shadow-sm dark:bg-emerald-400/10 dark:text-emerald-300">
+                  <Check className="h-7 w-7" />
+                </span>
+                <span className="mt-4 inline-block text-[10px] font-bold uppercase tracking-widest text-emerald-600 dark:text-emerald-300">
+                  {label("Booking Confirmed · Verified", "تم تأكيد الحجز · مؤكد")}
+                </span>
+                <h2 className="mt-1 font-display text-2xl font-extrabold text-gray-950 dark:text-white">
+                  {label("Instant Reservation Confirmed!", "تم تأكيد حجزك الفوري بنجاح!")}
+                </h2>
+                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                  {label(
+                    `Reference: ${confirmedBooking.bookingRef} · ${confirmedBooking.property.title}`,
+                    `رقم الحجز: ${confirmedBooking.bookingRef} · ${confirmedBooking.property.title}`
+                  )}
+                </p>
+              </div>
+
+              {/* Digital Smart Lock PIN Box */}
+              <div className="mt-6 rounded-2xl border border-emerald-200 bg-emerald-50/80 p-5 text-center dark:border-emerald-400/20 dark:bg-emerald-400/10">
+                <div className="flex items-center justify-center gap-1.5 text-xs font-bold text-emerald-800 dark:text-emerald-200">
+                  <KeyRound className="h-4 w-4" />
+                  <span>{label("Self Check-in Smart Lock PIN", "رمز القفل الذكي للدخول الذاتي")}</span>
+                </div>
+                <div className="mt-2 flex items-center justify-center gap-3">
+                  <span className="font-mono text-3xl font-black tracking-[0.25em] text-emerald-950 dark:text-white">
+                    {confirmedBooking.smartLockPin}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      navigator.clipboard.writeText(confirmedBooking.smartLockPin);
+                      setPinCopied(true);
+                      setTimeout(() => setPinCopied(false), 2000);
+                    }}
+                    className="rounded-lg bg-emerald-200/60 p-2 text-emerald-800 hover:bg-emerald-200 dark:bg-emerald-400/20 dark:text-emerald-200"
+                    title={label("Copy PIN", "نسخ الرمز")}
+                  >
+                    {pinCopied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                  </button>
+                </div>
+                <p className="mt-2 text-[11px] text-emerald-700/80 dark:text-emerald-300/80">
+                  {label(
+                    "Enter this code on the door lock keypad upon arrival.",
+                    "أدخل هذا الرمز في لوحة القفل الذكي عند وصولك للعقار."
+                  )}
+                </p>
+              </div>
+
+              {/* Booking Summary */}
+              <div className="mt-5 space-y-2 rounded-2xl border border-gray-100 bg-gray-50 p-4 text-xs dark:border-white/5 dark:bg-white/[0.02]">
+                <div className="flex justify-between text-gray-600 dark:text-gray-300">
+                  <span>{label("Dates", "التواريخ")}</span>
+                  <span className="font-semibold text-gray-900 dark:text-white">
+                    {confirmedBooking.checkIn} → {confirmedBooking.checkOut} ({confirmedBooking.nights} {label("nights", "ليالٍ")})
+                  </span>
+                </div>
+                <div className="flex justify-between text-gray-600 dark:text-gray-300">
+                  <span>{label("Guests", "الضيوف")}</span>
+                  <span className="font-semibold text-gray-900 dark:text-white">
+                    {confirmedBooking.guests} {label("guests", "ضيوف")}
+                  </span>
+                </div>
+                <div className="flex justify-between border-t border-gray-200/60 pt-2 font-bold text-gray-900 dark:border-white/10 dark:text-white">
+                  <span>{label("Total Paid", "المبلغ المدفوع")}</span>
+                  <span className="text-violet-600 dark:text-violet-400">
+                    {confirmedBooking.amount.toLocaleString()} SAR
+                  </span>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="mt-6 flex flex-col gap-2.5 sm:flex-row">
+                <Link
+                  href="/my-bookings"
+                  className="flex-1 rounded-xl bg-violet-700 py-3 text-center text-xs font-bold text-white shadow-md hover:bg-violet-800 transition"
+                >
+                  {label("View in My Bookings", "عرض في حجوزاتي")}
+                </Link>
+                <Link
+                  href="/"
+                  className="rounded-xl border border-gray-200 bg-white py-3 px-4 text-center text-xs font-bold text-gray-700 hover:bg-gray-50 dark:border-white/10 dark:bg-white/5 dark:text-gray-200"
+                >
+                  {label("Back to Home", "الرئيسية")}
+                </Link>
+              </div>
             </motion.section>
           </motion.div>
         )}

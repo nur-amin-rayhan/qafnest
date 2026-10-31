@@ -1,6 +1,7 @@
 export interface Property {
   id: string;
   title: string;
+  description?: string;
   titleAr?: string;
   city: 'riyadh' | 'jeddah' | 'alula' | 'khobar' | 'abha' | 'taif' | 'mecca' | 'dammam' | 'alhafuf' | 'tabuk' | 'buraidah' | string;
   cityName: string;
@@ -15,6 +16,7 @@ export interface Property {
   images?: string[];
   features: string[];
   basePrice: number; // in SAR
+  weekendPrice?: number;
   originalPrice?: number;
   discountPercentage?: number;
   isLicensed?: boolean;
@@ -26,6 +28,8 @@ export interface Property {
   capacity?: number;
   bedroomsCount?: number;
   livingRoomsCount?: number;
+  checkinTime?: string;
+  checkoutTime?: string;
   direction?: 'north' | 'south' | 'east' | 'west';
   lat?: number;
   lng?: number;
@@ -44,6 +48,18 @@ export function getPropertyCapacity(
 
   const match = property.specs.match(/(?:up\s*to\s*)?(\d+)\s*guests?\b/i);
   return match ? Number(match[1]) : 4;
+}
+
+/** Saudi Arabia's weekend is Friday and Saturday; use that rate where supplied. */
+export function getStayTotal(property: Pick<Property, "basePrice" | "weekendPrice">, checkinDate: string, nights: number) {
+  let total = 0;
+  const start = Date.parse(`${checkinDate}T00:00:00.000Z`);
+  for (let offset = 0; offset < Math.max(1, nights); offset += 1) {
+    const date = new Date(start + offset * 86_400_000);
+    const isWeekend = date.getUTCDay() === 5 || date.getUTCDay() === 6;
+    total += isWeekend && property.weekendPrice ? property.weekendPrice : property.basePrice;
+  }
+  return total;
 }
 
 export interface Deal {

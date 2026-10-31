@@ -2,7 +2,8 @@
 
 import React, { useMemo } from "react";
 import Link from "next/link";
-import { getPropertyCapacity, normalizeCityId, PROPERTIES } from "@/data/properties";
+import { getPropertyCapacity, normalizeCityId } from "@/data/properties";
+import { useProperties } from "@/hooks/useProperties";
 import { useApp } from "@/context/AppContext";
 import { CITY_NAMES_AR, CATEGORY_NAMES_AR } from "@/data/translations";
 import PropertySection from "@/components/home/PropertySection";
@@ -10,6 +11,7 @@ import PropertyCard from "@/components/home/PropertyCard";
 import { RotateCcw, MapPin } from "lucide-react";
 
 export default function PropertyListingSections() {
+  const { properties } = useProperties();
   const {
     selectedCity,
     setSelectedCity,
@@ -44,7 +46,7 @@ export default function PropertyListingSections() {
 
   const filteredProperties = useMemo(() => {
     if (!isFiltered) return [];
-    return PROPERTIES.filter((p) => {
+    return properties.filter((p) => {
       if (selectedCity !== "all" && normalizeCityId(p.city) !== normalizeCityId(selectedCity)) return false;
       if (selectedCategory !== "all" && p.category !== selectedCategory) return false;
       if (instantOnly && !p.instantBook) return false;
@@ -63,27 +65,32 @@ export default function PropertyListingSections() {
     poolOnly,
     selfCheckinOnly,
     guestsCount,
+    properties,
   ]);
 
   const kidiaProperties = useMemo(
-    () => PROPERTIES.filter((p) => p.section === "kidia"),
-    []
+    () => properties.filter((p) => p.section === "kidia"),
+    [properties]
   );
   const seaProperties = useMemo(
-    () => PROPERTIES.filter((p) => p.section === "sea"),
-    []
+    () => properties.filter((p) => p.section === "sea"),
+    [properties]
   );
   const fogProperties = useMemo(
-    () => PROPERTIES.filter((p) => p.section === "fog"),
-    []
+    () => properties.filter((p) => p.section === "fog"),
+    [properties]
   );
   const rosesProperties = useMemo(
-    () => PROPERTIES.filter((p) => p.section === "roses"),
-    []
+    () => properties.filter((p) => p.section === "roses"),
+    [properties]
   );
   const dealsProperties = useMemo(
-    () => PROPERTIES.filter((p) => p.section === "deals"),
-    []
+    () => properties.filter((p) => p.section === "deals"),
+    [properties]
+  );
+  const generalProperties = useMemo(
+    () => properties.filter((p) => p.section === "general"),
+    [properties]
   );
 
   const cityName =
@@ -203,6 +210,14 @@ export default function PropertyListingSections() {
         title="Daily Deals"
         titleAr="العروض اليومية"
         properties={dealsProperties}
+      />
+
+      <PropertySection
+        id="section-new-listings"
+        sectionKey="general"
+        title="New stays"
+        titleAr="إقامات جديدة"
+        properties={generalProperties}
       />
     </div>
   );

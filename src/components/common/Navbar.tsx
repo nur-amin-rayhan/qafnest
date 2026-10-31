@@ -15,6 +15,8 @@ import {
   Key,
   Home,
   MapPin,
+  CalendarDays,
+  Heart,
 } from "lucide-react";
 import { useApp } from "@/context/AppContext";
 import { useAuth } from "@/context/AuthContext";
@@ -320,6 +322,20 @@ export default function Navbar() {
                     </div>
 
                     <div className="py-1">
+                      <Link
+                        href="/my-bookings"
+                        onClick={() => setUserDropdownOpen(false)}
+                        className={`w-full rounded-xl px-3 py-2 flex items-center gap-2 ${dropdownItemClass}`}
+                      >
+                        <CalendarDays className="w-3.5 h-3.5 text-violet-400" /> {language === "ar" ? "حجوزاتي" : "My bookings"}
+                      </Link>
+                      <Link
+                        href="/wishlist"
+                        onClick={() => setUserDropdownOpen(false)}
+                        className={`w-full rounded-xl px-3 py-2 flex items-center gap-2 ${dropdownItemClass}`}
+                      >
+                        <Heart className="w-3.5 h-3.5 text-rose-400" /> {language === "ar" ? "المفضلة" : "Wishlist"}
+                      </Link>
                       {isHost ? (
                         <button
                           onClick={() => {
@@ -448,10 +464,19 @@ export default function Navbar() {
 
             <div className="pt-3 border-t border-purple-500/15 flex items-center justify-between">
               {user ? (
-                <div className="flex items-center justify-between w-full">
+                <div className="flex w-full flex-col gap-2">
                   <div>
                     <p className="text-xs font-bold">{accountName || contactEmail}</p>
                     <span className="text-[10px] text-fuchsia-400 font-bold uppercase">{role}</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <Link href="/my-bookings" onClick={() => setMobileMenuOpen(false)} className="text-xs font-semibold text-violet-300">
+                      {language === "ar" ? "حجوزاتي" : "My bookings"}
+                    </Link>
+                    <span className="text-white/20">·</span>
+                    <Link href="/wishlist" onClick={() => setMobileMenuOpen(false)} className="text-xs font-semibold text-rose-300">
+                      {language === "ar" ? "المفضلة" : "Wishlist"}
+                    </Link>
                   </div>
                   <button
                     onClick={() => {

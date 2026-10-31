@@ -177,10 +177,25 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     return `${split} SAR / mo`;
   };
 
+  // Sync wishlist with localStorage
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem("qafnest_wishlist");
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed)) setWishlist(parsed);
+      }
+    } catch {}
+  }, []);
+
   const toggleWishlist = (id: string) => {
-    setWishlist((prev) =>
-      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
-    );
+    setWishlist((prev) => {
+      const next = prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id];
+      try {
+        localStorage.setItem("qafnest_wishlist", JSON.stringify(next));
+      } catch {}
+      return next;
+    });
   };
 
   const openBookingModal = (title: string, price: number) => {

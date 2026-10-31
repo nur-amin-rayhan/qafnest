@@ -23,7 +23,8 @@ import SearchFiltersBar from "@/components/search/SearchFiltersBar";
 import InteractiveMapView from "@/components/search/InteractiveMapView";
 import PopularCitiesSection from "@/components/search/PopularCitiesSection";
 import FilterModal from "@/components/search/FilterModal";
-import { getPropertyCapacity, normalizeCityId, PROPERTIES } from "@/data/properties";
+import { getPropertyCapacity, normalizeCityId } from "@/data/properties";
+import { useProperties } from "@/hooks/useProperties";
 import { CITY_NAMES_AR } from "@/data/translations";
 import { useApp } from "@/context/AppContext";
 
@@ -44,6 +45,7 @@ const CITIES = [
 ];
 
 function SearchContent() {
+  const { properties } = useProperties();
   const searchParams = useSearchParams();
   const router = useRouter();
   const {
@@ -136,7 +138,7 @@ function SearchContent() {
 
   // Filter properties
   const filteredProperties = useMemo(() => {
-    return PROPERTIES.filter((p) => {
+    return properties.filter((p) => {
       // 1. City match
       if (activeCity !== "all" && normalizeCityId(p.city) !== activeCity) return false;
 
@@ -193,6 +195,7 @@ function SearchContent() {
     poolOnly,
     selfCheckinOnly,
     guestsCount,
+    properties,
   ]);
 
   const sortedProperties = useMemo(() => {
@@ -211,7 +214,7 @@ function SearchContent() {
   // Extract available districts for this city
   const availableDistricts = useMemo(() => {
     const set = new Set<string>();
-    PROPERTIES.filter((p) => activeCity === "all" || normalizeCityId(p.city) === activeCity).forEach((p) => {
+    properties.filter((p) => activeCity === "all" || normalizeCityId(p.city) === activeCity).forEach((p) => {
       if (p.district) {
         const parts = p.district.split(",");
         const distName = parts.length > 1 ? parts[1].trim() : parts[0].trim();
@@ -219,17 +222,17 @@ function SearchContent() {
       }
     });
     return Array.from(set);
-  }, [activeCity]);
+  }, [activeCity, properties]);
 
   // Count apartments
   const apartmentCount = useMemo(() => {
-    return PROPERTIES.filter(
+    return properties.filter(
       (p) =>
         (activeCity === "all" || normalizeCityId(p.city) === activeCity) &&
         getPropertyCapacity(p) >= guestsCount &&
         (p.category === "penthouse" || p.categoryName.toLowerCase().includes("apartment"))
     ).length;
-  }, [activeCity, guestsCount]);
+  }, [activeCity, guestsCount, properties]);
 
   const handleResetFilters = () => {
     setSelectedDistrict("all");
