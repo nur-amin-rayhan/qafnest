@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Search,
@@ -12,6 +13,7 @@ import {
   Minus,
 } from "lucide-react";
 import { useApp } from "@/context/AppContext";
+import { normalizeCityId } from "@/data/properties";
 import { CITY_NAMES_AR, CATEGORY_NAMES_AR } from "@/data/translations";
 
 // All Saudi Arabian Cities & Destinations
@@ -19,7 +21,7 @@ const CITIES = [
   { id: "all", name: "All Saudi Destinations" },
   { id: "riyadh", name: "Riyadh" },
   { id: "jeddah", name: "Jeddah" },
-  { id: "makkah", name: "Makkah" },
+  { id: "mecca", name: "Makkah" },
   { id: "madinah", name: "Madinah" },
   { id: "alula", name: "AlUla" },
   { id: "khobar", name: "Al Khobar" },
@@ -222,14 +224,20 @@ export default function Hero() {
     }
   };
 
-  // Submit search and scroll to properties
+  // Submit search to the dedicated results page with the selected criteria.
+  const router = useRouter();
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setActiveDropdown(null);
-    const propertiesEl = document.getElementById("properties");
-    if (propertiesEl) {
-      propertiesEl.scrollIntoView({ behavior: "smooth" });
-    }
+
+    const params = new URLSearchParams({
+      city: normalizeCityId(selectedCity),
+      type: selectedCategory,
+      check_in: checkinDate,
+      check_out: checkoutDate,
+      guests: String(guestsCount),
+    });
+    router.push(`/search?${params.toString()}`);
   };
 
   // Current selected display texts with Arabic mapping
@@ -370,43 +378,43 @@ export default function Hero() {
   const rightMonth = nextMonthDate.getMonth();
 
   return (
-    <section id="top" className="relative z-40 pt-32 pb-10 lg:pt-36 lg:pb-14 overflow-visible">
+    <section id="top" className="relative z-40 pt-20 sm:pt-22 lg:pt-24 pb-4 sm:pb-6 overflow-visible">
       {/* Background Ambience - Hardware optimized radial gradient without heavy GPU blur */}
       <div className="absolute inset-0 grid-bg opacity-25 pointer-events-none" />
       <div
-        className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[400px] rounded-full pointer-events-none"
+        className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[300px] rounded-full pointer-events-none"
         style={{
-          background: "radial-gradient(circle, rgba(147, 51, 234, 0.18) 0%, rgba(168, 85, 247, 0.05) 50%, transparent 70%)",
+          background: "radial-gradient(circle, rgba(147, 51, 234, 0.15) 0%, rgba(168, 85, 247, 0.04) 50%, transparent 70%)",
         }}
       />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-30 text-center">
         {/* Ministry Badge */}
         <motion.div
-          initial={{ opacity: 0, y: 15 }}
+          initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          className="inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-xs font-semibold uppercase tracking-widest text-violet-700 dark:text-violet-300 bg-violet-50 dark:bg-violet-950/40 mb-6 border border-violet-200 dark:border-violet-500/20"
+          transition={{ duration: 0.5 }}
+          className="inline-flex items-center gap-2 rounded-full px-3.5 py-1 text-xs font-semibold uppercase tracking-wider text-violet-700 dark:text-violet-300 bg-violet-50 dark:bg-violet-950/40 mb-2 sm:mb-2.5 border border-violet-200 dark:border-violet-500/20"
         >
           <span className="h-2 w-2 rounded-full bg-violet-600 dark:bg-fuchsia-400 animate-pulse" />
           {t.hero.badge}
         </motion.div>
 
-        {/* Hero Title */}
-        <h1 className="font-display text-4xl sm:text-6xl lg:text-7xl font-bold tracking-tight text-gray-900 dark:text-white max-w-4xl mx-auto leading-[1.1] mb-6">
+        {/* Hero Title - Compact Gathern Style */}
+        <h1 className="font-display text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-gray-900 dark:text-white max-w-3xl mx-auto leading-tight mb-2 sm:mb-2.5">
           <motion.span
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, delay: 0.1 }}
-            className="block"
+            transition={{ duration: 0.6, delay: 0.1 }}
+            className="inline-block mr-2 rtl:ml-2 rtl:mr-0"
           >
             {t.hero.title1}
           </motion.span>
           <motion.span
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, delay: 0.2 }}
-            className="block text-gradient font-serif italic font-normal"
+            transition={{ duration: 0.6, delay: 0.15 }}
+            className="inline-block text-gradient font-serif italic font-normal"
           >
             {t.hero.title2}
           </motion.span>
@@ -414,10 +422,10 @@ export default function Hero() {
 
         {/* Hero Subtitle */}
         <motion.p
-          initial={{ opacity: 0, y: 15 }}
+          initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.3 }}
-          className="text-sm sm:text-base lg:text-lg text-gray-600 dark:text-white/80 max-w-2xl mx-auto font-light leading-relaxed mb-10"
+          transition={{ duration: 0.5, delay: 0.2 }}
+          className="text-xs sm:text-sm lg:text-base text-gray-600 dark:text-white/80 max-w-xl mx-auto font-light leading-relaxed mb-4 sm:mb-5"
         >
           {t.hero.subtitle}
         </motion.p>

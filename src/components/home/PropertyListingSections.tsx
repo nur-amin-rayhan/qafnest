@@ -1,12 +1,13 @@
 "use client";
 
 import React, { useMemo } from "react";
-import { PROPERTIES } from "@/data/properties";
+import Link from "next/link";
+import { getPropertyCapacity, normalizeCityId, PROPERTIES } from "@/data/properties";
 import { useApp } from "@/context/AppContext";
 import { CITY_NAMES_AR, CATEGORY_NAMES_AR } from "@/data/translations";
 import PropertySection from "@/components/home/PropertySection";
 import PropertyCard from "@/components/home/PropertyCard";
-import { RotateCcw } from "lucide-react";
+import { RotateCcw, MapPin } from "lucide-react";
 
 export default function PropertyListingSections() {
   const {
@@ -44,14 +45,13 @@ export default function PropertyListingSections() {
   const filteredProperties = useMemo(() => {
     if (!isFiltered) return [];
     return PROPERTIES.filter((p) => {
-      if (selectedCity !== "all" && p.city !== selectedCity) return false;
+      if (selectedCity !== "all" && normalizeCityId(p.city) !== normalizeCityId(selectedCity)) return false;
       if (selectedCategory !== "all" && p.category !== selectedCategory) return false;
       if (instantOnly && !p.instantBook) return false;
       if (poolOnly && !p.hasPool) return false;
       if (selfCheckinOnly && !p.selfCheckin) return false;
       if (guestsCount > 4) {
-        const cap = parseInt(p.specs, 10) || 4;
-        if (cap < guestsCount) return false;
+        if (getPropertyCapacity(p) < guestsCount) return false;
       }
       return true;
     });
@@ -114,14 +114,24 @@ export default function PropertyListingSections() {
                 </p>
               </div>
 
-              <button
-                type="button"
-                onClick={resetAllFilters}
-                className="px-3.5 py-1.5 rounded-full text-xs font-semibold text-violet-700 dark:text-violet-300 bg-violet-50 dark:bg-violet-950/40 border border-violet-200 dark:border-violet-500/30 hover:border-violet-400 flex items-center gap-1.5 cursor-pointer transition-all"
-              >
-                <RotateCcw className="w-3.5 h-3.5 rtl:rotate-180" />
-                <span>{language === "ar" ? "إعادة تعيين الفلاتر" : "Reset Filters"}</span>
-              </button>
+              <div className="flex items-center gap-2 flex-wrap">
+                <Link
+                  href={`/search?city=${selectedCity}&type=${selectedCategory}`}
+                  className="px-3.5 py-1.5 rounded-full text-xs font-semibold text-white bg-violet-600 hover:bg-violet-700 shadow-sm flex items-center gap-1.5 cursor-pointer transition-all active:scale-95"
+                >
+                  <MapPin className="w-3.5 h-3.5" />
+                  <span>{language === "ar" ? "عرض الخريطة والنتائج" : "Map & Detailed View"}</span>
+                </Link>
+
+                <button
+                  type="button"
+                  onClick={resetAllFilters}
+                  className="px-3.5 py-1.5 rounded-full text-xs font-semibold text-violet-700 dark:text-violet-300 bg-violet-50 dark:bg-violet-950/40 border border-violet-200 dark:border-violet-500/30 hover:border-violet-400 flex items-center gap-1.5 cursor-pointer transition-all"
+                >
+                  <RotateCcw className="w-3.5 h-3.5 rtl:rotate-180" />
+                  <span>{language === "ar" ? "إعادة تعيين الفلاتر" : "Reset Filters"}</span>
+                </button>
+              </div>
             </div>
 
             {filteredProperties.length === 0 ? (
@@ -156,6 +166,7 @@ export default function PropertyListingSections() {
         title="Stay Near Qiddiya"
         titleAr="أقِم بالقرب من القدية"
         properties={kidiaProperties}
+        isFirstSection={true}
       />
 
       {/* 2. Stay by the Sea */}

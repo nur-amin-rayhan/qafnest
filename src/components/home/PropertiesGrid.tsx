@@ -1,9 +1,11 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { Star, ShieldCheck, Zap, Heart, ArrowRight, ArrowLeft, RotateCcw, MapPin } from "lucide-react";
-import { PROPERTIES, Property } from "@/data/properties";
+import { getPropertyCapacity, normalizeCityId, PROPERTIES, Property } from "@/data/properties";
 import { useApp } from "@/context/AppContext";
+import { propertyDetailHref } from "@/lib/propertyUrls";
 import {
   CITY_NAMES_AR,
   CATEGORY_NAMES_AR,
@@ -35,13 +37,12 @@ export default function PropertiesGrid() {
   } = useApp();
 
   const filterProperty = (p: Property) => {
-    if (selectedCity !== "all" && p.city !== selectedCity) return false;
+    if (selectedCity !== "all" && normalizeCityId(p.city) !== normalizeCityId(selectedCity)) return false;
     if (instantOnly && !p.instantBook) return false;
     if (poolOnly && !p.hasPool) return false;
     if (selfCheckinOnly && !p.selfCheckin) return false;
     if (guestsCount > 4) {
-      const cap = parseInt(p.specs, 10) || 4;
-      if (cap < guestsCount) return false;
+      if (getPropertyCapacity(p) < guestsCount) return false;
     }
     return true;
   };
@@ -69,6 +70,7 @@ export default function PropertiesGrid() {
     const cityName = language === "ar" ? (CITY_NAMES_AR[item.city] || item.cityName) : item.cityName;
     const categoryName = language === "ar" ? (CATEGORY_NAMES_AR[item.category] || item.categoryName) : item.categoryName;
     const specs = language === "ar" ? (PROPERTY_SPECS_AR[item.specs] || item.specs) : item.specs;
+    const detailHref = propertyDetailHref(item.id);
 
     return (
       <div
@@ -85,6 +87,7 @@ export default function PropertiesGrid() {
             className="object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
           />
+          <Link href={detailHref} aria-label={`${language === "ar" ? "عرض تفاصيل" : "View details for"} ${title}`} className="absolute inset-0 z-[1]" />
           {/* Subtle top vignette for badge contrast */}
           <div className="absolute inset-x-0 top-0 h-14 bg-gradient-to-b from-black/50 to-transparent pointer-events-none" />
 
@@ -150,7 +153,7 @@ export default function PropertiesGrid() {
               className="font-display text-base font-bold text-gray-900 dark:text-white group-hover:text-violet-600 dark:group-hover:text-violet-300 transition-colors mb-1.5 leading-snug"
               title={title}
             >
-              {title}
+              <Link href={detailHref}>{title}</Link>
             </h3>
 
             {/* Row 3: Specs / Capacity - Clear and visible */}

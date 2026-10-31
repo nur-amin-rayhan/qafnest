@@ -72,10 +72,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (error) {
         console.warn("Profile fetch note:", error.message);
         // Fallback default profile if table empty or trigger not yet run
+        const metadataName = typeof currentUser?.user_metadata?.full_name === "string"
+          ? currentUser.user_metadata.full_name
+          : [currentUser?.user_metadata?.first_name, currentUser?.user_metadata?.last_name].filter(Boolean).join(" ");
         setProfile({
           id: userId,
-          full_name: currentUser?.user_metadata?.full_name || null,
-          phone: currentUser?.user_metadata?.phone || null,
+          full_name: metadataName || null,
+          phone: currentUser?.phone || currentUser?.user_metadata?.phone || null,
           role: (currentUser?.user_metadata?.role as UserRole) || "guest",
           host_status: (currentUser?.user_metadata?.role === "host" ? "pending" : "none") as HostStatus,
           tourism_license_no: null,

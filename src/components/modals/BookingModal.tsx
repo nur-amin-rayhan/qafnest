@@ -11,7 +11,9 @@ export default function BookingModal() {
     formatPrice,
     formatTabby,
     checkinDate,
+    checkinTime,
     checkoutDate,
+    checkoutTime,
     stayTiming,
     guestsCount,
     language,
@@ -103,7 +105,7 @@ export default function BookingModal() {
           <div className="flex justify-between">
             <span className="text-gray-500 dark:text-muted">{language === "ar" ? "مدة الإقامة:" : "Stay Duration:"}</span>
             <span className="font-bold text-gray-900 dark:text-white">
-              {nights} {language === "ar" ? (nights === 1 ? "ليلة" : "ليالٍ") : (nights === 1 ? "Night" : "Nights")} ({checkinDate} → {checkoutDate})
+              {nights} {language === "ar" ? (nights === 1 ? "ليلة" : "ليالٍ") : (nights === 1 ? "Night" : "Nights")} ({checkinDate} {checkinTime} → {checkoutDate} {checkoutTime})
             </span>
           </div>
           <div className="flex justify-between">

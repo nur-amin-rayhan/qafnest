@@ -34,8 +34,12 @@ interface AppContextType {
   toggleWishlist: (id: string) => void;
   checkinDate: string;
   setCheckinDate: (d: string) => void;
+  checkinTime: string;
+  setCheckinTime: (t: string) => void;
   checkoutDate: string;
   setCheckoutDate: (d: string) => void;
+  checkoutTime: string;
+  setCheckoutTime: (t: string) => void;
   guestsCount: number;
   setGuestsCount: (n: number) => void;
   stayTiming: string;
@@ -62,6 +66,20 @@ interface AppContextType {
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
+function getRiyadhDate(offsetDays: number) {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Riyadh",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date());
+  const part = (type: Intl.DateTimeFormatPartTypes) =>
+    Number(parts.find((item) => item.type === type)?.value || 0);
+  return new Date(Date.UTC(part("year"), part("month") - 1, part("day") + offsetDays))
+    .toISOString()
+    .slice(0, 10);
+}
+
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const [language, setLanguageState] = useState<Language>("en");
   const [currency, setCurrency] = useState<Currency>("SAR");
@@ -71,8 +89,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [poolOnly, setPoolOnly] = useState<boolean>(false);
   const [selfCheckinOnly, setSelfCheckinOnly] = useState<boolean>(false);
   const [wishlist, setWishlist] = useState<string[]>([]);
-  const [checkinDate, setCheckinDate] = useState<string>("2026-10-29");
-  const [checkoutDate, setCheckoutDate] = useState<string>("2026-10-31");
+  const [checkinDate, setCheckinDate] = useState<string>(() => getRiyadhDate(0));
+  const [checkinTime, setCheckinTime] = useState<string>("15:00");
+  const [checkoutDate, setCheckoutDate] = useState<string>(() => getRiyadhDate(1));
+  const [checkoutTime, setCheckoutTime] = useState<string>("12:00");
   const [guestsCount, setGuestsCount] = useState<number>(4);
   const [stayTiming, setStayTiming] = useState<string>("full_day");
   const [rentMode, setRentMode] = useState<"daily" | "monthly">("daily");
@@ -229,8 +249,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         toggleWishlist,
         checkinDate,
         setCheckinDate,
+        checkinTime,
+        setCheckinTime,
         checkoutDate,
         setCheckoutDate,
+        checkoutTime,
+        setCheckoutTime,
         guestsCount,
         setGuestsCount,
         stayTiming,

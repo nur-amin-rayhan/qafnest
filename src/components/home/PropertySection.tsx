@@ -12,6 +12,7 @@ interface PropertySectionProps {
   title: string;
   titleAr: string;
   properties: Property[];
+  isFirstSection?: boolean;
 }
 
 export default function PropertySection({
@@ -19,6 +20,7 @@ export default function PropertySection({
   title,
   titleAr,
   properties,
+  isFirstSection = false,
 }: PropertySectionProps) {
   const { language } = useApp();
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -74,7 +76,7 @@ export default function PropertySection({
               key={property.id}
               className="w-[220px] sm:w-[235px] md:w-[245px] shrink-0"
             >
-              <PropertyCard property={property} priority={idx < 4} />
+              <PropertyCard property={property} priority={isFirstSection && idx < 2} />
             </div>
           ))}
         </div>

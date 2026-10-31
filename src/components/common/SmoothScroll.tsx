@@ -10,7 +10,10 @@ import Lenis from "lenis";
  */
 export default function SmoothScroll() {
   useEffect(() => {
+    if (typeof window === "undefined") return;
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    // Disable Lenis on mobile/touch screens to use native momentum scrolling and avoid CPU throttling
+    if (window.matchMedia("(pointer: coarse)").matches || window.innerWidth < 768) return;
 
     const lenis = new Lenis({
       duration: 1.0,

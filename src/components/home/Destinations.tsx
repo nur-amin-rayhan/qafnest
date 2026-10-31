@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef } from "react";
+import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { MapPin, ChevronLeft, ChevronRight, CalendarDays } from "lucide-react";
 import { DESTINATIONS, Destination } from "@/data/properties";
@@ -18,39 +19,38 @@ export default function Destinations() {
     }
   };
 
+  const router = useRouter();
+
   const handleDestinationClick = (dest: Destination) => {
     if (dest.isMonthly) {
       setRentMode(rentMode === "monthly" ? "daily" : "monthly");
     } else {
-      if (selectedCity === dest.city) {
-        setSelectedCity("all");
-      } else {
-        setSelectedCity(dest.city);
-      }
+      setSelectedCity(selectedCity === dest.city ? "all" : dest.city);
     }
-
     const propertiesEl = document.getElementById("properties");
     if (propertiesEl) {
       propertiesEl.scrollIntoView({ behavior: "smooth" });
+    } else {
+      router.push(`/search?city=${dest.city}`);
     }
   };
 
   return (
-    <section id="destinations" className="pt-8 pb-4 relative z-10">
+    <section id="destinations" className="pt-2 pb-3 sm:pb-4 relative z-10">
       <div className="max-w-7xl mx-auto px-5 sm:px-8">
         {/* ========================================================= */}
         {/* A Place to Stay Wherever You Go - Circular Destinations   */}
         {/* ========================================================= */}
-        <div className="flex items-center justify-between gap-4 mb-5">
+        <div className="flex items-center justify-between gap-4 mb-3 sm:mb-4">
           <div>
             <span
-              className="inline-flex items-center gap-2 rounded-full px-3.5 py-1 text-xs font-semibold uppercase tracking-widest text-violet-700 dark:text-violet-300 bg-violet-50 dark:bg-violet-950/40 mb-2 border border-violet-200 dark:border-violet-500/20"
+              className="inline-flex items-center gap-2 rounded-full px-3 py-0.5 text-xs font-semibold uppercase tracking-widest text-violet-700 dark:text-violet-300 bg-violet-50 dark:bg-violet-950/40 mb-1.5 border border-violet-200 dark:border-violet-500/20"
             >
               <MapPin className="w-3.5 h-3.5 text-violet-600 dark:text-fuchsia-400" />
               {t.destinations.badge}
             </span>
             <h2
-              className="font-display text-2xl sm:text-3xl font-bold tracking-tight text-gray-900 dark:text-white"
+              className="font-display text-xl sm:text-2xl font-bold tracking-tight text-gray-900 dark:text-white"
             >
               {t.destinations.title} <span className="text-gradient">{t.destinations.titleHighlight}</span>
             </h2>

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Moon,
@@ -32,6 +33,8 @@ export default function Navbar() {
   } = useApp();
 
   const { user, profile, isHost, role, openAuthModal, signOut } = useAuth();
+  const contactEmail = user?.email || (typeof user?.user_metadata?.contact_email === "string" ? user.user_metadata.contact_email : "");
+  const accountName = profile?.full_name || (typeof user?.user_metadata?.full_name === "string" ? user.user_metadata.full_name : "");
 
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -67,18 +70,28 @@ export default function Navbar() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  const router = useRouter();
+
   const handleCitySelect = (city: string) => {
     setSelectedCity(city);
     setActiveDropdown(null);
     const el = document.getElementById("properties");
-    if (el) el.scrollIntoView({ behavior: "smooth" });
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth" });
+    } else {
+      router.push(`/search?city=${city}`);
+    }
   };
 
   const handleCategorySelect = (cat: string) => {
     setSelectedCategory(cat);
     setActiveDropdown(null);
     const el = document.getElementById("properties");
-    if (el) el.scrollIntoView({ behavior: "smooth" });
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth" });
+    } else {
+      router.push(`/search?type=${cat}`);
+    }
   };
 
   const textLinkClass = isDarkTheme
@@ -127,7 +140,7 @@ export default function Navbar() {
     >
       <div className="max-w-[1440px] mx-auto px-5 sm:px-8 lg:px-12 flex items-center justify-between">
         {/* ================= BRAND LOGO ================= */}
-        <Link href="#top" className="flex items-center gap-3 group shrink-0">
+        <Link href="/#top" className="flex items-center gap-3 group shrink-0">
           <div className="relative flex items-center justify-center h-8 w-8 rounded-full border border-violet-500/40 bg-violet-950/40 shadow-[0_0_14px_rgba(168,85,247,0.4)]">
             <div className="absolute inset-0 rounded-full border border-dashed border-violet-400/50 animate-[spin_10s_linear_infinite]" />
             <div className="h-2.5 w-2.5 rounded-full bg-fuchsia-400 shadow-[0_0_10px_rgba(232,121,249,0.95)]" />
@@ -279,10 +292,10 @@ export default function Navbar() {
                 }`}
               >
                 <div className="h-6 w-6 rounded-full bg-gradient-to-tr from-violet-600 to-fuchsia-400 flex items-center justify-center text-white font-bold text-[10px]">
-                  {profile?.full_name?.charAt(0) || user.email?.charAt(0)?.toUpperCase() || "U"}
+                  {accountName.charAt(0) || contactEmail.charAt(0)?.toUpperCase() || "U"}
                 </div>
                 <span className="hidden xl:inline-block max-w-[80px] truncate text-xs font-semibold">
-                  {profile?.full_name?.split(" ")[0] || user.email?.split("@")[0]}
+                  {accountName.split(" ")[0] || contactEmail.split("@")[0]}
                 </span>
                 <ChevronDown className="w-3 h-3 opacity-60 mr-1 rtl:ml-1 rtl:mr-0" />
               </button>
@@ -298,9 +311,9 @@ export default function Navbar() {
                   >
                     <div className="px-3 py-2 border-b border-purple-500/15">
                       <p className="font-bold truncate">
-                        {profile?.full_name || "Valued User"}
+                        {accountName || "Valued User"}
                       </p>
-                      <p className="text-[10px] text-muted truncate">{user.email}</p>
+                      <p className="text-[10px] text-muted truncate">{contactEmail}</p>
                       <span className="inline-block mt-1 text-[9px] px-2 py-0.5 rounded-full bg-fuchsia-500/20 text-fuchsia-400 font-bold uppercase">
                         {role}
                       </span>
@@ -437,7 +450,7 @@ export default function Navbar() {
               {user ? (
                 <div className="flex items-center justify-between w-full">
                   <div>
-                    <p className="text-xs font-bold">{profile?.full_name || user.email}</p>
+                    <p className="text-xs font-bold">{accountName || contactEmail}</p>
                     <span className="text-[10px] text-fuchsia-400 font-bold uppercase">{role}</span>
                   </div>
                   <button

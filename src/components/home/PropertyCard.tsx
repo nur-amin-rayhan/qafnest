@@ -2,8 +2,10 @@
 
 import React, { useState } from "react";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { Star, Heart, ChevronLeft, ChevronRight } from "lucide-react";
 import { Property } from "@/data/properties";
+import { propertyDetailHref } from "@/lib/propertyUrls";
 import { useApp } from "@/context/AppContext";
 
 interface PropertyCardProps {
@@ -12,11 +14,13 @@ interface PropertyCardProps {
 }
 
 export default function PropertyCard({ property, priority = false }: PropertyCardProps) {
-  const { wishlist, toggleWishlist, openBookingModal, language } = useApp();
+  const { wishlist, toggleWishlist, language } = useApp();
+  const router = useRouter();
   const [activeIdx, setActiveIdx] = useState(0);
 
   const images = property.images && property.images.length > 0 ? property.images : [property.image];
   const isWishlisted = wishlist.includes(property.id);
+  const detailHref = propertyDetailHref(property.id);
 
   const title = language === "ar" ? (property.titleAr || property.title) : property.title;
   const district = language === "ar"
@@ -37,7 +41,18 @@ export default function PropertyCard({ property, priority = false }: PropertyCar
 
   return (
     <div
-      onClick={() => openBookingModal(title, property.basePrice)}
+      role="link"
+      tabIndex={0}
+      aria-label={`${language === "ar" ? "عرض تفاصيل" : "View details for"} ${title}`}
+      onClick={(event) => {
+        if ((event.target as HTMLElement).closest("button, a")) return;
+        router.push(detailHref);
+      }}
+      onKeyDown={(event) => {
+        if (event.target !== event.currentTarget || (event.key !== "Enter" && event.key !== " ")) return;
+        event.preventDefault();
+        router.push(detailHref);
+      }}
       className="group relative flex flex-col rounded-2xl bg-white dark:bg-[#12101a] border border-violet-100 dark:border-white/10 hover:border-violet-400 dark:hover:border-violet-500/50 p-2 transition-all duration-300 hover:shadow-[0_8px_24px_rgba(139,92,246,0.12)] cursor-pointer h-full"
     >
       {/* Image Carousel Container with Hover Arrows */}
@@ -47,7 +62,7 @@ export default function PropertyCard({ property, priority = false }: PropertyCar
           alt={title}
           fill
           priority={priority}
-          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 260px"
+          sizes="(max-width: 640px) 240px, (max-width: 1024px) 240px, 260px"
           className="object-cover transition-opacity duration-300 group-hover:scale-105"
         />
 
