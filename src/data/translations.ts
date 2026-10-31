@@ -1,7 +1,7 @@
 export type Language = "en" | "ar";
 
 export const CITY_NAMES_AR: Record<string, string> = {
-  all: "جميع المدن",
+  all: "جميع الوجهات السعودية",
   riyadh: "الرياض",
   jeddah: "جدة",
   khobar: "الخبر",

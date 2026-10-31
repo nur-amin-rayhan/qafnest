@@ -118,7 +118,7 @@ export default function SearchModal() {
         className={`w-full max-w-3xl rounded-3xl p-5 sm:p-7 relative shadow-2xl border my-auto sm:my-0 transition-colors ${
           isDarkTheme
             ? "bg-[#0E0E1A]/95 backdrop-blur-2xl border-white/10 text-white"
-            : "bg-white/98 backdrop-blur-2xl border-purple-100 text-gray-900 shadow-[0_20px_60px_rgba(88,28,135,0.15)]"
+            : "bg-white border-purple-100 text-gray-900 shadow-[0_20px_60px_rgba(88,28,135,0.15)]"
         }`}
         onClick={(e) => e.stopPropagation()}
       >

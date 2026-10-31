@@ -29,7 +29,6 @@ import {
 import Navbar from "@/components/common/Navbar";
 import Footer from "@/components/common/Footer";
 import AuthModal from "@/components/modals/AuthModal";
-import HostModal from "@/components/modals/HostModal";
 import AppModal from "@/components/modals/AppModal";
 import SearchModal from "@/components/modals/SearchModal";
 import InteractiveMapView from "@/components/search/InteractiveMapView";
@@ -656,7 +655,6 @@ export default function PropertyDetail({ property }: PropertyDetailProps) {
 
       <Footer />
       <AuthModal />
-      <HostModal />
       <AppModal />
       <SearchModal />
     </div>

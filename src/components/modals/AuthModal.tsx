@@ -28,7 +28,7 @@ function normalizeSaudiPhone(value: string) {
 }
 
 export default function AuthModal() {
-  const { authModalOpen, closeAuthModal, signupRole, refreshProfile } = useAuth();
+  const { authModalOpen, closeAuthModal, refreshProfile } = useAuth();
   const { language } = useApp();
   const supabase = createClient();
 
@@ -40,8 +40,6 @@ export default function AuthModal() {
   // State
   const [phone, setPhone] = useState("");
   const [fullName, setFullName] = useState("");
-  const [selectedRole, setSelectedRole] = useState<"guest" | "host">(signupRole);
-  const [licenseNo, setLicenseNo] = useState("");
 
   // OTP length follows the Supabase SMS template configuration.
   const [otp, setOtp] = useState<string[]>(EMPTY_OTP);
@@ -68,9 +66,8 @@ export default function AuthModal() {
       setSuccessMsg(null);
       setOtp(EMPTY_OTP());
       setTimer(45);
-      setSelectedRole(signupRole);
     }
-  }, [authModalOpen, signupRole]);
+  }, [authModalOpen]);
 
   // Countdown timer effect
   useEffect(() => {
@@ -104,8 +101,7 @@ export default function AuthModal() {
           channel: "sms",
           data: {
             full_name: fullName.trim(),
-            role: selectedRole,
-            tourism_license_no: selectedRole === "host" ? licenseNo.trim() || null : null,
+            role: "guest",
           },
         },
       });
@@ -242,8 +238,7 @@ export default function AuthModal() {
             data: {
               full_name: fullName,
               phone: phone,
-              role: selectedRole,
-              tourism_license_no: selectedRole === "host" ? licenseNo : null,
+              role: "guest",
             },
           },
         });
@@ -302,32 +297,6 @@ export default function AuthModal() {
                   </p>
                 </div>
 
-                {/* Role Selector Tabs (Guest vs Host) */}
-                <div className="grid grid-cols-2 gap-2 p-1 rounded-2xl bg-gray-100 dark:bg-white/5 mb-5 border border-gray-200/50 dark:border-white/10">
-                  <button
-                    type="button"
-                    onClick={() => setSelectedRole("guest")}
-                    className={`py-2 text-xs font-bold rounded-xl transition-all cursor-pointer ${
-                      selectedRole === "guest"
-                        ? "bg-purple-700 text-white shadow-sm"
-                        : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
-                    }`}
-                  >
-                    {language === "ar" ? "ضيف (حجز إقامات)" : "Guest (Book Stays)"}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setSelectedRole("host")}
-                    className={`py-2 text-xs font-bold rounded-xl transition-all cursor-pointer ${
-                      selectedRole === "host"
-                        ? "bg-purple-700 text-white shadow-sm"
-                        : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
-                    }`}
-                  >
-                    {language === "ar" ? "مضيف (إضافة عقارات)" : "Host (List Stays)"}
-                  </button>
-                </div>
-
                 <form onSubmit={handleSendOtp} className="space-y-4">
                   {/* Name Input */}
                   <div>
@@ -368,22 +337,6 @@ export default function AuthModal() {
                       />
                     </div>
                   </div>
-
-                  {/* Optional Host License Input */}
-                  {selectedRole === "host" && (
-                    <div>
-                      <label className="text-xs font-bold text-gray-700 dark:text-gray-300 block mb-1.5">
-                        {language === "ar" ? "رقم ترخيص وزارة السياحة (اختياري)" : "Ministry Tourism License No (Optional)"}
-                      </label>
-                      <input
-                        type="text"
-                        value={licenseNo}
-                        onChange={(e) => setLicenseNo(e.target.value)}
-                        placeholder="e.g. TL-2026-9842"
-                        className="w-full px-4 py-3 rounded-2xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-sm font-semibold text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:border-purple-600"
-                      />
-                    </div>
-                  )}
 
                   {/* Error & Success Messages */}
                   {errorMsg && (

@@ -29,12 +29,11 @@ export default function Navbar() {
     t,
     isDarkTheme,
     toggleTheme,
-    openHostModal,
     setSelectedCity,
     setSelectedCategory,
   } = useApp();
 
-  const { user, profile, isHost, role, openAuthModal, signOut } = useAuth();
+  const { user, profile, role, openAuthModal, signOut } = useAuth();
   const contactEmail = user?.email || (typeof user?.user_metadata?.contact_email === "string" ? user.user_metadata.contact_email : "");
   const accountName = profile?.full_name || (typeof user?.user_metadata?.full_name === "string" ? user.user_metadata.full_name : "");
 
@@ -44,6 +43,29 @@ export default function Navbar() {
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
 
   const navRef = useRef<HTMLElement>(null);
+  const dropdownTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const handleDropdownEnter = (menu: string) => {
+    if (dropdownTimeoutRef.current) {
+      clearTimeout(dropdownTimeoutRef.current);
+      dropdownTimeoutRef.current = null;
+    }
+    setActiveDropdown(menu);
+  };
+
+  const handleDropdownLeave = () => {
+    dropdownTimeoutRef.current = setTimeout(() => {
+      setActiveDropdown(null);
+    }, 180);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (dropdownTimeoutRef.current) {
+        clearTimeout(dropdownTimeoutRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     let ticking = false;
@@ -101,12 +123,12 @@ export default function Navbar() {
     : "text-gray-700 hover:text-purple-700";
 
   const dropdownContainerClass = isDarkTheme
-    ? "bg-[#0B0B14]/95 border-white/10 text-white/90"
-    : "bg-white/98 border-purple-100 shadow-[0_12px_40px_rgba(88,28,135,0.12)] text-gray-800";
+    ? "bg-[#0B0B14] border-white/10 text-white shadow-[0_20px_50px_rgba(0,0,0,0.6)]"
+    : "bg-white border-purple-100 shadow-[0_20px_50px_rgba(88,28,135,0.16)] text-gray-800";
 
   const dropdownItemClass = isDarkTheme
-    ? "text-white/80 hover:text-white hover:bg-white/[0.06]"
-    : "text-gray-700 hover:text-purple-900 hover:bg-purple-50";
+    ? "text-white/80 hover:text-white hover:bg-white/[0.08]"
+    : "text-gray-700 hover:text-purple-900 hover:bg-purple-50/80";
 
   const citiesList = [
     { id: "all", name: language === "ar" ? "جميع الوجهات" : "All Destinations" },
@@ -133,11 +155,11 @@ export default function Navbar() {
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 border-b ${
         isDarkTheme
           ? scrolled
-            ? "bg-[#06060B]/90 backdrop-blur-xl border-white/[0.08] shadow-[0_10px_30px_rgba(0,0,0,0.5)] py-3"
-            : "bg-[#06060B]/75 backdrop-blur-md border-white/[0.05] py-4"
+            ? "bg-[#06060B]/95 backdrop-blur-xl border-white/[0.08] shadow-[0_10px_30px_rgba(0,0,0,0.5)] py-3"
+            : "bg-[#06060B]/80 backdrop-blur-md border-white/[0.05] py-4"
           : scrolled
-            ? "bg-white/92 backdrop-blur-xl border-purple-900/[0.08] shadow-[0_4px_25px_rgba(88,28,135,0.06)] py-3 text-gray-900"
-            : "bg-white/85 backdrop-blur-md border-purple-900/[0.05] py-4 text-gray-900"
+            ? "bg-white/95 backdrop-blur-xl border-purple-900/[0.08] shadow-[0_4px_25px_rgba(88,28,135,0.06)] py-3 text-gray-900"
+            : "bg-white/90 backdrop-blur-md border-purple-900/[0.05] py-4 text-gray-900"
       }`}
     >
       <div className="max-w-[1440px] mx-auto px-5 sm:px-8 lg:px-12 flex items-center justify-between">
@@ -159,8 +181,8 @@ export default function Navbar() {
           {/* Destinations Dropdown */}
           <div
             className="relative"
-            onMouseEnter={() => setActiveDropdown("destinations")}
-            onMouseLeave={() => setActiveDropdown(null)}
+            onMouseEnter={() => handleDropdownEnter("destinations")}
+            onMouseLeave={handleDropdownLeave}
           >
             <button
               onClick={() => setActiveDropdown(activeDropdown === "destinations" ? null : "destinations")}
@@ -181,7 +203,9 @@ export default function Navbar() {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: 8 }}
                   transition={{ duration: 0.15 }}
-                  className={`absolute top-full left-0 rtl:left-auto rtl:right-0 mt-2 w-56 rounded-2xl backdrop-blur-xl border p-2 shadow-2xl z-50 ${dropdownContainerClass}`}
+                  onMouseEnter={() => handleDropdownEnter("destinations")}
+                  onMouseLeave={handleDropdownLeave}
+                  className={`absolute top-full left-0 rtl:left-auto rtl:right-0 mt-2 w-56 rounded-2xl border p-2 shadow-2xl z-50 before:absolute before:-top-3 before:left-0 before:right-0 before:h-4 before:content-[''] ${dropdownContainerClass}`}
                 >
                   <p className="px-3 py-1.5 text-[10px] uppercase font-bold text-violet-500 tracking-wider">
                     {language === "ar" ? "وجهات مميزة" : "Popular Cities"}
@@ -204,8 +228,8 @@ export default function Navbar() {
           {/* Property Types Dropdown */}
           <div
             className="relative"
-            onMouseEnter={() => setActiveDropdown("categories")}
-            onMouseLeave={() => setActiveDropdown(null)}
+            onMouseEnter={() => handleDropdownEnter("categories")}
+            onMouseLeave={handleDropdownLeave}
           >
             <button
               onClick={() => setActiveDropdown(activeDropdown === "categories" ? null : "categories")}
@@ -226,7 +250,9 @@ export default function Navbar() {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: 8 }}
                   transition={{ duration: 0.15 }}
-                  className={`absolute top-full left-0 rtl:left-auto rtl:right-0 mt-2 w-56 rounded-2xl backdrop-blur-xl border p-2 shadow-2xl z-50 ${dropdownContainerClass}`}
+                  onMouseEnter={() => handleDropdownEnter("categories")}
+                  onMouseLeave={handleDropdownLeave}
+                  className={`absolute top-full left-0 rtl:left-auto rtl:right-0 mt-2 w-56 rounded-2xl border p-2 shadow-2xl z-50 before:absolute before:-top-3 before:left-0 before:right-0 before:h-4 before:content-[''] ${dropdownContainerClass}`}
                 >
                   <p className="px-3 py-1.5 text-[10px] uppercase font-bold text-violet-500 tracking-wider">
                     {language === "ar" ? "أنواع العقارات" : "Property Types"}
@@ -255,12 +281,14 @@ export default function Navbar() {
           </Link>
 
           {/* Host with Us */}
-          <button
-            onClick={openHostModal}
-            className={`flex items-center gap-1.5 transition-colors cursor-pointer py-1 text-violet-600 dark:text-violet-400 font-semibold hover:opacity-85`}
+          <a
+            href="https://business.qafnest.vercel.app"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-1.5 transition-colors cursor-pointer py-1 text-violet-600 dark:text-violet-400 font-semibold hover:opacity-85"
           >
             <span>{t.nav.host}</span>
-          </button>
+          </a>
         </nav>
 
         {/* ================= RIGHT: THEME, SIGN IN & DEDICATED LANGUAGE BUTTON ================= */}
@@ -309,7 +337,7 @@ export default function Navbar() {
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: 8 }}
                     transition={{ duration: 0.15 }}
-                    className={`absolute right-0 rtl:right-auto rtl:left-0 top-full mt-2 w-56 rounded-2xl backdrop-blur-xl border p-2 shadow-2xl z-50 text-xs ${dropdownContainerClass}`}
+                    className={`absolute right-0 rtl:right-auto rtl:left-0 top-full mt-2 w-56 rounded-2xl border p-2 shadow-2xl z-50 text-xs before:absolute before:-top-3 before:left-0 before:right-0 before:h-4 before:content-[''] ${dropdownContainerClass}`}
                   >
                     <div className="px-3 py-2 border-b border-purple-500/15">
                       <p className="font-bold truncate">
@@ -325,45 +353,34 @@ export default function Navbar() {
                       <Link
                         href="/my-bookings"
                         onClick={() => setUserDropdownOpen(false)}
-                        className={`w-full rounded-xl px-3 py-2 flex items-center gap-2 ${dropdownItemClass}`}
+                        className={`w-full rounded-xl px-3 py-2 flex items-center gap-2 text-xs ${dropdownItemClass}`}
                       >
                         <CalendarDays className="w-3.5 h-3.5 text-violet-400" /> {language === "ar" ? "حجوزاتي" : "My bookings"}
                       </Link>
                       <Link
                         href="/wishlist"
                         onClick={() => setUserDropdownOpen(false)}
-                        className={`w-full rounded-xl px-3 py-2 flex items-center gap-2 ${dropdownItemClass}`}
+                        className={`w-full rounded-xl px-3 py-2 flex items-center gap-2 text-xs ${dropdownItemClass}`}
                       >
                         <Heart className="w-3.5 h-3.5 text-rose-400" /> {language === "ar" ? "المفضلة" : "Wishlist"}
                       </Link>
-                      {isHost ? (
-                        <button
-                          onClick={() => {
-                            setUserDropdownOpen(false);
-                            openHostModal();
-                          }}
-                          className="w-full text-left rtl:text-right px-3 py-2 rounded-xl text-fuchsia-400 hover:bg-fuchsia-500/10 flex items-center gap-2 cursor-pointer"
-                        >
-                          <Key className="w-3.5 h-3.5 text-fuchsia-400" /> {t.nav.hostPortal}
-                        </button>
-                      ) : (
-                        <button
-                          onClick={() => {
-                            setUserDropdownOpen(false);
-                            openHostModal();
-                          }}
-                          className="w-full text-left rtl:text-right px-3 py-2 rounded-xl flex items-center gap-2 cursor-pointer text-violet-400 hover:bg-purple-500/10"
-                        >
-                          <Key className="w-3.5 h-3.5 text-violet-400" /> {t.nav.host}
-                        </button>
-                      )}
+
+                      <a
+                        href="https://business.qafnest.vercel.app"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={() => setUserDropdownOpen(false)}
+                        className="w-full text-left rtl:text-right px-3 py-2 rounded-xl flex items-center gap-2 cursor-pointer text-violet-600 dark:text-violet-400 hover:bg-purple-500/10 text-xs font-semibold"
+                      >
+                        <Key className="w-3.5 h-3.5 text-violet-500 shrink-0" /> {t.nav.host}
+                      </a>
 
                       <button
                         onClick={() => {
                           setUserDropdownOpen(false);
                           signOut();
                         }}
-                        className="w-full text-left rtl:text-right px-3 py-2 rounded-xl text-rose-400 hover:bg-rose-500/10 flex items-center gap-2 cursor-pointer mt-1 font-semibold"
+                        className="w-full text-left rtl:text-right px-3 py-2 rounded-xl text-rose-400 hover:bg-rose-500/10 flex items-center gap-2 cursor-pointer mt-1 font-semibold text-xs"
                       >
                         <LogOut className="w-3.5 h-3.5 text-rose-400" /> {t.nav.signOut}
                       </button>
@@ -413,8 +430,8 @@ export default function Navbar() {
             exit={{ opacity: 0, height: 0 }}
             className={`lg:hidden border-b px-6 py-5 space-y-4 ${
               isDarkTheme
-                ? "bg-[#0B0B14]/98 border-white/10 text-white"
-                : "bg-white/98 border-purple-100 text-gray-900 shadow-xl"
+                ? "bg-[#0B0B14] border-white/10 text-white"
+                : "bg-white border-purple-100 text-gray-900 shadow-xl"
             }`}
           >
             <Link
@@ -438,15 +455,15 @@ export default function Navbar() {
             >
               {t.nav.guarantee}
             </Link>
-            <button
-              onClick={() => {
-                setMobileMenuOpen(false);
-                openHostModal();
-              }}
-              className="block text-left rtl:text-right text-sm font-semibold text-violet-400"
+            <a
+              href="https://business.qafnest.vercel.app"
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => setMobileMenuOpen(false)}
+              className="block text-left rtl:text-right text-sm font-semibold text-violet-400 hover:text-fuchsia-400"
             >
               {t.nav.host}
-            </button>
+            </a>
 
             {/* Language Switch Button inside Mobile Menu */}
             <div className="pt-2">
@@ -465,11 +482,22 @@ export default function Navbar() {
             <div className="pt-3 border-t border-purple-500/15 flex items-center justify-between">
               {user ? (
                 <div className="flex w-full flex-col gap-2">
-                  <div>
-                    <p className="text-xs font-bold">{accountName || contactEmail}</p>
-                    <span className="text-[10px] text-fuchsia-400 font-bold uppercase">{role}</span>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-xs font-bold">{accountName || contactEmail}</p>
+                      <span className="text-[10px] text-fuchsia-400 font-bold uppercase">{role}</span>
+                    </div>
+                    <button
+                      onClick={() => {
+                        setMobileMenuOpen(false);
+                        signOut();
+                      }}
+                      className="text-xs text-rose-400 font-bold"
+                    >
+                      {t.nav.signOut}
+                    </button>
                   </div>
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3 pt-1">
                     <Link href="/my-bookings" onClick={() => setMobileMenuOpen(false)} className="text-xs font-semibold text-violet-300">
                       {language === "ar" ? "حجوزاتي" : "My bookings"}
                     </Link>
@@ -478,15 +506,6 @@ export default function Navbar() {
                       {language === "ar" ? "المفضلة" : "Wishlist"}
                     </Link>
                   </div>
-                  <button
-                    onClick={() => {
-                      setMobileMenuOpen(false);
-                      signOut();
-                    }}
-                    className="text-xs text-rose-400 font-bold"
-                  >
-                    {t.nav.signOut}
-                  </button>
                 </div>
               ) : (
                 <button

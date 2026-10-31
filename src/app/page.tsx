@@ -12,7 +12,6 @@ import Footer from "@/components/common/Footer";
 
 // Lazy load non-critical modals to reduce initial JavaScript payload on mobile
 const BookingModal = dynamic(() => import("@/components/modals/BookingModal"), { ssr: false });
-const HostModal = dynamic(() => import("@/components/modals/HostModal"), { ssr: false });
 const AppModal = dynamic(() => import("@/components/modals/AppModal"), { ssr: false });
 const AuthModal = dynamic(() => import("@/components/modals/AuthModal"), { ssr: false });
 const SearchModal = dynamic(() => import("@/components/modals/SearchModal"), { ssr: false });
@@ -48,7 +47,6 @@ export default function Home() {
 
       {/* Modals */}
       <BookingModal />
-      <HostModal />
       <AppModal />
       <AuthModal />
       <SearchModal />

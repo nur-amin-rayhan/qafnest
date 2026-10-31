@@ -206,9 +206,14 @@ export default function Footer() {
                 </Link>
               </li>
               <li>
-                <Link href="#host" className="hover:text-violet-600 dark:hover:text-violet-300 transition-colors">
+                <a
+                  href="https://business.qafnest.vercel.app"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:text-violet-600 dark:hover:text-violet-300 transition-colors"
+                >
                   {language === "ar" ? "بوابة المضيفين" : "Host Portal"}
-                </Link>
+                </a>
               </li>
               <li>
                 <Link href="#app" className="hover:text-violet-600 dark:hover:text-violet-300 transition-colors">
@@ -246,7 +251,12 @@ export default function Footer() {
             <a href="#" className="hover:text-gray-900 dark:hover:text-white transition-colors">
               {language === "ar" ? "سياسة الخصوصية" : "Privacy Policy"}
             </a>
-            <a href="#" className="hover:text-gray-900 dark:hover:text-white transition-colors">
+            <a
+              href="https://business.qafnest.vercel.app"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-gray-900 dark:hover:text-white transition-colors"
+            >
               {language === "ar" ? "شروط الاستضافة" : "Host Terms"}
             </a>
           </div>

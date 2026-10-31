@@ -31,7 +31,6 @@ import {
 } from "lucide-react";
 import AppModal from "@/components/modals/AppModal";
 import AuthModal from "@/components/modals/AuthModal";
-import HostModal from "@/components/modals/HostModal";
 import SearchModal from "@/components/modals/SearchModal";
 import Footer from "@/components/common/Footer";
 import Navbar from "@/components/common/Navbar";
@@ -1010,7 +1009,6 @@ export default function ReservationReview({ property }: ReservationReviewProps) 
       </AnimatePresence>
       <Footer />
       <AuthModal />
-      <HostModal />
       <AppModal />
       <SearchModal />
     </div>

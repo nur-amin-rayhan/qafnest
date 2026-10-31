@@ -255,10 +255,10 @@ export default function Hero() {
     return englishName;
   };
 
-  const activeCityName =
-    selectedCity === "all"
-      ? (language === "ar" ? "الرياض" : "Riyadh")
-      : getCityLabel(selectedCity, CITIES.find((c) => c.id === selectedCity)?.name || "Riyadh");
+  const activeCityName = getCityLabel(
+    selectedCity,
+    CITIES.find((c) => c.id === selectedCity)?.name || "All Saudi Destinations"
+  );
 
   const activeTypeName =
     selectedCategory === "all"

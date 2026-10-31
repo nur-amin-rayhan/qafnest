@@ -49,9 +49,6 @@ interface AppContextType {
   bookingModal: BookingModalState;
   openBookingModal: (title: string, price: number) => void;
   closeBookingModal: () => void;
-  hostModalOpen: boolean;
-  openHostModal: () => void;
-  closeHostModal: () => void;
   searchModalOpen: boolean;
   openSearchModal: () => void;
   closeSearchModal: () => void;
@@ -155,7 +152,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     propertyTitle: "Al-Ammariyah Royal Chalet",
     basePrice: 1850,
   });
-  const [hostModalOpen, setHostModalOpen] = useState<boolean>(false);
   const [searchModalOpen, setSearchModalOpen] = useState<boolean>(false);
   const [appModalOpen, setAppModalOpen] = useState<boolean>(false);
 
@@ -205,9 +201,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const closeBookingModal = () => {
     setBookingModal((prev) => ({ ...prev, isOpen: false }));
   };
-
-  const openHostModal = () => setHostModalOpen(true);
-  const closeHostModal = () => setHostModalOpen(false);
 
   const openSearchModal = () => setSearchModalOpen(true);
   const closeSearchModal = () => setSearchModalOpen(false);
@@ -279,9 +272,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         bookingModal,
         openBookingModal,
         closeBookingModal,
-        hostModalOpen,
-        openHostModal,
-        closeHostModal,
         searchModalOpen,
         openSearchModal,
         closeSearchModal,

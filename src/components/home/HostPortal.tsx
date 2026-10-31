@@ -14,7 +14,7 @@ const RATES_BY_TYPE: Record<number, { nameEn: string; nameAr: string; rate: numb
 };
 
 export default function HostPortal() {
-  const { openHostModal, language, t } = useApp();
+  const { language, t } = useApp();
 
   const [typeIndex, setTypeIndex] = useState(2);
   const [nights, setNights] = useState(12);
@@ -79,13 +79,17 @@ export default function HostPortal() {
                 </div>
               </div>
 
-              <MagneticButton
-                onClick={openHostModal}
-                className="px-8 py-3.5 text-xs tracking-wider"
+              <a
+                href="https://business.qafnest.vercel.app"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-block"
               >
-                <span>{t.host.cta}</span>
-                <ArrowRight className="w-4 h-4 rtl:rotate-180" />
-              </MagneticButton>
+                <MagneticButton className="px-8 py-3.5 text-xs tracking-wider">
+                  <span>{t.host.cta}</span>
+                  <ArrowRight className="w-4 h-4 rtl:rotate-180" />
+                </MagneticButton>
+              </a>
             </motion.div>
 
             {/* Interactive Host Earnings Calculator */}
