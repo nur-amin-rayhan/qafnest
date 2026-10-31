@@ -179,16 +179,14 @@ export default function AuthModal() {
         id: data.user.id,
         full_name: fullName.trim(),
         phone: formattedPhone,
-        role: selectedRole,
-        host_status: selectedRole === "host" ? "pending" : "none",
-        tourism_license_no: selectedRole === "host" ? licenseNo.trim() || null : null,
+        role: "guest",
       };
-      const { error: metadataError } = await supabase.auth.updateUser({ data: { ...profile, role: selectedRole } });
+      const { error: metadataError } = await supabase.auth.updateUser({ data: { ...profile, role: "guest" } });
       if (metadataError) throw metadataError;
       const { error: profileError } = await supabase.from("profiles").upsert(profile, { onConflict: "id" });
       if (profileError) throw profileError;
       await refreshProfile(data.user.id);
-      setSuccessMsg(`Welcome to QafNest as a ${selectedRole === "host" ? "Host" : "Guest"}!`);
+      setSuccessMsg("Welcome to QafNest!");
       setTimeout(() => {
         closeAuthModal();
       }, 1000);

@@ -8,7 +8,6 @@ import Footer from "@/components/common/Footer";
 import SearchPropertyCard from "@/components/search/SearchPropertyCard";
 import BookingModal from "@/components/modals/BookingModal";
 import AuthModal from "@/components/modals/AuthModal";
-import HostModal from "@/components/modals/HostModal";
 import SearchModal from "@/components/modals/SearchModal";
 import { useApp } from "@/context/AppContext";
 import { useProperties } from "@/hooks/useProperties";
@@ -100,7 +99,6 @@ export default function WishlistPage() {
       <Footer />
       <BookingModal />
       <AuthModal />
-      <HostModal />
       <SearchModal />
     </div>
   );
