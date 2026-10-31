@@ -25,7 +25,10 @@ import {
   Waves,
   X,
   Zap,
+  Bath,
+  Sofa,
 } from "lucide-react";
+import { groupAmenitiesByCategory, AmenityIcon } from "@/lib/amenities";
 import Navbar from "@/components/common/Navbar";
 import Footer from "@/components/common/Footer";
 import AuthModal from "@/components/modals/AuthModal";
@@ -67,15 +70,6 @@ function getBedrooms(property: Property) {
   if (property.bedroomsCount) return property.bedroomsCount;
   const match = property.specs.match(/(\d+)\s*(?:bed(?:rooms?)?|master suites?)/i);
   return match ? Number(match[1]) : null;
-}
-
-function getFeaturePresentation(feature: string) {
-  const firstToken = feature.split(" ")[0] || "";
-  const hasEmojiPrefix = firstToken.charCodeAt(0) >= 0xd800;
-  return {
-    icon: hasEmojiPrefix ? firstToken : "✓",
-    label: hasEmojiPrefix ? feature.slice(firstToken.length).trim() : feature,
-  };
 }
 
 function ReservationPanel({
@@ -299,6 +293,23 @@ export default function PropertyDetail({ property }: PropertyDetailProps) {
   const specs = language === "ar" ? PROPERTY_SPECS_AR[property.specs] || property.specs : property.specs;
   const capacity = getPropertyCapacity(property);
   const bedrooms = getBedrooms(property);
+  const bathrooms = property.bathroomsCount || (bedrooms ? Math.max(1, bedrooms) : 2);
+  const livingRooms = property.livingRoomsCount || 1;
+  const chaletFor =
+    language === "ar"
+      ? property.chaletForAr || "عوائل فقط"
+      : property.chaletForAr === "عوائل وعزاب"
+      ? "Families & Singles"
+      : "Families only";
+
+  const categorizedAmenities = useMemo(() => {
+    const list =
+      property.amenities && property.amenities.length > 0
+        ? property.amenities
+        : property.features;
+    return groupAmenitiesByCategory(list);
+  }, [property.amenities, property.features]);
+
   const returnHref = searchParamString
     ? `/search?${searchParamString}`
     : `/search?city=${encodeURIComponent(normalizeCityId(property.city))}`;
@@ -526,12 +537,81 @@ export default function PropertyDetail({ property }: PropertyDetailProps) {
                   </p>
                 </div>
               </div>
-              <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
-                <Fact icon={<Users className="h-4 w-4" />} label={anchorLabel("Guests", "الضيوف")} value={`${capacity}`} />
-                {bedrooms && <Fact icon={<BedDouble className="h-4 w-4" />} label={anchorLabel("Bedrooms", "غرف النوم")} value={`${bedrooms}`} />}
-                {property.areaSqm && <Fact icon={<Maximize2 className="h-4 w-4" />} label={anchorLabel("Area", "المساحة")} value={`${property.areaSqm} m²`} />}
-                <Fact icon={<MapPin className="h-4 w-4" />} label={anchorLabel("Destination", "الوجهة")} value={cityName} />
+              <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+                <Fact icon={<Users className="h-4 w-4 text-violet-500" />} label={anchorLabel("Capacity", "السعة الإجمالية")} value={anchorLabel(`Up to ${capacity} guests`, `حتى ${capacity} ضيوف`)} />
+                {bedrooms ? <Fact icon={<BedDouble className="h-4 w-4 text-violet-500" />} label={anchorLabel("Bedrooms", "غرف النوم")} value={anchorLabel(`${bedrooms} Bedrooms`, `${bedrooms} غرف نوم`)} /> : null}
+                <Fact icon={<Bath className="h-4 w-4 text-violet-500" />} label={anchorLabel("Bathrooms", "دورات المياه")} value={anchorLabel(`${bathrooms} Baths`, `${bathrooms} دورات مياه`)} />
+                <Fact icon={<Sofa className="h-4 w-4 text-violet-500" />} label={anchorLabel("Living spaces", "المجالس والصالات")} value={property.majlisDetails?.mainMajlisCapacity ? anchorLabel(`Majlis for ${property.majlisDetails.mainMajlisCapacity}`, `مجلس يسع ${property.majlisDetails.mainMajlisCapacity}`) : anchorLabel(`${livingRooms} Living spaces`, `${livingRooms} مجالس`)} />
+                {property.areaSqm ? <Fact icon={<Maximize2 className="h-4 w-4 text-violet-500" />} label={anchorLabel("Area", "المساحة")} value={`${property.areaSqm} ${anchorLabel("m²", "م²")}`} /> : null}
+                <Fact icon={<Users className="h-4 w-4 text-violet-500" />} label={anchorLabel("Target audience", "الفئة المسموحة")} value={chaletFor} />
               </div>
+
+              {/* Pool & Leisure Specs (Gathern Benchmark) */}
+              {property.hasPool && (
+                <div className="mt-4 rounded-2xl border border-cyan-100 bg-cyan-50/50 p-4 dark:border-cyan-900/30 dark:bg-cyan-950/20">
+                  <div className="flex items-center gap-2 text-cyan-800 dark:text-cyan-300 font-bold text-sm mb-2.5">
+                    <Waves className="h-4 w-4" />
+                    <span>{anchorLabel("Swimming Pool Specifications", "مواصفات المسبح")}</span>
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                    <div>
+                      <span className="text-gray-500 dark:text-gray-400 block">{anchorLabel("Pool Type", "نوع المسبح")}</span>
+                      <span className="font-semibold text-gray-900 dark:text-white">
+                        {property.poolDetails?.type === "indoor" ? anchorLabel("Indoor Pool", "مسبح داخلي خاص") : anchorLabel("Outdoor Pool", "مسبح خارجي خاص")}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-gray-500 dark:text-gray-400 block">{anchorLabel("Safety Barrier", "حاجز الأمان")}</span>
+                      <span className="font-semibold text-gray-900 dark:text-white">
+                        {property.poolDetails?.hasBarrier ? anchorLabel("Child safety barrier present", "متوفر حاجز حماية للأطفال") : anchorLabel("Open pool", "بدون حاجز")}
+                      </span>
+                    </div>
+                    {property.poolDetails?.dimensions && (
+                      <div>
+                        <span className="text-gray-500 dark:text-gray-400 block">{anchorLabel("Dimensions", "أبعاد المسبح")}</span>
+                        <span className="font-semibold text-gray-900 dark:text-white">{property.poolDetails.dimensions}</span>
+                      </div>
+                    )}
+                    {property.poolDetails?.depth && (
+                      <div>
+                        <span className="text-gray-500 dark:text-gray-400 block">{anchorLabel("Depth", "عمق المسبح")}</span>
+                        <span className="font-semibold text-gray-900 dark:text-white">{property.poolDetails.depth}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Majlis & Seating Specs (Gathern Benchmark) */}
+              {property.majlisDetails && (
+                <div className="mt-3 rounded-2xl border border-violet-100 bg-violet-50/40 p-4 dark:border-violet-900/30 dark:bg-violet-950/20">
+                  <div className="flex items-center gap-2 text-violet-800 dark:text-violet-300 font-bold text-sm mb-2.5">
+                    <Sofa className="h-4 w-4" />
+                    <span>{anchorLabel("Living Rooms & Seating", "المجالس والجلسات")}</span>
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
+                    <div>
+                      <span className="text-gray-500 dark:text-gray-400 block">{anchorLabel("Main Majlis", "المجلس الرئيسي")}</span>
+                      <span className="font-semibold text-gray-900 dark:text-white">
+                        {anchorLabel(`Seats up to ${property.majlisDetails.mainMajlisCapacity} persons`, `يسع لـ ${property.majlisDetails.mainMajlisCapacity} شخص`)}
+                      </span>
+                    </div>
+                    {property.majlisDetails.outdoorSeatingCapacity && (
+                      <div>
+                        <span className="text-gray-500 dark:text-gray-400 block">{anchorLabel("Outdoor Seating", "الجلسة الخارجية")}</span>
+                        <span className="font-semibold text-gray-900 dark:text-white">
+                          {anchorLabel(`Seats up to ${property.majlisDetails.outdoorSeatingCapacity} persons`, `تتسع لـ ${property.majlisDetails.outdoorSeatingCapacity} شخص`)}
+                        </span>
+                      </div>
+                    )}
+                    <div>
+                      <span className="text-gray-500 dark:text-gray-400 block">{anchorLabel("Access", "نوع الإقامة")}</span>
+                      <span className="font-semibold text-gray-900 dark:text-white">{chaletFor}</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               <div className="mt-4 flex flex-wrap gap-2">
                 {property.instantBook && <Badge icon={<Zap className="h-3.5 w-3.5" />} label={anchorLabel("Instant booking", "حجز فوري")} />}
                 {property.selfCheckin && <Badge icon={<KeyRound className="h-3.5 w-3.5" />} label={anchorLabel("Self check-in", "دخول ذاتي")} />}
@@ -542,23 +622,55 @@ export default function PropertyDetail({ property }: PropertyDetailProps) {
 
             <section id="amenities" className="scroll-mt-32 border-b border-gray-100 py-8 dark:border-white/10">
               <div>
-                <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-violet-600 dark:text-violet-300">{anchorLabel("What's included", "المرافق المتاحة")}</span>
-                <h2 className="mt-1 text-xl font-bold text-gray-950 dark:text-white">{anchorLabel("Amenities and features", "المرافق والميزات")}</h2>
+                <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-violet-600 dark:text-violet-300">
+                  {anchorLabel("What's included", "المرافق المتاحة")}
+                </span>
+                <h2 className="mt-1 text-xl font-bold text-gray-950 dark:text-white">
+                  {anchorLabel("Amenities & Facilities", "المرافق والمواصفات الكاملة")}
+                </h2>
+                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                  {anchorLabel("Comprehensive list of verified features and equipment available during your stay", "قائمة شاملة بكافة الخدمات والتجهيزات المتاحة لراحتك")}
+                </p>
               </div>
-              {property.features.length > 0 ? (
-                <div className="mt-5 grid gap-3 sm:grid-cols-2">
-                  {property.features.map((feature) => {
-                    const { icon, label } = getFeaturePresentation(feature);
-                    return (
-                      <div key={feature} className="flex items-center gap-3 rounded-2xl border border-gray-100 bg-gray-50/70 px-4 py-3 text-sm text-gray-700 dark:border-white/10 dark:bg-white/[0.03] dark:text-gray-200">
-                        <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-white text-base shadow-sm dark:bg-white/5">{icon}</span>
-                        <span>{label}</span>
+
+              {categorizedAmenities.length > 0 ? (
+                <div className="mt-6 space-y-6">
+                  {categorizedAmenities.map((group) => (
+                    <div
+                      key={group.id}
+                      className="rounded-2xl border border-gray-100 dark:border-white/5 bg-gray-50/60 dark:bg-white/[0.02] p-4 sm:p-5"
+                    >
+                      <div className="flex items-center gap-2 mb-3.5">
+                        <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-300">
+                          <AmenityIcon name={group.iconName} className="h-4 w-4" />
+                        </span>
+                        <h3 className="font-bold text-sm sm:text-base text-gray-900 dark:text-white">
+                          {anchorLabel(group.titleEn, group.titleAr)}
+                        </h3>
                       </div>
-                    );
-                  })}
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
+                        {group.amenities.map((amenity) => (
+                          <div
+                            key={amenity.id}
+                            className="flex items-center gap-2.5 rounded-xl border border-gray-200/70 dark:border-white/10 bg-white dark:bg-[#12101a] px-3.5 py-2.5 text-xs sm:text-[13px] text-gray-800 dark:text-gray-200 shadow-sm"
+                          >
+                            <span className="text-violet-600 dark:text-violet-400 shrink-0">
+                              <AmenityIcon name={amenity.iconName} className="h-4 w-4" />
+                            </span>
+                            <span className="font-medium">
+                              {anchorLabel(amenity.nameEn, amenity.nameAr)}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
                 </div>
               ) : (
-                <p className="mt-4 text-sm text-gray-500 dark:text-gray-400">{anchorLabel("No amenity details have been added to this listing yet.", "لم تتم إضافة تفاصيل المرافق لهذا العقار بعد.")}</p>
+                <p className="mt-4 text-sm text-gray-500 dark:text-gray-400">
+                  {anchorLabel("No amenity details have been added to this listing yet.", "لم تتم إضافة تفاصيل المرافق لهذا العقار بعد.")}
+                </p>
               )}
             </section>
 

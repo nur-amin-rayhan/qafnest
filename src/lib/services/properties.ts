@@ -50,6 +50,8 @@ function fromRow(row: PropertyRow): Property {
     row.capacity ? `Up to ${row.capacity} Guests` : null,
   ].filter(Boolean).join(" · ");
 
+  const fallback = PROPERTIES.find((p) => p.id === row.id);
+
   return {
     id: row.id,
     title: row.title,
@@ -62,9 +64,14 @@ function fromRow(row: PropertyRow): Property {
     rating: Number(row.rating ?? 5),
     reviewsCount: Number(row.reviews_count ?? 0),
     specs,
-    image: images[0] || PROPERTIES[0].image,
+    image: images[0] || fallback?.image || PROPERTIES[0].image,
     images,
-    features: row.features || [],
+    features: row.features || fallback?.features || [],
+    amenities: fallback?.amenities,
+    poolDetails: fallback?.poolDetails,
+    majlisDetails: fallback?.majlisDetails,
+    chaletForAr: fallback?.chaletForAr,
+    bathroomsCount: fallback?.bathroomsCount,
     basePrice: Number(row.base_price),
     weekendPrice: row.weekend_price ? Number(row.weekend_price) : undefined,
     originalPrice: row.original_price ? Number(row.original_price) : undefined,
@@ -74,12 +81,12 @@ function fromRow(row: PropertyRow): Property {
     hasPool: Boolean(row.has_pool),
     selfCheckin: Boolean(row.self_checkin),
     section: "general",
-    capacity: row.capacity ?? undefined,
-    bedroomsCount: row.bedrooms_count ?? undefined,
-    livingRoomsCount: row.living_rooms_count ?? undefined,
+    capacity: row.capacity ?? fallback?.capacity,
+    bedroomsCount: row.bedrooms_count ?? fallback?.bedroomsCount,
+    livingRoomsCount: row.living_rooms_count ?? fallback?.livingRoomsCount,
     checkinTime: row.checkin_time?.slice(0, 5) || undefined,
     checkoutTime: row.checkout_time?.slice(0, 5) || undefined,
-    areaSqm: row.area_sqm ?? undefined,
+    areaSqm: row.area_sqm ?? fallback?.areaSqm,
     lat: row.lat ?? undefined,
     lng: row.lng ?? undefined,
   };
