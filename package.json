@@ -1,12 +1,21 @@
 {
-  "name": "qafnest-next",
-  "version": "0.1.0",
+  "name": "qafnest-monorepo",
+  "version": "1.0.0",
   "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "lint": "next lint"
+    "dev": "node scripts/dev-all.mjs",
+    "dev:guest": "npm --prefix apps/guest run dev",
+    "dev:host": "npm --prefix apps/host run dev",
+    "dev:cms": "npm --prefix apps/cms run dev",
+    "build": "npm --prefix apps/guest run build && npm --prefix apps/host run build && npm --prefix apps/cms run build",
+    "build:guest": "npm --prefix apps/guest run build",
+    "build:host": "npm --prefix apps/host run build",
+    "build:cms": "npm --prefix apps/cms run build",
+    "lint": "npm --prefix apps/guest run lint && npm --prefix apps/host run lint && npm --prefix apps/cms run lint"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",

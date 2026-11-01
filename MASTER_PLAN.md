@@ -1,234 +1,63 @@
-# 🦅 QAFNEST: কমপ্লিট ইউনিফায়েড মাস্টার প্ল্যান ও আর্কিটেকচার রোডম্যাপ
-> **Gathern.co (جاذر إن) ফাংশনাল বেঞ্চমার্ক + QafNest লাক্সারি ডিজাইন + Supabase ফুল-স্ট্যাক ব্যাকএন্ড**
+# QafNest Ecosystem Master Plan & Roadmap
+
+This document serves as the permanent architectural guide and step-by-step master roadmap for the **QafNest** 3-App Monorepo (`apps/guest`, `apps/host`, `apps/cms`).
 
 ---
 
-## ১. নির্বাহী সারসংক্ষেপ ও গ্যাথার্ন (Gathern.co) বেঞ্চমার্ক
+## 1. Architecture & 3-App Overview
 
-সৌদি আরবের শীর্ষস্থানীয় ভ্যাকেশন রেন্টাল প্ল্যাটফর্ম **Gathern.co** (সৌদি পর্যটন মন্ত্রণালয় কর্তৃক লাইসেন্সপ্রাপ্ত)-এর সমস্ত অপশন, ফিচার ও নেভিগেশনাল প্যাটার্নকে আমাদের **QafNest**-এর প্রিমিয়াম ও লাক্সারি থিমের সাথে নিখুঁতভাবে সমন্বয় করে এই মাস্টার প্ল্যানটি প্রস্তুত করা হয়েছে।
-
-### মূল দর্শন:
-- **ফাংশনালিটি ও প্যাটার্ন:** ১০০% Gathern.co এর মতো সম্পূর্ণ (Daily/Monthly Rent, Multi-Search Bar, Granular Filters, Host Verification, Tabby/Tamara Split, Smart Lock)।
-- **ডিজাইন ও ইউজার এক্সপেরিয়েন্স:** QafNest-এর সিগনেচার নিয়ন-গ্লো, ফ্রস্টেড গ্লাস মরফিজম এবং ডার্ক/লাইট মোড কমপ্লায়েন্ট।
-- **ব্যাকএন্ড ইঞ্জিন:** Supabase (Auth, PostgreSQL DB, Storage, RLS) + Next.js 14 App Router।
-
----
-
-## ২. নেভিগেশন বার আর্কিটেকচার (Gathern 1:1 Functional Mapping)
-
-Gathern-এর মেনুবারের প্রতিটি অপশন আমাদের নেভিগেশন বারে যেভাবে সমন্বিত হয়েছে:
-
-```
-┌────────────────────────────────────────────────────────────────────────────────────────┐
-│ [Logo: QAF NEST]   [Stay Types ∨] [Destinations ∨] [Flash Deals 🔥] [Host Portal ∨]   │
-│                                           [🔍 Search] [☀️/🌙 Theme] [🌐 EN/SAR ∨] [👤 Profile / Sign In] [Book a Stay ↗] │
-└────────────────────────────────────────────────────────────────────────────────────────┘
-```
-
-### ২.১ মেনুবার আইটেমসমূহ:
-1. **ব্র্যান্ড লোগো (Brand Identity):**
-   - ড্যাশড অরবিট/রাডার গ্লিফ + `QAF` (বোল্ড) `NEST` (পার্পল গ্রেডিয়েন্ট) + Ministry License Badge।
-2. **প্রোপার্টি ক্যাটাগরি মেনু (Property Categories ∨):**
-   - **Private Chalets & Resorts (شاليهات ومنتجعات):** ব্যক্তিগত সুইমিং পুল ও গার্ডেন সহ।
-   - **Luxury Private Villas (فلل خاصة فاخرة):** ফ্যামিলি ও গেট-টুগেদার ভিলা।
-   - **Heritage & Organic Farms (مزارع واستراحات):** প্রাকৃতিক ও গ্রামীণ অবকাশ কেন্দ্র।
-   - **Desert Glamping & Camps (مخيمات وقباب العلا):** মরুভূমির তাঁবু ও কারাফান।
-   - **Serviced VIP Penthouses (بنتهاوس وشقق مخدومة):** শহরের প্রাইম লোকেশনের প্রিমিয়াম অ্যাপার্টমেন্ট।
-3. **ডেস্টিনেশন মেনু (Destinations ∨):**
-   - রিয়াদ (Al-Ammariyah, Diriyah), জেদ্দা (Obhur Waterfront), আল-উলা (Desert Stargazing), আল-খোবার (Eastern Corniche), আবহা (Asir Highlands), তায়েফ।
-4. **ইজারার ধরন (Rental Duration Mode):**
-   - **Daily Rent (إيجار يومي):** সাপ্তাহিক ছুটি ও স্বল্পমেয়াদি অবকাশ যাপনের জন্য।
-   - **Monthly Rent (إيجار شهري):** দীর্ঘমেয়াদি স্টে (৩৫% পর্যন্ত সেভিংস সহ)।
-5. **হোস্ট পোর্টাল (Gathern Business / Host with Us ∨):**
-   - "List Your Property (سجل عقارك)"
-   - "Host Earnings Calculator (حاسبة أرباح المضيف)"
-   - "1,000,000 SAR Host Protection Guarantee"
-6. **টুলস ও একাউন্ট সেকশন (Right Utility Controls):**
-   - 🔍 **ইন্টারেক্টিভ সার্চ আইকন:** ক্লিক করলেই পূর্ণাঙ্গ সার্চ ও ফিল্টার উইন্ডো ওপেন হওয়া।
-   - 🌙/☀️ **ডার্ক ও লাইট থিম সুইচ:** লোকালস্টোরেজে পারসিস্টেন্ট থিম সেভ।
-   - 🌐 **গ্লোব ড্রপডাউন:** ভাষা নির্বাচন (English / العربية) এবং কারেন্সি (SAR ﷼, USD $, AED د.إ, EUR €)।
-   - 👤 **ইউজার স্টেট / প্রোফাইল:**
-     - লগইন না থাকলে: `Sign In / Register` মোডাল।
-     - লগইন থাকলে: অবতার, নাম, রোল ব্যাজ (`Guest` / `Host`), বুকিংস হিস্ট্রি এবং ১-ক্লিকে `Sign Out` বাটন।
-   - 🚀 **প্রাইমারি CTA:** `Book a Stay ↗` (সরাসরি ফিল্টার ও সার্চ উইন্ডো অ্যাক্টিভেশন)।
+| Application | Folder Path | Local Port | Free Vercel Domain | Core Purpose |
+|---|---|---|---|---|
+| **1. Guest Platform** | `apps/guest` | `:3000` | `qafnest.vercel.app` | Guests browse chalets, villas, farms & camps, book stays, and pay online. |
+| **2. Host Business** | `apps/host` | `:3001` | `business-qafnest.vercel.app` | Property owners list properties, manage dynamic pricing & calendars, and track payouts. |
+| **3. Admin CMS** | `apps/cms` | `:3002` | `cms-qafnest.vercel.app` | Super Admins verify hosts & tourism licenses, approve properties, manage blog & payouts. |
 
 ---
 
-## ৩. মাল্টি-সেগমেন্টেড সিগনেচার সার্চ বার (Gathern Search Pattern)
+## 2. Phase-by-Phase Execution Roadmap
 
-Gathern-এর মূল সার্চ সিস্টেমটি ৪টি প্রধান সেগমেন্টে বিভক্ত, যা আমাদের হোমপেজ হিরো এবং সার্চ মোডালে হুবহু থাকবে:
+### ✅ Phase 1: Monorepo Structure & Environment Setup
+- [x] Move existing guest marketplace into `apps/guest`.
+- [x] Scaffold `apps/host` (Host Business Portal on Port 3001).
+- [x] Scaffold `apps/cms` (Super Admin & CMS Portal on Port 3002).
+- [x] Create `packages/shared` for shared TypeScript interfaces, Saudi cities, categories, and Supabase helpers.
+- [x] Configure root `package.json` with NPM Workspaces and `concurrently` so `npm run dev` starts all 3 apps simultaneously.
+- [x] Connect all 3 apps to the shared Supabase & Firebase environment (`.env.local`).
 
-```
-┌─────────────────┬───────────────────┬───────────────────┬──────────────────────┐
-│ 📍 Where?       │ 📅 Dates          │ 👥 Who?           │ ⚡ Rent Type & Search │
-│ City / District │ Check-in ➔ Out    │ Adults & Children │ [Daily/Monthly] [ 🔍]│
-└─────────────────┴───────────────────┴───────────────────┴──────────────────────┘
-```
+### 🔜 Phase 2: Central Database Schema & Role-Based Security
+- [ ] Add migration in `supabase/migrations/` for:
+  - `host_profiles` (KYC, Saudi National ID / Iqama, Ministry of Tourism License, Bank IBAN).
+  - `properties` moderation workflow (`status`: `pending`, `approved`, `rejected`, `suspended`).
+  - `property_availability` & `property_custom_prices` (weekend/holiday pricing & blocked dates).
+  - `payout_requests` (host earnings withdrawal & admin approval).
+  - `blog_posts` (dynamic bilingual SEO blog management from CMS).
 
-1. **সেগমেন্ট ১: কোথায় যেতে চান? (Where / Destination):**
-   - সৌদি আরবের প্রধান ১৮০+ শহর ও লোকালিটির ড্রপডাউন ও অটো-কমপ্লিট ইনপুট।
-2. **সেগমেন্ট ২: চেক-ইন ও চেক-আউট (Calendar Date-Range):**
-   - ইন্টারেক্টিভ ডুয়েল ক্যালেন্ডার (বুক করা বা ব্লকড ডেট স্বয়ংক্রিয়ভাবে ডিসেবল থাকবে)।
-3. **সেগমেন্ট ৩: অতিথি সংখ্যা ও মজলিস ক্যাপাসিটি (Guests & Capacity):**
-   - প্রাপ্তবয়স্ক (Adults), শিশু (Children) এবং পারিবারিক মজলিস বা ইভেন্ট ক্যাপাসিটি সিলেক্টর।
-4. **সেগমেন্ট ৪: রেন্ট টাইপ টগল এবং সার্চ ট্রিগার:**
-   - ডেইলি রেন্ট বনাম মান্থলি রেন্ট সুইচ এবং সার্চ এক্সিকিউশন বাটন।
+### 🏢 Phase 3: Host Business Platform (`apps/host`)
+- [ ] **Step 3.1**: Host Landing Page & OTP / Email Authentication.
+- [ ] **Step 3.2**: 7-Step Property Onboarding Wizard (Category & License, Location & Map Pin, Specs & Pool/Majlis details, Categorized Amenities, Photo/Video Upload, Base/Weekend/Discount Pricing, House Rules).
+- [ ] **Step 3.3**: Interactive Host Calendar (block dates & set custom weekend/Eid pricing).
+- [ ] **Step 3.4**: Host Bookings Manager, Smart Lock PIN Control & Bank Payout Requests.
 
----
+### 🛡️ Phase 4: Super Admin CMS (`apps/cms`)
+- [ ] **Step 4.1**: Executive Command Center (Total GMV, Bookings, 15% VAT, Pending Approvals).
+- [ ] **Step 4.2**: Property & Host Moderation Queue (1-click Approve/Reject that publishes directly to `apps/guest`).
+- [ ] **Step 4.3**: Bilingual Blog & SEO Content Manager.
+- [ ] **Step 4.4**: Guest Reviews Moderation, Promo Codes & Host Payout Disbursement.
 
-## ৪. গ্র্যানুলার ফিল্টারিং সিস্টেম (Granular Filter Engine)
+### 🌐 Phase 5: Guest Platform (`apps/guest`) Final Sync
+- [ ] Real-time sync with Host Calendar blocked dates & custom weekend prices.
+- [ ] Direct WhatsApp Host contact on confirmed bookings.
+- [ ] Downloadable ZATCA 15% VAT Invoice & PDF Booking Voucher.
 
-Gathern-এর সমস্ত অ্যাডভান্সড ফিল্টার আমাদের সিস্টেমে অন্তর্ভুক্ত:
-
-| ফিল্টার ক্যাটাগরি | ফিল্টার অপশনসমূহ |
-| :--- | :--- |
-| **মূল্য পরিসীমা (Price Range)** | SAR ১০০ থেকে SAR ১৫,০০০+ (মিনিমাম-ম্যাক্সিমাম স্লাইডার ও ইনপুট বক্স) |
-| **লাইসেন্স ও ভেরিফিকেশন** | পর্যটন মন্ত্রণালয় অনুমোদিত ভেরিফায়েড লাইসেন্স (`Ministry of Tourism Licensed`) |
-| **বুকিং টাইপ** | তাৎক্ষণিক বুকিং (`Instant Book` - হোস্টের অনুমোদনের অপেক্ষায় না থেকে সরাসরি কনফার্মেশন) |
-| **সুযোগ-সুবিধা (Amenities)** | • ব্যক্তিগত সুইমিং পুল (ইনডোর/আউটডোর/হিটেড পুল)<br>• প্রাইভেট জ্যাকিউজি (Jacuzzi / Hot Tub)<br>• আউটডোর সিটিং ও বারবিকিউ এরিয়া (جلسة خارجية وشواء)<br>• স্মার্ট লক সেলফ চেক-ইন (Keyless Smart Lock PIN)<br>• ফ্রি হাই-স্পিড ওয়াই-ফাই ও স্মার্ট টিভি<br>• পুরুষ ও মহিলাদের পৃথক মজলিস<br>• বাচ্চাদের খেলার জায়গা (Kids Playground) |
-| **পেমেন্ট ফ্লেক্সিবিলিটি** | ৪ কিস্তিতে পরিশোধের সুবিধা (`Tabby / Tamara` ৪ মাসের সহজ কিস্তি) |
-| **বাতিলকরণ নীতি** | বিনামূল্যে বাতিলকরণ (`Free Cancellation` ২৪-৪৮ ঘণ্টা আগে) |
-
----
-
-## ৫. প্রোপার্টি ডিটেইলস পেজ ও বুকিং চেকআউট ইঞ্জিন
-
-Gathern-এর বুকিং ফ্লো অনুসারে প্রতিটি প্রোপার্টির জন্য ডাইনামিক পেজ (`/properties/[id]`):
-
-### ৫.১ পেজের উপাদানসমূহ:
-- **হাই-রেজ্যুলেশন ফটো গ্যালারি:** ফুল-স্ক্রিন লাইটবক্স ভিউয়ার এবং ৩৬০° ভার্চুয়াল ট্যুর সাপোর্ট।
-- **হোস্ট পরিচিতি ও লাইসেন্স ব্যাজ:** হোস্টের রেসপন্স রেট, সুপারহোস্ট ব্যাজ এবং মন্ত্রণালয় লাইসেন্স নং (CR / Tourism License No.)।
-- **স্বচ্ছ মূল্য বিভাজন (Transparent Pricing Breakdown):**
-  - মূল ভাড়া (Base Rate × রাতের সংখ্যা)
-  - ক্লিনিং ফি (Cleaning Fee)
-  - ১৫% সৌদি ভ্যাট (15% VAT)
-  - সর্বমোট প্রদেয় মূল্য (Total SAR)
-  - Tabby / Tamara প্রতি মাসের কিস্তির হিসাব (যেমন: `﷼৪৬২ / মাস`)
-- **স্মার্ট লক ও স্বয়ংক্রিয় এক্সেস:** বুকিং কনফার্ম হওয়ার পর অতিথির WhatsApp ও SMS-এ চেক-ইনের ডিজিটাল পিন কোড পৌঁছানো।
-- **গেস্ট রিভিউ ও স্কোরবোর্ড:** পরিচ্ছন্নতা (Cleanliness), লোকেশন (Location), হোস্ট কমিউনিকেশন (Host Communication) এবং ভ্যালু ফর মানি (Value) অনুযায়ী আলাদা রেটিং।
+### 🚀 Phase 6: Vercel Deployment
+- [ ] Connect single GitHub repository to 3 Vercel projects using Root Directory (`apps/guest`, `apps/host`, `apps/cms`).
 
 ---
 
-## ৬. হোস্ট অনবোর্ডিং ও গ্যাথার্ন বিজনেস পোর্টাল (Gathern Business Flow)
+## 3. Daily Commands Cheat Sheet
 
-হোস্টদের জন্য সম্পূর্ণ ৭-ধাপের অনবোর্ডিং ও প্রোপার্টি লিস্টিং সিস্টেম:
-
-```mermaid
-flowchart LR
-    Step1["১. লোকেশন ও শহর"] --> 
-    Step2["২. প্রোপার্টি ক্যাটাগরি"] --> 
-    Step3["৩. রুম ও ক্যাপাসিটি"] --> 
-    Step4["৪. সুযোগ-সুবিধা"] --> 
-    Step5["৫. ফটো আপলোড"] --> 
-    Step6["৬. প্রাইস ও ক্যালেন্ডার"] --> 
-    Step7["৭. লাইসেন্স KYC ভেরিফিকেশন"]
-```
-
-1. **ধাপ ১: লোকেশন ও ঠিকানা:** গুগল ম্যাপ পিন, শহর, জেলা ও ল্যান্ডমার্ক।
-2. **ধাপ ২: প্রোপার্টির ধরণ:** শ্যালে, ভিলা, ফার্ম, ক্যাম্প, অথবা পেন্টহাউস।
-3. **ধাপ ৩: স্পেসিফিকেশন:** বেডরুম সংখ্যা, বাথরুম, বেড সাইজ এবং সর্বোচ্চ অতিথি ধারণক্ষমতা।
-4. **ধাপ ৪: সুযোগ-সুবিধা টিকলিস্ট:** সুইমিং পুলের সাইজ, জ্যাকিউজি, কিচেন, মজলিস, স্মার্ট লক ইত্যাদি।
-5. **ধাপ ৫: ছবি আপলোড:** ড্র্যাগ-অ্যান্ড-ড্রপ মাল্টিপল ফটো আপলোড (Supabase Storage Bucket)।
-6. **ধাপ ৬: ক্যালেন্ডার ও প্রাইসিং:** সাধারণ দিনের ভাড়া, উইকেন্ড (বৃহস্পতি-শুক্রবার) ভাড়া এবং ব্লকড ডেটস।
-7. **ধাপ ৭: হোস্ট কেওয়াইসি ও পর্যটন লাইসেন্স:** জাতীয় পরিচয়পত্র (Iqama/National ID), সৌদি পর্যটন মন্ত্রণালয় লাইসেন্স নং এবং পে-আউটের জন্য সৌদি IBAN ব্যাংক অ্যাকাউন্ট।
-
----
-
-## ৭. সুসংহত Supabase ডাটাবেস আর্কিটেকচার (Unified Schema)
-
-```mermaid
-erDiagram
-    PROFILES ||--o{ PROPERTIES : "owns/hosts"
-    PROFILES ||--o{ BOOKINGS : "books"
-    PROFILES ||--o{ REVIEWS : "writes"
-    PROPERTIES ||--o{ BOOKINGS : "receives"
-    PROPERTIES ||--o{ REVIEWS : "rated"
-    BOOKINGS ||--|| PAYMENTS : "settled_via"
-
-    PROFILES {
-        uuid id PK
-        string full_name
-        string phone
-        enum role "guest | host | admin"
-        enum host_status "none | pending | verified | suspended"
-        string tourism_license_no
-        string national_id
-        string iban_number
-        timestamp created_at
-    }
-
-    PROPERTIES {
-        uuid id PK
-        uuid host_id FK
-        string title
-        enum category "chalet | villa | farm | camp | penthouse"
-        string city
-        string district
-        decimal base_price
-        decimal weekend_price
-        decimal monthly_discount_pct
-        int bedrooms
-        int bathrooms
-        int max_guests
-        string[] features
-        string[] images
-        boolean instant_book
-        boolean has_pool
-        boolean self_checkin
-        boolean is_licensed
-        boolean is_approved
-    }
-
-    BOOKINGS {
-        uuid id PK
-        uuid property_id FK
-        uuid guest_id FK
-        date check_in
-        date check_out
-        enum rental_type "daily | monthly"
-        int total_nights
-        int guest_count
-        decimal total_price
-        enum status "pending | confirmed | cancelled | completed"
-        string smart_lock_pin
-    }
-
-    PAYMENTS {
-        uuid id PK
-        uuid booking_id FK
-        decimal amount
-        enum method "mada | visa | tabby | tamara | apple_pay"
-        enum status "initiated | success | failed | refunded"
-        string transaction_ref
-    }
-```
-
----
-
-## ৮. বাস্তবায়ন রোডম্যাপ (Implementation Phases)
-
-### 🔹 ধাপ ১: লোকাল ভেরিফিকেশন ও সার্চ সিস্টেম (সম্পন্ন ✅)
-- নেভিগেশন বার রিডিজাইন (Gathern + রেফারেন্স স্টাইল অনুযায়ী ফুল-উইডথ)।
-- ডার্ক ও লাইট থিমের সম্পূর্ণ ফাংশনালিটি ও লোকালস্টোরেজ পারসিস্টেন্স।
-- ইন্টারেক্টিভ ও ফ্লেক্সিবল সার্চ মোডাল (`SearchModal.tsx`) চালু—ডেইলি/মান্থলি রেন্ট, সিটি ও ক্যাটাগরি ফিল্টার এবং লাইভ সার্চ রেজাল্ট সহ।
-- লোকাল ডেভেলপমেন্ট সার্ভার সক্রিয় (`http://localhost:3000`)।
-
-### 🔹 ধাপ ২: প্রোপার্টি ডিটেইলস ডাইনামিক পেজ (`/properties/[id]`)
-- Gathern স্টাইলের ফটো গ্যালারি ভিউয়ার।
-- ক্যালেন্ডার ডেট-পিকার সহ লাইভ প্রাইস ক্যালকুলেটর (ট্যাক্স + Tabby ৪ কিস্তির হিসাব)।
-- হোস্ট ইনফো ও লাইসেন্স ব্যাজ ডিসপ্লে।
-
-### 🔹 ধাপ ৩: হোস্ট পোর্টাল ও প্রোপার্টি লিস্টিং উইজার্ড (Gathern Business)
-- ৭-স্টেপ প্রোপার্টি সাবমিশন ফর্ম।
-- ছবি আপলোড (Supabase Storage Bucket Integration)।
-- হোস্ট ড্যাশবোর্ড (প্রোপার্টি এডিট, ক্যালেন্ডার ডেট লক/আনলক ও আয় হিসাব)।
-
-### 🔹 ধাপ ৪: বুকিং চেকআউট ও পেমেন্ট ইন্টিগ্রেশন
-- চেকআউট পেজ (Mada, Apple Pay, Tabby/Tamara)।
-- বুকিং কনফার্মেশন ও ডিজিটাল স্মার্ট লক পিন অটো-জেনারেটর।
-- গেস্ট ড্যাশবোর্ড (মাই বুকিংস, ইনভয়েস ও উইশলিস্ট)।
-
-### 🔹 ধাপ ৫: সুপার অ্যাডমিন মডারেশন ও ফাইনাল প্রোডাকশন
-- অ্যাডমিন প্যানেল: হোস্ট পর্যটন লাইসেন্স রিভিউ ও লিস্টিং অ্যাপ্রুভাল।
-- ডিসপিউট ও প্ল্যাটফর্ম কমিশন ট্র্যাকিং।
-- ইউজার রিভিউ ও টেস্টিংয়ের পর অনুমতিক্রমে GitHub পুশ ও Vercel লাইভ ডিপ্লয়মেন্ট।
+- `npm run dev` — Run all 3 apps simultaneously (`:3000`, `:3001`, `:3002`)
+- `npm run dev:guest` — Run Guest App only (`http://localhost:3000`)
+- `npm run dev:host` — Run Host Business App only (`http://localhost:3001`)
+- `npm run dev:cms` — Run Super Admin CMS only (`http://localhost:3002`)
+- `npm run build` — Build all 3 applications

@@ -230,7 +230,12 @@ export default function Navbar() {
         <div className="flex items-center gap-2 sm:gap-3 shrink-0">
           {/* Host Portal Link (Gathern "أعلن معنا / List your property") */}
           <a
-            href="https://business.qafnest.vercel.app"
+            href={
+              process.env.NEXT_PUBLIC_HOST_PORTAL_URL ||
+              (process.env.NODE_ENV === "production"
+                ? "https://business-qafnest.vercel.app"
+                : "http://localhost:3001")
+            }
             target="_blank"
             rel="noopener noreferrer"
             className={`hidden md:inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs sm:text-[13px] font-semibold transition-all duration-200 ${
