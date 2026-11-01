@@ -87,7 +87,13 @@ export default function SearchModal() {
     }
 
     if (selectedCity !== "all" && p.city !== selectedCity) return false;
-    if (selectedCategory !== "all" && p.category !== selectedCategory) return false;
+    if (selectedCategory !== "all") {
+      if (selectedCategory === "villa" || selectedCategory === "apartments" || selectedCategory === "villa-apartment") {
+        if (p.category !== "villa" && p.category !== "penthouse") return false;
+      } else if (p.category !== selectedCategory) {
+        return false;
+      }
+    }
     if (instantOnly && !p.instantBook) return false;
     if (poolOnly && !p.hasPool) return false;
     if (selfCheckinOnly && !p.selfCheckin) return false;

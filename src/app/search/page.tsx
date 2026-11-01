@@ -144,7 +144,13 @@ function SearchContent() {
       if (activeCity !== "all" && normalizeCityId(p.city) !== activeCity) return false;
 
       // 2. Category match
-      if (selectedCategory !== "all" && p.category !== selectedCategory) return false;
+      if (selectedCategory !== "all") {
+        if (selectedCategory === "villa" || selectedCategory === "apartments" || selectedCategory === "villa-apartment") {
+          if (p.category !== "villa" && p.category !== "penthouse") return false;
+        } else if (p.category !== selectedCategory) {
+          return false;
+        }
+      }
 
       // 3. District match
       if (selectedDistrict !== "all") {

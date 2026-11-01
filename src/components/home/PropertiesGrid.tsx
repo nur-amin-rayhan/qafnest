@@ -50,7 +50,13 @@ export default function PropertiesGrid() {
 
   const allFiltered = properties.filter((p) => {
     if (!filterProperty(p)) return false;
-    if (selectedCategory !== "all" && p.category !== selectedCategory) return false;
+    if (selectedCategory !== "all") {
+      if (selectedCategory === "villa" || selectedCategory === "apartments" || selectedCategory === "villa-apartment") {
+        if (p.category !== "villa" && p.category !== "penthouse") return false;
+      } else if (p.category !== selectedCategory) {
+        return false;
+      }
+    }
     return true;
   });
 
