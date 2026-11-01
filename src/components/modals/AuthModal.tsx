@@ -12,19 +12,58 @@ import {
   Mail,
   Lock,
   User as UserIcon,
+  MessageCircle,
+  Smartphone,
 } from "lucide-react";
+import {
+  RecaptchaVerifier,
+  signInWithPhoneNumber,
+  updateProfile,
+  type ConfirmationResult,
+} from "firebase/auth";
 import { useAuth } from "@/context/AuthContext";
 import { useApp } from "@/context/AppContext";
 import { createClient } from "@/lib/supabase/client";
+import {
+  getFirebaseAuth,
+  getFirebaseErrorMessage,
+  getStoredFirebaseProfile,
+  isFirebaseConfigured,
+  saveStoredFirebaseProfile,
+} from "@/lib/firebase/client";
 
 const OTP_LENGTH = process.env.NEXT_PUBLIC_SUPABASE_OTP_LENGTH === "4" ? 4 : 6;
 const EMPTY_OTP = () => Array.from({ length: OTP_LENGTH }, () => "");
+type OtpChannel = "sms" | "whatsapp";
 
 function normalizeSaudiPhone(value: string) {
   let digits = value.replace(/\D/g, "");
   if (digits.startsWith("966")) digits = digits.slice(3);
   if (digits.startsWith("0")) digits = digits.slice(1);
   return /^5\d{8}$/.test(digits) ? `+966${digits}` : null;
+}
+
+function normalizePhoneInput(value: string): string | null {
+  const trimmed = value.trim();
+  if (trimmed.startsWith("+")) {
+    const cleaned = `+${trimmed.slice(1).replace(/\D/g, "")}`;
+    return /^\+[1-9]\d{7,14}$/.test(cleaned) ? cleaned : null;
+  }
+  const saudi = normalizeSaudiPhone(trimmed);
+  if (saudi) return saudi;
+  const digits = trimmed.replace(/\D/g, "");
+  if (/^[1-9]\d{9,14}$/.test(digits)) {
+    return `+${digits}`;
+  }
+  return null;
+}
+
+function resetRecaptcha(widgetId: number | null) {
+  if (widgetId === null || typeof window === "undefined") return;
+  const grecaptcha = (
+    window as unknown as { grecaptcha?: { reset: (id?: number) => void } }
+  ).grecaptcha;
+  grecaptcha?.reset(widgetId);
 }
 
 export default function AuthModal() {
@@ -34,14 +73,26 @@ export default function AuthModal() {
 
   // Auth Method: 'phone' | 'email'
   const [authMethod, setAuthMethod] = useState<"phone" | "email">("phone");
-  // Phone flow step: 'phone_input' | 'otp_verify'
-  const [phoneStep, setPhoneStep] = useState<"phone_input" | "otp_verify">("phone_input");
+  // Phone flow: collect the phone, verify it, then complete missing profile details.
+  const [phoneStep, setPhoneStep] = useState<"phone_input" | "otp_verify" | "profile_details">("phone_input");
 
   // State
   const [phone, setPhone] = useState("");
+  const [sentPhoneDisplay, setSentPhoneDisplay] = useState("");
   const [fullName, setFullName] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [contactEmail, setContactEmail] = useState("");
+  const [otpChannel, setOtpChannel] = useState<OtpChannel>("sms");
+  const [sentChannel, setSentChannel] = useState<OtpChannel>("sms");
 
-  // OTP length follows the Supabase SMS template configuration.
+  // Firebase refs
+  const recaptchaContainerRef = useRef<HTMLDivElement | null>(null);
+  const recaptchaVerifierRef = useRef<RecaptchaVerifier | null>(null);
+  const recaptchaWidgetIdRef = useRef<number | null>(null);
+  const confirmationResultRef = useRef<ConfirmationResult | null>(null);
+
+  // OTP length follows 6 digits for Firebase/Supabase
   const [otp, setOtp] = useState<string[]>(EMPTY_OTP);
   const otpInputRefs = useRef<Array<HTMLInputElement | null>>([]);
 
@@ -66,8 +117,70 @@ export default function AuthModal() {
       setSuccessMsg(null);
       setOtp(EMPTY_OTP());
       setTimer(45);
+      setFirstName("");
+      setLastName("");
+      setContactEmail("");
+      confirmationResultRef.current = null;
     }
   }, [authModalOpen]);
+
+  // Initialize Firebase reCAPTCHA when Phone + SMS step is visible
+  useEffect(() => {
+    if (
+      !authModalOpen ||
+      authMethod !== "phone" ||
+      phoneStep !== "phone_input" ||
+      otpChannel !== "sms" ||
+      !isFirebaseConfigured()
+    ) {
+      return;
+    }
+
+    let mounted = true;
+    let verifier: RecaptchaVerifier | null = null;
+
+    const timerId = window.setTimeout(() => {
+      if (!mounted || !recaptchaContainerRef.current) return;
+      try {
+        const auth = getFirebaseAuth();
+        recaptchaContainerRef.current.innerHTML = "";
+        verifier = new RecaptchaVerifier(auth, recaptchaContainerRef.current, {
+          size: "normal",
+          callback: () => {
+            if (!mounted) return;
+            setErrorMsg(null);
+          },
+          "expired-callback": () => {
+            if (!mounted) return;
+            setErrorMsg("reCAPTCHA expired. Please complete it again.");
+          },
+        });
+        recaptchaVerifierRef.current = verifier;
+        void verifier
+          .render()
+          .then((widgetId) => {
+            if (mounted) {
+              recaptchaWidgetIdRef.current = widgetId;
+            }
+          })
+          .catch((reason: unknown) => {
+            if (mounted) setErrorMsg(getFirebaseErrorMessage(reason));
+          });
+      } catch (reason: unknown) {
+        if (mounted) setErrorMsg(getFirebaseErrorMessage(reason));
+      }
+    }, 50);
+
+    return () => {
+      mounted = false;
+      window.clearTimeout(timerId);
+      try {
+        verifier?.clear();
+      } catch {}
+      recaptchaVerifierRef.current = null;
+      recaptchaWidgetIdRef.current = null;
+    };
+  }, [authModalOpen, authMethod, phoneStep, otpChannel]);
 
   // Countdown timer effect
   useEffect(() => {
@@ -87,32 +200,62 @@ export default function AuthModal() {
     e.preventDefault();
     setErrorMsg(null);
 
-    const formattedPhone = normalizeSaudiPhone(phone);
+    const formattedPhone = normalizePhoneInput(phone);
     if (!formattedPhone) {
-      setErrorMsg("Please enter a valid 9-digit Saudi mobile number (e.g. 50 123 4567).");
+      setErrorMsg(
+        "Please enter a valid mobile number (e.g. 50 123 4567 or international format +8801...)."
+      );
       return;
     }
 
     setLoading(true);
     try {
+      if (otpChannel === "sms" && isFirebaseConfigured()) {
+        const auth = getFirebaseAuth();
+        const verifier = recaptchaVerifierRef.current;
+        if (!verifier) {
+          throw new Error("reCAPTCHA is still loading. Please wait a moment and try again.");
+        }
+        confirmationResultRef.current = await signInWithPhoneNumber(
+          auth,
+          formattedPhone,
+          verifier,
+        );
+        setSentPhoneDisplay(formattedPhone);
+        setSentChannel("sms");
+        setOtp(EMPTY_OTP());
+        setPhoneStep("otp_verify");
+        setTimer(45);
+        window.setTimeout(() => otpInputRefs.current[0]?.focus(), 150);
+        return;
+      }
+
       const { error } = await supabase.auth.signInWithOtp({
         phone: formattedPhone,
         options: {
-          channel: "sms",
-          data: {
-            full_name: fullName.trim(),
-            role: "guest",
-          },
+          channel: otpChannel,
         },
       });
-      if (error) throw error;
-      setPhone(formattedPhone.slice(4));
+      if (error) {
+        if (error.message.toLowerCase().includes("unsupported phone provider")) {
+          throw new Error(
+            otpChannel === "whatsapp"
+              ? "WhatsApp OTP is not configured in Supabase yet. Please switch to SMS above to sign in with Firebase Phone Auth."
+              : "Phone provider is not configured in Supabase. Please check your Firebase configuration in .env.local."
+          );
+        }
+        throw error;
+      }
+      confirmationResultRef.current = null;
+      setSentPhoneDisplay(formattedPhone);
+      setSentChannel(otpChannel);
       setOtp(EMPTY_OTP());
       setPhoneStep("otp_verify");
       setTimer(45);
       window.setTimeout(() => otpInputRefs.current[0]?.focus(), 150);
     } catch (error) {
-      setErrorMsg(error instanceof Error ? error.message : "We couldn't send the verification code.");
+      resetRecaptcha(recaptchaWidgetIdRef.current);
+      setErrorMsg(getFirebaseErrorMessage(error));
     } finally {
       setLoading(false);
     }
@@ -165,8 +308,34 @@ export default function AuthModal() {
 
     setLoading(true);
     try {
-      const formattedPhone = normalizeSaudiPhone(phone);
-      if (!formattedPhone) throw new Error("Please enter a valid Saudi mobile number.");
+      // Firebase SMS verification path
+      if (confirmationResultRef.current) {
+        const credential = await confirmationResultRef.current.confirm(enteredCode);
+        const fbUser = credential.user;
+        const storedProfile = getStoredFirebaseProfile(fbUser.uid);
+        const existingName = storedProfile?.full_name || fbUser.displayName || "";
+        const nameParts = existingName.trim().split(/\s+/).filter(Boolean);
+        const nextFirstName = storedProfile?.first_name || nameParts[0] || "";
+        const nextLastName = storedProfile?.last_name || nameParts.slice(1).join(" ");
+        const nextEmail = storedProfile?.contact_email || fbUser.email || "";
+
+        setFirstName(nextFirstName);
+        setLastName(nextLastName);
+        setContactEmail(nextEmail);
+
+        if (nextFirstName.trim() && nextLastName.trim() && nextEmail.trim()) {
+          await refreshProfile(fbUser.uid);
+          setSuccessMsg("Welcome to QafNest!");
+          window.setTimeout(closeAuthModal, 700);
+        } else {
+          setPhoneStep("profile_details");
+        }
+        return;
+      }
+
+      // Supabase verification path
+      const formattedPhone = sentPhoneDisplay || normalizePhoneInput(phone);
+      if (!formattedPhone) throw new Error("Please enter a valid mobile number.");
       const { data, error } = await supabase.auth.verifyOtp({
         phone: formattedPhone,
         token: enteredCode,
@@ -175,37 +344,116 @@ export default function AuthModal() {
       if (error) throw error;
       if (!data.user) throw new Error("Phone verification did not complete.");
 
-      const profile = {
-        id: data.user.id,
-        full_name: fullName.trim(),
-        phone: formattedPhone,
-        role: "guest",
-      };
-      const { error: metadataError } = await supabase.auth.updateUser({ data: { ...profile, role: "guest" } });
-      if (metadataError) throw metadataError;
-      const { error: profileError } = await supabase.from("profiles").upsert(profile, { onConflict: "id" });
-      if (profileError) throw profileError;
-      await refreshProfile(data.user.id);
-      setSuccessMsg("Welcome to QafNest!");
-      setTimeout(() => {
-        closeAuthModal();
-      }, 1000);
+      const metadata = data.user.user_metadata || {};
+      const { data: storedProfile } = await supabase
+        .from("profiles")
+        .select("full_name")
+        .eq("id", data.user.id)
+        .maybeSingle();
+      const existingName = typeof metadata.full_name === "string"
+        ? metadata.full_name
+        : storedProfile?.full_name || "";
+      const nameParts = existingName.trim().split(/\s+/).filter(Boolean);
+      const nextFirstName = typeof metadata.first_name === "string" ? metadata.first_name : nameParts[0] || "";
+      const nextLastName = typeof metadata.last_name === "string" ? metadata.last_name : nameParts.slice(1).join(" ");
+      const nextEmail = typeof metadata.contact_email === "string" ? metadata.contact_email : data.user.email || "";
+      setFirstName(nextFirstName);
+      setLastName(nextLastName);
+      setContactEmail(nextEmail);
+
+      if (nextFirstName.trim() && nextLastName.trim() && nextEmail.trim()) {
+        await refreshProfile(data.user.id);
+        setSuccessMsg("Welcome to QafNest!");
+        window.setTimeout(closeAuthModal, 700);
+      } else {
+        setPhoneStep("profile_details");
+      }
     } catch (error) {
-      setErrorMsg(error instanceof Error ? error.message : "Verification failed. Please try again.");
+      setErrorMsg(getFirebaseErrorMessage(error));
     } finally {
       setLoading(false);
     }
   };
 
-  const handleResendOtp = async () => {
+  const handleSavePhoneProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorMsg(null);
+    const normalizedEmail = contactEmail.trim().toLowerCase();
+    if (!firstName.trim() || !lastName.trim() || !/^\S+@\S+\.\S+$/.test(normalizedEmail)) {
+      setErrorMsg("Enter your first name, last name, and a valid email address.");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const fullNameValue = `${firstName.trim()} ${lastName.trim()}`;
+
+      // Firebase user profile save
+      if (isFirebaseConfigured()) {
+        const fbAuth = getFirebaseAuth();
+        if (fbAuth.currentUser) {
+          const fbUser = fbAuth.currentUser;
+          await updateProfile(fbUser, { displayName: fullNameValue });
+          saveStoredFirebaseProfile(fbUser.uid, {
+            first_name: firstName.trim(),
+            last_name: lastName.trim(),
+            full_name: fullNameValue,
+            contact_email: normalizedEmail,
+            phone: fbUser.phoneNumber || sentPhoneDisplay || normalizePhoneInput(phone) || "",
+          });
+          await refreshProfile(fbUser.uid);
+          setSuccessMsg("Welcome to QafNest!");
+          window.setTimeout(closeAuthModal, 700);
+          return;
+        }
+      }
+
+      const { data, error } = await supabase.auth.updateUser({
+        data: {
+          first_name: firstName.trim(),
+          last_name: lastName.trim(),
+          full_name: fullNameValue,
+          contact_email: normalizedEmail,
+        },
+      });
+      if (error) throw error;
+      if (!data.user) throw new Error("Your verified account is unavailable. Please sign in again.");
+
+      const { error: profileError } = await supabase.from("profiles").upsert({
+        id: data.user.id,
+        full_name: fullNameValue,
+        phone: data.user.phone || sentPhoneDisplay || normalizePhoneInput(phone),
+      }, { onConflict: "id" });
+      if (profileError) throw profileError;
+
+      await refreshProfile(data.user.id);
+      setSuccessMsg("Welcome to QafNest!");
+      window.setTimeout(closeAuthModal, 700);
+    } catch (error) {
+      setErrorMsg(error instanceof Error ? error.message : "Your details could not be saved. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResendOtp = async (channel: OtpChannel) => {
     if (timer > 0 || loading) return;
+    if (channel === "sms" && isFirebaseConfigured()) {
+      confirmationResultRef.current = null;
+      setOtp(EMPTY_OTP());
+      setErrorMsg(null);
+      setPhoneStep("phone_input");
+      return;
+    }
+
     setLoading(true);
     setErrorMsg(null);
     try {
-      const formattedPhone = normalizeSaudiPhone(phone);
-      if (!formattedPhone) throw new Error("Please enter a valid Saudi mobile number.");
-      const { error } = await supabase.auth.signInWithOtp({ phone: formattedPhone, options: { channel: "sms" } });
+      const formattedPhone = sentPhoneDisplay || normalizePhoneInput(phone);
+      if (!formattedPhone) throw new Error("Please enter a valid mobile number.");
+      const { error } = await supabase.auth.signInWithOtp({ phone: formattedPhone, options: { channel } });
       if (error) throw error;
+      setSentChannel(channel);
       setTimer(45);
       setOtp(EMPTY_OTP());
     } catch (error) {
@@ -229,10 +477,12 @@ export default function AuthModal() {
         setSuccessMsg("Welcome back! Signing you in...");
         setTimeout(() => closeAuthModal(), 800);
       } else {
-        const { error } = await supabase.auth.signUp({
+        const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || window.location.origin;
+        const { data, error } = await supabase.auth.signUp({
           email,
           password,
           options: {
+            emailRedirectTo: new URL("/auth/callback", siteUrl).toString(),
             data: {
               full_name: fullName,
               phone: phone,
@@ -241,8 +491,12 @@ export default function AuthModal() {
           },
         });
         if (error) throw error;
-        setSuccessMsg("Account created successfully!");
-        setTimeout(() => closeAuthModal(), 1000);
+        if (data.session) {
+          setSuccessMsg("Account created successfully!");
+          setTimeout(() => closeAuthModal(), 1000);
+        } else {
+          setSuccessMsg("Account created. Check your email to confirm your address and finish signing in.");
+        }
       }
     } catch (err: unknown) {
       setErrorMsg(err instanceof Error ? err.message : "Authentication failed.");
@@ -296,22 +550,7 @@ export default function AuthModal() {
                 </div>
 
                 <form onSubmit={handleSendOtp} className="space-y-4">
-                  {/* Name Input */}
-                  <div>
-                    <label className="text-xs font-bold text-gray-700 dark:text-gray-300 block mb-1.5">
-                      {language === "ar" ? "الاسم الكامل" : "Full Name"}
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={fullName}
-                      onChange={(e) => setFullName(e.target.value)}
-                      placeholder={language === "ar" ? "مثال: فيصل العتيبي" : "e.g. Faisal Al-Otaibi"}
-                      className="w-full px-4 py-3 rounded-2xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-sm font-semibold text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:border-purple-600"
-                    />
-                  </div>
-
-                  {/* Saudi Mobile Number Input */}
+                  {/* Mobile Number Input */}
                   <div>
                     <label className="text-xs font-bold text-gray-700 dark:text-gray-300 block mb-1.5">
                       {language === "ar" ? "رقم الجوال" : "Mobile Number"}
@@ -328,13 +567,52 @@ export default function AuthModal() {
                         type="tel"
                         required
                         value={phone}
-                        onChange={(e) => setPhone(e.target.value.replace(/[^0-9]/g, ""))}
-                        placeholder="5X XXX XXXX"
-                        maxLength={9}
+                        onChange={(e) => setPhone(e.target.value.replace(/[^0-9+]/g, ""))}
+                        placeholder="5X XXX XXXX or +..."
+                        maxLength={16}
                         className="w-full px-4 py-3 rounded-2xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-sm font-semibold text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:border-purple-600"
                       />
                     </div>
                   </div>
+
+                  <div>
+                    <span className="text-xs font-bold text-gray-700 dark:text-gray-300 block mb-1.5">
+                      {language === "ar" ? "إرسال رمز التحقق عبر" : "Send verification code via"}
+                    </span>
+                    <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label={language === "ar" ? "قناة رمز التحقق" : "Verification code channel"}>
+                      <button
+                        type="button"
+                        role="radio"
+                        aria-checked={otpChannel === "sms"}
+                        onClick={() => {
+                          setOtpChannel("sms");
+                          setErrorMsg(null);
+                        }}
+                        className={`inline-flex items-center justify-center gap-2 rounded-xl border px-3 py-2.5 text-xs font-bold transition ${otpChannel === "sms" ? "border-purple-500 bg-purple-50 text-purple-800 ring-1 ring-purple-500 dark:bg-purple-400/10 dark:text-purple-200" : "border-gray-200 text-gray-600 hover:border-purple-300 dark:border-white/10 dark:text-gray-300"}`}
+                      >
+                        <Smartphone className="h-4 w-4" />SMS
+                      </button>
+                      <button
+                        type="button"
+                        role="radio"
+                        aria-checked={otpChannel === "whatsapp"}
+                        onClick={() => {
+                          setOtpChannel("whatsapp");
+                          setErrorMsg(null);
+                        }}
+                        className={`inline-flex items-center justify-center gap-2 rounded-xl border px-3 py-2.5 text-xs font-bold transition ${otpChannel === "whatsapp" ? "border-emerald-500 bg-emerald-50 text-emerald-800 ring-1 ring-emerald-500 dark:bg-emerald-400/10 dark:text-emerald-200" : "border-gray-200 text-gray-600 hover:border-emerald-300 dark:border-white/10 dark:text-gray-300"}`}
+                      >
+                        <MessageCircle className="h-4 w-4" />WhatsApp
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Firebase reCAPTCHA container for SMS */}
+                  {otpChannel === "sms" && (
+                    <div className="flex justify-center overflow-x-auto py-1">
+                      <div ref={recaptchaContainerRef} />
+                    </div>
+                  )}
 
                   {/* Error & Success Messages */}
                   {errorMsg && (
@@ -360,7 +638,7 @@ export default function AuthModal() {
                   </button>
                 </form>
               </>
-            ) : (
+            ) : phoneStep === "otp_verify" ? (
               /* OTP Verification Step */
               <div>
                 <div className="mb-6">
@@ -368,13 +646,17 @@ export default function AuthModal() {
                     {language === "ar" ? "أدخل رمز التحقق" : "Enter Verification Code"}
                   </h3>
                   <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                    {language === "ar" ? `أدخل الرمز المكون من ${OTP_LENGTH} أرقام المرسل عبر SMS إلى ` : `Enter the ${OTP_LENGTH}-digit code sent via SMS to `}
+                    {language === "ar" ? `أدخل الرمز المكون من ${OTP_LENGTH} أرقام المرسل عبر ${sentChannel === "sms" ? "SMS" : "WhatsApp"} إلى ` : `Enter the ${OTP_LENGTH}-digit code sent via ${sentChannel === "sms" ? "SMS" : "WhatsApp"} to `}
                     <span className="font-bold text-gray-900 dark:text-white" dir="ltr">
-                      +966 {phone}
+                      {sentPhoneDisplay || `+966 ${phone}`}
                     </span>{" "}
                     <button
                       type="button"
-                      onClick={() => setPhoneStep("phone_input")}
+                      onClick={() => {
+                        confirmationResultRef.current = null;
+                        setErrorMsg(null);
+                        setPhoneStep("phone_input");
+                      }}
                       className="text-purple-600 dark:text-purple-400 underline font-semibold ml-1 rtl:mr-1 rtl:ml-0 cursor-pointer"
                     >
                       {language === "ar" ? "تغيير" : "Change"}
@@ -412,11 +694,11 @@ export default function AuthModal() {
                     ) : (
                       <button
                         type="button"
-                        onClick={handleResendOtp}
+                        onClick={() => handleResendOtp(sentChannel)}
                         disabled={loading}
                         className="font-bold text-purple-600 dark:text-purple-400 hover:underline cursor-pointer"
                       >
-                        {language === "ar" ? "إعادة إرسال الرمز الآن" : "Resend Code Now"}
+                        {language === "ar" ? `إعادة الإرسال عبر ${sentChannel === "sms" ? "SMS" : "WhatsApp"}` : `Resend via ${sentChannel === "sms" ? "SMS" : "WhatsApp"}`}
                       </button>
                     )}
                   </div>
@@ -446,6 +728,86 @@ export default function AuthModal() {
                     ) : (
                       <span>{language === "ar" ? "تحقق ومتابعة" : "Verify & Continue"}</span>
                     )}
+                  </button>
+                </form>
+              </div>
+            ) : (
+              <div>
+                <div className="mb-6">
+                  <h3 className="font-display text-2xl font-bold text-gray-900 dark:text-white">
+                    {language === "ar" ? "أكمل ملفك الشخصي" : "Complete your profile"}
+                  </h3>
+                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                    {language === "ar" ? "تم التحقق من رقم جوالك. أضف بياناتك لمتابعة الحجز." : "Your phone is verified. Add your details to continue booking."}
+                  </p>
+                </div>
+
+                <form onSubmit={handleSavePhoneProfile} className="space-y-4">
+                  <div>
+                    <label htmlFor="auth-first-name" className="mb-1.5 block text-xs font-bold text-gray-700 dark:text-gray-300">
+                      {language === "ar" ? "الاسم الأول" : "First name"}
+                    </label>
+                    <input
+                      id="auth-first-name"
+                      type="text"
+                      autoComplete="given-name"
+                      required
+                      value={firstName}
+                      onChange={(event) => setFirstName(event.target.value)}
+                      placeholder={language === "ar" ? "الاسم الأول" : "Your first name"}
+                      className="w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm font-semibold text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-purple-600 dark:border-white/10 dark:bg-white/5 dark:text-white"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="auth-last-name" className="mb-1.5 block text-xs font-bold text-gray-700 dark:text-gray-300">
+                      {language === "ar" ? "اسم العائلة" : "Last name"}
+                    </label>
+                    <input
+                      id="auth-last-name"
+                      type="text"
+                      autoComplete="family-name"
+                      required
+                      value={lastName}
+                      onChange={(event) => setLastName(event.target.value)}
+                      placeholder={language === "ar" ? "اسم العائلة" : "Your last name"}
+                      className="w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm font-semibold text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-purple-600 dark:border-white/10 dark:bg-white/5 dark:text-white"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="auth-contact-email" className="mb-1.5 block text-xs font-bold text-gray-700 dark:text-gray-300">
+                      {language === "ar" ? "البريد الإلكتروني" : "Email address"}
+                    </label>
+                    <input
+                      id="auth-contact-email"
+                      type="email"
+                      autoComplete="email"
+                      inputMode="email"
+                      required
+                      value={contactEmail}
+                      onChange={(event) => setContactEmail(event.target.value)}
+                      placeholder="you@example.com"
+                      className="w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm font-semibold text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-purple-600 dark:border-white/10 dark:bg-white/5 dark:text-white"
+                    />
+                  </div>
+
+                  {errorMsg && (
+                    <div role="alert" className="flex items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs text-rose-700 dark:border-rose-800 dark:bg-rose-950/40 dark:text-rose-300">
+                      <AlertCircle className="h-4 w-4 shrink-0" />
+                      <span>{errorMsg}</span>
+                    </div>
+                  )}
+                  {successMsg && (
+                    <div role="status" className="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-xs text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300">
+                      <CheckCircle2 className="h-4 w-4 shrink-0" />
+                      <span>{successMsg}</span>
+                    </div>
+                  )}
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="flex w-full items-center justify-center gap-2 rounded-2xl bg-purple-700 py-3.5 text-sm font-bold text-white shadow-md transition-all hover:bg-purple-800 disabled:opacity-50"
+                  >
+                    {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <span>{language === "ar" ? "حفظ ومتابعة" : "Save & Continue"}</span>}
                   </button>
                 </form>
               </div>

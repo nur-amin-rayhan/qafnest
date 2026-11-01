@@ -240,7 +240,7 @@ export default function PropertyCard({
               </span>
             )}
             {property.originalPrice && property.originalPrice > property.basePrice && (
-              <span className="line-through text-gray-400 dark:text-gray-500 text-xs">
+              <span className="line-through text-rose-500 dark:text-rose-400 font-bold text-xs sm:text-sm">
                 {property.originalPrice}
               </span>
             )}

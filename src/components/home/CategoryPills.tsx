@@ -2,18 +2,19 @@
 
 import { useApp } from "@/context/AppContext";
 import { Sparkles, Palmtree, Home, Trees, Tent, Building2 } from "lucide-react";
+import { CATEGORY_NAMES_AR } from "@/data/translations";
 
 const CATEGORIES = [
-  { id: "all", label: "All Stays", icon: Sparkles },
-  { id: "chalet", label: "Chalets & Resorts", icon: Palmtree },
-  { id: "villa", label: "Private Villas", icon: Home },
-  { id: "farm", label: "Country Farms", icon: Trees },
-  { id: "camp", label: "Desert Camps", icon: Tent },
-  { id: "penthouse", label: "Serviced Apartments", icon: Building2 },
+  { id: "all", label: "All Stays", labelAr: "جميع الإقامات", icon: Sparkles },
+  { id: "chalet", label: "Chalets & Resorts", labelAr: "شاليهات ومنتجعات", icon: Palmtree },
+  { id: "villa", label: "Private Villas", labelAr: "فلل خاصة", icon: Home },
+  { id: "farm", label: "Country Farms", labelAr: "مزارع ريفية", icon: Trees },
+  { id: "camp", label: "Desert Camps", labelAr: "مخيمات صحراوية", icon: Tent },
+  { id: "penthouse", label: "Serviced Apartments", labelAr: "شقق مخدومة", icon: Building2 },
 ];
 
 export default function CategoryPills() {
-  const { selectedCategory, setSelectedCategory } = useApp();
+  const { selectedCategory, setSelectedCategory, language } = useApp();
 
   const handleSelect = (id: string) => {
     setSelectedCategory(id);
@@ -30,6 +31,7 @@ export default function CategoryPills() {
           {CATEGORIES.map((cat) => {
             const isActive = selectedCategory === cat.id;
             const Icon = cat.icon;
+            const labelText = language === "ar" ? cat.labelAr || CATEGORY_NAMES_AR[cat.id] || cat.label : cat.label;
             return (
               <button
                 key={cat.id}
@@ -45,7 +47,7 @@ export default function CategoryPills() {
                     isActive ? "text-fuchsia-300" : "text-muted"
                   }`}
                 />
-                <span>{cat.label}</span>
+                <span>{labelText}</span>
               </button>
             );
           })}

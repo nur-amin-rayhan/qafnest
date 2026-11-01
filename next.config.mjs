@@ -4,6 +4,19 @@ const nextConfig = {
   swcMinify: true,
   poweredByHeader: false,
   compress: true,
+  async rewrites() {
+    return [
+      { source: '/apartments', destination: '/search?type=villa' },
+      { source: '/chalets', destination: '/search?type=chalet' },
+      { source: '/farms', destination: '/search?type=farm' },
+      { source: '/camps', destination: '/search?type=camp' },
+      { source: '/en/apartments', destination: '/search?type=villa' },
+      { source: '/en/chalets', destination: '/search?type=chalet' },
+      { source: '/en/farms', destination: '/search?type=farm' },
+      { source: '/en/camps', destination: '/search?type=camp' },
+      { source: '/en/blog', destination: '/blog' },
+    ];
+  },
   images: {
     formats: ['image/avif', 'image/webp'],
     deviceSizes: [640, 750, 828, 1080, 1200],

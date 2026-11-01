@@ -46,6 +46,28 @@ export interface Property {
   direction?: 'north' | 'south' | 'east' | 'west';
   lat?: number;
   lng?: number;
+  /** Public-facing unit reference when supplied by the listing source. */
+  unitCode?: string;
+  tourismLicenseNumber?: string;
+  guestPolicy?: string;
+  amenityGroups?: Array<{ name: string; items: string[] }>;
+  bookingConditions?: string[];
+  cancellationPolicy?: string;
+  host?: {
+    name: string;
+    reviewsCount?: number;
+    propertiesCount?: number;
+    profileHref?: string;
+  };
+  reviewBreakdown?: Array<{ label: string; score: number }>;
+  guestReviews?: Array<{
+    author: string;
+    date: string;
+    rating: number;
+    comment: string;
+    hostReply?: string;
+  }>;
+  videos?: string[];
 }
 
 /** Normalize legacy/public destination IDs to the IDs used by property data. */
@@ -1791,7 +1813,7 @@ export const DEALS: Deal[] = [
     title: 'Tuwaiq Horizon Chalet (Near Qiddiya)',
     location: 'Riyadh · Tuwaiq & Qiddiya',
     categoryName: 'Stay Near Kidia · Mountain Chalet',
-    rating: 4.98,
+    rating: 9.96,
     reviewsCount: 42,
     description: 'Heated infinity pool overlooking Tuwaiq cliffs, cinema majlis, outdoor barbecue terrace, and smart digital lock.',
     amenities: ['🏊 Infinity Pool', '⛰️ Cliff Horizon', '🍖 BBQ Terrace'],
@@ -1806,7 +1828,7 @@ export const DEALS: Deal[] = [
     title: 'Obhur Waterfront Seaside Villa',
     location: 'Jeddah · Obhur Creek Marina',
     categoryName: 'Stay by the Sea · Coastal Villa',
-    rating: 4.98,
+    rating: 9.96,
     reviewsCount: 38,
     description: 'Private sea pier, panoramic Red Sea views, private infinity pool, and expansive rooftop deck for sunset dinners.',
     amenities: ['🌊 Private Sea Pier', '🏊 Infinity Pool', '🛡️ 100% Privacy'],
@@ -1821,7 +1843,7 @@ export const DEALS: Deal[] = [
     title: 'Al-Soudah Cloud Peak Pine Chalet',
     location: 'Abha · Al-Soudah Heights',
     categoryName: 'Stay Amid the Fog · Mountain Chalet',
-    rating: 4.96,
+    rating: 9.92,
     reviewsCount: 33,
     description: 'Cloud-kissed pine cabin, natural stone wood-burning stove, misty panoramic balconies, and mountain herb garden.',
     amenities: ['☁️ Cloud Forest', '🔥 Wood Stove', '🌲 Pine Terraces'],
@@ -1836,7 +1858,7 @@ export const DEALS: Deal[] = [
     title: 'Al Hada Rose Mist Luxury Chalet',
     location: 'Taif · Al Hada Mountain',
     categoryName: 'Stay Near the Roses · Spa Chalet',
-    rating: 4.95,
+    rating: 9.90,
     reviewsCount: 35,
     description: 'Surrounded by fragrant Damask rose orchards, indoor heated pool, rose water aromatherapy spa, and sunset majlis.',
     amenities: ['🌹 Rose Orchards', '🏊 Heated Pool', '🛁 Spa Majlis'],

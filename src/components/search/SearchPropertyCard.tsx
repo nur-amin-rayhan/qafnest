@@ -349,8 +349,8 @@ export default function SearchPropertyCard({
         <div className="mt-2.5 pt-2 border-t border-gray-100 dark:border-white/5 flex items-baseline justify-between">
           <div className="flex items-baseline gap-1.5">
             {property.originalPrice && property.originalPrice > property.basePrice && (
-              <span className="line-through text-gray-400 dark:text-gray-500 text-xs">
-                {property.originalPrice.toFixed(2)}
+              <span className="line-through text-rose-500 dark:text-rose-400 font-bold text-xs sm:text-sm">
+                {property.originalPrice.toFixed(0)}
               </span>
             )}
             <span className="font-bold text-base sm:text-lg text-gray-900 dark:text-white">

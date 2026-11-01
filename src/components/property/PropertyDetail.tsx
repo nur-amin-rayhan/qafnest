@@ -5,10 +5,12 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
+  AlertCircle,
   ArrowRight,
   BedDouble,
   CalendarDays,
   Check,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
   Clock3,
@@ -35,6 +37,7 @@ import AuthModal from "@/components/modals/AuthModal";
 import AppModal from "@/components/modals/AppModal";
 import SearchModal from "@/components/modals/SearchModal";
 import InteractiveMapView from "@/components/search/InteractiveMapView";
+import GuestReviewsPanel from "@/components/property/GuestReviewsPanel";
 import { getPropertyCapacity, getStayTotal, normalizeCityId, Property } from "@/data/properties";
 import {
   CATEGORY_NAMES_AR,
@@ -44,10 +47,14 @@ import {
 } from "@/data/translations";
 import { useApp } from "@/context/AppContext";
 import { propertyReservationHref } from "@/lib/propertyUrls";
+import { getSampleReviews, isDemoProperty, summarizeReviews } from "@/lib/reviews/sampleReviews";
+import { isPropertyAvailable } from "@/lib/services/availability";
 
 interface PropertyDetailProps {
   property: Property;
 }
+
+type PropertyDetailTab = "specification" | "reviews" | "location" | "terms";
 
 interface ReservationPanelProps {
   property: Property;
@@ -72,6 +79,42 @@ function getBedrooms(property: Property) {
   return match ? Number(match[1]) : null;
 }
 
+function getListingReference(id: string) {
+  let hash = 2166136261;
+  for (let index = 0; index < id.length; index += 1) {
+    hash ^= id.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+  return `QN-${(hash >>> 0).toString(36).slice(0, 6).toUpperCase()}`;
+}
+
+function getFeaturePresentation(feature: string) {
+  const firstToken = feature.split(" ")[0] || "";
+  const hasEmojiPrefix = firstToken.charCodeAt(0) >= 0xd800;
+  return {
+    icon: hasEmojiPrefix ? firstToken : "✓",
+    label: hasEmojiPrefix ? feature.slice(firstToken.length).trim() : feature,
+  };
+}
+
+function getSaudiToday() {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Riyadh",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date());
+  const part = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((item) => item.type === type)?.value || "";
+  return `${part("year")}-${part("month")}-${part("day")}`;
+}
+
+function getDayAfter(isoDate: string) {
+  if (!isoDate) return "";
+  const d = new Date(`${isoDate}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + 1);
+  return d.toISOString().slice(0, 10);
+}
 function ReservationPanel({
   property,
   checkinDate,
@@ -93,32 +136,76 @@ function ReservationPanel({
   const hasDiscount = Boolean(
     property.originalPrice && property.originalPrice > property.basePrice
   );
+  const maxGuests = getPropertyCapacity(property);
   const estimatedTotal = getStayTotal(property, checkinDate, nights);
+
+  const todaySaudi = useMemo(() => getSaudiToday(), []);
+  const minCheckoutDate = useMemo(
+    () => (checkinDate ? getDayAfter(checkinDate) : getDayAfter(todaySaudi)),
+    [checkinDate, todaySaudi]
+  );
+
+  const isAvailable = useMemo(() => {
+    if (!checkinDate || !checkoutDate) return true;
+    return isPropertyAvailable(property.id, checkinDate, checkoutDate);
+  }, [property.id, checkinDate, checkoutDate]);
 
   return (
     <section className="rounded-3xl border border-violet-200 bg-white p-5 shadow-[0_18px_55px_rgba(70,35,130,0.12)] dark:border-violet-400/20 dark:bg-[#12101a] dark:shadow-[0_18px_55px_rgba(0,0,0,0.34)] sm:p-6">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-xs font-semibold text-gray-500 dark:text-gray-400">
-            {language === "ar" ? "السعر يبدأ من" : "Starting at"}
-          </p>
-          <div className="mt-1 flex flex-wrap items-baseline gap-2">
-            <span className="text-2xl font-extrabold tracking-tight text-gray-950 dark:text-white">
-              {formatPrice(property.basePrice)}
-            </span>
-            <span className="text-xs text-gray-500 dark:text-gray-400">
-              {language === "ar" ? "/ ليلة" : "/ night"}
-            </span>
-            {hasDiscount && (
-              <span className="text-xs text-gray-400 line-through dark:text-gray-500">
+          {hasDiscount ? (
+            <>
+              {/* Row 1: Strikethrough Original Price in Red */}
+              <div className="text-sm sm:text-base font-bold text-rose-500 dark:text-rose-400 line-through tracking-tight">
                 {formatPrice(property.originalPrice || 0)}
-              </span>
-            )}
-          </div>
+              </div>
+              {/* Row 2: Discounted Nightly Price */}
+              <div className="mt-0.5 flex items-baseline gap-1.5">
+                <span className="text-2xl sm:text-3xl font-black tracking-tight text-gray-950 dark:text-white">
+                  {formatPrice(property.basePrice)}
+                </span>
+                <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">
+                  {language === "ar" ? "/ ليلة" : "/ night"}
+                </span>
+              </div>
+              {/* Row 3: Total estimated price */}
+              <p className="mt-1 text-xs font-medium text-gray-600 dark:text-gray-400">
+                {language === "ar"
+                  ? `الإجمالي لـ ${nights} ${nights === 1 ? "ليلة" : "ليال"}: ${formatPrice(estimatedTotal)}`
+                  : `Total for ${nights} ${nights === 1 ? "night" : "nights"}: ${formatPrice(estimatedTotal)}`}
+              </p>
+            </>
+          ) : (
+            <>
+              <p className="text-xs font-semibold text-gray-500 dark:text-gray-400">
+                {language === "ar" ? "السعر يبدأ من" : "Starting at"}
+              </p>
+              <div className="mt-1 flex items-baseline gap-1.5">
+                <span className="text-2xl sm:text-3xl font-black tracking-tight text-gray-950 dark:text-white">
+                  {formatPrice(property.basePrice)}
+                </span>
+                <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">
+                  {language === "ar" ? "/ ليلة" : "/ night"}
+                </span>
+              </div>
+              <p className="mt-1 text-xs font-medium text-gray-600 dark:text-gray-400">
+                {language === "ar"
+                  ? `الإجمالي لـ ${nights} ${nights === 1 ? "ليلة" : "ليال"}: ${formatPrice(estimatedTotal)}`
+                  : `Total for ${nights} ${nights === 1 ? "night" : "nights"}: ${formatPrice(estimatedTotal)}`}
+              </p>
+            </>
+          )}
         </div>
-        {property.discountPercentage ? (
-          <span className="rounded-full bg-rose-50 px-2.5 py-1 text-[11px] font-bold text-rose-600 dark:bg-rose-400/10 dark:text-rose-300">
-            {property.discountPercentage}% OFF
+
+        {property.discountPercentage || hasDiscount ? (
+          <span className="rounded-md bg-[#fee2e2] px-2.5 py-1 text-xs font-black uppercase tracking-wide text-rose-600 dark:bg-rose-500/20 dark:text-rose-400 shrink-0 shadow-sm">
+            {property.discountPercentage ||
+              Math.round(
+                ((property.originalPrice! - property.basePrice) /
+                  property.originalPrice!) *
+                  100
+              )}% OFF
           </span>
         ) : null}
       </div>
@@ -132,6 +219,7 @@ function ReservationPanel({
           <input
             type="date"
             value={checkinDate}
+            min={todaySaudi}
             onChange={(event) => onCheckinChange(event.target.value)}
             className="w-full bg-transparent text-xs font-semibold text-gray-900 outline-none dark:text-white [color-scheme:light] dark:[color-scheme:dark]"
             aria-label={language === "ar" ? "تاريخ تسجيل الوصول" : "Check-in date"}
@@ -145,13 +233,24 @@ function ReservationPanel({
           <input
             type="date"
             value={checkoutDate}
-            min={checkinDate || undefined}
+            min={minCheckoutDate}
             onChange={(event) => onCheckoutChange(event.target.value)}
             className="w-full bg-transparent text-xs font-semibold text-gray-900 outline-none dark:text-white [color-scheme:light] dark:[color-scheme:dark]"
             aria-label={language === "ar" ? "تاريخ تسجيل المغادرة" : "Check-out date"}
           />
         </label>
       </div>
+
+      {!isAvailable && (
+        <div className="mt-3 flex items-center gap-2 rounded-xl border border-rose-500/30 bg-rose-500/10 p-3 text-xs font-semibold text-rose-600 dark:text-rose-400">
+          <AlertCircle className="h-4 w-4 shrink-0" />
+          <span>
+            {language === "ar"
+              ? "هذه التواريخ محجوزة بالفعل لهذا العقار. يُرجى اختيار تواريخ أخرى."
+              : "These dates are already booked for this property. Please choose different dates."}
+          </span>
+        </div>
+      )}
 
       <div className="mt-2.5 grid grid-cols-2 gap-2.5">
         <label className="rounded-xl border border-gray-200 p-3 dark:border-white/10">
@@ -211,8 +310,8 @@ function ReservationPanel({
           </span>
           <button
             type="button"
-            onClick={() => onGuestsChange(Math.min(20, guestsCount + 1))}
-            disabled={guestsCount >= 20}
+            onClick={() => onGuestsChange(Math.min(maxGuests, guestsCount + 1))}
+            disabled={guestsCount >= maxGuests}
             aria-label={language === "ar" ? "زيادة عدد الضيوف" : "Add one guest"}
             className="flex h-8 w-8 items-center justify-center rounded-full border border-gray-200 text-gray-700 transition hover:border-violet-400 disabled:opacity-40 dark:border-white/15 dark:text-white"
           >
@@ -224,7 +323,12 @@ function ReservationPanel({
       <button
         type="button"
         onClick={onReserve}
-        className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-violet-700 px-4 py-3.5 text-sm font-bold text-white shadow-lg shadow-violet-900/20 transition hover:bg-violet-800 active:scale-[0.99]"
+        disabled={!isAvailable}
+        className={`mt-4 flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3.5 text-sm font-bold text-white shadow-lg transition active:scale-[0.99] ${
+          !isAvailable
+            ? "cursor-not-allowed bg-gray-400 opacity-60 shadow-none dark:bg-gray-700"
+            : "bg-violet-700 shadow-violet-900/20 hover:bg-violet-800"
+        }`}
       >
         {language === "ar" ? "تابع الحجز" : "Continue to booking"}
         <ArrowRight className="h-4 w-4 rtl:rotate-180" />
@@ -260,8 +364,10 @@ export default function PropertyDetail({ property }: PropertyDetailProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const searchParamString = searchParams.toString();
+  const initialTab = new URLSearchParams(searchParamString).get("tab");
   const {
     language,
+    formatPrice,
     wishlist,
     toggleWishlist,
     checkinDate,
@@ -277,7 +383,21 @@ export default function PropertyDetail({ property }: PropertyDetailProps) {
   } = useApp();
 
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+  const [videoIndex, setVideoIndex] = useState<number | null>(null);
   const [shareNotice, setShareNotice] = useState(false);
+  const [promiseExpanded, setPromiseExpanded] = useState(false);
+  const [reviewStats, setReviewStats] = useState(() => {
+    if (isDemoProperty(property.id)) {
+      const summary = summarizeReviews(getSampleReviews(property.id, property));
+      return { average: summary.average, total: summary.total };
+    }
+    return { average: property.rating, total: property.reviewsCount };
+  });
+  const [activeTab, setActiveTab] = useState<PropertyDetailTab>(
+    initialTab === "specification" || initialTab === "reviews" || initialTab === "location" || initialTab === "terms"
+      ? initialTab
+      : "specification"
+  );
   const isWishlisted = wishlist.includes(property.id);
   const images = useMemo(
     () => property.images?.length ? property.images : [property.image],
@@ -292,6 +412,7 @@ export default function PropertyDetail({ property }: PropertyDetailProps) {
   const district = language === "ar" ? property.districtAr || property.district || cityName : property.district || cityName;
   const specs = language === "ar" ? PROPERTY_SPECS_AR[property.specs] || property.specs : property.specs;
   const capacity = getPropertyCapacity(property);
+  const selectedGuestsCount = Math.max(1, Math.min(guestsCount, capacity));
   const bedrooms = getBedrooms(property);
   const bathrooms = property.bathroomsCount || (bedrooms ? Math.max(1, bedrooms) : 2);
   const livingRooms = property.livingRoomsCount || 1;
@@ -310,10 +431,61 @@ export default function PropertyDetail({ property }: PropertyDetailProps) {
     return groupAmenitiesByCategory(list);
   }, [property.amenities, property.features]);
 
-  const returnHref = searchParamString
-    ? `/search?${searchParamString}`
+  const hasDiscount = Boolean(
+    property.originalPrice && property.originalPrice > property.basePrice
+  );
+  const returnParams = new URLSearchParams(searchParamString);
+  returnParams.delete("tab");
+  returnParams.delete("review_booking");
+  const returnParamString = returnParams.toString();
+  const returnHref = returnParamString
+    ? `/search?${returnParamString}`
     : `/search?city=${encodeURIComponent(normalizeCityId(property.city))}`;
   const hasListedCoordinates = Number.isFinite(property.lat) && Number.isFinite(property.lng);
+  const anchorLabel = (en: string, ar: string) => language === "ar" ? ar : en;
+  const detailTabs: Array<{ id: PropertyDetailTab; label: string }> = [
+    { id: "specification", label: anchorLabel("Specification", "المواصفات") },
+    { id: "reviews", label: anchorLabel("Guest reviews", "تقييمات الضيوف") },
+    { id: "location", label: anchorLabel("Location & map", "الموقع والخريطة") },
+    { id: "terms", label: anchorLabel("Terms & policies", "الشروط والسياسات") },
+  ];
+  const selectTab = (tab: PropertyDetailTab) => setActiveTab(tab);
+  const unitReference = property.unitCode || getListingReference(property.id);
+  const amenityGroups = property.amenityGroups?.length
+    ? property.amenityGroups
+    : property.features.length
+      ? [{
+          name: anchorLabel("Amenities", "المرافق"),
+          items: property.features.map((feature) => getFeaturePresentation(feature).label),
+        }]
+      : [];
+
+  useEffect(() => {
+    const requestedTab = new URLSearchParams(searchParamString).get("tab");
+    if (requestedTab === "specification" || requestedTab === "reviews" || requestedTab === "location" || requestedTab === "terms") {
+      setActiveTab(requestedTab);
+    }
+  }, [searchParamString]);
+
+  useEffect(() => {
+    if (isDemoProperty(property.id)) return;
+    let active = true;
+    const params = new URLSearchParams({ propertyId: property.id, page: "1" });
+    void fetch(`/api/reviews?${params.toString()}`, { cache: "no-store" })
+      .then(async (response) => {
+        if (!response.ok) return null;
+        return await response.json() as { summary?: { average?: number; total?: number } };
+      })
+      .then((result) => {
+        if (!active || !result?.summary) return;
+        setReviewStats({
+          average: Number(result.summary.average || 0),
+          total: Number(result.summary.total || 0),
+        });
+      })
+      .catch(() => undefined);
+    return () => { active = false; };
+  }, [property.id]);
 
   useEffect(() => {
     const params = new URLSearchParams(searchParamString);
@@ -328,10 +500,13 @@ export default function PropertyDetail({ property }: PropertyDetailProps) {
     else if (property.checkinTime) setCheckinTime(property.checkinTime);
     if (checkoutAt) setCheckoutTime(checkoutAt);
     else if (property.checkoutTime) setCheckoutTime(property.checkoutTime);
-    if (Number.isInteger(guests) && guests > 0) setGuestsCount(guests);
+    if (Number.isInteger(guests) && guests > 0) setGuestsCount(Math.min(guests, capacity));
+    else setGuestsCount(Math.max(1, Math.min(guestsCount, capacity)));
   }, [
     searchParamString,
     property,
+    capacity,
+    guestsCount,
     setCheckinDate,
     setCheckinTime,
     setCheckoutDate,
@@ -350,6 +525,17 @@ export default function PropertyDetail({ property }: PropertyDetailProps) {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [images.length, lightboxIndex]);
 
+  useEffect(() => {
+    if (videoIndex === null) return;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setVideoIndex(null);
+      if (event.key === "ArrowRight") setVideoIndex((index) => index === null ? null : (index + 1) % (property.videos?.length || 1));
+      if (event.key === "ArrowLeft") setVideoIndex((index) => index === null ? null : (index - 1 + (property.videos?.length || 1)) % (property.videos?.length || 1));
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [property.videos?.length, videoIndex]);
+
   const nights = useMemo(() => {
     if (!checkinDate || !checkoutDate) return 1;
     const start = Date.parse(`${checkinDate}T00:00:00Z`);
@@ -361,7 +547,9 @@ export default function PropertyDetail({ property }: PropertyDetailProps) {
 
   const handleCheckinChange = (value: string) => {
     setCheckinDate(value);
-    if (checkoutDate && value && checkoutDate <= value) setCheckoutDate("");
+    if (!checkoutDate || checkoutDate <= value) {
+      setCheckoutDate(getDayAfter(value));
+    }
   };
 
   const handleShare = async () => {
@@ -389,10 +577,9 @@ export default function PropertyDetail({ property }: PropertyDetailProps) {
     reservationParams.set("check_out", checkoutDate);
     reservationParams.set("check_in_time", checkinTime);
     reservationParams.set("check_out_time", checkoutTime);
-    reservationParams.set("guests", String(guestsCount));
+    reservationParams.set("guests", String(selectedGuestsCount));
     router.push(propertyReservationHref(property.id, reservationParams));
   };
-  const anchorLabel = (en: string, ar: string) => language === "ar" ? ar : en;
 
   return (
     <div className="min-h-screen bg-white pb-24 text-gray-900 dark:bg-[#08070D] dark:text-gray-100 lg:pb-0">
@@ -422,13 +609,19 @@ export default function PropertyDetail({ property }: PropertyDetailProps) {
               )}
             </div>
             <h1 className="font-display text-2xl font-extrabold tracking-tight text-gray-950 dark:text-white sm:text-3xl lg:text-4xl">{title}</h1>
-            <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-gray-600 dark:text-gray-300">
+            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+              {property.unitCode ? anchorLabel("Unit Code", "رمز الوحدة") : anchorLabel("Listing reference", "رقم الوحدة")} ({unitReference})
+            </p>
+            <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 border-y border-gray-100 py-3 text-xs text-gray-600 dark:border-white/10 dark:text-gray-300">
               <span className="inline-flex items-center gap-1.5 font-bold text-gray-900 dark:text-white">
-                <Star className="h-4 w-4 fill-amber-400 text-amber-400" /> {property.rating.toFixed(1)}
-                <span className="font-normal text-gray-500 dark:text-gray-400">({property.reviewsCount} {anchorLabel("reviews", "تقييم")})</span>
+                {reviewStats.total > 0 ? <>
+                  <Star className="h-4 w-4 fill-amber-400 text-amber-400" /> {reviewStats.average.toFixed(1)} / 10
+                  <span className="font-normal text-gray-500 dark:text-gray-400">({reviewStats.total} {anchorLabel("reviews", "تقييم")})</span>
+                </> : <span className="font-normal text-gray-500 dark:text-gray-400">{anchorLabel("No ratings yet", "لا توجد تقييمات بعد")}</span>}
               </span>
               <span className="inline-flex items-center gap-1.5"><MapPin className="h-3.5 w-3.5 text-violet-500" />{district}</span>
-              <span>{specs}</span>
+              {property.areaSqm && <span className="inline-flex items-center gap-1.5"><Maximize2 className="h-3.5 w-3.5 text-violet-500" />{anchorLabel("Unit area", "مساحة الوحدة")} {property.areaSqm} m²</span>}
+              <span className="inline-flex items-center gap-1.5"><Users className="h-3.5 w-3.5 text-violet-500" />{property.guestPolicy || anchorLabel(`Up to ${capacity} guests`, `حتى ${capacity} ضيوف`)}</span>
             </div>
           </div>
           <div className="flex shrink-0 items-center gap-2">
@@ -492,6 +685,16 @@ export default function PropertyDetail({ property }: PropertyDetailProps) {
                 <Maximize2 className="h-3.5 w-3.5" />
                 {anchorLabel(`View all ${images.length} photos`, `عرض الصور (${images.length})`)}
               </button>
+              {property.videos?.length ? (
+                <button
+                  type="button"
+                  onClick={() => setVideoIndex(0)}
+                  className="absolute bottom-3 left-3 inline-flex items-center gap-2 rounded-xl border border-white/30 bg-black/65 px-3 py-2 text-xs font-bold text-white shadow-lg backdrop-blur transition hover:bg-black/80"
+                >
+                  <span aria-hidden="true">▶</span>
+                  {anchorLabel(`View ${property.videos.length} videos`, `عرض الفيديوهات (${property.videos.length})`)}
+                </button>
+              ) : null}
             </section>
 
             <section className="mt-5 lg:hidden">
@@ -501,7 +704,7 @@ export default function PropertyDetail({ property }: PropertyDetailProps) {
                 checkinTime={checkinTime}
                 checkoutDate={checkoutDate}
                 checkoutTime={checkoutTime}
-                guestsCount={guestsCount}
+                guestsCount={selectedGuestsCount}
                 nights={nights}
                 onCheckinChange={handleCheckinChange}
                 onCheckinTimeChange={setCheckinTime}
@@ -513,182 +716,337 @@ export default function PropertyDetail({ property }: PropertyDetailProps) {
               />
             </section>
 
-            <nav className="sticky top-[68px] z-20 mt-7 flex gap-2 overflow-x-auto border-b border-gray-200 bg-white/95 py-2 backdrop-blur dark:border-white/10 dark:bg-[#08070D]/95" aria-label={anchorLabel("Property sections", "أقسام صفحة العقار")}>
-              {[
-                ["overview", anchorLabel("Overview", "نظرة عامة")],
-                ["amenities", anchorLabel("Amenities", "المرافق")],
-                ["reviews", anchorLabel("Reviews", "التقييمات")],
-                ["location", anchorLabel("Location", "الموقع")],
-              ].map(([id, label]) => (
-                <a key={id} href={`#${id}`} className="shrink-0 rounded-full px-3.5 py-2 text-xs font-semibold text-gray-600 transition hover:bg-violet-50 hover:text-violet-700 dark:text-gray-300 dark:hover:bg-violet-400/10 dark:hover:text-violet-300">{label}</a>
-              ))}
-            </nav>
-
-            <section id="overview" className="scroll-mt-32 border-b border-gray-100 py-8 dark:border-white/10">
-              <div className="flex items-start gap-4">
-                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-violet-50 text-violet-700 dark:bg-violet-400/10 dark:text-violet-300"><Home className="h-5 w-5" /></div>
-                <div>
-                  <h2 className="text-xl font-bold text-gray-950 dark:text-white">{anchorLabel(`About this ${categoryName.toLowerCase()}`, `عن ${categoryName}`)}</h2>
-                  <p className="mt-2 max-w-3xl text-sm leading-7 text-gray-600 dark:text-gray-300">
-                    {property.description || anchorLabel(
-                      `${title} is listed in ${district}. This ${categoryName.toLowerCase()} is set up for up to ${capacity} guests${bedrooms ? ` with ${bedrooms} ${bedrooms === 1 ? "bedroom" : "bedrooms"}` : ""}. Review the available features and stay details below before booking.`,
-                      `${title} في ${district}. يستوعب هذا المكان حتى ${capacity} ضيوف${bedrooms ? ` ويضم ${bedrooms} غرف نوم` : ""}. راجع المرافق وتفاصيل الإقامة أدناه قبل الحجز.`
-                    )}
-                  </p>
-                </div>
-              </div>
-              <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-                <Fact icon={<Users className="h-4 w-4 text-violet-500" />} label={anchorLabel("Capacity", "السعة الإجمالية")} value={anchorLabel(`Up to ${capacity} guests`, `حتى ${capacity} ضيوف`)} />
-                {bedrooms ? <Fact icon={<BedDouble className="h-4 w-4 text-violet-500" />} label={anchorLabel("Bedrooms", "غرف النوم")} value={anchorLabel(`${bedrooms} Bedrooms`, `${bedrooms} غرف نوم`)} /> : null}
-                <Fact icon={<Bath className="h-4 w-4 text-violet-500" />} label={anchorLabel("Bathrooms", "دورات المياه")} value={anchorLabel(`${bathrooms} Baths`, `${bathrooms} دورات مياه`)} />
-                <Fact icon={<Sofa className="h-4 w-4 text-violet-500" />} label={anchorLabel("Living spaces", "المجالس والصالات")} value={property.majlisDetails?.mainMajlisCapacity ? anchorLabel(`Majlis for ${property.majlisDetails.mainMajlisCapacity}`, `مجلس يسع ${property.majlisDetails.mainMajlisCapacity}`) : anchorLabel(`${livingRooms} Living spaces`, `${livingRooms} مجالس`)} />
-                {property.areaSqm ? <Fact icon={<Maximize2 className="h-4 w-4 text-violet-500" />} label={anchorLabel("Area", "المساحة")} value={`${property.areaSqm} ${anchorLabel("m²", "م²")}`} /> : null}
-                <Fact icon={<Users className="h-4 w-4 text-violet-500" />} label={anchorLabel("Target audience", "الفئة المسموحة")} value={chaletFor} />
-              </div>
-
-              {/* Pool & Leisure Specs (Gathern Benchmark) */}
-              {property.hasPool && (
-                <div className="mt-4 rounded-2xl border border-cyan-100 bg-cyan-50/50 p-4 dark:border-cyan-900/30 dark:bg-cyan-950/20">
-                  <div className="flex items-center gap-2 text-cyan-800 dark:text-cyan-300 font-bold text-sm mb-2.5">
-                    <Waves className="h-4 w-4" />
-                    <span>{anchorLabel("Swimming Pool Specifications", "مواصفات المسبح")}</span>
-                  </div>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
-                    <div>
-                      <span className="text-gray-500 dark:text-gray-400 block">{anchorLabel("Pool Type", "نوع المسبح")}</span>
-                      <span className="font-semibold text-gray-900 dark:text-white">
-                        {property.poolDetails?.type === "indoor" ? anchorLabel("Indoor Pool", "مسبح داخلي خاص") : anchorLabel("Outdoor Pool", "مسبح خارجي خاص")}
-                      </span>
-                    </div>
-                    <div>
-                      <span className="text-gray-500 dark:text-gray-400 block">{anchorLabel("Safety Barrier", "حاجز الأمان")}</span>
-                      <span className="font-semibold text-gray-900 dark:text-white">
-                        {property.poolDetails?.hasBarrier ? anchorLabel("Child safety barrier present", "متوفر حاجز حماية للأطفال") : anchorLabel("Open pool", "بدون حاجز")}
-                      </span>
-                    </div>
-                    {property.poolDetails?.dimensions && (
-                      <div>
-                        <span className="text-gray-500 dark:text-gray-400 block">{anchorLabel("Dimensions", "أبعاد المسبح")}</span>
-                        <span className="font-semibold text-gray-900 dark:text-white">{property.poolDetails.dimensions}</span>
-                      </div>
-                    )}
-                    {property.poolDetails?.depth && (
-                      <div>
-                        <span className="text-gray-500 dark:text-gray-400 block">{anchorLabel("Depth", "عمق المسبح")}</span>
-                        <span className="font-semibold text-gray-900 dark:text-white">{property.poolDetails.depth}</span>
-                      </div>
-                    )}
-                  </div>
+            <section id="guarantee" className="mt-7 scroll-mt-32 overflow-hidden rounded-3xl border border-gray-200 bg-white dark:border-white/10 dark:bg-[#12101a]">
+              <button
+                type="button"
+                onClick={() => setPromiseExpanded((expanded) => !expanded)}
+                aria-expanded={promiseExpanded}
+                className="flex w-full items-center gap-4 p-5 text-left transition hover:bg-violet-50/50 dark:hover:bg-white/[0.03] sm:p-6"
+              >
+                <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-violet-700 text-white shadow-md shadow-violet-900/15"><ShieldCheck className="h-7 w-7" /></span>
+                <span className="min-w-0 flex-1">
+                  <span className="block font-bold text-gray-950 dark:text-white">{anchorLabel("QafNest guest support", "دعم ضيوف قاف نست")}</span>
+                  <span className="mt-1 block text-sm text-gray-600 dark:text-gray-300">{anchorLabel("Clear listing details and support during your stay", "تفاصيل واضحة ودعم أثناء إقامتك")}</span>
+                </span>
+                <ChevronDown className={`h-5 w-5 shrink-0 text-gray-500 transition-transform ${promiseExpanded ? "rotate-180" : ""}`} />
+              </button>
+              {promiseExpanded && (
+                <div className="border-t border-gray-100 px-5 py-5 text-sm leading-7 text-gray-600 dark:border-white/10 dark:text-gray-300 sm:px-6">
+                  <p>{anchorLabel("Review the property description, amenities and host conditions before booking. If you need help with your reservation, contact QafNest support.", "راجع وصف العقار والمرافق وشروط المضيف قبل الحجز. إذا احتجت إلى مساعدة بشأن حجزك، تواصل مع دعم قاف نست.")}</p>
+                  {property.tourismLicenseNumber && <p className="mt-3 text-xs font-semibold text-gray-500 dark:text-gray-400">{anchorLabel("Tourism Ministry License Number", "رقم ترخيص وزارة السياحة")}: {property.tourismLicenseNumber}</p>}
                 </div>
               )}
-
-              {/* Majlis & Seating Specs (Gathern Benchmark) */}
-              {property.majlisDetails && (
-                <div className="mt-3 rounded-2xl border border-violet-100 bg-violet-50/40 p-4 dark:border-violet-900/30 dark:bg-violet-950/20">
-                  <div className="flex items-center gap-2 text-violet-800 dark:text-violet-300 font-bold text-sm mb-2.5">
-                    <Sofa className="h-4 w-4" />
-                    <span>{anchorLabel("Living Rooms & Seating", "المجالس والجلسات")}</span>
-                  </div>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
-                    <div>
-                      <span className="text-gray-500 dark:text-gray-400 block">{anchorLabel("Main Majlis", "المجلس الرئيسي")}</span>
-                      <span className="font-semibold text-gray-900 dark:text-white">
-                        {anchorLabel(`Seats up to ${property.majlisDetails.mainMajlisCapacity} persons`, `يسع لـ ${property.majlisDetails.mainMajlisCapacity} شخص`)}
-                      </span>
-                    </div>
-                    {property.majlisDetails.outdoorSeatingCapacity && (
-                      <div>
-                        <span className="text-gray-500 dark:text-gray-400 block">{anchorLabel("Outdoor Seating", "الجلسة الخارجية")}</span>
-                        <span className="font-semibold text-gray-900 dark:text-white">
-                          {anchorLabel(`Seats up to ${property.majlisDetails.outdoorSeatingCapacity} persons`, `تتسع لـ ${property.majlisDetails.outdoorSeatingCapacity} شخص`)}
-                        </span>
-                      </div>
-                    )}
-                    <div>
-                      <span className="text-gray-500 dark:text-gray-400 block">{anchorLabel("Access", "نوع الإقامة")}</span>
-                      <span className="font-semibold text-gray-900 dark:text-white">{chaletFor}</span>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              <div className="mt-4 flex flex-wrap gap-2">
-                {property.instantBook && <Badge icon={<Zap className="h-3.5 w-3.5" />} label={anchorLabel("Instant booking", "حجز فوري")} />}
-                {property.selfCheckin && <Badge icon={<KeyRound className="h-3.5 w-3.5" />} label={anchorLabel("Self check-in", "دخول ذاتي")} />}
-                {property.hasPool && <Badge icon={<Waves className="h-3.5 w-3.5" />} label={anchorLabel("Pool", "مسبح")} />}
-                {property.isLicensed && <Badge icon={<ShieldCheck className="h-3.5 w-3.5" />} label={anchorLabel("Licensed", "مرخص")} />}
-              </div>
             </section>
 
-            <section id="amenities" className="scroll-mt-32 border-b border-gray-100 py-8 dark:border-white/10">
-              <div>
-                <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-violet-600 dark:text-violet-300">
-                  {anchorLabel("What's included", "المرافق المتاحة")}
-                </span>
-                <h2 className="mt-1 text-xl font-bold text-gray-950 dark:text-white">
-                  {anchorLabel("Amenities & Facilities", "المرافق والمواصفات الكاملة")}
-                </h2>
-                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                  {anchorLabel("Comprehensive list of verified features and equipment available during your stay", "قائمة شاملة بكافة الخدمات والتجهيزات المتاحة لراحتك")}
+            <section id="description" className="scroll-mt-32 border-b border-gray-100 py-8 dark:border-white/10">
+              <h2 className="text-2xl font-extrabold tracking-tight text-gray-950 dark:text-white">{anchorLabel("Description", "الوصف")}</h2>
+              {property.tourismLicenseNumber && (
+                <p className="mt-2 text-xs font-semibold text-gray-500 dark:text-gray-400">
+                  {anchorLabel("Tourism Ministry License Number", "رقم ترخيص وزارة السياحة")}: {property.tourismLicenseNumber}. {specs}
                 </p>
+              )}
+              <p className="mt-4 max-w-4xl whitespace-pre-line text-sm leading-7 text-gray-600 dark:text-gray-300">
+                {property.description || anchorLabel(
+                  `${title} is in ${district}. This ${categoryName.toLowerCase()} accommodates up to ${capacity} guests. Review the property features, house rules and booking details before confirming your stay.`,
+                  `${title} في ${district}. يستوعب هذا المكان حتى ${capacity} ضيوف. راجع المرافق وقواعد الإقامة وتفاصيل الحجز قبل تأكيد إقامتك.`
+                )}
+              </p>
+
+              {/* Special Discount Highlight Banner (Gathern Style) */}
+              {(hasDiscount || property.discountPercentage) && (
+                <div className="mt-6 flex items-center justify-between rounded-2xl border border-rose-200/90 bg-[#FDF2F2] p-4.5 sm:p-5 dark:border-rose-500/30 dark:bg-rose-950/25">
+                  <div>
+                    <span className="text-base sm:text-lg font-black tracking-tight text-rose-600 dark:text-rose-400">
+                      {property.discountPercentage ||
+                        Math.round(
+                          ((property.originalPrice! - property.basePrice) /
+                            property.originalPrice!) *
+                            100
+                        )}% OFF
+                    </span>
+                    <p className="mt-0.5 text-xs sm:text-sm font-semibold text-gray-700 dark:text-gray-200">
+                      {anchorLabel("Host offers a special discount for booking", "المضيف يقدم خصم خاص للحجز")}
+                    </p>
+                  </div>
+                  <div className="flex h-10 w-10 sm:h-11 sm:w-11 items-center justify-center rounded-xl bg-violet-100/70 text-violet-700 dark:bg-violet-900/40 dark:text-violet-300 shrink-0">
+                    <Star className="h-5 w-5 sm:h-6 sm:w-6 fill-violet-700 text-violet-700 dark:fill-violet-300 dark:text-violet-300" />
+                  </div>
+                </div>
+              )}
+            </section>
+
+            <section className="border-b border-gray-100 py-8 dark:border-white/10">
+              <div className="flex flex-wrap items-center justify-between gap-4">
+                <div>
+                  <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-violet-600 dark:text-violet-300">{anchorLabel("Your host", "مضيفك")}</span>
+                  <h2 className="mt-1 text-xl font-bold text-gray-950 dark:text-white">{anchorLabel("About the host", "عن المضيف")}</h2>
+                </div>
+                {property.host?.profileHref && <Link href={property.host.profileHref} className="inline-flex items-center gap-2 rounded-xl border border-violet-200 px-4 py-2.5 text-xs font-bold text-violet-700 transition hover:bg-violet-50 dark:border-violet-400/20 dark:text-violet-300 dark:hover:bg-violet-400/10">{anchorLabel("View profile", "عرض الملف الشخصي")}<ChevronRight className="h-4 w-4 rtl:rotate-180" /></Link>}
               </div>
-
-              {categorizedAmenities.length > 0 ? (
-                <div className="mt-6 space-y-6">
-                  {categorizedAmenities.map((group) => (
-                    <div
-                      key={group.id}
-                      className="rounded-2xl border border-gray-100 dark:border-white/5 bg-gray-50/60 dark:bg-white/[0.02] p-4 sm:p-5"
-                    >
-                      <div className="flex items-center gap-2 mb-3.5">
-                        <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-300">
-                          <AmenityIcon name={group.iconName} className="h-4 w-4" />
-                        </span>
-                        <h3 className="font-bold text-sm sm:text-base text-gray-900 dark:text-white">
-                          {anchorLabel(group.titleEn, group.titleAr)}
-                        </h3>
-                      </div>
-
-                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
-                        {group.amenities.map((amenity) => (
-                          <div
-                            key={amenity.id}
-                            className="flex items-center gap-2.5 rounded-xl border border-gray-200/70 dark:border-white/10 bg-white dark:bg-[#12101a] px-3.5 py-2.5 text-xs sm:text-[13px] text-gray-800 dark:text-gray-200 shadow-sm"
-                          >
-                            <span className="text-violet-600 dark:text-violet-400 shrink-0">
-                              <AmenityIcon name={amenity.iconName} className="h-4 w-4" />
-                            </span>
-                            <span className="font-medium">
-                              {anchorLabel(amenity.nameEn, amenity.nameAr)}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  ))}
+              {property.host ? (
+                <div className="mt-4 flex flex-wrap items-center gap-x-6 gap-y-3 rounded-2xl border border-gray-100 p-4 dark:border-white/10">
+                  <div className="flex items-center gap-3"><span className="flex h-12 w-12 items-center justify-center rounded-full bg-violet-700 font-bold text-white">{property.host.name.slice(0, 1).toUpperCase()}</span><span className="font-bold text-gray-900 dark:text-white">{property.host.name}</span></div>
+                  {typeof property.host.reviewsCount === "number" && <span className="inline-flex items-center gap-1.5 text-sm text-gray-600 dark:text-gray-300"><Star className="h-4 w-4 fill-amber-400 text-amber-400" />{property.host.reviewsCount} {anchorLabel("reviews", "تقييم")}</span>}
+                  {typeof property.host.propertiesCount === "number" && <span className="text-sm text-gray-600 dark:text-gray-300">{anchorLabel(`Hosts ${property.host.propertiesCount} properties`, `يستضيف ${property.host.propertiesCount} عقارات`)}</span>}
                 </div>
               ) : (
-                <p className="mt-4 text-sm text-gray-500 dark:text-gray-400">
-                  {anchorLabel("No amenity details have been added to this listing yet.", "لم تتم إضافة تفاصيل المرافق لهذا العقار بعد.")}
-                </p>
+                <p className="mt-4 rounded-2xl border border-gray-100 p-4 text-sm text-gray-500 dark:border-white/10 dark:text-gray-400">{anchorLabel("Host profile details have not been added to this listing yet.", "لم تتم إضافة تفاصيل ملف المضيف إلى هذا العقار بعد.")}</p>
               )}
             </section>
 
-            <section id="reviews" className="scroll-mt-32 border-b border-gray-100 py-8 dark:border-white/10">
-              <div className="flex flex-col gap-5 rounded-3xl bg-gradient-to-br from-violet-50 to-fuchsia-50/70 p-5 dark:from-violet-400/10 dark:to-fuchsia-400/5 sm:flex-row sm:items-center sm:p-6">
-                <div className="flex h-20 w-20 shrink-0 flex-col items-center justify-center rounded-2xl bg-white shadow-sm dark:bg-[#171421]">
-                  <Star className="mb-1 h-4 w-4 fill-amber-400 text-amber-400" />
-                  <span className="text-xl font-extrabold text-gray-950 dark:text-white">{property.rating.toFixed(1)}</span>
-                </div>
-                <div>
-                  <h2 className="text-xl font-bold text-gray-950 dark:text-white">{anchorLabel("Guest reviews", "تقييمات الضيوف")}</h2>
-                  <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">{property.reviewsCount} {anchorLabel("guest reviews for this stay", "تقييم لهذا المكان")}</p>
-                  <p className="mt-3 text-xs text-gray-500 dark:text-gray-400">{anchorLabel("This demo listing includes an overall rating and review count. Individual review comments are not available in the current property data.", "تتضمن بيانات هذا العقار التقييم الإجمالي وعدد التقييمات فقط، ولا تتوفر تعليقات التقييمات الفردية حالياً.")}</p>
-                </div>
-              </div>
-            </section>
+            <div className="sticky top-[68px] z-20 mt-7 w-fit max-w-full overflow-x-auto rounded-full border border-gray-200 bg-white/95 p-1.5 backdrop-blur dark:border-white/10 dark:bg-[#08070D]/95" role="tablist" aria-label={anchorLabel("Property details", "تفاصيل العقار")}>
+              {detailTabs.map((tab, index) => (
+                <button
+                  key={tab.id}
+                  id={`property-tab-${tab.id}`}
+                  type="button"
+                  role="tab"
+                  aria-selected={activeTab === tab.id}
+                  aria-controls="property-tab-panel"
+                  tabIndex={activeTab === tab.id ? 0 : -1}
+                  onClick={() => selectTab(tab.id)}
+                  onKeyDown={(event) => {
+                    let nextIndex = index;
+                    if (event.key === "ArrowRight") nextIndex = (index + 1) % detailTabs.length;
+                    else if (event.key === "ArrowLeft") nextIndex = (index - 1 + detailTabs.length) % detailTabs.length;
+                    else if (event.key === "Home") nextIndex = 0;
+                    else if (event.key === "End") nextIndex = detailTabs.length - 1;
+                    else return;
+                    event.preventDefault();
+                    const nextTab = detailTabs[nextIndex];
+                    selectTab(nextTab.id);
+                    document.getElementById(`property-tab-${nextTab.id}`)?.focus();
+                  }}
+                  className={`shrink-0 rounded-full px-4 py-2.5 text-xs font-semibold transition ${activeTab === tab.id ? "bg-violet-800 text-white shadow-sm" : "text-gray-700 hover:bg-violet-50 hover:text-violet-700 dark:text-gray-300 dark:hover:bg-violet-400/10 dark:hover:text-violet-300"}`}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
 
-            <section id="location" className="scroll-mt-32 py-8">
+            <div id="property-tab-panel" role="tabpanel" tabIndex={0} aria-labelledby={`property-tab-${activeTab}`} className="outline-none">
+            {activeTab === "specification" && (
+              <section id="specification" className="scroll-mt-32 border-b border-gray-100 py-8 dark:border-white/10">
+                <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-violet-600 dark:text-violet-300">
+                  {anchorLabel("Stay details", "تفاصيل الإقامة")}
+                </span>
+                <h2 className="mt-1 text-2xl font-extrabold tracking-tight text-gray-950 dark:text-white">
+                  {anchorLabel("Specification", "المواصفات")}
+                </h2>
+                <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">{specs}</p>
+
+                {property.isLicensed && property.tourismLicenseNumber && (
+                  <div className="mt-4 text-xs font-semibold text-gray-500 dark:text-gray-400">
+                    {anchorLabel("Tourism Ministry License Number", "رقم ترخيص وزارة السياحة")}:{" "}
+                    <span className="font-semibold text-gray-900 dark:text-white">{property.tourismLicenseNumber}</span>
+                  </div>
+                )}
+
+                <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+                  <Fact
+                    icon={<Users className="h-4 w-4 text-violet-500" />}
+                    label={anchorLabel("Capacity", "السعة الإجمالية")}
+                    value={anchorLabel(`Up to ${capacity} guests`, `حتى ${capacity} ضيوف`)}
+                  />
+                  {bedrooms ? (
+                    <Fact
+                      icon={<BedDouble className="h-4 w-4 text-violet-500" />}
+                      label={anchorLabel("Bedrooms", "غرف النوم")}
+                      value={anchorLabel(`${bedrooms} Bedrooms`, `${bedrooms} غرف نوم`)}
+                    />
+                  ) : null}
+                  <Fact
+                    icon={<Bath className="h-4 w-4 text-violet-500" />}
+                    label={anchorLabel("Bathrooms", "دورات المياه")}
+                    value={anchorLabel(`${bathrooms} Baths`, `${bathrooms} دورات مياه`)}
+                  />
+                  <Fact
+                    icon={<Sofa className="h-4 w-4 text-violet-500" />}
+                    label={anchorLabel("Living spaces", "المجالس والصالات")}
+                    value={
+                      property.majlisDetails?.mainMajlisCapacity
+                        ? anchorLabel(
+                            `Majlis for ${property.majlisDetails.mainMajlisCapacity}`,
+                            `مجلس يسع ${property.majlisDetails.mainMajlisCapacity}`
+                          )
+                        : anchorLabel(`${livingRooms} Living spaces`, `${livingRooms} مجالس`)
+                    }
+                  />
+                  {property.areaSqm ? (
+                    <Fact
+                      icon={<Maximize2 className="h-4 w-4 text-violet-500" />}
+                      label={anchorLabel("Area", "المساحة")}
+                      value={`${property.areaSqm} ${anchorLabel("m²", "م²")}`}
+                    />
+                  ) : null}
+                  <Fact
+                    icon={<Users className="h-4 w-4 text-violet-500" />}
+                    label={anchorLabel("Target audience", "الفئة المسموحة")}
+                    value={chaletFor}
+                  />
+                </div>
+
+                {/* Pool & Leisure Specs (Gathern Benchmark) */}
+                {property.hasPool && (
+                  <div className="mt-5 rounded-2xl border border-cyan-100 bg-cyan-50/50 p-4 dark:border-cyan-900/30 dark:bg-cyan-950/20">
+                    <div className="flex items-center gap-2 text-cyan-800 dark:text-cyan-300 font-bold text-sm mb-2.5">
+                      <Waves className="h-4 w-4" />
+                      <span>{anchorLabel("Swimming Pool Specifications", "مواصفات المسبح")}</span>
+                    </div>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                      <div>
+                        <span className="text-gray-500 dark:text-gray-400 block">{anchorLabel("Pool Type", "نوع المسبح")}</span>
+                        <span className="font-semibold text-gray-900 dark:text-white">
+                          {property.poolDetails?.type === "indoor"
+                            ? anchorLabel("Indoor Pool", "مسبح داخلي خاص")
+                            : anchorLabel("Outdoor Pool", "مسبح خارجي خاص")}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-gray-500 dark:text-gray-400 block">{anchorLabel("Safety Barrier", "حاجز الأمان")}</span>
+                        <span className="font-semibold text-gray-900 dark:text-white">
+                          {property.poolDetails?.hasBarrier
+                            ? anchorLabel("Child safety barrier present", "متوفر حاجز حماية للأطفال")
+                            : anchorLabel("Open pool", "بدون حاجز")}
+                        </span>
+                      </div>
+                      {property.poolDetails?.dimensions && (
+                        <div>
+                          <span className="text-gray-500 dark:text-gray-400 block">{anchorLabel("Dimensions", "أبعاد المسبح")}</span>
+                          <span className="font-semibold text-gray-900 dark:text-white">{property.poolDetails.dimensions}</span>
+                        </div>
+                      )}
+                      {property.poolDetails?.depth && (
+                        <div>
+                          <span className="text-gray-500 dark:text-gray-400 block">{anchorLabel("Depth", "عمق المسبح")}</span>
+                          <span className="font-semibold text-gray-900 dark:text-white">{property.poolDetails.depth}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Majlis & Seating Specs (Gathern Benchmark) */}
+                {property.majlisDetails && (
+                  <div className="mt-3.5 rounded-2xl border border-violet-100 bg-violet-50/40 p-4 dark:border-violet-900/30 dark:bg-violet-950/20">
+                    <div className="flex items-center gap-2 text-violet-800 dark:text-violet-300 font-bold text-sm mb-2.5">
+                      <Sofa className="h-4 w-4" />
+                      <span>{anchorLabel("Living Rooms & Seating", "المجالس والجلسات")}</span>
+                    </div>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
+                      <div>
+                        <span className="text-gray-500 dark:text-gray-400 block">{anchorLabel("Main Majlis", "المجلس الرئيسي")}</span>
+                        <span className="font-semibold text-gray-900 dark:text-white">
+                          {anchorLabel(
+                            `Seats up to ${property.majlisDetails.mainMajlisCapacity} persons`,
+                            `يسع لـ ${property.majlisDetails.mainMajlisCapacity} شخص`
+                          )}
+                        </span>
+                      </div>
+                      {property.majlisDetails.outdoorSeatingCapacity && (
+                        <div>
+                          <span className="text-gray-500 dark:text-gray-400 block">{anchorLabel("Outdoor Seating", "الجلسة الخارجية")}</span>
+                          <span className="font-semibold text-gray-900 dark:text-white">
+                            {anchorLabel(
+                              `Seats up to ${property.majlisDetails.outdoorSeatingCapacity} persons`,
+                              `تتسع لـ ${property.majlisDetails.outdoorSeatingCapacity} شخص`
+                            )}
+                          </span>
+                        </div>
+                      )}
+                      <div>
+                        <span className="text-gray-500 dark:text-gray-400 block">{anchorLabel("Access", "نوع الإقامة")}</span>
+                        <span className="font-semibold text-gray-900 dark:text-white">{chaletFor}</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Badges */}
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {property.instantBook && <Badge icon={<Zap className="h-3.5 w-3.5" />} label={anchorLabel("Instant booking", "حجز فوري")} />}
+                  {property.selfCheckin && <Badge icon={<KeyRound className="h-3.5 w-3.5" />} label={anchorLabel("Self check-in", "دخول ذاتي")} />}
+                  {property.hasPool && <Badge icon={<Waves className="h-3.5 w-3.5" />} label={anchorLabel("Pool", "مسبح")} />}
+                  {property.isLicensed && <Badge icon={<ShieldCheck className="h-3.5 w-3.5" />} label={anchorLabel("Licensed", "مرخص")} />}
+                </div>
+
+                {/* Categorized Amenities (Gathern Benchmark) */}
+                <div className="mt-8 border-t border-gray-100 pt-6 dark:border-white/10">
+                  <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-violet-600 dark:text-violet-300">
+                    {anchorLabel("What's included", "المرافق المتاحة")}
+                  </span>
+                  <h3 className="mt-1 text-xl font-bold text-gray-950 dark:text-white">
+                    {anchorLabel("Amenities & Facilities", "المرافق والمواصفات الكاملة")}
+                  </h3>
+                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                    {anchorLabel("Comprehensive list of verified features and equipment available during your stay", "قائمة شاملة بكافة الخدمات والتجهيزات المتاحة لراحتك")}
+                  </p>
+
+                  {categorizedAmenities.length > 0 ? (
+                    <div className="mt-6 space-y-6">
+                      {categorizedAmenities.map((group) => (
+                        <div
+                          key={group.id}
+                          className="rounded-2xl border border-gray-100 dark:border-white/5 bg-gray-50/60 dark:bg-white/[0.02] p-4 sm:p-5"
+                        >
+                          <div className="flex items-center gap-2 mb-3.5">
+                            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-300">
+                              <AmenityIcon name={group.iconName} className="h-4 w-4" />
+                            </span>
+                            <h4 className="font-bold text-sm sm:text-base text-gray-900 dark:text-white">
+                              {anchorLabel(group.titleEn, group.titleAr)}
+                            </h4>
+                          </div>
+
+                          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
+                            {group.amenities.map((amenity) => (
+                              <div
+                                key={amenity.id}
+                                className="flex items-center gap-2.5 rounded-xl border border-gray-200/70 dark:border-white/10 bg-white dark:bg-[#12101a] px-3.5 py-2.5 text-xs sm:text-[13px] text-gray-800 dark:text-gray-200 shadow-sm"
+                              >
+                                <span className="text-violet-600 dark:text-violet-400 shrink-0">
+                                  <AmenityIcon name={amenity.iconName} className="h-4 w-4" />
+                                </span>
+                                <span className="font-medium">
+                                  {anchorLabel(amenity.nameEn, amenity.nameAr)}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : amenityGroups.length ? (
+                    <div className="mt-6 space-y-4">
+                      {amenityGroups.map((group) => (
+                        <div key={group.name} className="grid gap-3 py-4 sm:grid-cols-[220px_minmax(0,1fr)]">
+                          <h4 className="flex items-start gap-2 text-sm font-bold text-gray-900 dark:text-white">
+                            <Home className="mt-0.5 h-4 w-4 shrink-0 text-violet-600 dark:text-violet-300" />
+                            {group.name}
+                          </h4>
+                          <ul className="grid gap-x-6 gap-y-2 text-sm text-gray-700 dark:text-gray-300 sm:grid-cols-2">
+                            {group.items.map((item) => (
+                              <li key={item} className="flex items-start gap-2">
+                                <span className="text-violet-600 dark:text-violet-300">•</span>
+                                <span>{item}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="mt-4 text-sm text-gray-500 dark:text-gray-400">
+                      {anchorLabel("No amenity details have been added to this listing yet.", "لم تتم إضافة تفاصيل المرافق لهذا العقار بعد.")}
+                    </p>
+                  )}
+                </div>
+              </section>
+            )}
+
+            {activeTab === "reviews" && <GuestReviewsPanel property={property} />}
+
+            {activeTab === "location" && <section id="location" className="scroll-mt-32 py-8">
               <div className="mb-4 flex items-end justify-between gap-3">
                 <div>
                   <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-violet-600 dark:text-violet-300">{anchorLabel("Explore the area", "اكتشف المنطقة")}</span>
@@ -704,9 +1062,25 @@ export default function PropertyDetail({ property }: PropertyDetailProps) {
                 onClose={() => router.push(returnHref)}
               />
               <p className="mt-2 text-[10px] text-gray-500 dark:text-gray-400">
-                {anchorLabel("Map locations without listing coordinates are shown as an approximate district or city area.", "تُعرض المواقع التي لا تحتوي على إحداثيات دقيقة كتقدير للحي أو المدينة.")}
+                {anchorLabel("For privacy, map locations may be approximate. Exact access details are shared after booking confirmation.", "حفاظاً على الخصوصية، قد يكون موقع الخريطة تقريبياً. تتم مشاركة تفاصيل الوصول الدقيقة بعد تأكيد الحجز.")}
               </p>
-            </section>
+            </section>}
+
+            {activeTab === "terms" && <section id="terms" className="scroll-mt-32 border-t border-gray-100 py-8 dark:border-white/10">
+              <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-violet-600 dark:text-violet-300">{anchorLabel("Before you book", "قبل الحجز")}</span>
+              <h2 className="mt-1 text-2xl font-extrabold tracking-tight text-gray-950 dark:text-white">{anchorLabel("Terms & policies", "الشروط والسياسات")}</h2>
+              <div className="mt-5 divide-y divide-gray-100 dark:divide-white/10">
+                <div className="py-5">
+                  <h3 className="flex items-center gap-2 text-sm font-bold text-gray-900 dark:text-white"><Home className="h-4 w-4 text-violet-600 dark:text-violet-300" />{anchorLabel("Booking conditions (by the host)", "شروط الحجز (من المضيف)")}</h3>
+                  {property.bookingConditions?.length ? <ul className="mt-3 list-disc space-y-1 pl-6 text-sm text-gray-600 dark:text-gray-300">{property.bookingConditions.map((condition) => <li key={condition}>{condition}</li>)}</ul> : <p className="mt-3 text-sm text-gray-600 dark:text-gray-300">{anchorLabel("No host-specific conditions have been added. Please confirm any special requirements before booking.", "لم تتم إضافة شروط خاصة من المضيف. يرجى تأكيد أي متطلبات خاصة قبل الحجز.")}</p>}
+                </div>
+                <div className="py-5">
+                  <h3 className="flex items-center gap-2 text-sm font-bold text-gray-900 dark:text-white"><ShieldCheck className="h-4 w-4 text-violet-600 dark:text-violet-300" />{anchorLabel("Cancellation and refund policy", "سياسة الإلغاء والاسترداد")}</h3>
+                  <p className="mt-3 text-sm text-gray-600 dark:text-gray-300">{property.cancellationPolicy || anchorLabel("Cancellation and refund terms are shown during checkout before payment.", "تظهر شروط الإلغاء والاسترداد أثناء إتمام الحجز قبل الدفع.")}</p>
+                </div>
+              </div>
+            </section>}
+            </div>
           </div>
 
           <aside className="hidden lg:sticky lg:top-24 lg:block">
@@ -716,7 +1090,7 @@ export default function PropertyDetail({ property }: PropertyDetailProps) {
               checkinTime={checkinTime}
               checkoutDate={checkoutDate}
               checkoutTime={checkoutTime}
-              guestsCount={guestsCount}
+              guestsCount={selectedGuestsCount}
               nights={nights}
               onCheckinChange={handleCheckinChange}
               onCheckinTimeChange={setCheckinTime}
@@ -734,7 +1108,16 @@ export default function PropertyDetail({ property }: PropertyDetailProps) {
         <div className="mx-auto flex max-w-xl items-center justify-between gap-4">
           <div>
             <span className="block text-[10px] text-gray-500 dark:text-gray-400">{nights} {anchorLabel(nights === 1 ? "night" : "nights", "ليلة")}</span>
-            <span className="font-extrabold text-gray-950 dark:text-white">{new Intl.NumberFormat(language === "ar" ? "ar-SA" : "en-US", { maximumFractionDigits: 2 }).format(estimatedTotal)} {language === "ar" ? "ر.س" : "SAR"}</span>
+            <div className="flex items-baseline gap-1.5">
+              {hasDiscount && (
+                <span className="text-xs text-rose-500 line-through font-bold">
+                  {formatPrice((property.originalPrice || property.basePrice) * nights)}
+                </span>
+              )}
+              <span className="font-extrabold text-base sm:text-lg text-gray-950 dark:text-white">
+                {formatPrice(estimatedTotal)}
+              </span>
+            </div>
           </div>
           <button type="button" onClick={handleReserve} className="rounded-xl bg-violet-700 px-5 py-3 text-sm font-bold text-white shadow-md transition hover:bg-violet-800">{anchorLabel("Continue", "متابعة")}</button>
         </div>
@@ -762,6 +1145,17 @@ export default function PropertyDetail({ property }: PropertyDetailProps) {
               </button>
             ))}
           </div>
+        </div>
+      )}
+
+      {videoIndex !== null && property.videos?.[videoIndex] && (
+        <div className="fixed inset-0 z-[120] flex flex-col items-center justify-center bg-[#08070D]/95 p-4 backdrop-blur-md" role="dialog" aria-modal="true" aria-label={anchorLabel("Property videos", "فيديوهات العقار")}>
+          <div className="mb-3 flex w-full max-w-5xl items-center justify-between text-white">
+            <span className="text-sm font-semibold">{videoIndex + 1} / {property.videos.length}</span>
+            <button type="button" onClick={() => setVideoIndex(null)} className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 hover:bg-white/20" aria-label={anchorLabel("Close video", "إغلاق الفيديو")}><X className="h-5 w-5" /></button>
+          </div>
+          <video key={property.videos[videoIndex]} src={property.videos[videoIndex]} controls autoPlay playsInline className="max-h-[78vh] w-full max-w-5xl rounded-2xl bg-black" />
+          {property.videos.length > 1 && <div className="mt-4 flex gap-3"><button type="button" onClick={() => setVideoIndex((videoIndex - 1 + property.videos!.length) % property.videos!.length)} className="rounded-lg bg-white/10 px-4 py-2 text-sm text-white hover:bg-white/20">{anchorLabel("Previous", "السابق")}</button><button type="button" onClick={() => setVideoIndex((videoIndex + 1) % property.videos!.length)} className="rounded-lg bg-white/10 px-4 py-2 text-sm text-white hover:bg-white/20">{anchorLabel("Next", "التالي")}</button></div>}
         </div>
       )}
 

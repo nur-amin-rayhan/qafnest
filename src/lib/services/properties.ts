@@ -61,7 +61,7 @@ function fromRow(row: PropertyRow): Property {
     district: row.district || undefined,
     category,
     categoryName: row.category_name || titleCase(category),
-    rating: Number(row.rating ?? 5),
+    rating: Number(row.rating ?? 0),
     reviewsCount: Number(row.reviews_count ?? 0),
     specs,
     image: images[0] || fallback?.image || PROPERTIES[0].image,
@@ -94,7 +94,7 @@ function fromRow(row: PropertyRow): Property {
 
 let cachedProperties: Promise<Property[]> | null = null;
 
-/** Fetch approved listings; use the bundled catalog when Supabase is unavailable or empty. */
+/** Fetch approved listings; use the bundled catalog only when Supabase is unavailable. */
 export function listProperties(options: { refresh?: boolean } = {}): Promise<Property[]> {
   if (!options.refresh && cachedProperties) return cachedProperties;
 
@@ -108,7 +108,7 @@ export function listProperties(options: { refresh?: boolean } = {}): Promise<Pro
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      if (data?.length) return (data as PropertyRow[]).map(fromRow);
+      return (data || []).map((row) => fromRow(row as PropertyRow));
     } catch (error) {
       console.warn("Using local property catalog because Supabase listings are unavailable:", error);
     }

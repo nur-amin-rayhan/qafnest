@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import {
   Search,
   X,
@@ -14,6 +15,7 @@ import {
 import { useApp } from "@/context/AppContext";
 import { Property } from "@/data/properties";
 import { useProperties } from "@/hooks/useProperties";
+import { propertyDetailHref, propertyReservationHref } from "@/lib/propertyUrls";
 import {
   CITY_NAMES_AR,
   CATEGORY_NAMES_AR,
@@ -37,12 +39,12 @@ export default function SearchModal() {
     selfCheckinOnly,
     setSelfCheckinOnly,
     formatPrice,
-    openBookingModal,
     isDarkTheme,
     language,
     t,
   } = useApp();
 
+  const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
   const [rentType, setRentType] = useState<"daily" | "monthly">("daily");
   const inputRef = useRef<HTMLInputElement>(null);
@@ -100,6 +102,8 @@ export default function SearchModal() {
     const el = document.getElementById("properties");
     if (el) {
       el.scrollIntoView({ behavior: "smooth" });
+    } else {
+      router.push(propertyDetailHref(property.id));
     }
   };
 
@@ -366,8 +370,7 @@ export default function SearchModal() {
                           {cityName} · {categoryName}
                         </span>
                         <div className="flex items-center gap-1 text-[11px] font-bold text-fg">
-                          <Star className="w-3 h-3 fill-fuchsia-400 text-fuchsia-400" />
-                          <span>{p.rating}</span>
+                          {p.rating > 0 ? <><Star className="w-3 h-3 fill-fuchsia-400 text-fuchsia-400" /><span>{p.rating.toFixed(1)} / 10</span></> : <span>{language === "ar" ? "لا توجد تقييمات" : "No rating"}</span>}
                         </div>
                       </div>
 
@@ -389,7 +392,7 @@ export default function SearchModal() {
                         onClick={(e) => {
                           e.stopPropagation();
                           closeSearchModal();
-                          openBookingModal(title, p.basePrice);
+                          router.push(propertyReservationHref(p.id));
                         }}
                         className="mt-1 text-[10px] font-bold text-violet-400 hover:text-fuchsia-400 flex items-center gap-0.5 justify-end rtl:justify-start"
                       >

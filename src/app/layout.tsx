@@ -10,6 +10,38 @@ const geist = localFont({
   display: "swap",
 });
 
+const dinNext = localFont({
+  src: [
+    {
+      path: "./fonts/DINNextLTArabic-Light.woff",
+      weight: "300",
+      style: "normal",
+    },
+    {
+      path: "./fonts/DINNextLTArabic-Regular.woff",
+      weight: "400",
+      style: "normal",
+    },
+    {
+      path: "./fonts/DINNextLTArabic-Medium.woff",
+      weight: "500",
+      style: "normal",
+    },
+    {
+      path: "./fonts/DINNextLTArabic-Bold.woff",
+      weight: "700",
+      style: "normal",
+    },
+    {
+      path: "./fonts/DINNextLTArabic-Black.woff",
+      weight: "900",
+      style: "normal",
+    },
+  ],
+  variable: "--font-arabic",
+  display: "swap",
+});
+
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
@@ -38,18 +70,17 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${geist.variable} dark`} suppressHydrationWarning>
-      <head>
+    <html lang="en" className={`${geist.variable} ${dinNext.variable} dark`} suppressHydrationWarning>
+      <body
+        className="font-body relative min-h-screen selection:bg-violet-500/30"
+        suppressHydrationWarning
+      >
         <script
           id="qafnest-preferences"
           dangerouslySetInnerHTML={{
             __html: `try { const root = document.documentElement; const lang = localStorage.getItem('qafnest_lang'); const theme = localStorage.getItem('qafnest_theme'); if (lang === 'ar' || lang === 'en') { root.lang = lang; root.dir = lang === 'ar' ? 'rtl' : 'ltr'; root.classList.toggle('rtl', lang === 'ar'); } if (theme === 'light') { root.classList.add('light'); root.classList.remove('dark'); } else { root.classList.add('dark'); root.classList.remove('light'); } } catch {}`,
           }}
         />
-      </head>
-      <body
-        className="font-body relative min-h-screen selection:bg-violet-500/30"
-      >
         <ClientProviders>{children}</ClientProviders>
       </body>
     </html>

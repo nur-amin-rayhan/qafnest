@@ -2,13 +2,14 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { CalendarDays, KeyRound, LoaderCircle, Printer, RefreshCw } from "lucide-react";
+import { CalendarDays, KeyRound, LoaderCircle, MessageSquareText, Printer, RefreshCw } from "lucide-react";
 import Navbar from "@/components/common/Navbar";
 import Footer from "@/components/common/Footer";
 import AuthModal from "@/components/modals/AuthModal";
 import { useAuth } from "@/context/AuthContext";
 import { useApp } from "@/context/AppContext";
 import { createClient } from "@/lib/supabase/client";
+import { createFirebaseReviewDataClient } from "@/lib/reviews/client";
 
 type Booking = {
   id: string;
@@ -24,6 +25,17 @@ type Booking = {
   property: { id: string; title: string; city_name: string | null; images: string[] | null } | null;
 };
 
+function getSaudiDate() {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "Asia/Riyadh",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date());
+  const value = (type: string) => parts.find((part) => part.type === type)?.value || "00";
+  return `${value("year")}-${value("month")}-${value("day")}`;
+}
+
 export default function MyBookingsPage() {
   const { user, loading: authLoading, openAuthModal } = useAuth();
   const { language } = useApp();
@@ -33,47 +45,84 @@ export default function MyBookingsPage() {
   const [supabase] = useState(() => createClient());
 
   const label = (en: string, ar: string) => language === "ar" ? ar : en;
+  const todayInSaudiArabia = getSaudiDate();
 
   const loadBookings = useCallback(async () => {
     setLoading(true);
     setError(null);
 
-    let localList: Booking[] = [];
-    try {
-      const stored = localStorage.getItem("qafnest_guest_bookings");
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        if (Array.isArray(parsed)) localList = parsed;
-      }
-    } catch {}
-
     if (!user) {
-      setBookings(localList);
+      setBookings([]);
       setLoading(false);
       return;
     }
 
     try {
-      const { data, error: queryError } = await supabase
-        .from("bookings")
-        .select("id, check_in, check_out, total_nights, guests_count, total_price, status, payment_status, smart_lock_pin, created_at, property:properties(id, title, city_name, images)")
-        .eq("guest_id", user.id)
-        .order("created_at", { ascending: false });
-
-      if (queryError) {
-        // Fall back to local bookings if DB is unconfigured
-        setBookings(localList);
-      } else {
-        const dbList = (data || []) as unknown as Booking[];
-        const map = new Map<string, Booking>();
-        dbList.forEach((b) => map.set(b.id, b));
-        localList.forEach((b) => {
-          if (!map.has(b.id)) map.set(b.id, b);
-        });
-        setBookings(Array.from(map.values()));
+      let remoteBookings: Booking[] = [];
+      try {
+        const isFirebaseUser = user.app_metadata?.provider === "firebase_phone";
+        const queryClient = isFirebaseUser ? await createFirebaseReviewDataClient() : supabase;
+        if (queryClient) {
+          let query = queryClient
+            .from("bookings")
+            .select("id, check_in, check_out, total_nights, guests_count, total_price, status, payment_status, smart_lock_pin, created_at, property:properties(id, title, city_name, images)")
+            .order("created_at", { ascending: false });
+          query = isFirebaseUser ? query.eq("auth_subject", user.id) : query.eq("guest_id", user.id);
+          const { data, error: queryError } = await query;
+          if (!queryError && data) {
+            remoteBookings = data as unknown as Booking[];
+          }
+        }
+      } catch (err) {
+        console.warn("Notice: Remote bookings query fallback:", err);
       }
-    } catch {
-      setBookings(localList);
+
+      // Merge with locally stored confirmed bookings for instant voucher access
+      let localBookings: Booking[] = [];
+      try {
+        const raw = window.localStorage.getItem("qafnest_guest_bookings");
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed)) {
+            localBookings = parsed.map((item: Record<string, unknown>) => {
+              const prop = item.property as Record<string, unknown> | undefined;
+              return {
+                id: String(item.bookingId || item.bookingRef),
+                check_in: String(item.checkIn || ""),
+                check_out: String(item.checkOut || ""),
+                total_nights: Number(item.nights || 1),
+                guests_count: Number(item.guests || 2),
+                total_price: Number(item.amount || 0),
+                status: "confirmed",
+                payment_status: "success",
+                smart_lock_pin: item.smartLockPin ? String(item.smartLockPin) : null,
+                created_at: new Date().toISOString(),
+                property: prop ? {
+                  id: String(prop.id || ""),
+                  title: String(prop.title || "Luxury Stay"),
+                  city_name: typeof prop.city_name === "string" ? prop.city_name : null,
+                  images: Array.isArray(prop.images) ? (prop.images as string[]) : null,
+                } : null,
+              };
+            });
+          }
+        }
+      } catch {}
+
+      const seen = new Set<string>();
+      const combined: Booking[] = [];
+      for (const b of [...remoteBookings, ...localBookings]) {
+        const key = b.id || `${b.property?.id}-${b.check_in}-${b.check_out}`;
+        if (!seen.has(key)) {
+          seen.add(key);
+          combined.push(b);
+        }
+      }
+
+      setBookings(combined);
+    } catch (loadError) {
+      setBookings([]);
+      setError(loadError instanceof Error ? loadError.message : "Booking records are unavailable.");
     } finally {
       setLoading(false);
     }
@@ -172,6 +221,7 @@ export default function MyBookingsPage() {
               {bookings.map((booking) => {
                 const title = booking.property?.title || "QafNest stay";
                 const canShowPin = booking.status === "confirmed" && booking.payment_status === "success" && Boolean(booking.smart_lock_pin);
+                const canReview = booking.status === "completed" && booking.payment_status === "success" && booking.check_out <= todayInSaudiArabia && Boolean(booking.property?.id);
                 return (
                   <article key={booking.id} className="overflow-hidden rounded-3xl border border-gray-200 bg-white shadow-sm dark:border-white/10 dark:bg-[#12101a]">
                     <div className="flex flex-wrap items-start justify-between gap-4 border-b border-gray-100 p-5 dark:border-white/10 sm:p-6">
@@ -227,6 +277,17 @@ export default function MyBookingsPage() {
                       <p className="border-t border-gray-100 px-5 py-4 text-xs text-gray-500 dark:border-white/10 dark:text-gray-400">
                         {label("Your host will provide the access code before check-in.", "سيقوم المضيف بتزويدك برمز الدخول قبل وقت تسجيل الوصول.")}
                       </p>
+                    )}
+                    {canReview && booking.property?.id && (
+                      <div className="border-t border-gray-100 px-5 py-4 dark:border-white/10 sm:px-6">
+                        <Link
+                          href={`/property/${encodeURIComponent(booking.property.id)}?tab=reviews&review_booking=${encodeURIComponent(booking.id)}`}
+                          className="inline-flex items-center gap-2 rounded-xl bg-violet-800 px-4 py-2.5 text-xs font-bold text-white transition hover:bg-violet-900"
+                        >
+                          <MessageSquareText className="h-4 w-4" />
+                          {label("Write a verified review", "اكتب تقييماً موثقاً")}
+                        </Link>
+                      </div>
                     )}
                   </article>
                 );

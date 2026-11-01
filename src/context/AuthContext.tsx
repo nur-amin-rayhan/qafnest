@@ -1,8 +1,18 @@
 "use client";
 
-import React, { createContext, useContext, useEffect, useState, useCallback } from "react";
+import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from "react";
 import { User, Session } from "@supabase/supabase-js";
+import {
+  onAuthStateChanged,
+  signOut as firebaseSignOut,
+  type User as FirebaseUser,
+} from "firebase/auth";
 import { createClient } from "@/lib/supabase/client";
+import {
+  getFirebaseAuth,
+  getStoredFirebaseProfile,
+  isFirebaseConfigured,
+} from "@/lib/firebase/client";
 
 export type UserRole = "guest" | "admin";
 
@@ -10,7 +20,6 @@ export interface Profile {
   id: string;
   full_name: string | null;
   phone: string | null;
-  national_id: string | null;
   avatar_url: string | null;
   role?: UserRole;
 }
@@ -30,10 +39,47 @@ interface AuthContextType {
   closeAuthModal: () => void;
   signOut: () => Promise<void>;
   refreshProfile: (userId?: string) => Promise<void>;
-  loginWithPhone: (phone: string, fullName?: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+function mapFirebaseUser(fbUser: FirebaseUser): { user: User; profile: Profile } {
+  const stored = getStoredFirebaseProfile(fbUser.uid);
+  const displayName = stored?.full_name || fbUser.displayName || "";
+  const nameParts = displayName.trim().split(/\s+/).filter(Boolean);
+  const firstName = stored?.first_name || nameParts[0] || "";
+  const lastName = stored?.last_name || nameParts.slice(1).join(" ") || "";
+  const contactEmail = stored?.contact_email || fbUser.email || "";
+  const phone = fbUser.phoneNumber || stored?.phone || "";
+  const confirmedAt = fbUser.metadata.lastSignInTime || new Date().toISOString();
+
+  const mappedUser: User = {
+    id: fbUser.uid,
+    app_metadata: { provider: "firebase_phone" },
+    user_metadata: {
+      first_name: firstName,
+      last_name: lastName,
+      full_name: displayName || null,
+      contact_email: contactEmail || null,
+      phone: phone || null,
+    },
+    aud: "authenticated",
+    created_at: fbUser.metadata.creationTime || confirmedAt,
+    phone: phone || undefined,
+    phone_confirmed_at: confirmedAt,
+    email: contactEmail || undefined,
+  };
+
+  const mappedProfile: Profile = {
+    id: fbUser.uid,
+    full_name: displayName || null,
+    phone: phone || null,
+    avatar_url: fbUser.photoURL || null,
+    role: "guest",
+  };
+
+  return { user: mappedUser, profile: mappedProfile };
+}
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [supabase] = useState(() => createClient());
@@ -41,6 +87,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
+  const hasSupabaseSessionRef = useRef(false);
 
   // Modal State
   const [authModalOpen, setAuthModalOpen] = useState(false);
@@ -57,7 +104,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const { data, error } = await supabase
         .from("profiles")
-        .select("*")
+        .select("id, full_name, phone, avatar_url")
         .eq("id", userId)
         .single();
 
@@ -72,7 +119,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           id: userId,
           full_name: metadataName || null,
           phone: currentUser?.phone || currentUser?.user_metadata?.phone || null,
-          national_id: null,
           avatar_url: null,
           role: "guest",
         });
@@ -88,6 +134,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [supabase]);
 
   const refreshProfile = async (userId?: string) => {
+    if (!hasSupabaseSessionRef.current && isFirebaseConfigured()) {
+      try {
+        const fbAuth = getFirebaseAuth();
+        if (fbAuth.currentUser) {
+          const mapped = mapFirebaseUser(fbAuth.currentUser);
+          setUser(mapped.user);
+          setProfile(mapped.profile);
+          return;
+        }
+      } catch {}
+    }
+
     const profileUserId = userId || user?.id;
     if (profileUserId) {
       await fetchProfile(profileUserId, userId ? undefined : user);
@@ -96,19 +154,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     let mounted = true;
+    let unsubscribeFirebase: (() => void) | undefined;
 
-    // Check localStorage cached session first
     try {
-      const cached = localStorage.getItem("qafnest_auth_user");
-      if (cached) {
-        const parsed = JSON.parse(cached);
-        if (parsed.user) {
-          setUser(parsed.user);
-          setProfile(parsed.profile || null);
-          setLoading(false);
-        }
-      }
+      localStorage.removeItem("qafnest_auth_user");
     } catch {}
+
+    const syncFirebaseUser = () => {
+      if (!isFirebaseConfigured()) return false;
+      try {
+        const fbAuth = getFirebaseAuth();
+        if (fbAuth.currentUser) {
+          const mapped = mapFirebaseUser(fbAuth.currentUser);
+          setSession(null);
+          setUser(mapped.user);
+          setProfile(mapped.profile);
+          return true;
+        }
+      } catch {}
+      return false;
+    };
 
     const initializeAuth = async () => {
       try {
@@ -116,9 +181,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (!mounted) return;
 
         if (initialSession) {
+          hasSupabaseSessionRef.current = true;
           setSession(initialSession);
           setUser(initialSession.user);
           await fetchProfile(initialSession.user.id, initialSession.user, () => mounted);
+        } else {
+          hasSupabaseSessionRef.current = false;
+          if (!syncFirebaseUser()) {
+            setSession(null);
+            setUser(null);
+            setProfile(null);
+          }
         }
       } catch (err) {
         console.error("Auth init exception:", err);
@@ -129,19 +202,40 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     initializeAuth();
 
+    if (isFirebaseConfigured()) {
+      try {
+        const fbAuth = getFirebaseAuth();
+        unsubscribeFirebase = onAuthStateChanged(fbAuth, (fbUser) => {
+          if (!mounted || hasSupabaseSessionRef.current) return;
+          if (fbUser) {
+            const mapped = mapFirebaseUser(fbUser);
+            setSession(null);
+            setUser(mapped.user);
+            setProfile(mapped.profile);
+          } else {
+            setSession(null);
+            setUser(null);
+            setProfile(null);
+          }
+          setLoading(false);
+        });
+      } catch (err) {
+        console.warn("Firebase Auth listener warning:", err);
+      }
+    }
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, newSession) => {
+      async (_event, newSession) => {
         if (!mounted) return;
+        hasSupabaseSessionRef.current = Boolean(newSession);
         setSession(newSession);
-        setUser(newSession?.user || null);
 
         if (newSession?.user) {
+          setUser(newSession.user);
           await fetchProfile(newSession.user.id, newSession.user, () => mounted);
-        } else {
+        } else if (!syncFirebaseUser()) {
+          setUser(null);
           setProfile(null);
-          try {
-            localStorage.removeItem("qafnest_auth_user");
-          } catch {}
         }
         setLoading(false);
       }
@@ -150,47 +244,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => {
       mounted = false;
       subscription.unsubscribe();
+      unsubscribeFirebase?.();
     };
   }, [supabase, fetchProfile]);
-
-  const loginWithPhone = async (phoneInput: string, fullName?: string) => {
-    const formattedPhone = phoneInput.startsWith("+966") ? phoneInput : `+966${phoneInput.replace(/^0+/, "")}`;
-    const displayName = fullName || "Guest User";
-
-    const mockUser: User = {
-      id: "guest-" + Date.now(),
-      app_metadata: { provider: "phone" },
-      user_metadata: {
-        full_name: displayName,
-        phone: formattedPhone,
-        role: "guest",
-      },
-      aud: "authenticated",
-      created_at: new Date().toISOString(),
-      email: "",
-      phone: formattedPhone,
-    } as User;
-
-    const mockProfile: Profile = {
-      id: mockUser.id,
-      full_name: displayName,
-      phone: formattedPhone,
-      national_id: null,
-      avatar_url: null,
-      role: "guest",
-    };
-
-    setUser(mockUser);
-    setProfile(mockProfile);
-    try {
-      localStorage.setItem("qafnest_auth_user", JSON.stringify({ user: mockUser, profile: mockProfile }));
-    } catch {}
-  };
 
   const signOut = async () => {
     try {
       await supabase.auth.signOut();
     } catch {}
+    if (isFirebaseConfigured()) {
+      try {
+        await firebaseSignOut(getFirebaseAuth());
+      } catch {}
+    }
+    hasSupabaseSessionRef.current = false;
     setUser(null);
     setSession(null);
     setProfile(null);
@@ -220,7 +287,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         closeAuthModal,
         signOut,
         refreshProfile,
-        loginWithPhone,
       }}
     >
       {children}

@@ -38,8 +38,22 @@ import { useApp } from "@/context/AppContext";
 import { useAuth } from "@/context/AuthContext";
 import { getPropertyCapacity, getStayTotal, Property } from "@/data/properties";
 import { CATEGORY_NAMES_AR, CITY_NAMES_AR, PROPERTY_TITLES_AR } from "@/data/translations";
+import {
+  RecaptchaVerifier,
+  signInWithPhoneNumber,
+  updateProfile,
+  type ConfirmationResult,
+} from "firebase/auth";
 import { createClient } from "@/lib/supabase/client";
+import {
+  getFirebaseAuth,
+  getFirebaseErrorMessage,
+  getStoredFirebaseProfile,
+  isFirebaseConfigured,
+  saveStoredFirebaseProfile,
+} from "@/lib/firebase/client";
 import { propertyDetailHref } from "@/lib/propertyUrls";
+import { isPropertyAvailable, recordBookedRange } from "@/lib/services/availability";
 
 type ReservationReviewProps = { property: Property };
 type PaymentMethod = "card" | "apple" | "tabby" | "tamara";
@@ -54,10 +68,33 @@ function normalizeSaudiPhone(value: string) {
   return /^5\d{8}$/.test(digits) ? `+966${digits}` : null;
 }
 
+function normalizePhoneInput(value: string): string | null {
+  const trimmed = value.trim();
+  if (trimmed.startsWith("+")) {
+    const cleaned = `+${trimmed.slice(1).replace(/\D/g, "")}`;
+    return /^\+[1-9]\d{7,14}$/.test(cleaned) ? cleaned : null;
+  }
+  const saudi = normalizeSaudiPhone(trimmed);
+  if (saudi) return saudi;
+  const digits = trimmed.replace(/\D/g, "");
+  if (/^[1-9]\d{9,14}$/.test(digits)) {
+    return `+${digits}`;
+  }
+  return null;
+}
+
+function resetRecaptcha(widgetId: number | null) {
+  if (widgetId === null || typeof window === "undefined") return;
+  const grecaptcha = (
+    window as unknown as { grecaptcha?: { reset: (id?: number) => void } }
+  ).grecaptcha;
+  grecaptcha?.reset(widgetId);
+}
+
 type ConfirmedBooking = {
   bookingId: string;
   bookingRef: string;
-  smartLockPin: string;
+  smartLockPin: string | null;
   amount: number;
   checkIn: string;
   checkOut: string;
@@ -115,6 +152,10 @@ export default function ReservationReview({ property }: ReservationReviewProps) 
   const [pinCopied, setPinCopied] = useState(false);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const otpInputRef = useRef<HTMLInputElement>(null);
+  const recaptchaContainerRef = useRef<HTMLDivElement | null>(null);
+  const recaptchaVerifierRef = useRef<RecaptchaVerifier | null>(null);
+  const recaptchaWidgetIdRef = useRef<number | null>(null);
+  const confirmationResultRef = useRef<ConfirmationResult | null>(null);
 
   const label = (english: string, arabic: string) => language === "ar" ? arabic : english;
   const queryCheckinDate = searchParams.get("check_in");
@@ -231,23 +272,104 @@ export default function ReservationReview({ property }: ReservationReviewProps) 
     }
   }, [accountPhone, phoneNumber]);
 
+  useEffect(() => {
+    if (phoneVerified || phoneOtpVerified || otpChannel !== "sms" || !isFirebaseConfigured()) {
+      return;
+    }
+
+    let mounted = true;
+    let verifier: RecaptchaVerifier | null = null;
+
+    const timerId = window.setTimeout(() => {
+      if (!mounted || !recaptchaContainerRef.current) return;
+      try {
+        const auth = getFirebaseAuth();
+        recaptchaContainerRef.current.innerHTML = "";
+        verifier = new RecaptchaVerifier(auth, recaptchaContainerRef.current, {
+          size: "normal",
+          callback: () => {
+            if (!mounted) return;
+            setOtpError(null);
+          },
+          "expired-callback": () => {
+            if (!mounted) return;
+            setOtpError("reCAPTCHA expired. Please complete it again.");
+          },
+        });
+        recaptchaVerifierRef.current = verifier;
+        void verifier
+          .render()
+          .then((widgetId) => {
+            if (mounted) recaptchaWidgetIdRef.current = widgetId;
+          })
+          .catch((reason: unknown) => {
+            if (mounted) setOtpError(getFirebaseErrorMessage(reason));
+          });
+      } catch (reason: unknown) {
+        if (mounted) setOtpError(getFirebaseErrorMessage(reason));
+      }
+    }, 50);
+
+    return () => {
+      mounted = false;
+      window.clearTimeout(timerId);
+      try {
+        verifier?.clear();
+      } catch {}
+      recaptchaVerifierRef.current = null;
+      recaptchaWidgetIdRef.current = null;
+    };
+  }, [phoneVerified, phoneOtpVerified, otpChannel]);
+
   const handleSendOtp = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setOtpError(null);
     setPaymentMessage(null);
-    const formattedPhone = normalizeSaudiPhone(phoneNumber);
+    const formattedPhone = normalizePhoneInput(phoneNumber);
     if (!formattedPhone) {
-      setOtpError(label("Enter a valid Saudi mobile number, for example 5X XXX XXXX.", "أدخل رقم جوال سعودي صالحاً، مثل 5X XXX XXXX."));
+      setOtpError(label("Enter a valid mobile number, for example 5X XXX XXXX or +...", "أدخل رقم جوال صالحاً، مثل 5X XXX XXXX."));
       return;
     }
 
     setOtpBusy(true);
     try {
+      if (otpChannel === "sms" && isFirebaseConfigured()) {
+        const auth = getFirebaseAuth();
+        const verifier = recaptchaVerifierRef.current;
+        if (!verifier) {
+          throw new Error("reCAPTCHA is still loading. Please wait a moment and try again.");
+        }
+        confirmationResultRef.current = await signInWithPhoneNumber(
+          auth,
+          formattedPhone,
+          verifier,
+        );
+        setSentPhone(formattedPhone);
+        setSentChannel("sms");
+        setOtpSent(true);
+        setOtpCode("");
+        setOtpSeconds(60);
+        setOtpStep("code");
+        setOtpModalOpen(true);
+        setOtpError(null);
+        return;
+      }
+
       const { error } = await supabase.auth.signInWithOtp({
         phone: formattedPhone,
         options: { channel: otpChannel },
       });
-      if (error) throw error;
+      if (error) {
+        if (error.message.toLowerCase().includes("unsupported phone provider")) {
+          throw new Error(
+            otpChannel === "whatsapp"
+              ? "WhatsApp OTP is not configured in Supabase yet. Please switch to SMS to verify with Firebase Phone Auth."
+              : "Phone provider is not configured in Supabase."
+          );
+        }
+        throw error;
+      }
+      confirmationResultRef.current = null;
       setSentPhone(formattedPhone);
       setSentChannel(otpChannel);
       setOtpSent(true);
@@ -257,9 +379,8 @@ export default function ReservationReview({ property }: ReservationReviewProps) 
       setOtpModalOpen(true);
       setOtpError(null);
     } catch (error) {
-      setOtpError(error instanceof Error
-        ? error.message
-        : label("We couldn't send the code. Please try again.", "تعذر إرسال الرمز. حاول مرة أخرى."));
+      resetRecaptcha(recaptchaWidgetIdRef.current);
+      setOtpError(getFirebaseErrorMessage(error));
     } finally {
       setOtpBusy(false);
     }
@@ -275,6 +396,36 @@ export default function ReservationReview({ property }: ReservationReviewProps) 
 
     setOtpBusy(true);
     try {
+      if (confirmationResultRef.current) {
+        const credential = await confirmationResultRef.current.confirm(otpCode);
+        const fbUser = credential.user;
+        setVerifiedPhone(fbUser.phoneNumber || sentPhone);
+        setOtpSent(false);
+        setOtpCode("");
+        setOtpError(null);
+
+        const stored = getStoredFirebaseProfile(fbUser.uid);
+        const metadataFullName = stored?.full_name || fbUser.displayName || "";
+        const metadataNameParts = metadataFullName.trim().split(/\s+/).filter(Boolean);
+        const nextFirstName = stored?.first_name || metadataNameParts[0] || "";
+        const nextLastName = stored?.last_name || metadataNameParts.slice(1).join(" ");
+        const nextEmail = stored?.contact_email || fbUser.email || "";
+
+        setFirstName(nextFirstName);
+        setLastName(nextLastName);
+        setContactEmail(nextEmail);
+        await refreshProfile(fbUser.uid);
+
+        if (nextFirstName.trim() && nextLastName.trim() && nextEmail.trim()) {
+          setProfileDetailsSaved(true);
+          setOtpModalOpen(false);
+        } else {
+          setOtpStep("profile");
+          setOtpModalOpen(true);
+        }
+        return;
+      }
+
       const { data, error } = await supabase.auth.verifyOtp({
         phone: sentPhone,
         token: otpCode,
@@ -303,9 +454,7 @@ export default function ReservationReview({ property }: ReservationReviewProps) 
         setOtpModalOpen(true);
       }
     } catch (error) {
-      setOtpError(error instanceof Error
-        ? error.message
-        : label("That code could not be verified. Please try again.", "تعذر التحقق من الرمز. حاول مرة أخرى."));
+      setOtpError(getFirebaseErrorMessage(error));
     } finally {
       setOtpBusy(false);
     }
@@ -313,6 +462,13 @@ export default function ReservationReview({ property }: ReservationReviewProps) 
 
   const handleResendOtp = async (channel: OtpChannel) => {
     if (!sentPhone || otpSeconds > 0 || otpBusy) return;
+    if (channel === "sms" && isFirebaseConfigured()) {
+      confirmationResultRef.current = null;
+      setOtpModalOpen(false);
+      setOtpSent(false);
+      setOtpCode("");
+      return;
+    }
     setOtpError(null);
     setOtpBusy(true);
     try {
@@ -344,6 +500,27 @@ export default function ReservationReview({ property }: ReservationReviewProps) 
     setOtpBusy(true);
     try {
       const fullName = `${firstName.trim()} ${lastName.trim()}`;
+      if (isFirebaseConfigured()) {
+        const fbAuth = getFirebaseAuth();
+        if (fbAuth.currentUser) {
+          const fbUser = fbAuth.currentUser;
+          await updateProfile(fbUser, { displayName: fullName });
+          saveStoredFirebaseProfile(fbUser.uid, {
+            first_name: firstName.trim(),
+            last_name: lastName.trim(),
+            full_name: fullName,
+            contact_email: contactEmail.trim().toLowerCase(),
+            phone: fbUser.phoneNumber || verifiedPhone || sentPhone || accountPhone || "",
+          });
+          setProfileDetailsSaved(true);
+          await refreshProfile(fbUser.uid);
+          setOtpModalOpen(false);
+          setOtpStep("code");
+          setOtpError(null);
+          return;
+        }
+      }
+
       const { data, error } = await supabase.auth.updateUser({
         data: {
           first_name: firstName.trim(),
@@ -389,17 +566,46 @@ export default function ReservationReview({ property }: ReservationReviewProps) 
     }
     if (paymentBusy) return;
 
+    if (!isPropertyAvailable(property.id, bookingCheckinDate, bookingCheckoutDate)) {
+      setPaymentMessage(label(
+        "These dates are no longer available. Please select different dates.",
+        "هذه التواريخ لم تعد متاحة لهذا العقار. يُرجى اختيار تواريخ أخرى."
+      ));
+      return;
+    }
+
     setPaymentBusy(true);
     try {
+      let token: string | undefined;
+      try {
+        if (isFirebaseConfigured()) {
+          const fbUser = getFirebaseAuth().currentUser;
+          if (fbUser) token = await fbUser.getIdToken();
+        }
+      } catch {}
+
+      const effectivePhone = verifiedPhone || accountPhone || user?.phone || (typeof user?.user_metadata?.phone === "string" ? user.user_metadata.phone : "") || "";
+      const effectiveFirstName = firstName.trim() || savedFirstName;
+      const effectiveLastName = lastName.trim() || savedLastName;
+      const effectiveName = [effectiveFirstName, effectiveLastName].filter(Boolean).join(" ") || metadataName || (typeof user?.user_metadata?.full_name === "string" ? user.user_metadata.full_name : "") || "Guest";
+      const effectiveEmail = contactEmail.trim() || savedEmail || user?.email || (typeof user?.user_metadata?.contact_email === "string" ? user.user_metadata.contact_email : "") || "";
+
       const response = await fetch("/api/payments/checkout", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
         body: JSON.stringify({
           method: paymentMethod,
           propertyId: property.id,
           checkIn: bookingCheckinDate,
           checkOut: bookingCheckoutDate,
           guests: bookingGuestsCount,
+          guestPhone: effectivePhone,
+          guestName: effectiveName,
+          guestEmail: effectiveEmail,
+          guestSubject: user?.id,
         }),
       });
       const result = await response.json() as {
@@ -429,9 +635,11 @@ export default function ReservationReview({ property }: ReservationReviewProps) 
             ? label("Please complete your name and email details to continue.", "أكمل الاسم والبريد الإلكتروني للمتابعة.")
             : result.code === "invalid_booking"
               ? label("Please review your dates and guest count before continuing.", "راجع تواريخ الإقامة وعدد الضيوف قبل المتابعة.")
-              : result.code === "payment_provider_not_configured"
-                ? `${providerName} is not configured yet. Your selection was routed correctly, and no charge was made.`
-                : `${providerName} checkout is not available yet. No charge was made.`;
+              : result.code === "dates_unavailable"
+                ? label("These dates are already booked. Please choose different dates.", "هذه التواريخ محجوزة بالفعل. يرجى اختيار تواريخ أخرى.")
+                : result.code === "payment_provider_not_configured"
+                  ? `${providerName} checkout is not connected yet. No charge or booking was made.`
+                  : `${providerName} checkout is unavailable. No charge or booking was made.`;
         setPaymentMessage(label(
           errorMessage,
           result.code === "phone_verification_required"
@@ -440,16 +648,21 @@ export default function ReservationReview({ property }: ReservationReviewProps) 
               ? "أكمل الاسم والبريد الإلكتروني للمتابعة."
               : result.code === "invalid_booking"
                 ? "راجع تواريخ الإقامة وعدد الضيوف قبل المتابعة."
-                : `${providerName} لم يتم إعداده بعد. تم توجيه طلب الدفع للطريقة الصحيحة ولم يتم خصم أي مبلغ.`
+                : result.code === "dates_unavailable"
+                  ? "هذه التواريخ محجوزة بالفعل. يرجى اختيار تواريخ أخرى."
+                  : `${providerName} checkout غير متصل بعد. لم يتم الخصم أو إنشاء الحجز.`
         ));
         return;
       }
 
       if (result.success && result.bookingRef) {
+        // Record booked range to prevent double booking on this property
+        recordBookedRange(property.id, String(result.checkIn || bookingCheckinDate), String(result.checkOut || bookingCheckoutDate), String(result.bookingRef));
+
         const confirmed: ConfirmedBooking = {
           bookingId: String(result.bookingId || result.bookingRef),
           bookingRef: String(result.bookingRef),
-          smartLockPin: String(result.smartLockPin || "482910"),
+          smartLockPin: result.smartLockPin ? String(result.smartLockPin) : null,
           amount: Number(result.amount || total),
           checkIn: String(result.checkIn || bookingCheckinDate),
           checkOut: String(result.checkOut || bookingCheckoutDate),
@@ -463,24 +676,11 @@ export default function ReservationReview({ property }: ReservationReviewProps) 
           },
         };
 
+        // Persist booking to guest's local bookings list for fast offline and my-bookings sync
         try {
-          const stored = localStorage.getItem("qafnest_guest_bookings");
-          const existing = stored ? JSON.parse(stored) : [];
-          const localItem = {
-            id: confirmed.bookingId,
-            check_in: confirmed.checkIn,
-            check_out: confirmed.checkOut,
-            total_nights: confirmed.nights,
-            guests_count: confirmed.guests,
-            total_price: confirmed.amount,
-            status: "confirmed",
-            payment_status: "success",
-            smart_lock_pin: confirmed.smartLockPin,
-            created_at: new Date().toISOString(),
-            property: confirmed.property,
-          };
-          const updated = [localItem, ...existing.filter((b: { id: string }) => b.id !== confirmed.bookingId)];
-          localStorage.setItem("qafnest_guest_bookings", JSON.stringify(updated));
+          const rawBookings = window.localStorage.getItem("qafnest_guest_bookings");
+          const existingList: ConfirmedBooking[] = rawBookings ? JSON.parse(rawBookings) : [];
+          window.localStorage.setItem("qafnest_guest_bookings", JSON.stringify([confirmed, ...existingList]));
         } catch {}
 
         setConfirmedBooking(confirmed);
@@ -533,7 +733,7 @@ export default function ReservationReview({ property }: ReservationReviewProps) 
                   <span className="text-[10px] font-bold uppercase tracking-wider text-violet-600 dark:text-violet-300">{category}</span>
                   <h2 className="mt-1 text-lg font-bold text-gray-950 dark:text-white">{title}</h2>
                   <div className="mt-2 flex flex-wrap gap-x-4 gap-y-2 text-xs text-gray-500 dark:text-gray-400">
-                    <span className="inline-flex items-center gap-1.5"><Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />{property.rating.toFixed(1)} ({property.reviewsCount} {label("reviews", "تقييم")})</span>
+                    <span className="inline-flex items-center gap-1.5">{property.rating > 0 ? <><Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />{property.rating.toFixed(1)} / 10 ({property.reviewsCount} {label("reviews", "تقييم")})</> : label("No ratings yet", "لا توجد تقييمات بعد")}</span>
                     <span className="inline-flex items-center gap-1.5"><MapPin className="h-3.5 w-3.5 text-violet-500" />{location}</span>
                     <span className="inline-flex items-center gap-1.5"><Users className="h-3.5 w-3.5 text-violet-500" />{label("Up to", "حتى")} {capacity} {label("guests", "ضيوف")}</span>
                   </div>
@@ -602,14 +802,19 @@ export default function ReservationReview({ property }: ReservationReviewProps) 
                       <div>
                         <p className="mb-2 text-[11px] font-semibold text-gray-600 dark:text-gray-300">{label("Send verification code by", "أرسل رمز التحقق عبر")}</p>
                         <div className="grid grid-cols-2 gap-2 sm:max-w-sm" role="radiogroup" aria-label={label("Verification delivery channel", "قناة إرسال رمز التحقق")}>
-                          <button type="button" role="radio" aria-checked={otpChannel === "sms"} onClick={() => setOtpChannel("sms")} className={`inline-flex items-center justify-center gap-2 rounded-xl border px-3 py-2.5 text-xs font-bold transition ${otpChannel === "sms" ? "border-violet-500 bg-violet-50 text-violet-800 ring-1 ring-violet-500 dark:bg-violet-400/10 dark:text-violet-200" : "border-gray-200 text-gray-600 hover:border-violet-300 dark:border-white/10 dark:text-gray-300"}`}>
+                          <button type="button" role="radio" aria-checked={otpChannel === "sms"} onClick={() => { setOtpChannel("sms"); setOtpError(null); }} className={`inline-flex items-center justify-center gap-2 rounded-xl border px-3 py-2.5 text-xs font-bold transition ${otpChannel === "sms" ? "border-violet-500 bg-violet-50 text-violet-800 ring-1 ring-violet-500 dark:bg-violet-400/10 dark:text-violet-200" : "border-gray-200 text-gray-600 hover:border-violet-300 dark:border-white/10 dark:text-gray-300"}`}>
                             <Smartphone className="h-4 w-4" /> SMS
                           </button>
-                          <button type="button" role="radio" aria-checked={otpChannel === "whatsapp"} onClick={() => setOtpChannel("whatsapp")} className={`inline-flex items-center justify-center gap-2 rounded-xl border px-3 py-2.5 text-xs font-bold transition ${otpChannel === "whatsapp" ? "border-emerald-500 bg-emerald-50 text-emerald-800 ring-1 ring-emerald-500 dark:bg-emerald-400/10 dark:text-emerald-200" : "border-gray-200 text-gray-600 hover:border-emerald-300 dark:border-white/10 dark:text-gray-300"}`}>
+                          <button type="button" role="radio" aria-checked={otpChannel === "whatsapp"} onClick={() => { setOtpChannel("whatsapp"); setOtpError(null); }} className={`inline-flex items-center justify-center gap-2 rounded-xl border px-3 py-2.5 text-xs font-bold transition ${otpChannel === "whatsapp" ? "border-emerald-500 bg-emerald-50 text-emerald-800 ring-1 ring-emerald-500 dark:bg-emerald-400/10 dark:text-emerald-200" : "border-gray-200 text-gray-600 hover:border-emerald-300 dark:border-white/10 dark:text-gray-300"}`}>
                             <MessageCircle className="h-4 w-4" /> WhatsApp
                           </button>
                         </div>
                       </div>
+                      {otpChannel === "sms" && (
+                        <div className="overflow-x-auto pt-1">
+                          <div ref={recaptchaContainerRef} />
+                        </div>
+                      )}
                     </form>
                   )}
                   {otpSent && !phoneOtpVerified && (
@@ -721,12 +926,23 @@ export default function ReservationReview({ property }: ReservationReviewProps) 
               </div>
 
               <div className="p-5 sm:p-6">
-                <div className="flex items-baseline justify-between gap-3 border-b border-gray-100 pb-4 dark:border-white/10">
+                <div className="flex items-start justify-between gap-3 border-b border-gray-100 pb-4 dark:border-white/10">
                   <div>
-                    <span className="text-2xl font-extrabold text-gray-950 dark:text-white">{formatPrice(property.basePrice)}</span>
-                    <span className="ml-1 text-xs text-gray-500 dark:text-gray-400">/ {label("night", "ليلة")}</span>
+                    {hasDiscount && (
+                      <div className="text-xs sm:text-sm font-bold text-rose-500 dark:text-rose-400 line-through tracking-tight">
+                        {formatPrice(property.originalPrice || 0)}
+                      </div>
+                    )}
+                    <div className="flex items-baseline gap-1.5 mt-0.5">
+                      <span className="text-2xl font-black text-gray-950 dark:text-white">{formatPrice(property.basePrice)}</span>
+                      <span className="text-xs text-gray-500 dark:text-gray-400">/ {label("night", "ليلة")}</span>
+                    </div>
                   </div>
-                  {hasDiscount && <span className="rounded-full bg-rose-50 px-2.5 py-1 text-[10px] font-bold text-rose-600 dark:bg-rose-400/10 dark:text-rose-300">{property.discountPercentage || Math.round((1 - property.basePrice / (property.originalPrice || property.basePrice)) * 100)}% OFF</span>}
+                  {hasDiscount && (
+                    <span className="rounded-md bg-[#fee2e2] px-2.5 py-1 text-xs font-black uppercase text-rose-600 dark:bg-rose-500/20 dark:text-rose-400 shadow-sm">
+                      {property.discountPercentage || Math.round((1 - property.basePrice / (property.originalPrice || property.basePrice)) * 100)}% OFF
+                    </span>
+                  )}
                 </div>
 
                 <div className="py-4">
@@ -935,8 +1151,8 @@ export default function ReservationReview({ property }: ReservationReviewProps) 
                 </p>
               </div>
 
-              {/* Digital Smart Lock PIN Box */}
-              <div className="mt-6 rounded-2xl border border-emerald-200 bg-emerald-50/80 p-5 text-center dark:border-emerald-400/20 dark:bg-emerald-400/10">
+              {/* Only show a PIN returned by the trusted booking system. */}
+              {confirmedBooking.smartLockPin ? <div className="mt-6 rounded-2xl border border-emerald-200 bg-emerald-50/80 p-5 text-center dark:border-emerald-400/20 dark:bg-emerald-400/10">
                 <div className="flex items-center justify-center gap-1.5 text-xs font-bold text-emerald-800 dark:text-emerald-200">
                   <KeyRound className="h-4 w-4" />
                   <span>{label("Self Check-in Smart Lock PIN", "رمز القفل الذكي للدخول الذاتي")}</span>
@@ -948,7 +1164,7 @@ export default function ReservationReview({ property }: ReservationReviewProps) 
                   <button
                     type="button"
                     onClick={() => {
-                      navigator.clipboard.writeText(confirmedBooking.smartLockPin);
+                      void navigator.clipboard.writeText(confirmedBooking.smartLockPin!);
                       setPinCopied(true);
                       setTimeout(() => setPinCopied(false), 2000);
                     }}
@@ -964,7 +1180,9 @@ export default function ReservationReview({ property }: ReservationReviewProps) 
                     "أدخل هذا الرمز في لوحة القفل الذكي عند وصولك للعقار."
                   )}
                 </p>
-              </div>
+              </div> : <p className="mt-6 rounded-2xl border border-gray-200 bg-gray-50 p-4 text-center text-sm text-gray-600 dark:border-white/10 dark:bg-white/5 dark:text-gray-300">
+                {label("Your host will share access details before check-in.", "سيشاركك المضيف تفاصيل الدخول قبل تسجيل الوصول.")}
+              </p>}
 
               {/* Booking Summary */}
               <div className="mt-5 space-y-2 rounded-2xl border border-gray-100 bg-gray-50 p-4 text-xs dark:border-white/5 dark:bg-white/[0.02]">

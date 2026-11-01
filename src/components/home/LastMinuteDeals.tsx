@@ -2,12 +2,21 @@
 
 import { useState, useEffect } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { Clock, Percent, Zap, Star, ArrowRight } from "lucide-react";
 import { DEALS } from "@/data/properties";
 import { useApp } from "@/context/AppContext";
+import { propertyDetailHref } from "@/lib/propertyUrls";
+
+const DEAL_PROPERTY_MAP: Record<string, string> = {
+  "deal-kidia": "prop-2",
+  "deal-sea": "prop-3",
+  "deal-fog": "prop-4",
+  "deal-roses": "prop-5",
+};
 
 export default function LastMinuteDeals() {
-  const { formatPrice, formatTabby, openBookingModal } = useApp();
+  const { formatPrice, formatTabby, language } = useApp();
 
   const [timeLeft, setTimeLeft] = useState({
     hours: 14,
@@ -145,7 +154,7 @@ export default function LastMinuteDeals() {
                     </span>
                     <div className="flex items-center gap-1 text-xs font-bold text-fg">
                       <Star className="w-3.5 h-3.5 fill-fuchsia-400 text-fuchsia-400" />
-                      <span>{deal.rating}</span>
+                      <span>{deal.rating.toFixed(1)} / 10</span>
                       <span className="text-[10px] text-muted/60">
                         ({deal.reviewsCount})
                       </span>
@@ -194,13 +203,13 @@ export default function LastMinuteDeals() {
                     </span>
                   </div>
 
-                  <button
-                    onClick={() => openBookingModal(deal.title, deal.discountPrice)}
+                  <Link
+                    href={propertyDetailHref(DEAL_PROPERTY_MAP[deal.id] || "prop-1")}
                     className="w-full py-3 rounded-full bg-luxe-gradient text-white text-xs font-bold uppercase tracking-wider shadow-glow hover:shadow-glow-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer"
                   >
-                    <span>Claim Flash Deal</span>
-                    <ArrowRight className="w-3.5 h-3.5" />
-                  </button>
+                    <span>{language === "ar" ? "احجز العرض الحصري" : "Claim Flash Deal"}</span>
+                    <ArrowRight className="w-3.5 h-3.5 rtl:rotate-180" />
+                  </Link>
                 </div>
               </div>
             </div>

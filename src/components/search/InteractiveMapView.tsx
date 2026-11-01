@@ -467,7 +467,7 @@ export default function InteractiveMapView({
                 className="object-cover"
               />
               <span className="absolute left-1.5 top-1.5 rounded bg-black/60 px-1.5 py-0.5 text-[10px] font-bold text-white">
-                ★ {selectedProperty.rating.toFixed(1)}
+                {selectedProperty.rating > 0 ? `★ ${selectedProperty.rating.toFixed(1)} / 10` : language === "ar" ? "لا توجد تقييمات" : "No rating"}
               </span>
             </div>
             <div className="flex min-w-0 flex-1 flex-col justify-between">

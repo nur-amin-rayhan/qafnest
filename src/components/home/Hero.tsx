@@ -97,7 +97,23 @@ const MONTH_NAMES = [
   "December",
 ];
 
+const MONTH_NAMES_AR = [
+  "يناير",
+  "فبراير",
+  "مارس",
+  "أبريل",
+  "مايو",
+  "يونيو",
+  "يوليو",
+  "أغسطس",
+  "سبتمبر",
+  "أكتوبر",
+  "نوفمبر",
+  "ديسمبر",
+];
+
 const DAY_NAMES = ["S", "M", "T", "W", "T", "F", "S"];
+const DAY_NAMES_AR = ["ح", "ن", "ث", "ر", "خ", "ج", "س"];
 
 export default function Hero() {
   const {
@@ -137,20 +153,13 @@ export default function Hero() {
 
   // Dynamic date helpers
   const getTodayISO = () => {
-    const d = new Date();
-    const y = d.getFullYear();
-    const m = String(d.getMonth() + 1).padStart(2, "0");
-    const day = String(d.getDate()).padStart(2, "0");
-    return `${y}-${m}-${day}`;
+    return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Riyadh" }).format(new Date());
   };
 
   const getFutureISO = (daysAhead: number) => {
     const d = new Date();
     d.setDate(d.getDate() + daysAhead);
-    const y = d.getFullYear();
-    const m = String(d.getMonth() + 1).padStart(2, "0");
-    const day = String(d.getDate()).padStart(2, "0");
-    return `${y}-${m}-${day}`;
+    return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Riyadh" }).format(d);
   };
 
   // Initialize dates if empty
@@ -332,7 +341,7 @@ export default function Hero() {
           )}
 
           <h4 className="text-sm font-bold text-gray-900 dark:text-white">
-            {MONTH_NAMES[month]} {year}
+            {language === "ar" ? MONTH_NAMES_AR[month] : MONTH_NAMES[month]} {year}
           </h4>
 
           {isRightMonth ? (
@@ -353,7 +362,7 @@ export default function Hero() {
 
         {/* Days Header */}
         <div className="grid grid-cols-7 gap-1 text-center mb-2">
-          {DAY_NAMES.map((name, idx) => (
+          {(language === "ar" ? DAY_NAMES_AR : DAY_NAMES).map((name, idx) => (
             <span
               key={idx}
               className="text-[11px] font-bold text-gray-400 dark:text-gray-500"

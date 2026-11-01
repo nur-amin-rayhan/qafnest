@@ -24,6 +24,7 @@ import InteractiveMapView from "@/components/search/InteractiveMapView";
 import PopularCitiesSection from "@/components/search/PopularCitiesSection";
 import FilterModal from "@/components/search/FilterModal";
 import { getPropertyCapacity, normalizeCityId } from "@/data/properties";
+import { isPropertyAvailable } from "@/lib/services/availability";
 import { useProperties } from "@/hooks/useProperties";
 import { CITY_NAMES_AR } from "@/data/translations";
 import { useApp } from "@/context/AppContext";
@@ -178,6 +179,11 @@ function SearchContent() {
       if (selfCheckinOnly && !p.selfCheckin) return false;
       if (getPropertyCapacity(p) < guestsCount) return false;
 
+      // 10. Date Availability
+      if (checkinDate && checkoutDate && !isPropertyAvailable(p.id, checkinDate, checkoutDate)) {
+        return false;
+      }
+
       return true;
     });
   }, [
@@ -195,6 +201,8 @@ function SearchContent() {
     poolOnly,
     selfCheckinOnly,
     guestsCount,
+    checkinDate,
+    checkoutDate,
     properties,
   ]);
 

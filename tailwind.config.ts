@@ -35,9 +35,10 @@ const config: Config = {
         contrast: 'rgb(var(--on-brand) / <alpha-value>)',
       },
       fontFamily: {
-        display: ['var(--font-display)', 'system-ui', 'sans-serif'],
+        display: ['var(--font-display)', 'var(--font-arabic)', 'system-ui', 'sans-serif'],
         serif: ['var(--font-serif)', 'Georgia', 'serif'],
-        body: ['var(--font-body)', 'system-ui', 'sans-serif'],
+        body: ['var(--font-body)', 'var(--font-arabic)', 'system-ui', 'sans-serif'],
+        arabic: ['var(--font-arabic)', '"DinNext"', 'system-ui', 'sans-serif'],
       },
       backgroundImage: {
         'luxe-gradient': 'linear-gradient(135deg, #6D28D9, #9333EA, #A855F7, #C084FC)',
