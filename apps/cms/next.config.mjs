@@ -1,6 +1,5 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  basePath: "/cms",
   reactStrictMode: true,
   swcMinify: true,
   poweredByHeader: false,

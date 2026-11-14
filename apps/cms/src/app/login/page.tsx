@@ -11,11 +11,7 @@ function CmsLoginContent() {
   const rawReturnUrl = searchParams.get("returnUrl") || "/";
   const returnUrl =
     rawReturnUrl.startsWith("/") && !rawReturnUrl.startsWith("//")
-      ? rawReturnUrl === "/cms"
-        ? "/"
-        : rawReturnUrl.startsWith("/cms/")
-        ? rawReturnUrl.slice(4)
-        : rawReturnUrl
+      ? rawReturnUrl
       : "/";
 
   const { user, loading: authLoading, signIn } = useAdminAuth();

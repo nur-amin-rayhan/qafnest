@@ -1,22 +1,39 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import {
+  HOST_LANG_COOKIE,
+  getHostLocaleFromPathname,
+  localizeHostPath,
+  type HostLocale,
+} from "@/lib/hostLocale";
 
-export function useHostLanguage(initialLang: "ar" | "en" = "ar") {
-  const [lang, setLangState] = useState<"ar" | "en">(initialLang);
+function persistLocaleDomAndStorage(locale: HostLocale) {
+  if (typeof document === "undefined") return;
+  document.documentElement.lang = locale;
+  document.documentElement.dir = locale === "ar" ? "rtl" : "ltr";
+  try {
+    localStorage.setItem(HOST_LANG_COOKIE, locale);
+    document.cookie = `${HOST_LANG_COOKIE}=${locale}; path=/; max-age=31536000; SameSite=Lax`;
+  } catch {}
+}
 
-  const applyLang = useCallback((newLang: "ar" | "en") => {
+export function useHostLanguage(initialLang: HostLocale = "ar") {
+  const [lang, setLangState] = useState<HostLocale>(initialLang);
+
+  const applyLang = useCallback((newLang: HostLocale) => {
     setLangState(newLang);
-    if (typeof document !== "undefined") {
-      document.documentElement.lang = newLang;
-      document.documentElement.dir = newLang === "ar" ? "rtl" : "ltr";
+    persistLocaleDomAndStorage(newLang);
+
+    if (typeof window !== "undefined") {
       try {
-        localStorage.setItem("qafnest_host_lang", newLang);
-        document.cookie = `qafnest_host_lang=${newLang}; path=/; max-age=31536000; SameSite=Lax`;
-        if (typeof window !== "undefined") {
-          const url = new URL(window.location.href);
-          url.searchParams.set("lang", newLang);
-          window.history.replaceState({}, "", url.pathname + url.search);
+        const url = new URL(window.location.href);
+        url.searchParams.delete("lang");
+        const targetPathname = localizeHostPath(url.pathname, newLang);
+        if (url.pathname !== targetPathname) {
+          window.location.href = `${targetPathname}${url.search}${url.hash}`;
+        } else if (window.location.search !== url.search) {
+          window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
         }
       } catch {}
     }
@@ -24,21 +41,10 @@ export function useHostLanguage(initialLang: "ar" | "en" = "ar") {
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    try {
-      const params = new URLSearchParams(window.location.search);
-      const urlLang = params.get("lang");
-      if (urlLang === "en" || urlLang === "ar") {
-        applyLang(urlLang);
-        return;
-      }
-      const stored = localStorage.getItem("qafnest_host_lang");
-      if (stored === "en" || stored === "ar") {
-        applyLang(stored);
-      } else {
-        applyLang(initialLang);
-      }
-    } catch {}
-  }, [applyLang, initialLang]);
+    const pathLocale = getHostLocaleFromPathname(window.location.pathname) ?? initialLang;
+    setLangState(pathLocale);
+    persistLocaleDomAndStorage(pathLocale);
+  }, [initialLang]);
 
   const toggleLang = useCallback(() => {
     applyLang(lang === "ar" ? "en" : "ar");
@@ -53,4 +59,3 @@ export function useHostLanguage(initialLang: "ar" | "en" = "ar") {
     t,
   };
 }
-

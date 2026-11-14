@@ -26,8 +26,8 @@ console.log("\n========================================================");
 console.log("🚀 Starting QafNest 4-App Monorepo Ecosystem...");
 console.log("   🌐 Guest App : http://localhost:3000            (Prod: https://qafnest.com)");
 console.log("   🏢 Host App  : http://localhost:3001            (Prod: https://business.qafnest.com)");
-console.log("   📝 CMS App   : http://localhost:3002/cms        (or :3000/cms · Prod: https://qafnest.com/cms)");
-console.log("   🛡️  Admin App : http://localhost:3003/admin      (or :3000/admin · Prod: https://qafnest.com/admin)");
+console.log("   📝 CMS App   : http://localhost:3002            (or cms.localhost:3002 · Prod: https://cms.qafnest.com)");
+console.log("   🛡️  Admin App : http://localhost:3003            (or admin.localhost:3003 · Prod: https://admin.qafnest.com)");
 console.log("========================================================\n");
 
 killStalePortProcesses();

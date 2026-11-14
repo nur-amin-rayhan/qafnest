@@ -3,6 +3,12 @@
 import { useCallback, useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import type { Module } from "@/components/dashboard/HostTopNav";
+import {
+  getHostLocaleFromPathname,
+  localizeHostPath,
+  stripHostLocaleFromPathname,
+  type HostLocale,
+} from "@/lib/hostLocale";
 
 export const HOST_ACTIVE_TAB_STORAGE_KEY = "qafnest_host_active_tab";
 
@@ -24,7 +30,8 @@ export function isValidModule(val: unknown): val is Module {
 
 export function parseTabFromPathname(pathname?: string | null): Module | null {
   if (!pathname) return null;
-  const segments = pathname.split("/").filter(Boolean);
+  const cleanPath = stripHostLocaleFromPathname(pathname);
+  const segments = cleanPath.split("/").filter(Boolean);
   if (segments[0] === "app" && segments[1]) {
     const candidate = segments[1].toLowerCase();
     if (isValidModule(candidate)) {
@@ -34,11 +41,11 @@ export function parseTabFromPathname(pathname?: string | null): Module | null {
   return null;
 }
 
-export function getPathForModule(module: Module): string {
-  return `/app/${module}`;
+export function getPathForModule(module: Module, locale: HostLocale = "ar"): string {
+  return localizeHostPath(`/app/${module}`, locale);
 }
 
-export function useHostTabRouting(initialTab?: string) {
+export function useHostTabRouting(initialTab?: string, lang: HostLocale = "ar") {
   const pathname = usePathname();
 
   const getInitialTab = (): Module => {
@@ -62,11 +69,14 @@ export function useHostTabRouting(initialTab?: string) {
 
   const [activeTab, setActiveTabState] = useState<Module>(getInitialTab);
 
-  // Sync state on mount and handle deep-link or root /app persistence
+  // Sync state on mount and handle deep-link or root /[lang]/app persistence
   useEffect(() => {
     if (typeof window === "undefined") return;
 
-    const pathTab = parseTabFromPathname(window.location.pathname);
+    const currentPath = window.location.pathname;
+    const activeLocale = getHostLocaleFromPathname(currentPath) ?? lang;
+    const pathTab = parseTabFromPathname(currentPath);
+
     if (pathTab) {
       setActiveTabState(pathTab);
       try {
@@ -75,20 +85,29 @@ export function useHostTabRouting(initialTab?: string) {
       return;
     }
 
-    if (window.location.pathname === "/app") {
+    if (stripHostLocaleFromPathname(currentPath) === "/app") {
+      const search = window.location.search || "";
       try {
         const stored = localStorage.getItem(HOST_ACTIVE_TAB_STORAGE_KEY);
         if (isValidModule(stored)) {
           setActiveTabState(stored);
-          window.history.replaceState({ tab: stored }, "", getPathForModule(stored));
+          window.history.replaceState(
+            { tab: stored },
+            "",
+            `${getPathForModule(stored, activeLocale)}${search}`
+          );
           return;
         }
       } catch {}
 
       setActiveTabState("overview");
-      window.history.replaceState({ tab: "overview" }, "", "/app/overview");
+      window.history.replaceState(
+        { tab: "overview" },
+        "",
+        `${getPathForModule("overview", activeLocale)}${search}`
+      );
     }
-  }, []);
+  }, [lang]);
 
   // Listen to browser Back / Forward buttons (popstate)
   useEffect(() => {
@@ -119,24 +138,27 @@ export function useHostTabRouting(initialTab?: string) {
     return () => window.removeEventListener("popstate", handlePopState);
   }, []);
 
-  // Client-side tab navigation with URL path update and local persistence
-  const setActiveTab = useCallback((newTab: Module) => {
-    setActiveTabState(newTab);
-    try {
-      localStorage.setItem(HOST_ACTIVE_TAB_STORAGE_KEY, newTab);
-    } catch {}
+  // Client-side tab navigation with locale-prefixed URL path update and local persistence
+  const setActiveTab = useCallback(
+    (newTab: Module) => {
+      setActiveTabState(newTab);
+      try {
+        localStorage.setItem(HOST_ACTIVE_TAB_STORAGE_KEY, newTab);
+      } catch {}
 
-    if (typeof window !== "undefined") {
-      const targetUrl = getPathForModule(newTab);
-      if (window.location.pathname !== targetUrl) {
-        window.history.pushState({ tab: newTab }, "", targetUrl);
+      if (typeof window !== "undefined") {
+        const activeLocale = getHostLocaleFromPathname(window.location.pathname) ?? lang;
+        const targetUrl = getPathForModule(newTab, activeLocale);
+        if (window.location.pathname !== targetUrl) {
+          window.history.pushState({ tab: newTab }, "", targetUrl);
+        }
       }
-    }
-  }, []);
+    },
+    [lang]
+  );
 
   return {
     activeTab,
     setActiveTab,
   };
 }
-

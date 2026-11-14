@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import Navbar from "@/components/common/Navbar";
 import Footer from "@/components/common/Footer";
 import { useApp } from "@/context/AppContext";
-import { PhoneCall, MessageCircle, Mail, MapPin, Send, CheckCircle2, AlertCircle } from "lucide-react";
+import { PhoneCall, MessageCircle, Mail, MapPin, Send, CheckCircle2, AlertCircle, ChevronDown } from "lucide-react";
 import { QAFNEST_SUPPORT_CONTACT, type CmsPageRecord } from "@qafnest/shared";
 
 function toTelHref(raw: string): string {
@@ -53,9 +53,13 @@ export default function ContactUsPage() {
   const contactInfo = cmsPage?.contactInfo;
   const phoneDisplay = contactInfo?.phone?.trim() || QAFNEST_SUPPORT_CONTACT.displayPhone;
   const whatsappDisplay = contactInfo?.whatsapp?.trim() || phoneDisplay;
-  const supportEmail = contactInfo?.supportEmail?.trim() || QAFNEST_SUPPORT_CONTACT.supportEmail;
-  const hostsEmail = contactInfo?.hostsEmail?.trim() || "hosts@qafnest.com";
-  const financeEmail = contactInfo?.financeEmail?.trim() || "finance@qafnest.com";
+  const contactEmail = (() => {
+    const raw = contactInfo?.supportEmail?.trim();
+    if (!raw || raw.toLowerCase() === "support@qafnest.com") {
+      return "qafnest@gmail.com";
+    }
+    return raw;
+  })();
   const hqAddress = language === "ar"
     ? contactInfo?.addressAr?.trim() || QAFNEST_SUPPORT_CONTACT.hqAddressAr
     : contactInfo?.addressEn?.trim() || QAFNEST_SUPPORT_CONTACT.hqAddressEn;
@@ -179,7 +183,7 @@ export default function ContactUsPage() {
                 </div>
               </a>
 
-              {/* Email Addresses */}
+              {/* Email Department */}
               <div className="p-4 rounded-2xl border border-slate-100 dark:border-white/10 bg-slate-50/50 dark:bg-white/5 space-y-2 text-xs">
                 <div className="flex items-center gap-2 font-bold text-slate-800 dark:text-slate-200">
                   <Mail className="w-4 h-4 text-violet-600" />
@@ -187,16 +191,10 @@ export default function ContactUsPage() {
                 </div>
                 <div className="space-y-1 text-slate-600 dark:text-slate-400">
                   <p>
-                    <strong>{label("Guest Care: ", "خدمة الضيوف: ")}</strong>
-                    <a href={`mailto:${supportEmail}`} className="text-violet-600 hover:underline">{supportEmail}</a>
-                  </p>
-                  <p>
-                    <strong>{label("Host Onboarding: ", "تسجيل المضيفين: ")}</strong>
-                    <a href={`mailto:${hostsEmail}`} className="text-violet-600 hover:underline">{hostsEmail}</a>
-                  </p>
-                  <p>
-                    <strong>{label("Finance & VAT: ", "المالية والفواتير: ")}</strong>
-                    <a href={`mailto:${financeEmail}`} className="text-violet-600 hover:underline">{financeEmail}</a>
+                    <strong>{label("Official Support & Inquiries: ", "البريد الرسمي للدعم والاستفسارات: ")}</strong>
+                    <a href={`mailto:${contactEmail}`} className="text-violet-600 hover:underline font-medium">
+                      {contactEmail}
+                    </a>
                   </p>
                 </div>
               </div>
@@ -263,9 +261,9 @@ export default function ContactUsPage() {
                   </div>
                 )}
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-start">
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
                       {label("Your Full Name *", "الاسم الكامل *")}
                     </label>
                     <input
@@ -274,12 +272,12 @@ export default function ContactUsPage() {
                       value={name}
                       onChange={(e) => setName(e.target.value)}
                       placeholder={label("e.g. Abdullah Al-Otaibi", "مثال: عبدالله العتيبي")}
-                      className="w-full h-10 px-3 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs focus:outline-hidden focus:ring-2 focus:ring-violet-500"
+                      className="w-full h-10 px-3 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs focus:outline-none focus:ring-2 focus:ring-violet-500"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
                       {label("Saudi Mobile Phone *", "رقم الجوال السعودي *")}
                     </label>
                     <input
@@ -288,14 +286,14 @@ export default function ContactUsPage() {
                       value={phone}
                       onChange={(e) => setPhone(e.target.value)}
                       placeholder="+966 5X XXX XXXX"
-                      className="w-full h-10 px-3 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-mono focus:outline-hidden focus:ring-2 focus:ring-violet-500"
+                      className="w-full h-10 px-3 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-violet-500"
                     />
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-start">
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
                       {label("Email Address", "البريد الإلكتروني")}
                     </label>
                     <input
@@ -303,29 +301,35 @@ export default function ContactUsPage() {
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       placeholder="name@example.com"
-                      className="w-full h-10 px-3 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs focus:outline-hidden focus:ring-2 focus:ring-violet-500"
+                      className="block w-full h-10 px-3 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs focus:outline-none focus:ring-2 focus:ring-violet-500"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
                       {label("Subject Category", "نوع الاستفسار")}
                     </label>
-                    <select
-                      value={subject}
-                      onChange={(e) => setSubject(e.target.value)}
-                      className="w-full h-10 px-3 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs focus:outline-hidden focus:ring-2 focus:ring-violet-500"
-                    >
-                      <option value="booking">{label("Existing Booking or Smart Lock", "حجز حالي أو الدخول الذكي")}</option>
-                      <option value="refund">{label("Cancellation & Refund Inquiry", "استفسار عن الإلغاء والاسترداد")}</option>
-                      <option value="host">{label("Host Partnership / List Property", "تسجيل عقار / شراكة مضيف")}</option>
-                      <option value="general">{label("General Inquiries & Suggestions", "استفسارات عامة أو اقتراحات")}</option>
-                    </select>
+                    <div className="relative">
+                      <select
+                        value={subject}
+                        onChange={(e) => setSubject(e.target.value)}
+                        className="block appearance-none w-full h-10 pl-3 pr-9 rtl:pl-9 rtl:pr-3 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs leading-normal text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-violet-500 cursor-pointer"
+                      >
+                        <option value="booking">{label("Existing Booking or Smart Lock", "حجز حالي أو الدخول الذكي")}</option>
+                        <option value="refund">{label("Cancellation & Refund Inquiry", "استفسار عن الإلغاء والاسترداد")}</option>
+                        <option value="host">{label("Host Partnership / List Property", "تسجيل عقار / شراكة مضيف")}</option>
+                        <option value="general">{label("General Inquiries & Suggestions", "استفسارات عامة أو اقتراحات")}</option>
+                      </select>
+                      <ChevronDown
+                        aria-hidden="true"
+                        className="w-4 h-4 text-slate-400 pointer-events-none absolute right-3 rtl:right-auto rtl:left-3 top-1/2 -translate-y-1/2"
+                      />
+                    </div>
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
                     {label("Your Message *", "تفاصيل الرسالة *")}
                   </label>
                   <textarea
@@ -334,7 +338,7 @@ export default function ContactUsPage() {
                     value={message}
                     onChange={(e) => setMessage(e.target.value)}
                     placeholder={label("Please describe your question or requirement in detail...", "اكتب تفاصيل طلبك أو استفسارك هنا...")}
-                    className="w-full p-3 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs focus:outline-hidden focus:ring-2 focus:ring-violet-500"
+                    className="w-full p-3 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs focus:outline-none focus:ring-2 focus:ring-violet-500"
                   />
                 </div>
 

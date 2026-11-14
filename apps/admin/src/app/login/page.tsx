@@ -11,11 +11,7 @@ function AdminLoginContent() {
   const rawReturnUrl = searchParams.get("returnUrl") || "/";
   const returnUrl =
     rawReturnUrl.startsWith("/") && !rawReturnUrl.startsWith("//")
-      ? rawReturnUrl === "/admin"
-        ? "/"
-        : rawReturnUrl.startsWith("/admin/")
-        ? rawReturnUrl.slice(6)
-        : rawReturnUrl
+      ? rawReturnUrl
       : "/";
 
   const { user, loading: authLoading, signIn, lang, toggleLang, dir, t } = useAdminAuth();

@@ -1,4 +1,4 @@
-# Caddy reverse proxy configuration for QafNest on Hetzner VPS (auto HTTPS via Let's Encrypt)
+# Caddy reverse proxy configuration for QafNest on Hetzner VPS (Subdomain Isolation)
 # Copy to /etc/caddy/Caddyfile and reload with: sudo systemctl reload caddy
 
 www.qafnest.com {
@@ -7,23 +7,20 @@ www.qafnest.com {
 
 qafnest.com {
 	encode gzip zstd
-
-	@admin path /admin /admin/*
-	handle @admin {
-		reverse_proxy 127.0.0.1:3003
-	}
-
-	@cms path /cms /cms/*
-	handle @cms {
-		reverse_proxy 127.0.0.1:3002
-	}
-
-	handle {
-		reverse_proxy 127.0.0.1:3000
-	}
+	reverse_proxy 127.0.0.1:3000
 }
 
 business.qafnest.com {
 	encode gzip zstd
 	reverse_proxy 127.0.0.1:3001
+}
+
+cms.qafnest.com {
+	encode gzip zstd
+	reverse_proxy 127.0.0.1:3002
+}
+
+admin.qafnest.com {
+	encode gzip zstd
+	reverse_proxy 127.0.0.1:3003
 }

@@ -3,6 +3,11 @@
 import type { SupabaseClient, User } from "@supabase/supabase-js";
 import { setHostSessionCookie } from "@/context/HostAuthContext";
 import type { HostProfile } from "@/context/HostAuthContext";
+import {
+  DEFAULT_HOST_LOCALE,
+  localizeHostPath,
+  normalizeHostLocale,
+} from "@/lib/hostLocale";
 
 export type AuthTab = "phone" | "email";
 export type PhoneStep = "phone_input" | "otp_verify" | "profile_details";
@@ -11,15 +16,20 @@ export type OtpChannel = "sms" | "whatsapp";
 export const OTP_LENGTH = 6;
 
 export function withLang(url: string, currentLang: string): string {
+  const locale = normalizeHostLocale(currentLang) ?? DEFAULT_HOST_LOCALE;
   try {
     const parsed = new URL(
       url,
       typeof window !== "undefined" ? window.location.origin : "http://localhost:3001"
     );
-    parsed.searchParams.set("lang", currentLang);
-    return parsed.pathname + parsed.search;
+    parsed.searchParams.delete("lang");
+    const localized = localizeHostPath(
+      `${parsed.pathname}${parsed.search}${parsed.hash}`,
+      locale
+    );
+    return localized;
   } catch {
-    return url.includes("?") ? `${url}&lang=${currentLang}` : `${url}?lang=${currentLang}`;
+    return localizeHostPath(url || "/app", locale);
   }
 }
 

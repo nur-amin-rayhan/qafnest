@@ -81,7 +81,7 @@ export const HostProfileDropdown = React.forwardRef<
             <span>{t("Settings", "الإعدادات")}</span>
           </button>
           <Link
-            href="/"
+            href={`/${lang}`}
             className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100"
           >
             <Building2 size={14} />

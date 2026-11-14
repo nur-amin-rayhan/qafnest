@@ -25,8 +25,8 @@ npm ci
 echo "==> [3/4] Building all 4 Next.js applications..."
 export NEXT_PUBLIC_GUEST_URL="${NEXT_PUBLIC_GUEST_URL:-https://qafnest.com}"
 export NEXT_PUBLIC_HOST_PORTAL_URL="${NEXT_PUBLIC_HOST_PORTAL_URL:-https://business.qafnest.com}"
-export NEXT_PUBLIC_CMS_PORTAL_URL="${NEXT_PUBLIC_CMS_PORTAL_URL:-https://qafnest.com/cms}"
-export NEXT_PUBLIC_ADMIN_PORTAL_URL="${NEXT_PUBLIC_ADMIN_PORTAL_URL:-https://qafnest.com/admin}"
+export NEXT_PUBLIC_CMS_PORTAL_URL="${NEXT_PUBLIC_CMS_PORTAL_URL:-https://cms.qafnest.com}"
+export NEXT_PUBLIC_ADMIN_PORTAL_URL="${NEXT_PUBLIC_ADMIN_PORTAL_URL:-https://admin.qafnest.com}"
 npm run build
 
 echo "==> [4/4] Starting/reloading PM2 processes..."

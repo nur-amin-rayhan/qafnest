@@ -10,6 +10,7 @@ interface HostNavLinksProps {
   submittedPropertiesCount: number;
   hasPropertyIssues: boolean;
   bookingsCount: number;
+  lang: "ar" | "en";
   t: (en: string, ar: string) => string;
 }
 
@@ -19,13 +20,14 @@ export function HostNavLinks({
   submittedPropertiesCount,
   hasPropertyIssues,
   bookingsCount,
+  lang,
   t,
 }: HostNavLinksProps) {
   return (
     <nav className="hidden lg:flex items-center gap-1 xl:gap-2 h-full">
       {/* 1. الرئيسية / OVERVIEW */}
       <Link
-        href="/app/overview"
+        href={`/${lang}/app/overview`}
         onClick={(e) => {
           e.preventDefault();
           setActive("overview");
@@ -42,7 +44,7 @@ export function HostNavLinks({
 
       {/* 2. العقارات / PROPERTIES */}
       <Link
-        href="/app/properties"
+        href={`/${lang}/app/properties`}
         onClick={(e) => {
           e.preventDefault();
           setActive("properties");
@@ -68,7 +70,7 @@ export function HostNavLinks({
 
       {/* 3. الحجوزات / RESERVATIONS */}
       <Link
-        href="/app/reservations"
+        href={`/${lang}/app/reservations`}
         onClick={(e) => {
           e.preventDefault();
           setActive("reservations");
@@ -90,7 +92,7 @@ export function HostNavLinks({
 
       {/* 4. التقويم والأسعار / CALENDAR & RATES */}
       <Link
-        href="/app/calendar"
+        href={`/${lang}/app/calendar`}
         onClick={(e) => {
           e.preventDefault();
           setActive("calendar");

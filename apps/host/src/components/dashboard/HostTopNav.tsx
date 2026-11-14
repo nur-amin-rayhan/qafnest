@@ -101,7 +101,7 @@ export default function HostTopNav({
               {mobileNav ? <X size={18} /> : <Menu size={18} />}
             </button>
             <Link
-              href="/app/overview"
+              href={`/${lang}/app/overview`}
               onClick={(e) => {
                 e.preventDefault();
                 setActive("overview");
@@ -124,6 +124,7 @@ export default function HostTopNav({
             submittedPropertiesCount={submittedPropertiesCount}
             hasPropertyIssues={hasPropertyIssues}
             bookingsCount={bookingsCount}
+            lang={lang}
             t={t}
           />
         </div>
@@ -131,7 +132,7 @@ export default function HostTopNav({
         {/* Action Controls: Add Property, Language Toggle, Notifications, Support, Profile */}
         <div className="flex items-center gap-2.5">
           <Link
-            href="/properties/new?mode=new"
+            href={`/${lang}/properties/new?mode=new`}
             className="hidden sm:inline-flex items-center gap-1.5 rounded-xl bg-[#4F2396] hover:bg-[#3D1A78] text-white px-3.5 py-2 text-xs font-black shadow-xs transition cursor-pointer"
           >
             <Plus size={14} className="stroke-[3]" />
@@ -187,6 +188,7 @@ export default function HostTopNav({
         active={active}
         setActive={setActive}
         onClose={() => setMobileNav(false)}
+        lang={lang}
         t={t}
       />
     </header>

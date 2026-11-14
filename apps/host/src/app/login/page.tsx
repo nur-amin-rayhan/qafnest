@@ -1,10 +1,25 @@
 import type { Metadata } from "next";
-import { Suspense } from "react";
+import { cookies, headers } from "next/headers";
 import HostLoginForm from "@/components/auth/HostLoginForm";
+import {
+  DEFAULT_HOST_LOCALE,
+  HOST_LANG_COOKIE,
+  HOST_LOCALE_HEADER,
+  getHostBaseUrl,
+  getHostSeoAlternates,
+  normalizeHostLocale,
+} from "@/lib/hostLocale";
 
-import { ECOSYSTEM_URLS } from "@qafnest/shared";
-
-const baseUrl = ECOSYSTEM_URLS.host;
+async function resolveLoginLocale(fallbackParam?: string): Promise<"ar" | "en"> {
+  const headerStore = await headers();
+  const cookieStore = await cookies();
+  return (
+    normalizeHostLocale(headerStore.get(HOST_LOCALE_HEADER)) ??
+    normalizeHostLocale(cookieStore.get(HOST_LANG_COOKIE)?.value) ??
+    normalizeHostLocale(fallbackParam) ??
+    DEFAULT_HOST_LOCALE
+  );
+}
 
 export async function generateMetadata({
   searchParams,
@@ -12,7 +27,8 @@ export async function generateMetadata({
   searchParams: Promise<{ lang?: string }>;
 }): Promise<Metadata> {
   const params = await searchParams;
-  const lang = params.lang === "en" ? "en" : "ar";
+  const lang = await resolveLoginLocale(params.lang);
+  const baseUrl = getHostBaseUrl();
 
   const title =
     lang === "en"
@@ -24,23 +40,16 @@ export async function generateMetadata({
       ? "Sign in to your QafNest Host partner portal to manage property listings, guest reservations, availability calendar, and monthly earnings."
       : "سجّل دخولك إلى منصة مضيفي قاف نست لإدارة عقاراتك المعروضة، حجوزات الضيوف، تقويم التوافر، وأرباحك الشهرية بأمان.";
 
-  const canonicalUrl = `${baseUrl}/login?lang=${lang}`;
+  const alternates = getHostSeoAlternates("/login", lang, baseUrl);
 
   return {
     title,
     description,
-    alternates: {
-      canonical: canonicalUrl,
-      languages: {
-        ar: `${baseUrl}/login?lang=ar`,
-        en: `${baseUrl}/login?lang=en`,
-        "x-default": `${baseUrl}/login`,
-      },
-    },
+    alternates,
     openGraph: {
       title,
       description,
-      url: canonicalUrl,
+      url: alternates.canonical,
       locale: lang === "en" ? "en_US" : "ar_SA",
       alternateLocale: lang === "en" ? ["ar_SA"] : ["en_US"],
       siteName: "QafNest Business",
@@ -60,7 +69,7 @@ export default async function HostLoginPage({
   searchParams: Promise<{ lang?: string; returnUrl?: string; mode?: string }>;
 }) {
   const params = await searchParams;
-  const lang: "ar" | "en" = params.lang === "en" ? "en" : "ar";
+  const lang = await resolveLoginLocale(params.lang);
 
   return <HostLoginForm initialLang={lang} initialReturnUrl={params.returnUrl} />;
 }

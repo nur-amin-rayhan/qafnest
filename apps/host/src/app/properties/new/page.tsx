@@ -19,6 +19,7 @@ import {
   useWizardDraft,
 } from "@/components/listing-wizard/useWizardDraft";
 import { useWizardSubmit } from "@/components/listing-wizard/useWizardSubmit";
+import { localizeHostPath } from "@/lib/hostLocale";
 
 function NewPropertyWizardInner() {
   const router = useRouter();
@@ -79,7 +80,7 @@ function NewPropertyWizardInner() {
         localStorage.removeItem("qafnest-host-listing-draft-v1");
       } catch {}
       setDeleteModalOpen(false);
-      router.push("/app?listing=deleted");
+      router.push(localizeHostPath("/app?listing=deleted", lang));
       router.refresh();
     } catch (err) {
       setDeletePropertyError(
@@ -111,10 +112,14 @@ function NewPropertyWizardInner() {
   // Auth protection guard
   useEffect(() => {
     if (!authLoading && !user) {
-      router.replace("/?auth=required&returnUrl=/properties/new");
-      openHostAuthModal("signup", "/properties/new?mode=new");
+      router.replace(
+        `${localizeHostPath("/", lang)}?auth=required&returnUrl=${encodeURIComponent(
+          localizeHostPath("/properties/new", lang)
+        )}`
+      );
+      openHostAuthModal("signup", localizeHostPath("/properties/new?mode=new", lang));
     }
-  }, [authLoading, user, router, openHostAuthModal]);
+  }, [authLoading, user, router, openHostAuthModal, lang]);
 
   const handleNext = async () => {
     if (!canProceed()) return;
@@ -130,7 +135,7 @@ function NewPropertyWizardInner() {
 
   const handlePrev = () => {
     if (step === 0) {
-      router.push("/app");
+      router.push(localizeHostPath("/app", lang));
       return;
     }
     const prevIdx = Math.max(0, step - 1);

@@ -18,10 +18,11 @@ import {
   PROPERTY_TYPE_LABELS,
   CITY_LABELS,
 } from "@/components/landing/types";
+import { localizeHostPath } from "@/lib/hostLocale";
 
 function HostAuthRequiredHandler() {
   const searchParams = useSearchParams();
-  const { openHostAuthModal, user, loading } = useHostAuth();
+  const { openHostAuthModal, user, loading, lang } = useHostAuth();
   const handledRef = useRef(false);
 
   useEffect(() => {
@@ -39,12 +40,12 @@ function HostAuthRequiredHandler() {
     }
     if (loading) return;
     const authRequired = searchParams.get("auth");
-    const returnUrl = searchParams.get("returnUrl") || "/app";
+    const returnUrl = searchParams.get("returnUrl") || localizeHostPath("/app", lang);
     if (authRequired === "required" && !user && !handledRef.current) {
       handledRef.current = true;
       openHostAuthModal("signin", returnUrl);
     }
-  }, [searchParams, user, loading, openHostAuthModal]);
+  }, [searchParams, user, loading, openHostAuthModal, lang]);
 
   return null;
 }
@@ -69,25 +70,11 @@ export default function BusinessLandingPage() {
   const selectedTypeObj = PROPERTY_TYPE_LABELS.find((item) => item.id === calcType)!;
   const selectedCityObj = CITY_LABELS.find((item) => item.id === calcCity)!;
 
-  const hostUrl =
-    process.env.NEXT_PUBLIC_HOST_URL ||
-    process.env.NEXT_PUBLIC_HOST_PORTAL_URL ||
-    (process.env.NODE_ENV === "production"
-      ? "https://business.qafnest.com"
-      : "http://localhost:3001");
-  const canonicalUrl = `${hostUrl}/?lang=${lang}`;
-
   return (
     <div
       dir={lang === "ar" ? "rtl" : "ltr"}
       className="min-h-screen bg-white text-slate-900 font-body selection:bg-violet-200"
     >
-      {/* Dynamic Canonical & Hreflang Tags for Host View */}
-      <link rel="canonical" href={canonicalUrl} />
-      <link rel="alternate" hrefLang="ar" href={`${hostUrl}/?lang=ar`} />
-      <link rel="alternate" hrefLang="en" href={`${hostUrl}/?lang=en`} />
-      <link rel="alternate" hrefLang="x-default" href={`${hostUrl}/`} />
-
       {/* 1. Header Navigation */}
       <HostNavbar
         lang={lang}

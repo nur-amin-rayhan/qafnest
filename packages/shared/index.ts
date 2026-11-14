@@ -40,10 +40,12 @@ export const ECOSYSTEM_URLS = {
     (IS_PROD ? "https://business.qafnest.com" : "http://localhost:3001"),
   cms:
     process.env.NEXT_PUBLIC_CMS_PORTAL_URL ||
-    (IS_PROD ? "https://qafnest.com/cms" : "http://localhost:3002/cms"),
+    process.env.NEXT_PUBLIC_CMS_URL ||
+    (IS_PROD ? "https://cms.qafnest.com" : "http://localhost:3002"),
   admin:
     process.env.NEXT_PUBLIC_ADMIN_PORTAL_URL ||
-    (IS_PROD ? "https://qafnest.com/admin" : "http://localhost:3003/admin"),
+    process.env.NEXT_PUBLIC_ADMIN_URL ||
+    (IS_PROD ? "https://admin.qafnest.com" : "http://localhost:3003"),
 };
 
 export const QAFNEST_SUPPORT_CONTACT = {

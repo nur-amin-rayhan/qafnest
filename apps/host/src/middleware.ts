@@ -2,6 +2,17 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { getSupabaseConfig, isSupabaseConfigured } from "@/lib/supabase/config";
 
+import {
+  DEFAULT_HOST_LOCALE,
+  HOST_LANG_COOKIE,
+  HOST_LOCALE_HEADER,
+  HOST_PATHNAME_HEADER,
+  getHostLocaleFromPathname,
+  localizeHostPath,
+  normalizeHostLocale,
+  stripHostLocaleFromPathname,
+} from "@/lib/hostLocale";
+
 const PROTECTED_PREFIXES = ["/app", "/properties/new"];
 
 interface JwkCache {
@@ -109,7 +120,51 @@ async function verifyEdgeFirebaseToken(token?: string | null): Promise<boolean> 
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  const isProtected = PROTECTED_PREFIXES.some((prefix) => pathname.startsWith(prefix));
+
+  if (
+    pathname.startsWith("/api/") ||
+    pathname.startsWith("/_next/") ||
+    pathname === "/robots.txt" ||
+    pathname === "/sitemap.xml" ||
+    pathname === "/favicon.ico"
+  ) {
+    return NextResponse.next();
+  }
+
+  const routeLocale = getHostLocaleFromPathname(pathname);
+  const langParam = normalizeHostLocale(request.nextUrl.searchParams.get("lang"));
+  const cookieLocale = normalizeHostLocale(request.cookies.get(HOST_LANG_COOKIE)?.value);
+
+  // Enforce explicit /ar or /en path prefixes and eliminate ?lang= duplicate URLs
+  if (!routeLocale) {
+    const preferredLocale = langParam ?? cookieLocale ?? DEFAULT_HOST_LOCALE;
+    const redirectUrl = request.nextUrl.clone();
+    redirectUrl.searchParams.delete("lang");
+    redirectUrl.pathname = localizeHostPath(pathname, preferredLocale);
+    const redirectResponse = NextResponse.redirect(redirectUrl);
+    redirectResponse.cookies.set(HOST_LANG_COOKIE, preferredLocale, {
+      path: "/",
+      maxAge: 31536000,
+      sameSite: "lax",
+    });
+    return redirectResponse;
+  }
+
+  if (langParam) {
+    const cleanTargetUrl = request.nextUrl.clone();
+    cleanTargetUrl.searchParams.delete("lang");
+    cleanTargetUrl.pathname = localizeHostPath(pathname, langParam);
+    const redirectResponse = NextResponse.redirect(cleanTargetUrl);
+    redirectResponse.cookies.set(HOST_LANG_COOKIE, langParam, {
+      path: "/",
+      maxAge: 31536000,
+      sameSite: "lax",
+    });
+    return redirectResponse;
+  }
+
+  const internalPathname = stripHostLocaleFromPathname(pathname);
+  const isProtected = PROTECTED_PREFIXES.some((prefix) => internalPathname.startsWith(prefix));
 
   let response = NextResponse.next({ request });
   let isSupabaseVerified = false;
@@ -165,12 +220,8 @@ export async function middleware(request: NextRequest) {
 
     // If neither Supabase nor Firebase token passed cryptographic verification, redirect to login
     if (!isSupabaseVerified && !isFirebaseVerified) {
-      const redirectUrl = new URL("/login", request.url);
-      redirectUrl.searchParams.set("returnUrl", pathname);
-      const hostLang = request.cookies.get("qafnest_host_lang")?.value;
-      if (hostLang === "en" || hostLang === "ar") {
-        redirectUrl.searchParams.set("lang", hostLang);
-      }
+      const redirectUrl = new URL(localizeHostPath("/login", routeLocale), request.url);
+      redirectUrl.searchParams.set("returnUrl", `${pathname}${request.nextUrl.search}`);
       const redirectResponse = NextResponse.redirect(redirectUrl);
 
       // Strip any forged or invalid session cookies
@@ -179,20 +230,38 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  const langParam = request.nextUrl.searchParams.get("lang");
-  if (langParam === "en" || langParam === "ar") {
-    response.cookies.set("qafnest_host_lang", langParam, {
-      path: "/",
-      maxAge: 31536000,
-      sameSite: "lax",
-    });
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set(HOST_LOCALE_HEADER, routeLocale);
+  requestHeaders.set(HOST_PATHNAME_HEADER, internalPathname);
+
+  const rewriteUrl = request.nextUrl.clone();
+  rewriteUrl.pathname = internalPathname;
+
+  const rewriteResponse = NextResponse.rewrite(rewriteUrl, {
+    request: {
+      headers: requestHeaders,
+    },
+  });
+
+  for (const cookie of response.cookies.getAll()) {
+    rewriteResponse.cookies.set(cookie);
   }
 
-  return response;
+  rewriteResponse.cookies.set(HOST_LANG_COOKIE, routeLocale, {
+    path: "/",
+    maxAge: 31536000,
+    sameSite: "lax",
+  });
+
+  if (isProtected) {
+    rewriteResponse.headers.set("X-Robots-Tag", "noindex, nofollow, noarchive");
+  }
+
+  return rewriteResponse;
 }
 
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|robots.txt|sitemap.xml|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };

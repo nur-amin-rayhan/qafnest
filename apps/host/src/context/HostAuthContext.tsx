@@ -21,6 +21,7 @@ import {
   HostAuthContextType,
 } from "./auth/hostAuthStorage";
 import { useHostLanguage } from "./auth/useHostLanguage";
+import { localizeHostPath } from "@/lib/hostLocale";
 
 export type { HostProfile, HostAuthContextType };
 export { HOST_COOKIE_KEY, setHostSessionCookie };
@@ -47,13 +48,16 @@ export function HostAuthProvider({
   // Modal State
   const [hostAuthModalOpen, setHostAuthModalOpen] = useState(false);
   const [hostAuthMode, setHostAuthMode] = useState<"signin" | "signup">("signin");
-  const [hostReturnUrl, setHostReturnUrl] = useState("/app");
+  const [hostReturnUrl, setHostReturnUrl] = useState(() => localizeHostPath("/app", lang));
 
-  const openHostAuthModal = useCallback((mode: "signin" | "signup" = "signin", returnUrl: string = "/app") => {
-    setHostAuthMode(mode);
-    setHostReturnUrl(returnUrl);
-    setHostAuthModalOpen(true);
-  }, []);
+  const openHostAuthModal = useCallback(
+    (mode: "signin" | "signup" = "signin", returnUrl: string = "/app") => {
+      setHostAuthMode(mode);
+      setHostReturnUrl(localizeHostPath(returnUrl || "/app", lang));
+      setHostAuthModalOpen(true);
+    },
+    [lang]
+  );
 
   const closeHostAuthModal = useCallback(() => {
     setHostAuthModalOpen(false);
@@ -263,7 +267,7 @@ export function HostAuthProvider({
         window.localStorage.removeItem(HOST_CACHE_KEY);
         window.sessionStorage.setItem("qafnest_host_is_logging_out", "1");
       } catch {}
-      window.location.replace("/");
+      window.location.replace(localizeHostPath("/", lang));
     }
 
     try {

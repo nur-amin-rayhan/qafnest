@@ -25,34 +25,17 @@ const nextConfig = {
     return config;
   },
   async rewrites() {
-    const adminOrigin =
-      process.env.ADMIN_INTERNAL_URL ||
-      process.env.NEXT_PUBLIC_ADMIN_INTERNAL_URL ||
-      "http://127.0.0.1:3003";
-    const cmsOrigin =
-      process.env.CMS_INTERNAL_URL ||
-      process.env.NEXT_PUBLIC_CMS_INTERNAL_URL ||
-      "http://127.0.0.1:3002";
-
-    return {
-      beforeFiles: [
-        { source: '/admin', destination: `${adminOrigin}/admin` },
-        { source: '/admin/:path*', destination: `${adminOrigin}/admin/:path*` },
-        { source: '/cms', destination: `${cmsOrigin}/cms` },
-        { source: '/cms/:path*', destination: `${cmsOrigin}/cms/:path*` },
-      ],
-      afterFiles: [
-        { source: '/apartments', destination: '/search?type=villa' },
-        { source: '/chalets', destination: '/search?type=chalet' },
-        { source: '/farms', destination: '/search?type=farm' },
-        { source: '/camps', destination: '/search?type=camp' },
-        { source: '/en/apartments', destination: '/search?type=villa' },
-        { source: '/en/chalets', destination: '/search?type=chalet' },
-        { source: '/en/farms', destination: '/search?type=farm' },
-        { source: '/en/camps', destination: '/search?type=camp' },
-        { source: '/en/blog', destination: '/blog' },
-      ],
-    };
+    return [
+      { source: '/apartments', destination: '/search?type=villa' },
+      { source: '/chalets', destination: '/search?type=chalet' },
+      { source: '/farms', destination: '/search?type=farm' },
+      { source: '/camps', destination: '/search?type=camp' },
+      { source: '/en/apartments', destination: '/search?type=villa' },
+      { source: '/en/chalets', destination: '/search?type=chalet' },
+      { source: '/en/farms', destination: '/search?type=farm' },
+      { source: '/en/camps', destination: '/search?type=camp' },
+      { source: '/en/blog', destination: '/blog' },
+    ];
   },
   images: {
     formats: ['image/avif', 'image/webp'],

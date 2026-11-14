@@ -60,7 +60,7 @@ export default function HostAuthModal() {
     handleDevHostFill,
   } = useHostAuthFlow({
     effectiveLang: lang,
-    returnUrl: hostReturnUrl || "/app",
+    returnUrl: hostReturnUrl || `/${lang}/app`,
     onSuccess: () => {
       closeHostAuthModal();
       if (hostReturnUrl) {

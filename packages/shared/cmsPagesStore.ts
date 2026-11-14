@@ -202,9 +202,9 @@ export const DEFAULT_CMS_PAGES: Record<string, CmsPageRecord> = {
     contactInfo: {
       phone: QAFNEST_SUPPORT_CONTACT.displayPhone,
       whatsapp: QAFNEST_SUPPORT_CONTACT.displayPhone,
-      supportEmail: QAFNEST_SUPPORT_CONTACT.supportEmail,
-      hostsEmail: "hosts@qafnest.com",
-      financeEmail: "finance@qafnest.com",
+      supportEmail: "qafnest@gmail.com",
+      hostsEmail: "",
+      financeEmail: "",
       addressEn: QAFNEST_SUPPORT_CONTACT.hqAddressEn,
       addressAr: QAFNEST_SUPPORT_CONTACT.hqAddressAr,
       licenseNumber: "Ministry of Tourism License #73102999",

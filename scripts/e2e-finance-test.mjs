@@ -2,8 +2,8 @@ import crypto from "node:crypto";
 
 const GUEST_URL = "http://localhost:3000";
 const HOST_URL = "http://localhost:3001";
-const CMS_URL = "http://localhost:3002/cms";
-const ADMIN_URL = "http://localhost:3003/admin";
+const CMS_URL = "http://localhost:3002";
+const ADMIN_URL = "http://localhost:3003";
 
 const ADMIN_SECRET_KEY = "qafnest_secure_admin_jwt_signature_secret_key_2026";
 const DEV_HOST_ID = "00000000-0000-0000-0000-000000000002";

@@ -10,6 +10,7 @@ import HostOtpVerifyStep from "./HostOtpVerifyStep";
 import HostProfileDetailsStep from "./HostProfileDetailsStep";
 import HostEmailAuthStep from "./HostEmailAuthStep";
 import { useHostAuthFlow, withLang } from "./useHostAuthFlow";
+import { localizeHostPath } from "@/lib/hostLocale";
 
 interface HostLoginFormProps {
   initialLang?: "ar" | "en";
@@ -18,35 +19,14 @@ interface HostLoginFormProps {
 
 export default function HostLoginForm({
   initialLang = "ar",
-  initialReturnUrl = "/app",
+  initialReturnUrl,
 }: HostLoginFormProps) {
   const router = useRouter();
   const { user, loading: authLoading, lang: contextLang, setLang } = useHostAuth();
-  const [currentLang, setCurrentLang] = useState<"ar" | "en">(initialLang);
 
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      const p = new URLSearchParams(window.location.search);
-      const urlLang = p.get("lang");
-      if (urlLang === "en" || urlLang === "ar") {
-        setCurrentLang(urlLang);
-        setLang(urlLang);
-      } else if (contextLang) {
-        setCurrentLang(contextLang);
-      }
-    }
-  }, [contextLang, setLang]);
-
-  const effectiveLang = currentLang;
+  const effectiveLang = contextLang || initialLang;
   const t = (en: string, ar: string) => (effectiveLang === "ar" ? ar : en);
-  const returnUrl = initialReturnUrl;
-
-  // Initialize lang if query param or initialLang is supplied
-  useEffect(() => {
-    if (effectiveLang !== contextLang) {
-      setLang(effectiveLang);
-    }
-  }, [effectiveLang, contextLang, setLang]);
+  const returnUrl = withLang(initialReturnUrl || "/app", effectiveLang);
 
   // If already authenticated, redirect
   useEffect(() => {
@@ -55,16 +35,10 @@ export default function HostLoginForm({
     }
   }, [user, authLoading, router, returnUrl]);
 
-  // Switch Language handler
+  // Switch Language handler (navigates to /ar/login or /en/login)
   const handleLanguageToggle = () => {
     const nextLang = effectiveLang === "ar" ? "en" : "ar";
-    setCurrentLang(nextLang);
     setLang(nextLang);
-    if (typeof window !== "undefined") {
-      const params = new URLSearchParams(window.location.search);
-      params.set("lang", nextLang);
-      router.replace(`/login?${params.toString()}`, { scroll: false });
-    }
   };
 
   const {
@@ -119,7 +93,7 @@ export default function HostLoginForm({
     >
       {/* Top Header Bar */}
       <div className="w-full max-w-[480px] flex items-center justify-between mb-6 px-1">
-        <Link href="/" className="inline-flex items-center gap-1.5 select-none group">
+        <Link href={localizeHostPath("/", effectiveLang)} className="inline-flex items-center gap-1.5 select-none group">
           <span className="text-[26px] sm:text-[28px] font-black tracking-[-0.05em] text-[#4F2396]">
             Qaf<span className="text-[#7c3aed]">Nest</span>
             <span className="text-[#FF9750]">.</span>
@@ -142,7 +116,7 @@ export default function HostLoginForm({
           </button>
 
           <Link
-            href="/"
+            href={localizeHostPath("/", effectiveLang)}
             className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-bold text-slate-600 hover:bg-slate-50 shadow-xs transition cursor-pointer"
             title={t("Back to home", "العودة للرئيسية")}
           >

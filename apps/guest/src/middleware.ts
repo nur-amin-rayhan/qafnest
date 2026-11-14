@@ -110,16 +110,6 @@ async function verifyEdgeFirebaseToken(token?: string | null): Promise<boolean> 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // 0. Pass multi-zone paths (/admin, /cms) through untouched for Next.js beforeFiles rewrites / reverse proxy
-  if (
-    pathname === "/admin" ||
-    pathname.startsWith("/admin/") ||
-    pathname === "/cms" ||
-    pathname.startsWith("/cms/")
-  ) {
-    return NextResponse.next();
-  }
-
   // 1. Exclude API routes, next internals, and static assets from locale prefixing
   const isApi = pathname.startsWith("/api/");
   const isStatic =

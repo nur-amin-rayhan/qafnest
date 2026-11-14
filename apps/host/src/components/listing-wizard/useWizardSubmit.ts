@@ -18,6 +18,7 @@ import {
 } from "./types";
 import { DRAFT_STORAGE_KEY } from "./useWizardDraft";
 import { getCityInfo } from "@/lib/geo/saudiLocations";
+import { getHostLocaleFromPathname, localizeHostPath } from "@/lib/hostLocale";
 
 interface UseWizardSubmitOptions {
   user: User | null;
@@ -46,7 +47,10 @@ export function useWizardSubmit({
     setSubmitError("");
     try {
       if (!user?.id) {
-        openHostAuthModal("signin", "/properties/new");
+        const activeLocale =
+          getHostLocaleFromPathname(typeof window !== "undefined" ? window.location.pathname : null) ??
+          "ar";
+        openHostAuthModal("signin", localizeHostPath("/properties/new", activeLocale));
         setSubmitting(false);
         return;
       }
@@ -178,9 +182,11 @@ export function useWizardSubmit({
         }
 
         localStorage.removeItem(DRAFT_STORAGE_KEY);
-        localStorage.removeItem(DRAFT_STORAGE_KEY);
-      localStorage.removeItem("qafnest-host-listing-draft-v1");
-        router.push("/app?listing=resubmitted");
+        localStorage.removeItem("qafnest-host-listing-draft-v1");
+        const activeLocale =
+          getHostLocaleFromPathname(typeof window !== "undefined" ? window.location.pathname : null) ??
+          "ar";
+        router.push(localizeHostPath("/app?listing=resubmitted", activeLocale));
         router.refresh();
         return;
       }
@@ -273,7 +279,10 @@ export function useWizardSubmit({
 
       localStorage.removeItem(DRAFT_STORAGE_KEY);
       localStorage.removeItem("qafnest-host-listing-draft-v1");
-      router.push("/app?listing=submitted");
+      const activeLocale =
+        getHostLocaleFromPathname(typeof window !== "undefined" ? window.location.pathname : null) ??
+        "ar";
+      router.push(localizeHostPath("/app?listing=submitted", activeLocale));
       router.refresh();
     } catch (error) {
       setSubmitError(

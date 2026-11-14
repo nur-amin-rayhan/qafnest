@@ -17,6 +17,7 @@ import HostRealtimeAlerts from "@/components/dashboard/HostRealtimeAlerts";
 import { DeletePropertyModal } from "@/components/dashboard/properties/DeletePropertyModal";
 import { useHostWorkspaceData } from "./hooks/useHostWorkspaceData";
 import { useHostTabRouting } from "./hooks/useHostTabRouting";
+import { localizeHostPath } from "@/lib/hostLocale";
 
 interface HostWorkspaceProps {
   initialTab?: string;
@@ -25,7 +26,7 @@ interface HostWorkspaceProps {
 export default function HostWorkspace({ initialTab }: HostWorkspaceProps) {
   const router = useRouter();
   const { user, profile, loading: authLoading, signOut, openHostAuthModal, lang, setLang } = useHostAuth();
-  const { activeTab, setActiveTab } = useHostTabRouting(initialTab);
+  const { activeTab, setActiveTab } = useHostTabRouting(initialTab, lang);
 
   const {
     submittedProperties,
@@ -51,11 +52,12 @@ export default function HostWorkspace({ initialTab }: HostWorkspaceProps) {
   // Authentication check (Redirect to landing and open modal if unauthenticated)
   useEffect(() => {
     if (!authLoading && !user) {
-      const returnUrl = typeof window !== "undefined" ? window.location.pathname : "/app";
-      router.replace(`/?auth=required&returnUrl=${encodeURIComponent(returnUrl)}`);
+      const returnUrl =
+        typeof window !== "undefined" ? window.location.pathname : localizeHostPath("/app", lang);
+      router.replace(`${localizeHostPath("/", lang)}?auth=required&returnUrl=${encodeURIComponent(returnUrl)}`);
       openHostAuthModal("signin", returnUrl);
     }
-  }, [authLoading, user, router, openHostAuthModal]);
+  }, [authLoading, user, router, openHostAuthModal, lang]);
 
   const t = (en: string, ar: string) => (lang === "ar" ? ar : en);
 
