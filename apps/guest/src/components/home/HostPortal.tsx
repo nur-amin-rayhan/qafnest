@@ -53,8 +53,8 @@ export default function HostPortal() {
                   </div>
                   <span>
                     {language === "ar"
-                      ? "ضمان حماية المضيف والعقار بقيمة تصل إلى 1,000,000 ر.س"
-                      : "1,000,000 SAR Property Host Protection Guarantee"}
+                      ? "ضمان حماية المضيف والعقار ضد أضرار العقار والحوادث"
+                      : "Comprehensive Property Host Protection for Damage and Incidents"}
                   </span>
                 </div>
                 <div className="flex items-center gap-3 text-xs sm:text-sm text-gray-900 dark:text-white">

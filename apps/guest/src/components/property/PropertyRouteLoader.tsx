@@ -1,7 +1,10 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { useProperties } from "@/hooks/useProperties";
+import { getPropertyById } from "@/lib/services/properties";
+import type { Property } from "@/data/properties";
 import PropertyDetail from "@/components/property/PropertyDetail";
 import ReservationReview from "@/components/property/ReservationReview";
 
@@ -9,10 +12,27 @@ export default function PropertyRouteLoader({ reservation = false }: { reservati
   const params = useParams<{ id: string }>();
   const id = decodeURIComponent(params.id);
   const { properties, loading } = useProperties();
-  const property = properties.find((item) => item.id === id);
+  const property = properties.find((item) => item.id === id || (item.slug && item.slug === id));
 
-  if (property) return reservation ? <ReservationReview property={property} /> : <PropertyDetail property={property} />;
-  if (loading) {
+  const [directProperty, setDirectProperty] = useState<Property | null>(null);
+  const [directChecked, setDirectChecked] = useState(false);
+
+  useEffect(() => {
+    if (!property && !loading) {
+      getPropertyById(id).then((result) => {
+        setDirectProperty(result);
+        setDirectChecked(true);
+      });
+    }
+  }, [property, loading, id]);
+
+  const activeProperty = property || directProperty;
+
+  if (activeProperty) {
+    return reservation ? <ReservationReview property={activeProperty} /> : <PropertyDetail property={activeProperty} />;
+  }
+
+  if (loading || (!property && !directChecked)) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-white dark:bg-[#08070D]">
         <div className="h-10 w-10 animate-spin rounded-full border-4 border-violet-600 border-t-transparent" />

@@ -11,7 +11,7 @@ import PropertyCard from "@/components/home/PropertyCard";
 import { RotateCcw, MapPin } from "lucide-react";
 
 export default function PropertyListingSections() {
-  const { properties } = useProperties();
+  const { properties, loading } = useProperties();
   const {
     selectedCity,
     setSelectedCity,
@@ -34,7 +34,7 @@ export default function PropertyListingSections() {
     instantOnly ||
     poolOnly ||
     selfCheckinOnly ||
-    guestsCount > 4;
+    guestsCount > 1;
 
   const resetAllFilters = () => {
     setSelectedCity("all");
@@ -58,7 +58,7 @@ export default function PropertyListingSections() {
       if (instantOnly && !p.instantBook) return false;
       if (poolOnly && !p.hasPool) return false;
       if (selfCheckinOnly && !p.selfCheckin) return false;
-      if (guestsCount > 4) {
+      if (guestsCount > 1) {
         if (getPropertyCapacity(p) < guestsCount) return false;
       }
       return true;
@@ -225,6 +225,23 @@ export default function PropertyListingSections() {
         titleAr="إقامات جديدة"
         properties={generalProperties}
       />
+
+      {!loading && !isFiltered && properties.length === 0 && (
+        <section className="pt-4 pb-8 relative z-10">
+          <div className="max-w-7xl mx-auto px-5 sm:px-8">
+            <div className="rounded-3xl border border-violet-200/80 dark:border-white/10 bg-white dark:bg-[#12101a] p-10 text-center shadow-xs">
+              <p className="text-base font-bold text-gray-900 dark:text-white">
+                {language === "ar" ? "لا توجد عقارات متاحة حالياً" : "No stays listed yet"}
+              </p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1.5 max-w-md mx-auto">
+                {language === "ar"
+                  ? "بمجرد نشر واعتماد العقارات من المضيفين، ستظهر هنا مباشرة."
+                  : "Verified host properties will appear here live once published and approved."}
+              </p>
+            </div>
+          </div>
+        </section>
+      )}
     </div>
   );
 }

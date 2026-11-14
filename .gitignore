@@ -25,6 +25,9 @@ yarn-error.log*
 
 # local env files
 .env*.local
+packages/shared/data/zatca-config.json
+packages/shared/data/zatca-invoices.json
+packages/shared/data/host-payouts.json
 
 # vercel
 .vercel
@@ -32,3 +35,10 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# local scratch, test recordings, and temporary artifacts
+scratch/
+*.mp4
+.qafnest-*.json
+logs/
+

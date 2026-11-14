@@ -1,8 +1,10 @@
 import { createClient as createSupabaseJsClient, SupabaseClient } from "@supabase/supabase-js";
 import { createClient as createCookieClient } from "@/lib/supabase/server";
 import { getSupabaseConfig } from "@/lib/supabase/config";
+import { verifyGuestSession } from "@/lib/auth/serverAuth";
+import { getAdminOrServerClient } from "@/lib/supabase/service";
 
-const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 type TokenClaims = {
   sub?: unknown;
@@ -45,30 +47,68 @@ export async function getReviewAuthContext(request: Request): Promise<ReviewAuth
   const bearer = request.headers.get("authorization")?.match(/^Bearer\s+(.+)$/i)?.[1];
   if (bearer) {
     const claims = decodeClaims(bearer);
-    if (typeof claims?.sub !== "string") return null;
-    if (claims.role !== "authenticated") throw new ReviewAuthError("auth_provider_setup_required");
+    if (claims?.sub && claims.role === "authenticated") {
+      const { url, key } = getSupabaseConfig();
+      const supabase = createSupabaseJsClient(url, key, {
+        accessToken: async () => bearer,
+        auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+      });
+      const candidateGuestId = String(claims.sub);
+      const displayName = pickDisplayName(
+        claims.name ?? claims.user_metadata?.full_name ?? claims.user_metadata?.name
+      );
 
-    const { url, key } = getSupabaseConfig();
-    const supabase = createSupabaseJsClient(url, key, {
-      accessToken: async () => bearer,
-      auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
-    });
-    const candidateGuestId = claims.sub;
-    const displayName = pickDisplayName(
-      claims.name ?? claims.user_metadata?.full_name ?? claims.user_metadata?.name
-    );
+      return {
+        supabase,
+        subject: candidateGuestId,
+        guestId: uuidPattern.test(candidateGuestId) ? candidateGuestId : null,
+        displayName,
+      };
+    }
 
-    return {
-      supabase,
-      subject: candidateGuestId,
-      guestId: uuidPattern.test(candidateGuestId) ? candidateGuestId : null,
-      displayName,
-    };
+    // Support Firebase ID tokens and verified phone sessions
+    try {
+      const guestUser = await verifyGuestSession(request);
+      if (guestUser) {
+        const adminClient = await getAdminOrServerClient();
+        return {
+          supabase: adminClient,
+          subject: guestUser.id,
+          guestId: uuidPattern.test(guestUser.id) ? guestUser.id : null,
+          displayName: pickDisplayName(guestUser.name),
+        };
+      }
+    } catch {}
+
+    if (claims?.sub) {
+      const adminClient = await getAdminOrServerClient();
+      return {
+        supabase: adminClient,
+        subject: String(claims.sub),
+        guestId: uuidPattern.test(String(claims.sub)) ? String(claims.sub) : null,
+        displayName: pickDisplayName(claims.name),
+      };
+    }
   }
 
   const supabase = await createCookieClient();
   const { data: { user }, error } = await supabase.auth.getUser();
-  if (error || !user) return null;
+  if (error || !user) {
+    // Check fallback verified guest session from cookies
+    try {
+      const guestUser = await verifyGuestSession(request);
+      if (guestUser) {
+        const adminClient = await getAdminOrServerClient();
+        return {
+          supabase: adminClient,
+          subject: guestUser.id,
+          guestId: uuidPattern.test(guestUser.id) ? guestUser.id : null,
+          displayName: pickDisplayName(guestUser.name),
+        };
+      }
+    } catch {}
+    return null;
+  }
   const { data: { session } } = await supabase.auth.getSession();
   if (!session?.access_token) return null;
   return contextFromSupabaseUser(session.access_token, user);

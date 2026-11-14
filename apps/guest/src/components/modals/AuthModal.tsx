@@ -1,509 +1,67 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
-import {
-  X,
-  Phone,
-  ShieldCheck,
-  CheckCircle2,
-  AlertCircle,
-  Loader2,
-  ArrowRight,
-  Mail,
-  Lock,
-  User as UserIcon,
-  MessageCircle,
-  Smartphone,
-} from "lucide-react";
-import {
-  RecaptchaVerifier,
-  signInWithPhoneNumber,
-  updateProfile,
-  type ConfirmationResult,
-} from "firebase/auth";
+import { X, ShieldCheck, Mail } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useApp } from "@/context/AppContext";
-import { createClient } from "@/lib/supabase/client";
-import {
-  getFirebaseAuth,
-  getFirebaseErrorMessage,
-  getStoredFirebaseProfile,
-  isFirebaseConfigured,
-  saveStoredFirebaseProfile,
-} from "@/lib/firebase/client";
 
-const OTP_LENGTH = process.env.NEXT_PUBLIC_SUPABASE_OTP_LENGTH === "4" ? 4 : 6;
-const EMPTY_OTP = () => Array.from({ length: OTP_LENGTH }, () => "");
-type OtpChannel = "sms" | "whatsapp";
-
-function normalizeSaudiPhone(value: string) {
-  let digits = value.replace(/\D/g, "");
-  if (digits.startsWith("966")) digits = digits.slice(3);
-  if (digits.startsWith("0")) digits = digits.slice(1);
-  return /^5\d{8}$/.test(digits) ? `+966${digits}` : null;
-}
-
-function normalizePhoneInput(value: string): string | null {
-  const trimmed = value.trim();
-  if (trimmed.startsWith("+")) {
-    const cleaned = `+${trimmed.slice(1).replace(/\D/g, "")}`;
-    return /^\+[1-9]\d{7,14}$/.test(cleaned) ? cleaned : null;
-  }
-  const saudi = normalizeSaudiPhone(trimmed);
-  if (saudi) return saudi;
-  const digits = trimmed.replace(/\D/g, "");
-  if (/^[1-9]\d{9,14}$/.test(digits)) {
-    return `+${digits}`;
-  }
-  return null;
-}
-
-function resetRecaptcha(widgetId: number | null) {
-  if (widgetId === null || typeof window === "undefined") return;
-  const grecaptcha = (
-    window as unknown as { grecaptcha?: { reset: (id?: number) => void } }
-  ).grecaptcha;
-  grecaptcha?.reset(widgetId);
-}
+import GuestPhoneInputStep from "./auth/GuestPhoneInputStep";
+import GuestOtpVerifyStep from "./auth/GuestOtpVerifyStep";
+import GuestProfileDetailsStep from "./auth/GuestProfileDetailsStep";
+import GuestEmailAuthStep from "./auth/GuestEmailAuthStep";
+import { useGuestAuthFlow, OTP_LENGTH } from "./auth/useGuestAuthFlow";
 
 export default function AuthModal() {
   const { authModalOpen, closeAuthModal, refreshProfile } = useAuth();
   const { language } = useApp();
-  const supabase = createClient();
 
-  // Auth Method: 'phone' | 'email'
-  const [authMethod, setAuthMethod] = useState<"phone" | "email">("phone");
-  // Phone flow: collect the phone, verify it, then complete missing profile details.
-  const [phoneStep, setPhoneStep] = useState<"phone_input" | "otp_verify" | "profile_details">("phone_input");
-
-  // State
-  const [phone, setPhone] = useState("");
-  const [sentPhoneDisplay, setSentPhoneDisplay] = useState("");
-  const [fullName, setFullName] = useState("");
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
-  const [contactEmail, setContactEmail] = useState("");
-  const [otpChannel, setOtpChannel] = useState<OtpChannel>("sms");
-  const [sentChannel, setSentChannel] = useState<OtpChannel>("sms");
-
-  // Firebase refs
-  const recaptchaContainerRef = useRef<HTMLDivElement | null>(null);
-  const recaptchaVerifierRef = useRef<RecaptchaVerifier | null>(null);
-  const recaptchaWidgetIdRef = useRef<number | null>(null);
-  const confirmationResultRef = useRef<ConfirmationResult | null>(null);
-
-  // OTP length follows 6 digits for Firebase/Supabase
-  const [otp, setOtp] = useState<string[]>(EMPTY_OTP);
-  const otpInputRefs = useRef<Array<HTMLInputElement | null>>([]);
-
-  // Resend Countdown Timer
-  const [timer, setTimer] = useState(45);
-
-  // Email Flow State
-  const [isEmailSignIn, setIsEmailSignIn] = useState(true);
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-
-  // UI state
-  const [loading, setLoading] = useState(false);
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [successMsg, setSuccessMsg] = useState<string | null>(null);
-
-  // Reset state on open
-  useEffect(() => {
-    if (authModalOpen) {
-      setPhoneStep("phone_input");
-      setErrorMsg(null);
-      setSuccessMsg(null);
-      setOtp(EMPTY_OTP());
-      setTimer(45);
-      setFirstName("");
-      setLastName("");
-      setContactEmail("");
-      confirmationResultRef.current = null;
-    }
-  }, [authModalOpen]);
-
-  // Initialize Firebase reCAPTCHA when Phone + SMS step is visible
-  useEffect(() => {
-    if (
-      !authModalOpen ||
-      authMethod !== "phone" ||
-      phoneStep !== "phone_input" ||
-      otpChannel !== "sms" ||
-      !isFirebaseConfigured()
-    ) {
-      return;
-    }
-
-    let mounted = true;
-    let verifier: RecaptchaVerifier | null = null;
-
-    const timerId = window.setTimeout(() => {
-      if (!mounted || !recaptchaContainerRef.current) return;
-      try {
-        const auth = getFirebaseAuth();
-        recaptchaContainerRef.current.innerHTML = "";
-        verifier = new RecaptchaVerifier(auth, recaptchaContainerRef.current, {
-          size: "normal",
-          callback: () => {
-            if (!mounted) return;
-            setErrorMsg(null);
-          },
-          "expired-callback": () => {
-            if (!mounted) return;
-            setErrorMsg("reCAPTCHA expired. Please complete it again.");
-          },
-        });
-        recaptchaVerifierRef.current = verifier;
-        void verifier
-          .render()
-          .then((widgetId) => {
-            if (mounted) {
-              recaptchaWidgetIdRef.current = widgetId;
-            }
-          })
-          .catch((reason: unknown) => {
-            if (mounted) setErrorMsg(getFirebaseErrorMessage(reason));
-          });
-      } catch (reason: unknown) {
-        if (mounted) setErrorMsg(getFirebaseErrorMessage(reason));
-      }
-    }, 50);
-
-    return () => {
-      mounted = false;
-      window.clearTimeout(timerId);
-      try {
-        verifier?.clear();
-      } catch {}
-      recaptchaVerifierRef.current = null;
-      recaptchaWidgetIdRef.current = null;
-    };
-  }, [authModalOpen, authMethod, phoneStep, otpChannel]);
-
-  // Countdown timer effect
-  useEffect(() => {
-    let interval: NodeJS.Timeout;
-    if (phoneStep === "otp_verify" && timer > 0) {
-      interval = setInterval(() => {
-        setTimer((prev) => prev - 1);
-      }, 1000);
-    }
-    return () => clearInterval(interval);
-  }, [phoneStep, timer]);
+  const {
+    authMethod,
+    setAuthMethod,
+    phoneStep,
+    setPhoneStep,
+    phone,
+    setPhone,
+    sentPhoneDisplay,
+    fullName,
+    setFullName,
+    firstName,
+    setFirstName,
+    lastName,
+    setLastName,
+    contactEmail,
+    setContactEmail,
+    otpChannel,
+    setOtpChannel,
+    sentChannel,
+    recaptchaContainerRef,
+    confirmationResultRef,
+    otp,
+    otpInputRefs,
+    timer,
+    isEmailSignIn,
+    setIsEmailSignIn,
+    email,
+    setEmail,
+    password,
+    setPassword,
+    loading,
+    errorMsg,
+    setErrorMsg,
+    successMsg,
+    handleSendOtp,
+    handleOtpChange,
+    handleOtpKeyDown,
+    handleVerifyOtp,
+    handleSavePhoneProfile,
+    handleResendOtp,
+    handleEmailSubmit,
+  } = useGuestAuthFlow({
+    authModalOpen,
+    closeAuthModal,
+    refreshProfile,
+  });
 
   if (!authModalOpen) return null;
-
-  // Handle Step 1: Send OTP to Mobile Number
-  const handleSendOtp = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setErrorMsg(null);
-
-    const formattedPhone = normalizePhoneInput(phone);
-    if (!formattedPhone) {
-      setErrorMsg(
-        "Please enter a valid mobile number (e.g. 50 123 4567 or international format +8801...)."
-      );
-      return;
-    }
-
-    setLoading(true);
-    try {
-      if (otpChannel === "sms" && isFirebaseConfigured()) {
-        const auth = getFirebaseAuth();
-        const verifier = recaptchaVerifierRef.current;
-        if (!verifier) {
-          throw new Error("reCAPTCHA is still loading. Please wait a moment and try again.");
-        }
-        confirmationResultRef.current = await signInWithPhoneNumber(
-          auth,
-          formattedPhone,
-          verifier,
-        );
-        setSentPhoneDisplay(formattedPhone);
-        setSentChannel("sms");
-        setOtp(EMPTY_OTP());
-        setPhoneStep("otp_verify");
-        setTimer(45);
-        window.setTimeout(() => otpInputRefs.current[0]?.focus(), 150);
-        return;
-      }
-
-      const { error } = await supabase.auth.signInWithOtp({
-        phone: formattedPhone,
-        options: {
-          channel: otpChannel,
-        },
-      });
-      if (error) {
-        if (error.message.toLowerCase().includes("unsupported phone provider")) {
-          throw new Error(
-            otpChannel === "whatsapp"
-              ? "WhatsApp OTP is not configured in Supabase yet. Please switch to SMS above to sign in with Firebase Phone Auth."
-              : "Phone provider is not configured in Supabase. Please check your Firebase configuration in .env.local."
-          );
-        }
-        throw error;
-      }
-      confirmationResultRef.current = null;
-      setSentPhoneDisplay(formattedPhone);
-      setSentChannel(otpChannel);
-      setOtp(EMPTY_OTP());
-      setPhoneStep("otp_verify");
-      setTimer(45);
-      window.setTimeout(() => otpInputRefs.current[0]?.focus(), 150);
-    } catch (error) {
-      resetRecaptcha(recaptchaWidgetIdRef.current);
-      setErrorMsg(getFirebaseErrorMessage(error));
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Handle OTP Digit Input
-  const handleOtpChange = (index: number, value: string) => {
-    const digits = value.replace(/\D/g, "");
-    if (!digits) {
-      const nextOtp = [...otp];
-      nextOtp[index] = "";
-      setOtp(nextOtp);
-      return;
-    }
-    if (digits.length > 1) {
-      const nextOtp = [...otp];
-      digits.slice(0, OTP_LENGTH - index).split("").forEach((digit, offset) => {
-        nextOtp[index + offset] = digit;
-      });
-      setOtp(nextOtp);
-      otpInputRefs.current[Math.min(index + digits.length, OTP_LENGTH - 1)]?.focus();
-      return;
-    }
-    const newOtp = [...otp];
-    newOtp[index] = digits;
-    setOtp(newOtp);
-
-    // Auto-focus next input box
-    if (digits && index < OTP_LENGTH - 1) {
-      otpInputRefs.current[index + 1]?.focus();
-    }
-  };
-
-  const handleOtpKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Backspace" && !otp[index] && index > 0) {
-      otpInputRefs.current[index - 1]?.focus();
-    }
-  };
-
-  // Handle Step 2: Verify OTP and Login
-  const handleVerifyOtp = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setErrorMsg(null);
-    const enteredCode = otp.join("");
-
-    if (enteredCode.length !== OTP_LENGTH) {
-      setErrorMsg(`Please enter the complete ${OTP_LENGTH}-digit verification code.`);
-      return;
-    }
-
-    setLoading(true);
-    try {
-      // Firebase SMS verification path
-      if (confirmationResultRef.current) {
-        const credential = await confirmationResultRef.current.confirm(enteredCode);
-        const fbUser = credential.user;
-        const storedProfile = getStoredFirebaseProfile(fbUser.uid);
-        const existingName = storedProfile?.full_name || fbUser.displayName || "";
-        const nameParts = existingName.trim().split(/\s+/).filter(Boolean);
-        const nextFirstName = storedProfile?.first_name || nameParts[0] || "";
-        const nextLastName = storedProfile?.last_name || nameParts.slice(1).join(" ");
-        const nextEmail = storedProfile?.contact_email || fbUser.email || "";
-
-        setFirstName(nextFirstName);
-        setLastName(nextLastName);
-        setContactEmail(nextEmail);
-
-        if (nextFirstName.trim() && nextLastName.trim() && nextEmail.trim()) {
-          await refreshProfile(fbUser.uid);
-          setSuccessMsg("Welcome to QafNest!");
-          window.setTimeout(closeAuthModal, 700);
-        } else {
-          setPhoneStep("profile_details");
-        }
-        return;
-      }
-
-      // Supabase verification path
-      const formattedPhone = sentPhoneDisplay || normalizePhoneInput(phone);
-      if (!formattedPhone) throw new Error("Please enter a valid mobile number.");
-      const { data, error } = await supabase.auth.verifyOtp({
-        phone: formattedPhone,
-        token: enteredCode,
-        type: "sms",
-      });
-      if (error) throw error;
-      if (!data.user) throw new Error("Phone verification did not complete.");
-
-      const metadata = data.user.user_metadata || {};
-      const { data: storedProfile } = await supabase
-        .from("profiles")
-        .select("full_name")
-        .eq("id", data.user.id)
-        .maybeSingle();
-      const existingName = typeof metadata.full_name === "string"
-        ? metadata.full_name
-        : storedProfile?.full_name || "";
-      const nameParts = existingName.trim().split(/\s+/).filter(Boolean);
-      const nextFirstName = typeof metadata.first_name === "string" ? metadata.first_name : nameParts[0] || "";
-      const nextLastName = typeof metadata.last_name === "string" ? metadata.last_name : nameParts.slice(1).join(" ");
-      const nextEmail = typeof metadata.contact_email === "string" ? metadata.contact_email : data.user.email || "";
-      setFirstName(nextFirstName);
-      setLastName(nextLastName);
-      setContactEmail(nextEmail);
-
-      if (nextFirstName.trim() && nextLastName.trim() && nextEmail.trim()) {
-        await refreshProfile(data.user.id);
-        setSuccessMsg("Welcome to QafNest!");
-        window.setTimeout(closeAuthModal, 700);
-      } else {
-        setPhoneStep("profile_details");
-      }
-    } catch (error) {
-      setErrorMsg(getFirebaseErrorMessage(error));
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleSavePhoneProfile = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setErrorMsg(null);
-    const normalizedEmail = contactEmail.trim().toLowerCase();
-    if (!firstName.trim() || !lastName.trim() || !/^\S+@\S+\.\S+$/.test(normalizedEmail)) {
-      setErrorMsg("Enter your first name, last name, and a valid email address.");
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const fullNameValue = `${firstName.trim()} ${lastName.trim()}`;
-
-      // Firebase user profile save
-      if (isFirebaseConfigured()) {
-        const fbAuth = getFirebaseAuth();
-        if (fbAuth.currentUser) {
-          const fbUser = fbAuth.currentUser;
-          await updateProfile(fbUser, { displayName: fullNameValue });
-          saveStoredFirebaseProfile(fbUser.uid, {
-            first_name: firstName.trim(),
-            last_name: lastName.trim(),
-            full_name: fullNameValue,
-            contact_email: normalizedEmail,
-            phone: fbUser.phoneNumber || sentPhoneDisplay || normalizePhoneInput(phone) || "",
-          });
-          await refreshProfile(fbUser.uid);
-          setSuccessMsg("Welcome to QafNest!");
-          window.setTimeout(closeAuthModal, 700);
-          return;
-        }
-      }
-
-      const { data, error } = await supabase.auth.updateUser({
-        data: {
-          first_name: firstName.trim(),
-          last_name: lastName.trim(),
-          full_name: fullNameValue,
-          contact_email: normalizedEmail,
-        },
-      });
-      if (error) throw error;
-      if (!data.user) throw new Error("Your verified account is unavailable. Please sign in again.");
-
-      const { error: profileError } = await supabase.from("profiles").upsert({
-        id: data.user.id,
-        full_name: fullNameValue,
-        phone: data.user.phone || sentPhoneDisplay || normalizePhoneInput(phone),
-      }, { onConflict: "id" });
-      if (profileError) throw profileError;
-
-      await refreshProfile(data.user.id);
-      setSuccessMsg("Welcome to QafNest!");
-      window.setTimeout(closeAuthModal, 700);
-    } catch (error) {
-      setErrorMsg(error instanceof Error ? error.message : "Your details could not be saved. Please try again.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleResendOtp = async (channel: OtpChannel) => {
-    if (timer > 0 || loading) return;
-    if (channel === "sms" && isFirebaseConfigured()) {
-      confirmationResultRef.current = null;
-      setOtp(EMPTY_OTP());
-      setErrorMsg(null);
-      setPhoneStep("phone_input");
-      return;
-    }
-
-    setLoading(true);
-    setErrorMsg(null);
-    try {
-      const formattedPhone = sentPhoneDisplay || normalizePhoneInput(phone);
-      if (!formattedPhone) throw new Error("Please enter a valid mobile number.");
-      const { error } = await supabase.auth.signInWithOtp({ phone: formattedPhone, options: { channel } });
-      if (error) throw error;
-      setSentChannel(channel);
-      setTimer(45);
-      setOtp(EMPTY_OTP());
-    } catch (error) {
-      setErrorMsg(error instanceof Error ? error.message : "We couldn't resend the code.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Handle Email Fallback Login / Signup
-  const handleEmailSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setErrorMsg(null);
-    setSuccessMsg(null);
-    setLoading(true);
-
-    try {
-      if (isEmailSignIn) {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) throw error;
-        setSuccessMsg("Welcome back! Signing you in...");
-        setTimeout(() => closeAuthModal(), 800);
-      } else {
-        const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || window.location.origin;
-        const { data, error } = await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            emailRedirectTo: new URL("/auth/callback", siteUrl).toString(),
-            data: {
-              full_name: fullName,
-              phone: phone,
-              role: "guest",
-            },
-          },
-        });
-        if (error) throw error;
-        if (data.session) {
-          setSuccessMsg("Account created successfully!");
-          setTimeout(() => closeAuthModal(), 1000);
-        } else {
-          setSuccessMsg("Account created. Check your email to confirm your address and finish signing in.");
-        }
-      }
-    } catch (err: unknown) {
-      setErrorMsg(err instanceof Error ? err.message : "Authentication failed.");
-    } finally {
-      setLoading(false);
-    }
-  };
 
   return (
     <div
@@ -511,306 +69,87 @@ export default function AuthModal() {
       onClick={closeAuthModal}
     >
       <div
-        className="max-w-md w-full rounded-3xl p-6 sm:p-8 relative shadow-2xl bg-white dark:bg-[#0E0E1A] border border-gray-100 dark:border-white/10 max-h-[92vh] overflow-y-auto"
+        dir={language === "ar" ? "rtl" : "ltr"}
+        className="w-full max-w-[460px] rounded-3xl p-6 sm:p-8 relative shadow-2xl bg-white dark:bg-[#0E0E1A] border border-gray-100 dark:border-white/10 max-h-[92vh] overflow-y-auto text-slate-900 dark:text-white"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Close Button */}
-        <button
-          onClick={closeAuthModal}
-          className="absolute top-5 right-5 h-8 w-8 rounded-full bg-gray-100 dark:bg-white/10 flex items-center justify-center text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors cursor-pointer"
-          aria-label="Close modal"
-        >
-          <X className="w-4 h-4" />
-        </button>
-
-        {/* Ministry Badge */}
-        <div className="flex items-center gap-1.5 mb-3">
-          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800/40 flex items-center gap-1">
-            <ShieldCheck className="w-3 h-3 text-purple-600 dark:text-purple-400" />
-            {language === "ar" ? "معتمد ومرخص من وزارة السياحة" : "Saudi Tourism Verified"}
+        {/* Top Header: Ministry Badge (Start) & Close Button (End) */}
+        <div className="flex items-center justify-between gap-3 mb-4">
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800/40 shrink min-w-0">
+            <ShieldCheck className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400 shrink-0" />
+            <span className="truncate">
+              {language === "ar"
+                ? "معتمد ومرخص من وزارة السياحة"
+                : "Saudi Tourism Verified"}
+            </span>
           </span>
+
+          <button
+            onClick={closeAuthModal}
+            className="h-8 w-8 rounded-full bg-gray-100 dark:bg-white/10 flex items-center justify-center text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors cursor-pointer shrink-0"
+            aria-label={language === "ar" ? "إغلاق النافذة" : "Close modal"}
+          >
+            <X className="w-4 h-4" />
+          </button>
         </div>
 
-        {/* ============================================================== */}
-        {/* PHONE NUMBER AUTH FLOW (GATHERN BENCHMARK)                     */}
-        {/* ============================================================== */}
+        {/* PHONE NUMBER AUTH FLOW */}
         {authMethod === "phone" && (
           <div>
-            {phoneStep === "phone_input" ? (
-              <>
-                <div className="mb-6">
-                  <h3 className="font-display text-2xl font-bold text-gray-900 dark:text-white">
-                    {language === "ar" ? "تسجيل الدخول أو إنشاء حساب" : "Login or Sign up"}
-                  </h3>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                    {language === "ar"
-                      ? "أدخل رقم جوالك لتصلك رسالة نصية برمز التحقق"
-                      : "Enter your mobile number to receive a verification code"}
-                  </p>
-                </div>
+            {phoneStep === "phone_input" && (
+              <GuestPhoneInputStep
+                phone={phone}
+                setPhone={setPhone}
+                otpChannel={otpChannel}
+                setOtpChannel={setOtpChannel}
+                setErrorMsg={setErrorMsg}
+                recaptchaContainerRef={recaptchaContainerRef}
+                errorMsg={errorMsg}
+                loading={loading}
+                onSubmit={handleSendOtp}
+                language={language}
+              />
+            )}
 
-                <form onSubmit={handleSendOtp} className="space-y-4">
-                  {/* Mobile Number Input */}
-                  <div>
-                    <label className="text-xs font-bold text-gray-700 dark:text-gray-300 block mb-1.5">
-                      {language === "ar" ? "رقم الجوال" : "Mobile Number"}
-                    </label>
-                    <div className="flex items-center gap-2" dir="ltr">
-                      {/* Country Prefix Box */}
-                      <div className="px-3 py-3 rounded-2xl bg-gray-100 dark:bg-white/10 border border-gray-200 dark:border-white/10 flex items-center gap-1.5 shrink-0">
-                        <span className="text-base">🇸🇦</span>
-                        <span className="text-xs font-bold text-gray-900 dark:text-white">+966</span>
-                      </div>
+            {phoneStep === "otp_verify" && (
+              <GuestOtpVerifyStep
+                otp={otp}
+                otpInputRefs={otpInputRefs}
+                handleOtpChange={handleOtpChange}
+                handleOtpKeyDown={handleOtpKeyDown}
+                loading={loading}
+                onSubmit={handleVerifyOtp}
+                timer={timer}
+                handleResendOtp={handleResendOtp}
+                sentPhoneDisplay={sentPhoneDisplay}
+                phone={phone}
+                sentChannel={sentChannel}
+                onChangeNumber={() => {
+                  confirmationResultRef.current = null;
+                  setErrorMsg(null);
+                  setPhoneStep("phone_input");
+                }}
+                errorMsg={errorMsg}
+                successMsg={successMsg}
+                language={language}
+                otpLength={OTP_LENGTH}
+              />
+            )}
 
-                      {/* Phone Input */}
-                      <input
-                        type="tel"
-                        required
-                        value={phone}
-                        onChange={(e) => setPhone(e.target.value.replace(/[^0-9+]/g, ""))}
-                        placeholder="5X XXX XXXX or +..."
-                        maxLength={16}
-                        className="w-full px-4 py-3 rounded-2xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-sm font-semibold text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:border-purple-600"
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <span className="text-xs font-bold text-gray-700 dark:text-gray-300 block mb-1.5">
-                      {language === "ar" ? "إرسال رمز التحقق عبر" : "Send verification code via"}
-                    </span>
-                    <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label={language === "ar" ? "قناة رمز التحقق" : "Verification code channel"}>
-                      <button
-                        type="button"
-                        role="radio"
-                        aria-checked={otpChannel === "sms"}
-                        onClick={() => {
-                          setOtpChannel("sms");
-                          setErrorMsg(null);
-                        }}
-                        className={`inline-flex items-center justify-center gap-2 rounded-xl border px-3 py-2.5 text-xs font-bold transition ${otpChannel === "sms" ? "border-purple-500 bg-purple-50 text-purple-800 ring-1 ring-purple-500 dark:bg-purple-400/10 dark:text-purple-200" : "border-gray-200 text-gray-600 hover:border-purple-300 dark:border-white/10 dark:text-gray-300"}`}
-                      >
-                        <Smartphone className="h-4 w-4" />SMS
-                      </button>
-                      <button
-                        type="button"
-                        role="radio"
-                        aria-checked={otpChannel === "whatsapp"}
-                        onClick={() => {
-                          setOtpChannel("whatsapp");
-                          setErrorMsg(null);
-                        }}
-                        className={`inline-flex items-center justify-center gap-2 rounded-xl border px-3 py-2.5 text-xs font-bold transition ${otpChannel === "whatsapp" ? "border-emerald-500 bg-emerald-50 text-emerald-800 ring-1 ring-emerald-500 dark:bg-emerald-400/10 dark:text-emerald-200" : "border-gray-200 text-gray-600 hover:border-emerald-300 dark:border-white/10 dark:text-gray-300"}`}
-                      >
-                        <MessageCircle className="h-4 w-4" />WhatsApp
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Firebase reCAPTCHA container for SMS */}
-                  {otpChannel === "sms" && (
-                    <div className="flex justify-center overflow-x-auto py-1">
-                      <div ref={recaptchaContainerRef} />
-                    </div>
-                  )}
-
-                  {/* Error & Success Messages */}
-                  {errorMsg && (
-                    <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300 text-xs flex items-center gap-2">
-                      <AlertCircle className="w-4 h-4 shrink-0" />
-                      <span>{errorMsg}</span>
-                    </div>
-                  )}
-
-                  <button
-                    type="submit"
-                    disabled={loading}
-                    className="w-full py-3.5 rounded-2xl bg-purple-700 hover:bg-purple-800 text-white font-bold text-sm shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
-                  >
-                    {loading ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <>
-                        <span>{language === "ar" ? "متابعة" : "Continue"}</span>
-                        <ArrowRight className="w-4 h-4 rtl:rotate-180" />
-                      </>
-                    )}
-                  </button>
-                </form>
-              </>
-            ) : phoneStep === "otp_verify" ? (
-              /* OTP Verification Step */
-              <div>
-                <div className="mb-6">
-                  <h3 className="font-display text-2xl font-bold text-gray-900 dark:text-white">
-                    {language === "ar" ? "أدخل رمز التحقق" : "Enter Verification Code"}
-                  </h3>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                    {language === "ar" ? `أدخل الرمز المكون من ${OTP_LENGTH} أرقام المرسل عبر ${sentChannel === "sms" ? "SMS" : "WhatsApp"} إلى ` : `Enter the ${OTP_LENGTH}-digit code sent via ${sentChannel === "sms" ? "SMS" : "WhatsApp"} to `}
-                    <span className="font-bold text-gray-900 dark:text-white" dir="ltr">
-                      {sentPhoneDisplay || `+966 ${phone}`}
-                    </span>{" "}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        confirmationResultRef.current = null;
-                        setErrorMsg(null);
-                        setPhoneStep("phone_input");
-                      }}
-                      className="text-purple-600 dark:text-purple-400 underline font-semibold ml-1 rtl:mr-1 rtl:ml-0 cursor-pointer"
-                    >
-                      {language === "ar" ? "تغيير" : "Change"}
-                    </button>
-                  </p>
-                </div>
-
-                <form onSubmit={handleVerifyOtp} className="space-y-5">
-                  {/* OTP boxes */}
-                  <div className="flex items-center justify-center gap-3" dir="ltr">
-                    {otp.map((digit, index) => (
-                      <input
-                        key={index}
-                        ref={(element) => { otpInputRefs.current[index] = element; }}
-                        type="text"
-                        inputMode="numeric"
-                        autoComplete={index === 0 ? "one-time-code" : "off"}
-                        maxLength={1}
-                        value={digit}
-                        onChange={(e) => handleOtpChange(index, e.target.value)}
-                        onKeyDown={(e) => handleOtpKeyDown(index, e)}
-                        className="w-14 h-14 text-center font-mono text-xl font-bold rounded-2xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-900 dark:text-white focus:outline-none focus:border-purple-600 focus:ring-2 focus:ring-purple-600/20 transition-all"
-                      />
-                    ))}
-                  </div>
-
-                  {/* Resend Timer */}
-                  <div className="text-center text-xs text-gray-500">
-                    {timer > 0 ? (
-                      <span>
-                        {language === "ar"
-                          ? `إعادة الإرسال بعد 00:${String(timer).padStart(2, "0")}`
-                          : `Resend code in 00:${String(timer).padStart(2, "0")}`}
-                      </span>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={() => handleResendOtp(sentChannel)}
-                        disabled={loading}
-                        className="font-bold text-purple-600 dark:text-purple-400 hover:underline cursor-pointer"
-                      >
-                        {language === "ar" ? `إعادة الإرسال عبر ${sentChannel === "sms" ? "SMS" : "WhatsApp"}` : `Resend via ${sentChannel === "sms" ? "SMS" : "WhatsApp"}`}
-                      </button>
-                    )}
-                  </div>
-
-                  {/* Error & Success */}
-                  {errorMsg && (
-                    <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300 text-xs flex items-center gap-2">
-                      <AlertCircle className="w-4 h-4 shrink-0" />
-                      <span>{errorMsg}</span>
-                    </div>
-                  )}
-
-                  {successMsg && (
-                    <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 text-xs flex items-center gap-2">
-                      <CheckCircle2 className="w-4 h-4 shrink-0" />
-                      <span>{successMsg}</span>
-                    </div>
-                  )}
-
-                  <button
-                    type="submit"
-                    disabled={loading || otp.join("").length !== OTP_LENGTH}
-                    className="w-full py-3.5 rounded-2xl bg-purple-700 hover:bg-purple-800 text-white font-bold text-sm shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
-                  >
-                    {loading ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <span>{language === "ar" ? "تحقق ومتابعة" : "Verify & Continue"}</span>
-                    )}
-                  </button>
-                </form>
-              </div>
-            ) : (
-              <div>
-                <div className="mb-6">
-                  <h3 className="font-display text-2xl font-bold text-gray-900 dark:text-white">
-                    {language === "ar" ? "أكمل ملفك الشخصي" : "Complete your profile"}
-                  </h3>
-                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                    {language === "ar" ? "تم التحقق من رقم جوالك. أضف بياناتك لمتابعة الحجز." : "Your phone is verified. Add your details to continue booking."}
-                  </p>
-                </div>
-
-                <form onSubmit={handleSavePhoneProfile} className="space-y-4">
-                  <div>
-                    <label htmlFor="auth-first-name" className="mb-1.5 block text-xs font-bold text-gray-700 dark:text-gray-300">
-                      {language === "ar" ? "الاسم الأول" : "First name"}
-                    </label>
-                    <input
-                      id="auth-first-name"
-                      type="text"
-                      autoComplete="given-name"
-                      required
-                      value={firstName}
-                      onChange={(event) => setFirstName(event.target.value)}
-                      placeholder={language === "ar" ? "الاسم الأول" : "Your first name"}
-                      className="w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm font-semibold text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-purple-600 dark:border-white/10 dark:bg-white/5 dark:text-white"
-                    />
-                  </div>
-                  <div>
-                    <label htmlFor="auth-last-name" className="mb-1.5 block text-xs font-bold text-gray-700 dark:text-gray-300">
-                      {language === "ar" ? "اسم العائلة" : "Last name"}
-                    </label>
-                    <input
-                      id="auth-last-name"
-                      type="text"
-                      autoComplete="family-name"
-                      required
-                      value={lastName}
-                      onChange={(event) => setLastName(event.target.value)}
-                      placeholder={language === "ar" ? "اسم العائلة" : "Your last name"}
-                      className="w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm font-semibold text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-purple-600 dark:border-white/10 dark:bg-white/5 dark:text-white"
-                    />
-                  </div>
-                  <div>
-                    <label htmlFor="auth-contact-email" className="mb-1.5 block text-xs font-bold text-gray-700 dark:text-gray-300">
-                      {language === "ar" ? "البريد الإلكتروني" : "Email address"}
-                    </label>
-                    <input
-                      id="auth-contact-email"
-                      type="email"
-                      autoComplete="email"
-                      inputMode="email"
-                      required
-                      value={contactEmail}
-                      onChange={(event) => setContactEmail(event.target.value)}
-                      placeholder="you@example.com"
-                      className="w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm font-semibold text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-purple-600 dark:border-white/10 dark:bg-white/5 dark:text-white"
-                    />
-                  </div>
-
-                  {errorMsg && (
-                    <div role="alert" className="flex items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs text-rose-700 dark:border-rose-800 dark:bg-rose-950/40 dark:text-rose-300">
-                      <AlertCircle className="h-4 w-4 shrink-0" />
-                      <span>{errorMsg}</span>
-                    </div>
-                  )}
-                  {successMsg && (
-                    <div role="status" className="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-xs text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300">
-                      <CheckCircle2 className="h-4 w-4 shrink-0" />
-                      <span>{successMsg}</span>
-                    </div>
-                  )}
-                  <button
-                    type="submit"
-                    disabled={loading}
-                    className="flex w-full items-center justify-center gap-2 rounded-2xl bg-purple-700 py-3.5 text-sm font-bold text-white shadow-md transition-all hover:bg-purple-800 disabled:opacity-50"
-                  >
-                    {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <span>{language === "ar" ? "حفظ ومتابعة" : "Save & Continue"}</span>}
-                  </button>
-                </form>
-              </div>
+            {phoneStep === "profile_details" && (
+              <GuestProfileDetailsStep
+                firstName={firstName}
+                setFirstName={setFirstName}
+                lastName={lastName}
+                setLastName={setLastName}
+                contactEmail={contactEmail}
+                setContactEmail={setContactEmail}
+                errorMsg={errorMsg}
+                successMsg={successMsg}
+                loading={loading}
+                onSubmit={handleSavePhoneProfile}
+                language={language}
+              />
             )}
 
             {/* Switch to Email Button */}
@@ -818,129 +157,42 @@ export default function AuthModal() {
               <button
                 type="button"
                 onClick={() => setAuthMethod("email")}
-                className="text-xs font-semibold text-gray-500 hover:text-purple-700 dark:hover:text-purple-400 transition-colors flex items-center justify-center gap-1.5 mx-auto cursor-pointer"
+                className="text-xs font-semibold text-gray-500 hover:text-purple-700 dark:hover:text-purple-400 transition-colors inline-flex items-center justify-center gap-1.5 mx-auto cursor-pointer"
               >
                 <Mail className="w-3.5 h-3.5" />
-                <span>{language === "ar" ? "أو المتابعة عبر البريد الإلكتروني" : "Or continue with Email"}</span>
+                <span>
+                  {language === "ar"
+                    ? "أو المتابعة عبر البريد الإلكتروني"
+                    : "Or continue with Email"}
+                </span>
               </button>
             </div>
           </div>
         )}
 
-        {/* ============================================================== */}
-        {/* EMAIL & PASSWORD FLOW (ALTERNATIVE)                           */}
-        {/* ============================================================== */}
+        {/* EMAIL & PASSWORD FLOW */}
         {authMethod === "email" && (
-          <div>
-            <div className="mb-6">
-              <h3 className="font-display text-2xl font-bold text-gray-900 dark:text-white">
-                {isEmailSignIn ? "Sign In with Email" : "Create Account"}
-              </h3>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                Enter your credentials to access your booking dashboard
-              </p>
-            </div>
-
-            <form onSubmit={handleEmailSubmit} className="space-y-4">
-              {!isEmailSignIn && (
-                <div>
-                  <label className="text-xs font-bold text-gray-700 dark:text-gray-300 block mb-1">
-                    Full Name
-                  </label>
-                  <div className="relative">
-                    <UserIcon className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                    <input
-                      type="text"
-                      required
-                      value={fullName}
-                      onChange={(e) => setFullName(e.target.value)}
-                      placeholder="Your full name"
-                      className="w-full pl-10 pr-4 py-3 rounded-2xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-sm font-semibold text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:border-purple-600"
-                    />
-                  </div>
-                </div>
-              )}
-
-              <div>
-                <label className="text-xs font-bold text-gray-700 dark:text-gray-300 block mb-1">
-                  Email Address
-                </label>
-                <div className="relative">
-                  <Mail className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                  <input
-                    type="email"
-                    required
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="name@example.com"
-                    className="w-full pl-10 pr-4 py-3 rounded-2xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-sm font-semibold text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:border-purple-600"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="text-xs font-bold text-gray-700 dark:text-gray-300 block mb-1">
-                  Password
-                </label>
-                <div className="relative">
-                  <Lock className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                  <input
-                    type="password"
-                    required
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="••••••••"
-                    className="w-full pl-10 pr-4 py-3 rounded-2xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-sm font-semibold text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:border-purple-600"
-                  />
-                </div>
-              </div>
-
-              {errorMsg && (
-                <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300 text-xs flex items-center gap-2">
-                  <AlertCircle className="w-4 h-4 shrink-0" />
-                  <span>{errorMsg}</span>
-                </div>
-              )}
-
-              {successMsg && (
-                <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 text-xs flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 shrink-0" />
-                  <span>{successMsg}</span>
-                </div>
-              )}
-
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full py-3.5 rounded-2xl bg-purple-700 hover:bg-purple-800 text-white font-bold text-sm shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
-              >
-                {loading ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <span>{isEmailSignIn ? "Sign In" : "Create Account"}</span>
-                )}
-              </button>
-            </form>
-
-            <div className="mt-4 flex items-center justify-between text-xs text-gray-500">
-              <button
-                type="button"
-                onClick={() => setIsEmailSignIn(!isEmailSignIn)}
-                className="hover:underline font-semibold text-purple-600 dark:text-purple-400 cursor-pointer"
-              >
-                {isEmailSignIn ? "Need an account? Sign up" : "Already have an account? Sign in"}
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setAuthMethod("phone")}
-                className="hover:underline font-semibold text-gray-600 dark:text-gray-400 flex items-center gap-1 cursor-pointer"
-              >
-                <Phone className="w-3 h-3" />
-                <span>Mobile Login</span>
-              </button>
-            </div>
-          </div>
+          <GuestEmailAuthStep
+            isEmailSignIn={isEmailSignIn}
+            setIsEmailSignIn={setIsEmailSignIn}
+            fullName={fullName}
+            setFullName={setFullName}
+            email={email}
+            setEmail={setEmail}
+            password={password}
+            setPassword={setPassword}
+            onDevGuestFill={() => {
+              setEmail("guest.dev@qafnest.com");
+              setPassword("QafNest@Dev2026!");
+              setIsEmailSignIn(true);
+            }}
+            onSwitchToPhone={() => setAuthMethod("phone")}
+            errorMsg={errorMsg}
+            successMsg={successMsg}
+            loading={loading}
+            onSubmit={handleEmailSubmit}
+            language={language}
+          />
         )}
       </div>
     </div>

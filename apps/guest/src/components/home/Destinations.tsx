@@ -4,12 +4,14 @@ import { useRef } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { MapPin, ChevronLeft, ChevronRight, CalendarDays } from "lucide-react";
-import { DESTINATIONS, Destination } from "@/data/properties";
+import { DESTINATIONS, Destination, normalizeCityId } from "@/data/properties";
 import { useApp } from "@/context/AppContext";
+import { useProperties } from "@/hooks/useProperties";
 import { CITY_NAMES_AR } from "@/data/translations";
 
 export default function Destinations() {
   const { selectedCity, setSelectedCity, rentMode, setRentMode, language, t } = useApp();
+  const { properties } = useProperties();
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const scroll = (direction: "left" | "right") => {
@@ -140,9 +142,11 @@ export default function Destinations() {
                   {language === "ar" ? (CITY_NAMES_AR[dest.city] || dest.name) : dest.name}
                 </span>
 
-                {/* Subtle Stays Count / Subtitle */}
+                {/* Live Stays Count / Subtitle */}
                 <span className="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5 truncate max-w-[80px]">
-                  {dest.isMonthly ? t.destinations.longStays : `${dest.count}+ ${t.destinations.staysCount}`}
+                  {dest.isMonthly
+                    ? t.destinations.longStays
+                    : `${properties.filter((p) => normalizeCityId(p.city) === dest.city).length} ${t.destinations.staysCount}`}
                 </span>
               </div>
             );

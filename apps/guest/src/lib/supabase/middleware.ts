@@ -3,7 +3,6 @@ import { NextResponse, type NextRequest } from "next/server";
 import { getSupabaseConfig, isSupabaseConfigured } from "@/lib/supabase/config";
 
 export async function updateSupabaseSession(request: NextRequest) {
-  // Keep public pages usable before local Supabase credentials are added.
   if (!isSupabaseConfigured()) return NextResponse.next({ request });
 
   const { url, key } = getSupabaseConfig();
@@ -19,9 +18,12 @@ export async function updateSupabaseSession(request: NextRequest) {
         cookiesToSet.forEach(({ name, value, options }) => response.cookies.set(name, value, options));
       },
     },
+    cookieOptions: {
+      name: "sb-qafnest-guest-auth",
+    },
   });
 
-  // Verifies the session and refreshes expired auth tokens when needed.
-  await supabase.auth.getClaims();
+  // Cryptographically verifies user token and refreshes session if required
+  await supabase.auth.getUser();
   return response;
 }

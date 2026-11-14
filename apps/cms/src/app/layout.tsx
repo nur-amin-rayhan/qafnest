@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
+import { AdminAuthProvider } from "@/context/AdminAuthContext";
 
 const geist = localFont({
   src: "./fonts/GeistVF.woff",
@@ -42,7 +43,7 @@ export default function CmsRootLayout({
   return (
     <html lang="en" className={`${geist.variable} ${dinNext.variable} dark`} suppressHydrationWarning>
       <body className="font-body relative min-h-screen bg-[#05070B] text-white selection:bg-emerald-500/30" suppressHydrationWarning>
-        {children}
+        <AdminAuthProvider>{children}</AdminAuthProvider>
       </body>
     </html>
   );

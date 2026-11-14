@@ -1,0 +1,18 @@
+{
+  "enabled": true,
+  "isMandatoryForGuests": false,
+  "isMandatoryForHosts": true,
+  "activeProvider": "sandbox",
+  "yakeen": {
+    "appId": "",
+    "appKey": "",
+    "organizationNumber": "7007384501",
+    "baseUrl": "https://yakeen.elm.sa/api"
+  },
+  "nafath": {
+    "appId": "",
+    "appKey": "",
+    "baseUrl": "https://nafath.api.elm.sa"
+  },
+  "updatedAt": "2026-11-09T17:55:10.695Z"
+}

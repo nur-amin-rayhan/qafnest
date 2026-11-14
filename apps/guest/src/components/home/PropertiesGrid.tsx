@@ -7,12 +7,14 @@ import { getPropertyCapacity, normalizeCityId, Property } from "@/data/propertie
 import { useProperties } from "@/hooks/useProperties";
 import { useApp } from "@/context/AppContext";
 import { propertyDetailHref, propertyReservationHref } from "@/lib/propertyUrls";
+import { CITY_NAMES_AR, CATEGORY_NAMES_AR } from "@/data/translations";
 import {
-  CITY_NAMES_AR,
-  CATEGORY_NAMES_AR,
-  PROPERTY_TITLES_AR,
-  PROPERTY_SPECS_AR,
-} from "@/data/translations";
+  getLocalizedPropertyTitle,
+  getLocalizedPropertyLocation,
+  getLocalizedCategoryName,
+  formatLocalizedPropertySpecs,
+  type Locale,
+} from "@/lib/localization/localeHelper";
 
 export default function PropertiesGrid() {
   const { properties } = useProperties();
@@ -42,7 +44,7 @@ export default function PropertiesGrid() {
     if (instantOnly && !p.instantBook) return false;
     if (poolOnly && !p.hasPool) return false;
     if (selfCheckinOnly && !p.selfCheckin) return false;
-    if (guestsCount > 4) {
+    if (guestsCount > 1) {
       if (getPropertyCapacity(p) < guestsCount) return false;
     }
     return true;
@@ -73,10 +75,11 @@ export default function PropertiesGrid() {
     const effectivePrice =
       rentMode === "monthly" ? Math.round(item.basePrice * 20) : item.basePrice;
 
-    const title = language === "ar" ? (PROPERTY_TITLES_AR[item.id] || item.title) : item.title;
-    const cityName = language === "ar" ? (CITY_NAMES_AR[item.city] || item.cityName) : item.cityName;
-    const categoryName = language === "ar" ? (CATEGORY_NAMES_AR[item.category] || item.categoryName) : item.categoryName;
-    const specs = language === "ar" ? (PROPERTY_SPECS_AR[item.specs] || item.specs) : item.specs;
+    const locale: Locale = language === "ar" ? "ar" : "en";
+    const title = getLocalizedPropertyTitle(item, locale);
+    const { city: cityName } = getLocalizedPropertyLocation(item, locale);
+    const categoryName = getLocalizedCategoryName(item.category || item.categoryName, locale);
+    const specs = formatLocalizedPropertySpecs(item, locale);
     const detailHref = propertyDetailHref(item.id);
 
     return (
@@ -87,7 +90,7 @@ export default function PropertiesGrid() {
         {/* Clean 4:3 Aspect Image with Badges */}
         <div className="relative aspect-[4/3] w-full overflow-hidden bg-gray-100 dark:bg-white/5">
           <Image
-            src={item.image}
+            src={item.image || "https://images.unsplash.com/photo-1580587771525-78b9dba3b914?w=800&fit=crop"}
             alt={title}
             fill
             priority={idx < 4}

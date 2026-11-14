@@ -1,0 +1,13 @@
+{
+  "policy": {
+    "enforceSingleAccountPerIp": true,
+    "enforceSingleAccountPerDevice": true,
+    "autoBlockRepeatIps": true,
+    "welcomeBonusAmountSar": 50,
+    "welcomeBonusEnabled": true
+  },
+  "registrations": [],
+  "blockedIps": [],
+  "blockedDevices": [],
+  "alerts": []
+}

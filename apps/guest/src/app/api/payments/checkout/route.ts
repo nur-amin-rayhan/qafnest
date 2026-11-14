@@ -1,38 +1,47 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { PROPERTIES } from "@/data/properties";
+import { getAdminOrServerClient } from "@/lib/supabase/service";
+import { getMyFatoorahConfig, getSamsungPayWebConfig } from "@/lib/services/myfatoorah";
+import { verifyGuestSession } from "@/lib/auth/serverAuth";
+import { calculatePricingBreakdown, CouponDefinition } from "@/lib/services/pricing";
+import { validateAuthoritativeCoupon } from "@/lib/services/couponService";
+import {
+  isIsoDate,
+  generateBookingReference,
+  resolveCheckoutProperty,
+  checkDatesAndCalculateRate,
+  persistBookingToDatabase,
+} from "@/lib/services/checkoutHelpers";
+import { validateGuestCheckoutIdentity } from "@/lib/services/checkoutIdentity";
+import {
+  reconcileStaleBookings,
+  cancelPreviousInitiatedGuestBookings,
+} from "@/lib/services/bookingReconciliation";
+import { resolveRequestLocale } from "@/lib/services/requestLocale";
+import { processGatewayPayment } from "@/lib/services/checkoutGateway";
+import { getServerSaudiIdentityConfig } from "@qafnest/shared/saudiIdentityStore";
+import { dispatchBookingZatcaInvoice } from "@/lib/services/zatcaReportingHelper";
+import {
+  DEFAULT_CHECKIN_TIME,
+  DEFAULT_CHECKOUT_TIME,
+  getRiyadhNowInfo,
+  isSameDayTwelveHourStay,
+} from "@qafnest/shared";
+import { acquirePropertyBookingLock } from "@qafnest/shared/bookingSlotStore";
+import { getServerEffectiveGuestFeeConfig } from "@qafnest/shared/platformFeeStore";
+import { calculateBookingSettlement } from "@qafnest/shared/platformFee";
+import { saveBookingFinancialSnapshot } from "@qafnest/shared/bookingFinancialsStore";
+import {
+  deductWalletForBooking,
+  awardLoyaltyPoints,
+  getUserWallet,
+  getUserSavedCards,
+  registerPendingWalletSplit,
+  SavedCard,
+} from "@/lib/services/walletService";
 
-const paymentMethods = ["card", "apple", "tabby", "tamara"] as const;
+const paymentMethods = ["card", "apple", "google", "stcpay", "samsung", "tabby", "tamara", "wallet"] as const;
 type PaymentMethod = (typeof paymentMethods)[number];
-
-function isIsoDate(value: unknown): value is string {
-  if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
-  const date = new Date(`${value}T00:00:00.000Z`);
-  return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value;
-}
-
-function decodeJwtPayload(token: string): Record<string, unknown> | null {
-  try {
-    const parts = token.split(".");
-    if (parts.length < 2) return null;
-    return JSON.parse(Buffer.from(parts[1], "base64url").toString("utf8"));
-  } catch {
-    return null;
-  }
-}
-
-function generateBookingReference(): string {
-  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-  let ref = "QAF-";
-  for (let i = 0; i < 6; i++) {
-    ref += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return ref;
-}
-
-function generateSmartLockPin(): string {
-  return String(Math.floor(100000 + Math.random() * 900000));
-}
 
 export async function POST(request: Request) {
   let body: Record<string, unknown>;
@@ -51,242 +60,576 @@ export async function POST(request: Request) {
     return NextResponse.json({ code: "unsupported_payment_method" }, { status: 400 });
   }
   const selectedMethod = method as PaymentMethod;
+  const resolvedLocale = resolveRequestLocale(request, body.locale ?? body.lang);
 
-  // Resolve Guest Identity from Supabase Session, Bearer Token, or Body
-  const supabase = await createClient();
-  let guestId: string | null = null;
-  let guestSubject: string | null = null;
-  let guestPhone: string | null = null;
-  let guestName: string | null = null;
-  let guestEmail: string | null = null;
-  let isPhoneVerified = false;
+  const authUser = await verifyGuestSession(request);
+  if (!authUser) {
+    return NextResponse.json(
+      {
+        code: "authentication_required",
+        message: "You must be signed in with a verified account to proceed with checkout.",
+      },
+      { status: 401 }
+    );
+  }
 
-  // 1. Try Supabase Cookie Session
-  try {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (user) {
-      guestId = user.id;
-      guestSubject = user.id;
-      guestPhone = user.phone || (typeof user.user_metadata?.phone === "string" ? user.user_metadata.phone : null);
-      guestName = (typeof user.user_metadata?.full_name === "string" ? user.user_metadata.full_name : null) ||
-        [user.user_metadata?.first_name, user.user_metadata?.last_name].filter(Boolean).join(" ") || null;
-      guestEmail = user.email || (typeof user.user_metadata?.contact_email === "string" ? user.user_metadata.contact_email : null);
-      isPhoneVerified = Boolean(user.phone_confirmed_at || guestPhone);
-    }
-  } catch {}
+  const identityCheck = validateGuestCheckoutIdentity(authUser, body);
+  if (!identityCheck.success) {
+    return NextResponse.json(
+      { code: identityCheck.error.code, message: identityCheck.error.message },
+      { status: identityCheck.error.status }
+    );
+  }
+  const { guestPhone, guestSubject, guestId, guestName, guestEmail } = identityCheck.identity;
 
-  // 2. Try Authorization Bearer Header (Firebase ID Token or Supabase JWT)
-  if (!guestPhone) {
-    const authHeader = request.headers.get("authorization");
-    const bearer = authHeader?.match(/^Bearer\s+(.+)$/i)?.[1];
-    if (bearer) {
-      const claims = decodeJwtPayload(bearer);
-      if (claims) {
-        guestSubject = typeof claims.sub === "string" ? claims.sub : null;
-        guestPhone = typeof claims.phone_number === "string" ? claims.phone_number : null;
-        guestName = typeof claims.name === "string" ? claims.name : null;
-        guestEmail = typeof claims.email === "string" ? claims.email : null;
-        if (guestPhone) isPhoneVerified = true;
+  // Verify Saudi National ID / Iqama if mandatory policy is activated in CMS
+  const identityConfig = getServerSaudiIdentityConfig();
+  if (identityConfig.isMandatoryForGuests && authUser.id) {
+    const dbAdmin = await getAdminOrServerClient();
+    const { data: profile } = await dbAdmin
+      .from("profiles")
+      .select("national_id")
+      .eq("id", authUser.id)
+      .maybeSingle();
+
+    let metaVerified = false;
+    let metaIqama = "";
+    try {
+      if (typeof (dbAdmin as any).auth?.admin?.getUserById === "function") {
+        const { data: authRes } = await (dbAdmin as any).auth.admin.getUserById(authUser.id);
+        const meta = (authRes?.user?.user_metadata || {}) as Record<string, unknown>;
+        metaVerified = Boolean(meta.is_verified);
+        metaIqama = typeof meta.iqama === "string" ? meta.iqama : "";
       }
+    } catch {
+      // Optional auth metadata check
+    }
+
+    if (!metaVerified && !profile?.national_id && !metaIqama) {
+      return NextResponse.json(
+        {
+          code: "identity_verification_required",
+          message:
+            "Saudi National ID or Iqama verification is required by policy before completing checkout (يجب التحقق من الهوية الوطنية أو الإقامة أولاً).",
+        },
+        { status: 403 }
+      );
     }
   }
 
-  // 3. Fallback to Guest Details provided in request body (e.g. from Firebase client session)
-  if (!guestPhone && typeof body.guestPhone === "string" && body.guestPhone.trim()) {
-    guestPhone = body.guestPhone.trim();
-    isPhoneVerified = true;
-  }
-  if (!guestName && typeof body.guestName === "string" && body.guestName.trim()) {
-    guestName = body.guestName.trim();
-  }
-  if (!guestEmail && typeof body.guestEmail === "string" && body.guestEmail.includes("@")) {
-    guestEmail = body.guestEmail.trim();
-  }
-  if (!guestSubject && typeof body.guestSubject === "string") {
-    guestSubject = body.guestSubject.trim();
-  }
-
-  if (!isPhoneVerified || !guestPhone) {
-    return NextResponse.json({ code: "phone_verification_required" }, { status: 401 });
-  }
-
-  if (!guestName || !guestEmail || !guestEmail.includes("@")) {
-    return NextResponse.json({ code: "profile_details_required" }, { status: 400 });
-  }
-
-  const propertyId = body.propertyId;
+  const rawPropertyId = body.propertyId;
   const checkIn = body.checkIn;
   const checkOut = body.checkOut;
   const guests = body.guests;
-  if (typeof propertyId !== "string" || !isIsoDate(checkIn) || !isIsoDate(checkOut) || !Number.isInteger(guests)) {
+  const checkinTime =
+    typeof body.checkinTime === "string"
+      ? body.checkinTime.slice(0, 5)
+      : typeof body.checkInTime === "string"
+      ? body.checkInTime.slice(0, 5)
+      : DEFAULT_CHECKIN_TIME;
+  const checkoutTime =
+    typeof body.checkoutTime === "string"
+      ? body.checkoutTime.slice(0, 5)
+      : typeof body.checkOutTime === "string"
+      ? body.checkOutTime.slice(0, 5)
+      : DEFAULT_CHECKOUT_TIME;
+  if (typeof rawPropertyId !== "string" || !isIsoDate(checkIn) || !isIsoDate(checkOut) || !Number.isInteger(guests)) {
     return NextResponse.json({ code: "invalid_booking" }, { status: 400 });
   }
 
-  // Look up property in Supabase DB first, then fallback to bundled catalog
-  let propTitle = "";
-  let propCityName = "";
-  let propImages: string[] = [];
-  let propBasePrice = 0;
-  let propWeekdayPrice: number | null = null;
-  let propWeekendPrice: number | null = null;
-  let propCapacity = 4;
-  let isDbProperty = false;
-
-  const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-  if (uuidPattern.test(propertyId)) {
-    try {
-      const { data: dbProperty } = await supabase
-        .from("properties")
-        .select("id, title, city_name, images, base_price, weekday_price, weekend_price, capacity, is_approved")
-        .eq("id", propertyId)
-        .eq("is_approved", true)
-        .maybeSingle();
-
-      if (dbProperty) {
-        isDbProperty = true;
-        propTitle = dbProperty.title;
-        propCityName = dbProperty.city_name || "";
-        propImages = dbProperty.images || [];
-        propBasePrice = Number(dbProperty.base_price);
-        propWeekdayPrice = dbProperty.weekday_price ? Number(dbProperty.weekday_price) : propBasePrice;
-        propWeekendPrice = dbProperty.weekend_price ? Number(dbProperty.weekend_price) : propBasePrice;
-        propCapacity = Number(dbProperty.capacity || 4);
-      }
-    } catch {}
+  const supabase = await createClient();
+  const propInfo = await resolveCheckoutProperty(rawPropertyId, supabase);
+  if (!propInfo) {
+    return NextResponse.json({ code: "property_unavailable" }, { status: 404 });
   }
 
-  if (!isDbProperty) {
-    const bundled = PROPERTIES.find((item) => item.id === propertyId);
-    if (!bundled) {
-      return NextResponse.json({ code: "property_unavailable" }, { status: 404 });
-    }
-    propTitle = bundled.title;
-    propCityName = bundled.cityName;
-    propImages = bundled.images || [];
-    propBasePrice = bundled.basePrice;
-    propWeekdayPrice = bundled.basePrice;
-    propWeekendPrice = bundled.weekendPrice || bundled.basePrice;
-    propCapacity = bundled.capacity || 4;
-  }
+  const {
+    propTitle,
+    propCityName,
+    propImages,
+    propBasePrice,
+    propWeekdayPrice,
+    propWeekendPrice,
+    customDayPricing,
+    propCapacity,
+    resolvedDbPropertyId,
+    propSlug,
+    propCategory,
+    slotConfig,
+  } = propInfo;
 
-  const nights = (Date.parse(`${checkOut}T00:00:00.000Z`) - Date.parse(`${checkIn}T00:00:00.000Z`)) / 86_400_000;
-  if (nights < 1 || nights > 90 || Number(guests) < 1 || Number(guests) > propCapacity) {
+  const isSameDay12h = isSameDayTwelveHourStay({ checkIn, checkOut, checkinTime, checkoutTime });
+  const rawDurationDays = Math.round((Date.parse(`${checkOut}T00:00:00.000Z`) - Date.parse(`${checkIn}T00:00:00.000Z`)) / 86_400_000);
+  const nights = isSameDay12h ? 1 : rawDurationDays;
+  if ((!isSameDay12h && rawDurationDays < 1) || nights > 90 || Number(guests) < 1 || Number(guests) > propCapacity) {
     return NextResponse.json({ code: "invalid_booking" }, { status: 400 });
   }
 
-  const today = new Date();
-  today.setUTCHours(0, 0, 0, 0);
-  if (Date.parse(`${checkIn}T00:00:00.000Z`) < today.getTime()) {
+  const { dateIso: todayRiyadh } = getRiyadhNowInfo();
+  if (checkIn < todayRiyadh) {
     return NextResponse.json({ code: "invalid_booking" }, { status: 400 });
   }
 
-  // Availability Check: ensure no overlapping confirmed/completed booking exists
-  try {
-    const { data: conflictingBookings } = await supabase
-      .from("bookings")
-      .select("id, check_in, check_out, status")
-      .eq("property_id", propertyId)
-      .in("status", ["confirmed", "completed"])
-      .lt("check_in", checkOut)
-      .gt("check_out", checkIn);
+  if (selectedMethod === "tabby" || selectedMethod === "tamara") {
+    const providerName = selectedMethod === "tabby" ? "Tabby" : "Tamara";
+    return NextResponse.json(
+      {
+        code: "bnpl_gateway_pending",
+        provider: providerName,
+        message: `${providerName} installments are currently under onboarding. Please choose Card, Apple Pay, Google Pay, STC Pay, or QafNest Wallet.`,
+      },
+      { status: 400 }
+    );
+  }
 
-    if (conflictingBookings && conflictingBookings.length > 0) {
-      return NextResponse.json({ code: "dates_unavailable" }, { status: 409 });
+  const samsungConfig = getSamsungPayWebConfig();
+  if (selectedMethod === "samsung" && !samsungConfig.available) {
+    return NextResponse.json(
+      {
+        code: "samsung_pay_gateway_pending",
+        provider: "Samsung Pay",
+        message:
+          "Samsung Pay Web Checkout is awaiting Samsung Pay Portal Service ID and MyFatoorah SAMSUNG_PAY activation. Please choose Card, Apple Pay, Google Pay, STC Pay, or QafNest Wallet.",
+      },
+      { status: 400 }
+    );
+  }
+
+  const rawSamsungToken = body.samsungPayToken;
+  const samsungPayToken =
+    typeof rawSamsungToken === "string"
+      ? rawSamsungToken.trim()
+      : rawSamsungToken && typeof rawSamsungToken === "object"
+      ? JSON.stringify(rawSamsungToken)
+      : undefined;
+
+  if (selectedMethod === "samsung" && !samsungPayToken) {
+    return NextResponse.json(
+      {
+        code: "samsung_pay_token_required",
+        provider: "Samsung Pay",
+        message: "Samsung Pay payment credential is required.",
+      },
+      { status: 400 }
+    );
+  }
+
+  const cardType = (typeof body.cardType === "string" ? body.cardType : typeof body.paymentType === "string" ? body.paymentType : "") || undefined;
+  const savedCardId = typeof body.savedCardId === "string" ? body.savedCardId : undefined;
+  const cardCvv = typeof body.cardCvv === "string" ? body.cardCvv : undefined;
+
+  let savedCard: SavedCard | undefined;
+  if (selectedMethod === "card" && savedCardId) {
+    const userCards = await getUserSavedCards(authUser.id);
+    savedCard = userCards.find((c) => c.id === savedCardId);
+    if (!savedCard) {
+      return NextResponse.json(
+        { code: "card_not_found", message: "Selected saved card could not be found." },
+        { status: 404 }
+      );
     }
-  } catch {}
-
-  let totalPrice = 0;
-  if (isDbProperty) {
-    try {
-      const { data: availability } = await supabase
-        .from("property_availability")
-        .select("date, is_available, nightly_price")
-        .eq("property_id", propertyId)
-        .gte("date", checkIn)
-        .lt("date", checkOut);
-
-      const availabilityByDate = new Map((availability || []).map((day) => [day.date, day]));
-      for (let offset = 0; offset < nights; offset += 1) {
-        const date = new Date(Date.parse(`${checkIn}T00:00:00.000Z`) + offset * 86_400_000);
-        const isoDate = date.toISOString().slice(0, 10);
-        const day = availabilityByDate.get(isoDate);
-        if (day?.is_available === false) {
-          return NextResponse.json({ code: "dates_unavailable" }, { status: 409 });
-        }
-        const isSaudiWeekend = date.getUTCDay() === 5 || date.getUTCDay() === 6;
-        const nightlyRate = Number(day?.nightly_price || (isSaudiWeekend && propWeekendPrice ? propWeekendPrice : propWeekdayPrice || propBasePrice));
-        totalPrice += nightlyRate;
-      }
-    } catch {
-      for (let offset = 0; offset < nights; offset += 1) {
-        const date = new Date(Date.parse(`${checkIn}T00:00:00.000Z`) + offset * 86_400_000);
-        const isSaudiWeekend = date.getUTCDay() === 5 || date.getUTCDay() === 6;
-        totalPrice += isSaudiWeekend && propWeekendPrice ? propWeekendPrice : (propWeekdayPrice || propBasePrice);
-      }
-    }
-  } else {
-    for (let offset = 0; offset < nights; offset += 1) {
-      const date = new Date(Date.parse(`${checkIn}T00:00:00.000Z`) + offset * 86_400_000);
-      const isSaudiWeekend = date.getUTCDay() === 5 || date.getUTCDay() === 6;
-      totalPrice += isSaudiWeekend && propWeekendPrice ? propWeekendPrice : (propWeekdayPrice || propBasePrice);
+    if (!cardCvv || cardCvv.length < 3) {
+      return NextResponse.json(
+        { code: "cvv_required", message: "Card CVV security code is required for saved card payments." },
+        { status: 400 }
+      );
     }
   }
 
-  if (!Number.isFinite(totalPrice) || totalPrice <= 0) {
-    return NextResponse.json({ code: "invalid_booking_price" }, { status: 400 });
-  }
-
-  // Generate Booking Identifiers
+  const dbClient = await getAdminOrServerClient();
   const bookingRef = generateBookingReference();
-  const smartLockPin = generateSmartLockPin();
-  let bookingId = `book-${Math.random().toString(36).slice(2, 10)}`;
+  const useWalletCredit = Boolean(body.useWalletCredit);
+  const effectiveUserId = guestId || authUser.id;
+  const rawCouponCode = typeof body.couponCode === "string" ? body.couponCode.trim() : null;
 
-  // Create booking record in database
-  try {
-    const bookingPayload: Record<string, unknown> = {
-      booking_reference: bookingRef,
-      property_id: uuidPattern.test(propertyId) ? propertyId : null,
-      guest_id: guestId && uuidPattern.test(guestId) ? guestId : null,
-      auth_subject: guestSubject || guestId || guestPhone,
-      check_in: checkIn,
-      check_out: checkOut,
-      total_nights: nights,
-      guests_count: Number(guests),
-      total_price: totalPrice,
-      status: "confirmed",
-      payment_status: "success",
-      smart_lock_pin: smartLockPin,
-    };
+  // Serialize conflict check + booking insertion under property lock to block simultaneous double-booking/overwrites
+  const lockOutcome = await acquirePropertyBookingLock(
+    [resolvedDbPropertyId, propSlug, rawPropertyId],
+    async (): Promise<
+      | { immediateResponse: NextResponse }
+      | {
+          bookingId: string;
+          pricing: ReturnType<typeof calculatePricingBreakdown>;
+          totalPrice: number;
+          gatewayAmount: number;
+          walletApplied: number;
+        }
+    > => {
+      await reconcileStaleBookings(dbClient);
+      await cancelPreviousInitiatedGuestBookings(dbClient, guestId, guestSubject);
 
-    const { data: insertedBooking } = await supabase
-      .from("bookings")
-      .insert(bookingPayload)
-      .select("id")
-      .maybeSingle();
+      const rateCalculation = await checkDatesAndCalculateRate({
+        checkIn,
+        checkOut,
+        checkinTime,
+        checkoutTime,
+        nights,
+        resolvedDbPropertyId,
+        propWeekdayPrice,
+        propWeekendPrice,
+        propBasePrice,
+        customDayPricing,
+        slotConfig,
+        supabase: dbClient,
+        currentGuestId: guestId,
+        currentGuestSubject: guestSubject,
+      });
 
-    if (insertedBooking?.id) {
-      bookingId = String(insertedBooking.id);
+      if (rateCalculation.error) {
+        return {
+          immediateResponse: NextResponse.json(
+            {
+              code: rateCalculation.error.code,
+              message: rateCalculation.error.message,
+              messageAr: rateCalculation.error.messageAr,
+            },
+            { status: rateCalculation.error.status }
+          ),
+        };
+      }
+
+      const baseStayRate = rateCalculation.baseStayRate;
+      if (!Number.isFinite(baseStayRate) || baseStayRate <= 0) {
+        return { immediateResponse: NextResponse.json({ code: "invalid_booking_price" }, { status: 400 }) };
+      }
+
+      let validatedCouponDef: CouponDefinition | null = null;
+      let customCouponDiscount: number | null = null;
+      if (rawCouponCode) {
+        const couponValidation = await validateAuthoritativeCoupon({
+          code: rawCouponCode,
+          baseRate: baseStayRate,
+          nights,
+          dbClient: supabase,
+        });
+        if (!couponValidation.valid) {
+          return {
+            immediateResponse: NextResponse.json(
+              {
+                code: couponValidation.error || "invalid_coupon",
+                message: couponValidation.messageEn,
+                messageAr: couponValidation.messageAr,
+              },
+              { status: 422 }
+            ),
+          };
+        }
+        validatedCouponDef = couponValidation.coupon || null;
+        customCouponDiscount = couponValidation.discountAmount;
+      }
+
+      const guestFee = getServerEffectiveGuestFeeConfig(propCategory);
+      const pricing = calculatePricingBreakdown({
+        baseRate: baseStayRate,
+        nights,
+        couponCode: rawCouponCode,
+        validatedCoupon: validatedCouponDef,
+        customDiscount: customCouponDiscount,
+        serviceFeeRate: guestFee.serviceFeeRate,
+        feeMode: guestFee.feeMode,
+        fixedFeeAmountSar: guestFee.fixedFeeAmountSar,
+        vatRate: guestFee.vatRatePercent / 100,
+        category: propCategory,
+      });
+      const totalPrice = pricing.total;
+
+      let walletApplied = 0;
+      let estimatedWelcomeBonusUsed = 0;
+      let gatewayAmount = totalPrice;
+      const checkoutWallet =
+        selectedMethod === "wallet" || useWalletCredit
+          ? await getUserWallet(effectiveUserId)
+          : null;
+
+      if (selectedMethod === "wallet") {
+        walletApplied = totalPrice;
+        gatewayAmount = 0;
+        if (checkoutWallet && checkoutWallet.balance >= totalPrice) {
+          estimatedWelcomeBonusUsed =
+            Math.round(Math.min(checkoutWallet.welcomeBonusBalance || 0, totalPrice) * 100) / 100;
+        }
+      } else if (useWalletCredit && checkoutWallet && checkoutWallet.balance > 0) {
+        walletApplied = Math.min(Math.round(checkoutWallet.balance * 100) / 100, totalPrice);
+        gatewayAmount = Math.round((totalPrice - walletApplied) * 100) / 100;
+        estimatedWelcomeBonusUsed =
+          Math.round(Math.min(checkoutWallet.welcomeBonusBalance || 0, walletApplied) * 100) / 100;
+      }
+
+      // Direct QafNest Wallet Checkout
+      if (selectedMethod === "wallet" || (useWalletCredit && gatewayAmount <= 0)) {
+        const userWallet = checkoutWallet || (await getUserWallet(effectiveUserId));
+        if (userWallet.balance < totalPrice) {
+          return {
+            immediateResponse: NextResponse.json(
+              {
+                code: "insufficient_wallet_balance",
+                message: `Insufficient wallet balance. Required: ${totalPrice.toFixed(2)} SAR, Available: ${userWallet.balance.toFixed(2)} SAR`,
+                availableBalance: userWallet.balance,
+                requiredAmount: totalPrice,
+              },
+              { status: 400 }
+            ),
+          };
+        }
+
+        const deductResult = await deductWalletForBooking({
+          userId: effectiveUserId,
+          amount: totalPrice,
+          bookingRef,
+          propertyTitle: propTitle,
+        });
+        if (!deductResult.success) {
+          return {
+            immediateResponse: NextResponse.json(
+              {
+                code: "wallet_deduction_failed",
+                message: deductResult.error || "Could not process wallet deduction.",
+              },
+              { status: 400 }
+            ),
+          };
+        }
+
+        const smartLockPin = null;
+        const { bookingId, bookingPersisted, overlapConflict } = await persistBookingToDatabase({
+          dbClient,
+          resolvedDbPropertyId,
+          checkIn,
+          checkOut,
+          checkinTime,
+          checkoutTime,
+          nights,
+          guests: Number(guests),
+          totalPrice,
+          pricing,
+          guestId: effectiveUserId,
+          bookingRef,
+          guestSubject,
+          initialStatus: "confirmed",
+          initialPaymentStatus: "success",
+          paymentMethod: "wallet",
+          smartLockPin: null,
+        });
+
+        if (!bookingPersisted) {
+          return {
+            immediateResponse: NextResponse.json(
+              overlapConflict
+                ? {
+                    code: "dates_unavailable",
+                    message: "This time slot was just reserved by another guest. No duplicate booking allowed.",
+                    messageAr: "تم حجز هذه الفترة للتو من قِبل نزيل آخر. لا يمكن تكرار الحجز.",
+                  }
+                : {
+                    code: "booking_persistence_failed",
+                    message: "Unable to confirm booking reservation. Please contact support.",
+                  },
+              { status: overlapConflict ? 409 : 500 }
+            ),
+          };
+        }
+
+        const updatedWallet = await awardLoyaltyPoints({
+          userId: effectiveUserId,
+          amountSpent: totalPrice,
+          bookingRef,
+          isWalletPayment: true,
+        });
+
+        const settlement = calculateBookingSettlement({
+          listingAmountSar: pricing.baseRate,
+          guestServiceFeeSar: pricing.serviceFee,
+          vatAmountSar: pricing.vatAmount,
+          promoDiscountSar: pricing.couponDiscount,
+          welcomeBonusUsedSar: deductResult.welcomeBonusUsed,
+          hostCommissionPercent: guestFee.hostCommissionPercent,
+          vatRatePercent: guestFee.vatRatePercent,
+        });
+
+        saveBookingFinancialSnapshot({
+          bookingRef,
+          bookingId,
+          listingAmountSar: settlement.listingAmountSar,
+          guestServiceFeeSar: settlement.guestServiceFeeSar,
+          guestFeeMode: guestFee.feeMode,
+          guestServiceFeePercent: guestFee.serviceFeePercent,
+          promoCode: pricing.couponCode || rawCouponCode,
+          promoDiscountSar: settlement.promoDiscountSar,
+          taxableSubtotalSar: settlement.taxableSubtotalSar,
+          vatRatePercent: settlement.vatRatePercent,
+          vatAmountSar: settlement.vatAmountSar,
+          totalPriceSar: settlement.guestTotalCollectedSar,
+          hostCommissionPercent: settlement.hostCommissionPercent,
+          hostCommissionAmountSar: settlement.hostCommissionAmountSar,
+          hostNetPayoutSar: settlement.hostNetPayoutSar,
+          walletAppliedSar: totalPrice,
+          welcomeBonusUsedSar: settlement.welcomeBonusUsedSar,
+          gatewayPaidSar: 0,
+          platformGrossRevenueSar: settlement.platformGrossEarningsSar,
+          platformNetRevenueSar: settlement.platformNetRevenueSar,
+          recordedAt: new Date().toISOString(),
+        });
+
+        const zatcaResult = await dispatchBookingZatcaInvoice({
+          bookingId,
+          bookingRef,
+          totalWithVat: totalPrice,
+          taxableAmount: pricing.taxableSubtotal,
+          vatAmount: pricing.vatAmount,
+          buyerName: guestName || "Valued Guest Customer",
+          propertyTitle: propTitle || "Vacation Rental Accommodation",
+          paymentMethod: "wallet",
+        });
+
+        return {
+          immediateResponse: NextResponse.json({
+            success: true,
+            confirmed: true,
+            bookingId,
+            bookingRef,
+            amount: totalPrice,
+            pricing,
+            paymentMethod: "wallet",
+            smartLockPin,
+            newWalletBalance: deductResult.newBalance,
+            loyaltyPoints: updatedWallet.loyaltyPoints,
+            zatcaStatus: zatcaResult?.clearanceStatus || null,
+            zatcaInvoiceNumber: zatcaResult?.invoiceNumber || null,
+            redirectUrl: `/${resolvedLocale}/property/${rawPropertyId}/reserve?confirmed=true&bookingRef=${bookingRef}&paidVia=wallet`,
+            message: "Booking confirmed instantly using QafNest Wallet balance!",
+          }),
+        };
+      }
+
+      const mfConfig = getMyFatoorahConfig();
+      if (!mfConfig.apiKey) {
+        return {
+          immediateResponse: NextResponse.json(
+            {
+              code: "payment_provider_not_configured",
+              provider: "MyFatoorah",
+              message: "Payment gateway is not configured. Please check MYFATOORAH_API_KEY.",
+            },
+            { status: 503 }
+          ),
+        };
+      }
+
+      const { bookingId, bookingPersisted, overlapConflict } = await persistBookingToDatabase({
+        dbClient,
+        resolvedDbPropertyId,
+        checkIn,
+        checkOut,
+        checkinTime,
+        checkoutTime,
+        nights,
+        guests: Number(guests),
+        totalPrice,
+        pricing,
+        guestId,
+        bookingRef,
+        guestSubject,
+      });
+
+      if (!bookingPersisted) {
+        return {
+          immediateResponse: NextResponse.json(
+            overlapConflict
+              ? {
+                  code: "dates_unavailable",
+                  message: "This time slot was just reserved by another guest.",
+                  messageAr: "تم حجز هذه الفترة للتو من قِبل نزيل آخر.",
+                }
+              : {
+                  code: "booking_persistence_failed",
+                  message: "Unable to create booking reservation. Please try again or contact support.",
+                },
+            { status: overlapConflict ? 409 : 500 }
+          ),
+        };
+      }
+
+      const gatewaySettlement = calculateBookingSettlement({
+        listingAmountSar: pricing.baseRate,
+        guestServiceFeeSar: pricing.serviceFee,
+        vatAmountSar: pricing.vatAmount,
+        promoDiscountSar: pricing.couponDiscount,
+        welcomeBonusUsedSar: estimatedWelcomeBonusUsed,
+        hostCommissionPercent: guestFee.hostCommissionPercent,
+        vatRatePercent: guestFee.vatRatePercent,
+      });
+
+      saveBookingFinancialSnapshot({
+        bookingRef,
+        bookingId,
+        listingAmountSar: gatewaySettlement.listingAmountSar,
+        guestServiceFeeSar: gatewaySettlement.guestServiceFeeSar,
+        guestFeeMode: guestFee.feeMode,
+        guestServiceFeePercent: guestFee.serviceFeePercent,
+        promoCode: pricing.couponCode || rawCouponCode,
+        promoDiscountSar: gatewaySettlement.promoDiscountSar,
+        taxableSubtotalSar: gatewaySettlement.taxableSubtotalSar,
+        vatRatePercent: gatewaySettlement.vatRatePercent,
+        vatAmountSar: gatewaySettlement.vatAmountSar,
+        totalPriceSar: gatewaySettlement.guestTotalCollectedSar,
+        hostCommissionPercent: gatewaySettlement.hostCommissionPercent,
+        hostCommissionAmountSar: gatewaySettlement.hostCommissionAmountSar,
+        hostNetPayoutSar: gatewaySettlement.hostNetPayoutSar,
+        walletAppliedSar: walletApplied,
+        welcomeBonusUsedSar: gatewaySettlement.welcomeBonusUsedSar,
+        gatewayPaidSar: gatewayAmount,
+        platformGrossRevenueSar: gatewaySettlement.platformGrossEarningsSar,
+        platformNetRevenueSar: gatewaySettlement.platformNetRevenueSar,
+        recordedAt: new Date().toISOString(),
+      });
+
+      if (walletApplied > 0 && gatewayAmount > 0) {
+        registerPendingWalletSplit({
+          bookingRef,
+          userId: effectiveUserId,
+          walletAmount: walletApplied,
+          welcomeBonusAmount: estimatedWelcomeBonusUsed,
+          gatewayAmount,
+          totalAmount: totalPrice,
+          gatewayMethod: selectedMethod,
+          propertyTitle: propTitle,
+        });
+      }
+
+      return { bookingId, pricing, totalPrice, gatewayAmount, walletApplied };
     }
-  } catch (err) {
-    console.warn("Notice: Database booking insert fallback:", err);
+  );
+
+  if ("immediateResponse" in lockOutcome) {
+    return lockOutcome.immediateResponse;
   }
 
-  return NextResponse.json({
-    success: true,
-    bookingId,
+  return processGatewayPayment({
+    request,
+    totalPrice: lockOutcome.totalPrice,
+    guestName,
+    guestPhone,
+    guestEmail,
     bookingRef,
-    smartLockPin,
-    amount: totalPrice,
+    bookingId: lockOutcome.bookingId,
+    propTitle,
+    propCityName,
+    propImages,
+    nights,
+    rawPropertyId,
+    selectedMethod,
+    cardType,
+    pricing: lockOutcome.pricing,
     checkIn,
     checkOut,
-    nights,
     guests: Number(guests),
-    property: {
-      id: propertyId,
-      title: propTitle,
-      city_name: propCityName,
-      images: propImages,
-    },
-    method: selectedMethod,
+    dbClient,
+    savedCard,
+    cardCvv,
+    samsungPayToken,
+    gatewayAmount: lockOutcome.gatewayAmount,
+    walletApplied: lockOutcome.walletApplied,
+    effectiveUserId,
+    locale: resolvedLocale,
   });
 }

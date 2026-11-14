@@ -1,5 +1,4 @@
 import { MetadataRoute } from "next";
-import { PROPERTIES } from "@/data/properties";
 
 const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://qafnest.com";
 
@@ -46,16 +45,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
       lastModified: new Date(),
       changeFrequency: "daily",
       priority: 0.8,
-    });
-  });
-
-  // Individual Property Detail Pages
-  PROPERTIES.forEach((prop) => {
-    routes.push({
-      url: `${BASE_URL}/property/${encodeURIComponent(prop.id)}`,
-      lastModified: new Date(),
-      changeFrequency: "weekly",
-      priority: 0.7,
     });
   });
 

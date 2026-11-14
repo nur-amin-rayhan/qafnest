@@ -1,0 +1,21 @@
+import { NextResponse, type NextRequest } from "next/server";
+import { getAllBlogs, getBlogBySlug } from "@qafnest/shared/blogStore";
+
+export async function GET(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const slug = searchParams.get("slug");
+    if (slug) {
+      const blog = getBlogBySlug(slug);
+      if (!blog) {
+        return NextResponse.json({ error: "Blog post not found" }, { status: 404 });
+      }
+      return NextResponse.json(blog);
+    }
+    const blogs = getAllBlogs();
+    return NextResponse.json(blogs);
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : "Internal error";
+    return NextResponse.json({ error: msg }, { status: 500 });
+  }
+}

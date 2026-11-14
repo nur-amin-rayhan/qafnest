@@ -1,11 +1,93 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
+import { cookies } from "next/headers";
 import PropertyRouteLoader from "@/components/property/PropertyRouteLoader";
+import {
+  getSeoAlternates,
+  getLocalizedPropertyTitle,
+} from "@/lib/localization/localeHelper";
+import type { Property } from "@/data/properties";
+import {
+  extractBilingualPropertyFields,
+  isMissingBilingualColumnError,
+} from "@qafnest/shared";
+import { createClient } from "@/lib/supabase/server";
 
-export const metadata: Metadata = {
-  title: "Review & Pay | QAFNEST",
-  description: "Review your dates, guest details and reservation total.",
-};
+interface PageProps {
+  params: { id: string };
+}
+
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const cookieStore = await cookies();
+  const rawLang = cookieStore.get("qafnest_lang")?.value;
+  const lang: "ar" | "en" = rawLang === "en" ? "en" : "ar";
+  const propertyId = decodeURIComponent(params.id);
+  let property: Pick<Property, "id" | "title" | "titleAr"> | null = null;
+  try {
+    const supabase = await createClient();
+    type ReserveMetadataRow = {
+      id: string;
+      title: string;
+      title_ar?: string | null;
+      external_host_id?: string | null;
+    };
+
+    const initial = await supabase
+      .from("properties")
+      .select("id, title, title_ar, external_host_id")
+      .or(`id.eq.${propertyId},slug.eq.${propertyId}`)
+      .maybeSingle();
+
+    let data = initial.data as ReserveMetadataRow | null;
+    const error = initial.error;
+
+    if (error && isMissingBilingualColumnError(error)) {
+      const retry = await supabase
+        .from("properties")
+        .select("id, title, external_host_id")
+        .or(`id.eq.${propertyId},slug.eq.${propertyId}`)
+        .maybeSingle();
+      data = retry.data as ReserveMetadataRow | null;
+    }
+
+    if (data) {
+      const localized = extractBilingualPropertyFields(data as Record<string, unknown>);
+      property = {
+        id: data.id,
+        title: data.title,
+        titleAr: localized.title_ar || undefined,
+      };
+    }
+  } catch {}
+  const { alternates, canonical } = getSeoAlternates(`/property/${params.id}/reserve`, lang);
+
+  const title = property
+    ? getLocalizedPropertyTitle(property, lang)
+    : "";
+
+  const metaTitle =
+    lang === "ar"
+      ? `تأكيد الحجز والدفع ${title ? `· ${title} ` : ""}| قاف نست`
+      : `Review & Pay ${title ? `· ${title} ` : ""}| QAFNEST`;
+
+  const metaDescription =
+    lang === "ar"
+      ? "راجع تفاصيل إقامتك وتواريخ الحجز ومعلومات الضيوف مع خيارات دفع آمنة وتقسيط تابي وتمارا."
+      : "Review your dates, guest details and reservation total with secure payment options and installment plans.";
+
+  return {
+    title: metaTitle,
+    description: metaDescription,
+    alternates,
+    openGraph: {
+      title: metaTitle,
+      description: metaDescription,
+      url: canonical,
+      locale: lang === "ar" ? "ar_SA" : "en_US",
+      type: "website",
+    },
+  };
+}
 
 export default function ReservationPage() {
   return (

@@ -19,9 +19,12 @@ export async function updateSupabaseSession(request: NextRequest) {
         cookiesToSet.forEach(({ name, value, options }) => response.cookies.set(name, value, options));
       },
     },
+    cookieOptions: {
+      name: "sb-qafnest-host-auth",
+    },
   });
 
   // Verifies the session and refreshes expired auth tokens when needed.
-  await supabase.auth.getClaims();
+  await supabase.auth.getUser();
   return response;
 }

@@ -548,7 +548,59 @@ export function AmenityIcon({
  * Maps any feature string (legacy or modern) to an AmenityDefinition
  */
 export function resolveAmenity(featureTextOrId: string): AmenityDefinition {
-  const normalized = featureTextOrId.toLowerCase().trim();
+  const raw = featureTextOrId.trim();
+  const normalized = raw.toLowerCase();
+
+  const HOST_FEATURE_MAP: Record<string, AmenityDefinition> = {
+    "بانيو / حوض استحمام": { id: "bathtub", nameEn: "Bathtub", nameAr: "بانيو / حوض استحمام", category: "bathrooms", iconName: "Bath", badge: false },
+    "جاكوزي": AMENITIES_CATALOG.jacuzzi,
+    "دش": AMENITIES_CATALOG.walk_in_shower,
+    "رداء حمام": { id: "bathrobe", nameEn: "Bathrobes", nameAr: "رداء حمام", category: "bathrooms", iconName: "Sparkles", badge: false },
+    "ساونا": AMENITIES_CATALOG.sauna,
+    "سليبر": { id: "slippers", nameEn: "Slippers", nameAr: "سليبر", category: "bathrooms", iconName: "Sparkles", badge: false },
+    "شامبو": { id: "shampoo", nameEn: "Shampoo", nameAr: "شامبو", category: "bathrooms", iconName: "Bath", badge: false },
+    "صابون": { id: "soap", nameEn: "Soap", nameAr: "صابون", category: "bathrooms", iconName: "Bath", badge: false },
+    "مناديل": { id: "tissues", nameEn: "Tissues", nameAr: "مناديل", category: "bathrooms", iconName: "Sparkles", badge: false },
+    "ألعاب أطفال": AMENITIES_CATALOG.kids_playground,
+    "إضاءة إضافية": { id: "extra_lighting", nameEn: "Ambient Lighting", nameAr: "إضاءة إضافية", category: "entertainment", iconName: "Sparkles", badge: false },
+    "بروجكتر": AMENITIES_CATALOG.cinema_projector,
+    "بلايستيشن": AMENITIES_CATALOG.playstation,
+    "بلكونة": { id: "balcony", nameEn: "Private Balcony", nameAr: "بلكونة", category: "outdoor", iconName: "Trees", badge: false },
+    "تلفزيون": AMENITIES_CATALOG.smart_tv,
+    "ركن شواء": AMENITIES_CATALOG.bbq_facility,
+    "سماعات": AMENITIES_CATALOG.sound_system,
+    "صالة طعام": AMENITIES_CATALOG.dining_table,
+    "غرفة تجهيز عروس": { id: "bridal_prep_room", nameEn: "Bridal Prep Room", nameAr: "غرفة تجهيز عروس", category: "bedrooms", iconName: "Sparkles", badge: false },
+    "غرفة سائقين": { id: "driver_room", nameEn: "Driver Room", nameAr: "غرفة سائقين", category: "safety", iconName: "Home", badge: false },
+    "غرفة سينما": AMENITIES_CATALOG.cinema_projector,
+    "قسمين": { id: "two_sections", nameEn: "Two Sections", nameAr: "قسمين", category: "majlis", iconName: "Home", badge: false },
+    "قسمين متصلة بينهم باب": { id: "connected_sections", nameEn: "Connected Sections", nameAr: "قسمين متصلة بينهم باب", category: "majlis", iconName: "Home", badge: false },
+    "قسمين منفصلة": { id: "separate_sections", nameEn: "Separate Sections", nameAr: "قسمين منفصلة", category: "majlis", iconName: "Home", badge: false },
+    "كرسي مساج": { id: "massage_chair", nameEn: "Massage Chair", nameAr: "كرسي مساج", category: "entertainment", iconName: "Sofa", badge: false },
+    "مسبح عام للنساء": { id: "women_public_pool", nameEn: "Women Shared Pool", nameAr: "مسبح عام للنساء", category: "pools", iconName: "Waves", badge: true },
+    "مسبح عام مشترك": { id: "shared_public_pool", nameEn: "Shared Pool", nameAr: "مسبح عام مشترك", category: "pools", iconName: "Waves", badge: true },
+    "ملحق خارجي": { id: "external_annex", nameEn: "External Annex", nameAr: "ملحق خارجي", category: "outdoor", iconName: "Home", badge: false },
+    "موقد حطب": AMENITIES_CATALOG.outdoor_firepit,
+    "اطلالة على الجبل": { id: "mountain_view", nameEn: "Mountain View", nameAr: "إطلالة على الجبل", category: "outdoor", iconName: "Trees", badge: true },
+    "اطلالة على الحديقة": { id: "garden_view", nameEn: "Garden View", nameAr: "إطلالة على الحديقة", category: "outdoor", iconName: "Trees", badge: false },
+    "اطلالة على البحر": { id: "sea_view", nameEn: "Sea View", nameAr: "إطلالة على البحر", category: "outdoor", iconName: "Waves", badge: true },
+    "شاطئ خاص": { id: "private_beach", nameEn: "Private Beach", nameAr: "شاطئ خاص", category: "outdoor", iconName: "Waves", badge: true },
+    "شلال على الجبل": { id: "waterfall_view", nameEn: "Waterfall View", nameAr: "شلال على الجبل", category: "outdoor", iconName: "Waves", badge: false },
+    "مصعد": { id: "elevator", nameEn: "Elevator", nameAr: "مصعد", category: "safety", iconName: "Check", badge: false },
+    "مكتب امن": { id: "security_office", nameEn: "24/7 Security Office", nameAr: "مكتب أمن", category: "safety", iconName: "ShieldCheck", badge: true },
+    "موقف سيارة": AMENITIES_CATALOG.private_parking,
+    "انترنت": AMENITIES_CATALOG.wifi,
+    "دخول ذاتي": AMENITIES_CATALOG.self_checkin,
+    "مطبخ": AMENITIES_CATALOG.equipped_kitchen,
+    "مجلس": AMENITIES_CATALOG.main_majlis,
+    "غرفة نوم": AMENITIES_CATALOG.master_bedroom,
+    "دورة مياه": AMENITIES_CATALOG.bathrooms,
+    "مسبح": AMENITIES_CATALOG.private_pool,
+  };
+
+  if (HOST_FEATURE_MAP[raw]) {
+    return HOST_FEATURE_MAP[raw];
+  }
 
   // 1. Direct catalog lookup by ID
   if (AMENITIES_CATALOG[normalized]) {

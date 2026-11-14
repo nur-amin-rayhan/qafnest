@@ -2,6 +2,8 @@ export type GuestReview = {
   id: string;
   property_id: string;
   booking_id?: string | null;
+  guest_id?: string | null;
+  guest_subject?: string | null;
   guest_display_name: string;
   title: string;
   comment: string;

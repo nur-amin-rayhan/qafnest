@@ -1,0 +1,21 @@
+{
+  "name": "QAFNEST \u00b7 Feel at Home. Stay Exceptional.",
+  "short_name": "QAFNEST",
+  "description": "Peer-to-peer vacation rental platform for luxury chalets, private villas, country farms, and desert camps across Saudi Arabia.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#06060B",
+  "theme_color": "#06060B",
+  "icons": [
+    {
+      "src": "/logos/android-chrome-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/logos/android-chrome-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

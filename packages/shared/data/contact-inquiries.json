@@ -1,0 +1,12 @@
+{
+  "settings": {
+    "recipientEmail": "qafnest@gmail.com",
+    "emailForwardingEnabled": true,
+    "autoReplyEnabled": false,
+    "subjectPrefix": "[QafNest Contact]",
+    "responseSlaHours": 2,
+    "updatedAt": "2026-11-14T20:00:00.000Z",
+    "updatedBy": "System Default"
+  },
+  "inquiries": []
+}

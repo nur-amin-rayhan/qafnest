@@ -4,6 +4,8 @@ import React, { useRef } from "react";
 import Image from "next/image";
 import { ChevronLeft, ChevronRight, MapPin } from "lucide-react";
 import { useApp } from "@/context/AppContext";
+import { useProperties } from "@/hooks/useProperties";
+import { normalizeCityId } from "@/data/properties";
 
 interface PopularCitiesSectionProps {
   onSelectCity: (cityId: string) => void;
@@ -15,42 +17,36 @@ const POPULAR_CITIES = [
     name: "Jeddah",
     nameAr: "جدة",
     image: "https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=600&fit=crop",
-    staysCount: 420,
   },
   {
     id: "dammam",
     name: "Dammam",
     nameAr: "الدمام",
     image: "https://images.unsplash.com/photo-1584132967334-10e028bd69f7?w=600&fit=crop",
-    staysCount: 185,
   },
   {
     id: "abha",
     name: "Abha",
     nameAr: "أبها",
     image: "https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=600&fit=crop",
-    staysCount: 230,
   },
   {
     id: "alula",
     name: "AlUla",
     nameAr: "العلا",
     image: "https://images.unsplash.com/photo-1509316975850-ff9c5deb0cd9?w=600&fit=crop",
-    staysCount: 95,
   },
   {
     id: "taif",
     name: "Taif",
     nameAr: "الطائف",
     image: "https://images.unsplash.com/photo-1518780664697-55e3ad937233?w=600&fit=crop",
-    staysCount: 160,
   },
   {
     id: "khobar",
     name: "Al Khobar",
     nameAr: "الخبر",
     image: "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=600&fit=crop",
-    staysCount: 210,
   },
 ];
 
@@ -58,6 +54,7 @@ export default function PopularCitiesSection({
   onSelectCity,
 }: PopularCitiesSectionProps) {
   const { language } = useApp();
+  const { properties } = useProperties();
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const scroll = (dir: "left" | "right") => {
@@ -125,7 +122,10 @@ export default function PopularCitiesSection({
                 <div className="p-3.5 flex items-center justify-between text-xs">
                   <span className="text-gray-500 dark:text-gray-400 flex items-center gap-1">
                     <MapPin className="w-3.5 h-3.5 text-violet-600" />
-                    <span>{city.staysCount} {language === "ar" ? "إقامة متاحة" : "Stays available"}</span>
+                    <span>
+                      {properties.filter((p) => normalizeCityId(p.city) === city.id).length}{" "}
+                      {language === "ar" ? "إقامة متاحة" : "Stays available"}
+                    </span>
                   </span>
                   <span className="font-bold text-violet-600 dark:text-violet-400 group-hover:translate-x-1 rtl:group-hover:-translate-x-1 transition-transform">
                     {language === "ar" ? "استكشف ←" : "Explore →"}

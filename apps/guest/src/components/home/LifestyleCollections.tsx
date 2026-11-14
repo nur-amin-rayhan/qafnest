@@ -8,6 +8,8 @@ import { useApp } from "@/context/AppContext";
 export default function LifestyleCollections() {
   const { setSelectedCategory } = useApp();
 
+  if (LIFESTYLE_COLLECTIONS.length === 0) return null;
+
   const handleSelectCollection = (type: string) => {
     setSelectedCategory(type);
     const propertiesEl = document.getElementById("properties");

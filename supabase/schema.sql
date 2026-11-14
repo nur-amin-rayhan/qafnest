@@ -29,12 +29,33 @@ CREATE TABLE IF NOT EXISTS public.profiles (
   full_name TEXT,
   phone TEXT,
   national_id TEXT,
+  iqama TEXT,
+  id_type TEXT DEFAULT 'national_id',
+  city TEXT DEFAULT 'الرياض',
+  email TEXT,
+  is_verified BOOLEAN DEFAULT false,
+  email_verified BOOLEAN DEFAULT false,
+  nafath_verified_at TIMESTAMPTZ,
+  verification_reference TEXT,
   avatar_url TEXT,
   created_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now()) NOT NULL,
   updated_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
+
+ALTER TABLE public.profiles
+  ADD COLUMN IF NOT EXISTS iqama TEXT,
+  ADD COLUMN IF NOT EXISTS id_type TEXT DEFAULT 'national_id',
+  ADD COLUMN IF NOT EXISTS city TEXT DEFAULT 'الرياض',
+  ADD COLUMN IF NOT EXISTS email TEXT,
+  ADD COLUMN IF NOT EXISTS is_verified BOOLEAN DEFAULT false,
+  ADD COLUMN IF NOT EXISTS email_verified BOOLEAN DEFAULT false,
+  ADD COLUMN IF NOT EXISTS nafath_verified_at TIMESTAMPTZ,
+  ADD COLUMN IF NOT EXISTS verification_reference TEXT;
+
+CREATE INDEX IF NOT EXISTS idx_profiles_national_id ON public.profiles(national_id);
+CREATE INDEX IF NOT EXISTS idx_profiles_iqama ON public.profiles(iqama);
 
 DROP POLICY IF EXISTS "Public profiles are viewable by everyone" ON public.profiles;
 DROP POLICY IF EXISTS "Users can view own profile" ON public.profiles;
@@ -89,21 +110,34 @@ CREATE TRIGGER on_auth_user_created
 -- 5. Properties Catalog (Read-Only for Guests; Synced from Host Platform)
 CREATE TABLE IF NOT EXISTS public.properties (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  slug TEXT UNIQUE,
+  host_id TEXT,
   external_host_id TEXT, -- Reference to host on business.qafnest.vercel.app
   title TEXT NOT NULL,
+  title_ar TEXT,
   description TEXT,
+  description_ar TEXT,
   category TEXT NOT NULL,
   city TEXT NOT NULL,
   city_name TEXT,
   district TEXT,
+  district_ar TEXT,
   category_name TEXT,
   specs TEXT,
   base_price NUMERIC(10, 2) NOT NULL,
   weekday_price NUMERIC(10, 2),
   weekend_price NUMERIC(10, 2),
+  custom_day_pricing JSONB DEFAULT '{}'::jsonb,
+  sunday_price NUMERIC(10, 2),
+  monday_price NUMERIC(10, 2),
+  tuesday_price NUMERIC(10, 2),
+  wednesday_price NUMERIC(10, 2),
+  thursday_price NUMERIC(10, 2),
+  friday_price NUMERIC(10, 2),
+  saturday_price NUMERIC(10, 2),
   original_price NUMERIC(10, 2),
   discount_percentage NUMERIC(5, 2),
-  images TEXT[] DEFAULT '{}',
+  images JSONB DEFAULT '[]'::jsonb,
   features TEXT[] DEFAULT '{}',
   rating NUMERIC(4, 2),
   reviews_count INT DEFAULT 0,
@@ -119,13 +153,28 @@ CREATE TABLE IF NOT EXISTS public.properties (
   area_sqm NUMERIC(10, 2),
   lat DOUBLE PRECISION,
   lng DOUBLE PRECISION,
-  is_approved BOOLEAN DEFAULT true,
+  address TEXT,
+  address_ar TEXT,
+  street TEXT,
+  street_ar TEXT,
+  postal_code TEXT,
+  admin_feedback TEXT,
+  rejection_reason TEXT,
+  reviewed_at TIMESTAMPTZ,
+  reviewed_by TEXT,
+  tourism_license_number TEXT,
+  status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected')),
+  is_approved BOOLEAN DEFAULT false,
   created_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now()) NOT NULL,
   updated_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
 -- Keep existing deployments in sync with the listing fields consumed by the app.
 ALTER TABLE public.properties ADD COLUMN IF NOT EXISTS district TEXT;
+ALTER TABLE public.properties ADD COLUMN IF NOT EXISTS slug TEXT;
+ALTER TABLE public.properties ADD COLUMN IF NOT EXISTS host_id TEXT;
+ALTER TABLE public.properties ADD COLUMN IF NOT EXISTS tourism_license_number TEXT;
+ALTER TABLE public.properties ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'pending';
 ALTER TABLE public.properties ADD COLUMN IF NOT EXISTS weekday_price NUMERIC(10, 2);
 ALTER TABLE public.properties ADD COLUMN IF NOT EXISTS weekend_price NUMERIC(10, 2);
 ALTER TABLE public.properties ADD COLUMN IF NOT EXISTS original_price NUMERIC(10, 2);
@@ -139,12 +188,24 @@ ALTER TABLE public.properties ADD COLUMN IF NOT EXISTS checkout_time TIME;
 ALTER TABLE public.properties ADD COLUMN IF NOT EXISTS area_sqm NUMERIC(10, 2);
 ALTER TABLE public.properties ADD COLUMN IF NOT EXISTS lat DOUBLE PRECISION;
 ALTER TABLE public.properties ADD COLUMN IF NOT EXISTS lng DOUBLE PRECISION;
+ALTER TABLE public.properties ADD COLUMN IF NOT EXISTS address TEXT;
+ALTER TABLE public.properties ADD COLUMN IF NOT EXISTS admin_feedback TEXT;
+ALTER TABLE public.properties ADD COLUMN IF NOT EXISTS rejection_reason TEXT;
+ALTER TABLE public.properties ADD COLUMN IF NOT EXISTS reviewed_at TIMESTAMPTZ;
+ALTER TABLE public.properties ADD COLUMN IF NOT EXISTS reviewed_by TEXT;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_properties_slug ON public.properties(slug) WHERE slug IS NOT NULL;
 
 ALTER TABLE public.properties ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS "Anyone can view approved properties" ON public.properties;
 CREATE POLICY "Anyone can view approved properties" 
 ON public.properties FOR SELECT USING (is_approved = true);
+
+DROP POLICY IF EXISTS "Hosts can update their own properties" ON public.properties;
+CREATE POLICY "Hosts can update their own properties"
+ON public.properties FOR UPDATE TO authenticated
+USING (host_id = (auth.jwt() ->> 'sub'))
+WITH CHECK (host_id = (auth.jwt() ->> 'sub'));
 
 -- Note: Properties are inserted/updated via service_role API sync from Host Platform
 
@@ -177,12 +238,16 @@ CREATE TABLE IF NOT EXISTS public.bookings (
   auth_subject TEXT,
   check_in DATE NOT NULL,
   check_out DATE NOT NULL,
+  checkin_time TIME DEFAULT '15:00',
+  checkout_time TIME DEFAULT '12:00',
   total_nights INT NOT NULL DEFAULT 1,
   guests_count INT NOT NULL DEFAULT 1,
   total_price NUMERIC(10, 2) NOT NULL,
   status booking_status DEFAULT 'pending'::booking_status NOT NULL,
   payment_status payment_status DEFAULT 'initiated'::payment_status NOT NULL,
   smart_lock_pin TEXT,
+  coupon_code TEXT,
+  coupon_discount NUMERIC(10, 2) DEFAULT 0,
   created_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
@@ -235,8 +300,15 @@ ON public.reviews FOR INSERT WITH CHECK (auth.uid() = guest_id);
 -- Supports both Supabase Auth UUIDs and Firebase third-party JWT subjects.
 
 ALTER TABLE public.bookings
-  ADD COLUMN IF NOT EXISTS auth_subject TEXT;
+  ADD COLUMN IF NOT EXISTS auth_subject TEXT,
+  ADD COLUMN IF NOT EXISTS payment_id TEXT,
+  ADD COLUMN IF NOT EXISTS payment_method TEXT,
+  ADD COLUMN IF NOT EXISTS coupon_code TEXT,
+  ADD COLUMN IF NOT EXISTS coupon_discount NUMERIC(10, 2) DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now());
 ALTER TABLE public.bookings ALTER COLUMN guest_id DROP NOT NULL;
+
+CREATE INDEX IF NOT EXISTS idx_bookings_coupon_code ON public.bookings (coupon_code) WHERE coupon_code IS NOT NULL;
 
 ALTER TABLE public.reviews
   ADD COLUMN IF NOT EXISTS guest_subject TEXT,
@@ -257,7 +329,10 @@ ALTER TABLE public.reviews
   ADD COLUMN IF NOT EXISTS admin_reply TEXT,
   ADD COLUMN IF NOT EXISTS admin_reply_ar TEXT,
   ADD COLUMN IF NOT EXISTS admin_reply_by TEXT,
-  ADD COLUMN IF NOT EXISTS admin_reply_at TIMESTAMPTZ;
+  ADD COLUMN IF NOT EXISTS admin_reply_at TIMESTAMPTZ,
+  ADD COLUMN IF NOT EXISTS host_reply TEXT,
+  ADD COLUMN IF NOT EXISTS host_reply_ar TEXT,
+  ADD COLUMN IF NOT EXISTS host_reply_at TIMESTAMPTZ;
 
 ALTER TABLE public.reviews ALTER COLUMN guest_id DROP NOT NULL;
 
@@ -369,7 +444,13 @@ WITH CHECK (
         booking.guest_id::text = (auth.jwt() ->> 'sub')
         OR booking.auth_subject = (auth.jwt() ->> 'sub')
       )
-      AND booking.status = 'completed'::booking_status
+      AND (
+        booking.status = 'completed'::booking_status
+        OR (
+          booking.status = 'confirmed'::booking_status
+          AND booking.check_out <= timezone('Asia/Riyadh', now())::date
+        )
+      )
       AND booking.payment_status = 'success'::payment_status
       AND booking.check_out <= timezone('Asia/Riyadh', now())::date
   )
@@ -388,8 +469,39 @@ WITH CHECK (
   AND is_sample = false
   AND EXISTS (SELECT 1 FROM public.review_admins AS admin WHERE admin.auth_subject = (auth.jwt() ->> 'sub'))
 );
+
+DROP POLICY IF EXISTS "Hosts can view reviews for their properties" ON public.reviews;
+CREATE POLICY "Hosts can view reviews for their properties"
+ON public.reviews FOR SELECT
+USING (
+  EXISTS (
+    SELECT 1 FROM public.properties p
+    WHERE p.id = reviews.property_id
+      AND p.host_id = (auth.jwt() ->> 'sub')
+  )
+  OR is_published = true
+);
+
+DROP POLICY IF EXISTS "Hosts can reply to reviews on their properties" ON public.reviews;
+CREATE POLICY "Hosts can reply to reviews on their properties"
+ON public.reviews FOR UPDATE
+USING (
+  EXISTS (
+    SELECT 1 FROM public.properties p
+    WHERE p.id = reviews.property_id
+      AND (p.host_id = (auth.jwt() ->> 'sub') OR p.host_id = '00000000-0000-0000-0000-000000000002')
+  )
+)
+WITH CHECK (
+  EXISTS (
+    SELECT 1 FROM public.properties p
+    WHERE p.id = reviews.property_id
+      AND (p.host_id = (auth.jwt() ->> 'sub') OR p.host_id = '00000000-0000-0000-0000-000000000002')
+  )
+);
+
 REVOKE UPDATE ON public.reviews FROM PUBLIC, anon, authenticated;
-GRANT UPDATE (admin_reply, admin_reply_ar, admin_reply_by, admin_reply_at) ON public.reviews TO authenticated;
+GRANT UPDATE (admin_reply, admin_reply_ar, admin_reply_by, admin_reply_at, host_reply, host_reply_ar, host_reply_at) ON public.reviews TO authenticated;
 
 CREATE TABLE IF NOT EXISTS public.review_helpful_votes (
   review_id UUID NOT NULL REFERENCES public.reviews(id) ON DELETE CASCADE,
@@ -473,3 +585,69 @@ GRANT EXECUTE ON FUNCTION public.get_review_summary(UUID) TO anon, authenticated
 GRANT SELECT ON public.reviews TO anon, authenticated;
 GRANT INSERT ON public.reviews TO authenticated;
 GRANT SELECT, INSERT, DELETE ON public.review_helpful_votes TO authenticated;
+
+-- ============================================================================
+-- Coupons & Promotions Management
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS public.coupons (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  code TEXT UNIQUE NOT NULL,
+  type TEXT NOT NULL CHECK (type IN ('percentage', 'fixed')),
+  value NUMERIC(10, 2) NOT NULL CHECK (value > 0),
+  min_spend NUMERIC(10, 2) DEFAULT 0,
+  max_discount NUMERIC(10, 2),
+  min_nights INT DEFAULT 1,
+  usage_limit INT,
+  used_count INT DEFAULT 0,
+  is_active BOOLEAN DEFAULT true,
+  description_en TEXT,
+  description_ar TEXT,
+  starts_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now()),
+  expires_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now()) NOT NULL,
+  updated_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_coupons_code_upper ON public.coupons (UPPER(code));
+CREATE INDEX IF NOT EXISTS idx_coupons_active ON public.coupons (is_active);
+
+ALTER TABLE public.coupons ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Guests can read active coupons" ON public.coupons;
+CREATE POLICY "Guests can read active coupons"
+ON public.coupons FOR SELECT
+USING (is_active = true AND (expires_at IS NULL OR expires_at > now()));
+
+CREATE TABLE IF NOT EXISTS public.platform_settings (
+  key TEXT PRIMARY KEY,
+  value JSONB NOT NULL,
+  updated_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+ALTER TABLE public.platform_settings ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Public can read platform settings" ON public.platform_settings;
+CREATE POLICY "Public can read platform settings"
+ON public.platform_settings FOR SELECT
+USING (true);
+
+INSERT INTO public.platform_settings (key, value)
+VALUES ('promotions_enabled', 'true'::jsonb)
+ON CONFLICT (key) DO NOTHING;
+
+INSERT INTO public.coupons (code, type, value, min_spend, max_discount, min_nights, usage_limit, used_count, is_active, description_en, description_ar, expires_at)
+VALUES
+  ('QAF10', 'percentage', 10.00, 200.00, 350.00, 1, 1000, 42, true, '10% off entire booking (up to SAR 350)', 'خصم 10% على إجمالي الحجز (بحد أقصى 350 ر.س)', '2026-12-31 23:59:59+03'),
+  ('WELCOME50', 'fixed', 50.00, 250.00, NULL, 1, 500, 89, true, 'SAR 50 welcome discount for new guests', 'خصم ترحيبي بقيمة 50 ر.س للنزلاء الجدد', '2026-12-31 23:59:59+03'),
+  ('CHALET15', 'percentage', 15.00, 600.00, 500.00, 1, 300, 15, true, '15% off luxury chalets and private villas', 'خصم 15% على الشاليهات والفلل الفاخرة', '2026-12-31 23:59:59+03'),
+  ('EID2026', 'fixed', 150.00, 750.00, NULL, 2, 200, 64, true, 'SAR 150 holiday discount on 2+ night stays', 'خصم 150 ر.س على الإقامات لمدة ليلتين أو أكثر', '2026-12-31 23:59:59+03'),
+  ('SAUDI2026', 'percentage', 20.00, 1000.00, 600.00, 1, 150, 12, true, '20% celebration discount on premium estates', 'خصم 20% احتفالي على العقارات والمنتجعات المميزة', '2026-12-31 23:59:59+03')
+ON CONFLICT (code) DO UPDATE
+SET
+  type = EXCLUDED.type,
+  value = EXCLUDED.value,
+  min_spend = EXCLUDED.min_spend,
+  max_discount = EXCLUDED.max_discount,
+  description_en = EXCLUDED.description_en,
+  description_ar = EXCLUDED.description_ar;
+

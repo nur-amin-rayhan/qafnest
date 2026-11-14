@@ -2,6 +2,42 @@
   "name": "@qafnest/shared",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "main": "./index.ts",
-  "types": "./index.ts"
+  "types": "./index.ts",
+  "exports": {
+    ".": "./index.ts",
+    "./platformFee": "./platformFee.ts",
+    "./platformFeeStore": "./platformFeeStore.ts",
+    "./saudiIdentity": "./saudiIdentity.ts",
+    "./saudiIdentityStore": "./saudiIdentityStore.ts",
+    "./saudiIdentityConfig": "./saudiIdentityConfig.ts",
+    "./zatca": "./zatca.ts",
+    "./zatcaConfig": "./zatcaConfig.ts",
+    "./zatcaCrypto": "./zatcaCrypto.ts",
+    "./zatcaStore": "./zatcaStore.ts",
+    "./hostPayoutConfig": "./hostPayoutConfig.ts",
+    "./hostPayoutStore": "./hostPayoutStore.ts",
+    "./bookingSlotConfig": "./bookingSlotConfig.ts",
+    "./bookingSlotStore": "./bookingSlotStore.ts",
+    "./bookingFinancialsStore": "./bookingFinancialsStore.ts",
+    "./signupSecurityStore": "./signupSecurityStore.ts",
+    "./userActivityStore": "./userActivityStore.ts",
+    "./bookingRefundStore": "./bookingRefundStore.ts",
+    "./helplineVerificationStore": "./helplineVerificationStore.ts",
+    "./cmsTypes": "./cmsTypes.ts",
+    "./blogTypes": "./blogTypes.ts",
+    "./cmsPagesStore": "./cmsPagesStore.ts",
+    "./contactInquiriesStore": "./contactInquiriesStore.ts",
+    "./blogStore": "./blogStore.ts",
+    "./saudiCities": "./saudiCities.ts",
+    "./propertyBilingual": "./propertyBilingual.ts",
+    "./locationShare": "./locationShare.ts"
+  },
+  "dependencies": {
+    "nodemailer": "^10.5.0"
+  },
+  "devDependencies": {
+    "@types/nodemailer": "^8.0.2"
+  }
 }

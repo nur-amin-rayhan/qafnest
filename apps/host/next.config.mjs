@@ -4,12 +4,14 @@ const nextConfig = {
   swcMinify: true,
   poweredByHeader: false,
   compress: true,
+  experimental: {
+    optimizePackageImports: ["lucide-react", "@supabase/supabase-js"],
+  },
   images: {
     formats: ["image/avif", "image/webp"],
     remotePatterns: [
-      { protocol: "https", hostname: "images.unsplash.com" },
-      { protocol: "https", hostname: "**.supabase.co" },
-      { protocol: "https", hostname: "cdn.gathern.co" },
+      { protocol: "https", hostname: "**" },
+      { protocol: "http", hostname: "**" },
     ],
   },
 };

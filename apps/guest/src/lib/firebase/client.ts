@@ -81,6 +81,11 @@ export interface StoredFirebaseProfile {
   full_name: string;
   contact_email: string;
   phone: string;
+  national_id?: string;
+  iqama?: string;
+  id_type?: "national_id" | "iqama";
+  is_verified?: boolean;
+  city?: string;
 }
 
 const PROFILE_STORAGE_PREFIX = "qafnest_fb_profile_";

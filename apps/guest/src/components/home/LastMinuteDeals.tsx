@@ -39,6 +39,8 @@ export default function LastMinuteDeals() {
     return () => clearInterval(interval);
   }, []);
 
+  if (DEALS.length === 0) return null;
+
   return (
     <section id="daily-deals" className="py-20 relative bg-surface/[0.02] border-t border-violet-400/10">
       <div className="max-w-7xl mx-auto px-5 sm:px-8">

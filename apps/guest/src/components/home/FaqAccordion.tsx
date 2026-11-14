@@ -14,52 +14,52 @@ interface LocalizedFaq {
 
 const LOCALIZED_FAQS: LocalizedFaq[] = [
   {
-    questionEn: "What is the QafNest platform and how is it licensed in Saudi Arabia?",
-    questionAr: "ما هي منصة قف نست وكيف يتم ترخيصها في المملكة العربية السعودية؟",
+    questionEn: "What is QafNest and how is it licensed in Saudi Arabia?",
+    questionAr: "ما هي منصة قاف نست وكيف يتم ترخيصها في المملكة العربية السعودية؟",
     answerEn:
-      "QafNest is an authorized peer-to-peer vacation rental and hospitality platform, officially licensed and supervised by the Saudi Ministry of Tourism (License No. 73102999). We directly connect travelers with verified chalets, private villas, heritage farms, and luxury glamping sanctuaries across the Kingdom with full consumer protection and guaranteed reservation security.",
+      "QafNest is a peer-to-peer vacation hospitality platform licensed by the Saudi Ministry of Tourism (License No. 73102999), connecting verified Guests with Hosts listing licensed chalets, private villas, resorts (istirahat), apartments, farms, and camps while ensuring secure payments and ZATCA tax compliance.",
     answerAr:
-      "منصة قف نست هي منصة سعودية مرخصة رسمياً ومصرحة من وزارة السياحة (ترخيص رقم 73102999) لتأجير بيوت العطلات والإقامات الفاخرة. نربط الضيوف مباشرة بالشاليهات الموثقة، الفلل الخاصة، المزارع التراثية، والمخيمات الصحراوية مع ضمان وحماية كاملة للحجز.",
+      "منصة قاف نست هي منصة إلكترونية سعودية مرخصة من وزارة السياحة (ترخيص رقم 73102999) تعمل كوسيط تقني يربط الضيوف مباشرة بالشاليهات الموثقة، الفلل الخاصة، الاستراحات، الشقق، المزارع، والمخيمات مع حماية المدفوعات والفوترة الضريبية المعتمدة.",
   },
   {
-    questionEn: "How does Self Check-in with Digital Smart Locks work?",
+    questionEn: "How is a reservation confirmed, and how do I find the Host & location?",
+    questionAr: "كيف يُؤكد الحجز، وكيف أعرف موقع العقار وأتواصل مع المضيف؟",
+    answerEn:
+      "Reservations are confirmed immediately upon completing electronic payment via Mada, Visa, Mastercard, Apple Pay, STC Pay, or Tabby/Tamara installments. Visit 'My Bookings' anytime to view booking confirmation, receipt/tax invoice, property directions, and Host contact options; please notify the Host directly if you will arrive later than check-in time.",
+    answerAr:
+      "يُؤكد الحجز نهائياً فور إتمام الدفع الإلكتروني عبر مدى أو فيزا أو ماستركارد أو أبل باي أو STC Pay أو خيارات التقسيط. انتقل إلى صفحة 'حجوزاتي' في أي وقت لاستعراض حالة الحجز والفاتورة الضريبية وموقع العقار والتواصل مع المضيف، مع ضرورة إبلاغ المضيف مسبقاً عند التأخر عن موعد الوصول.",
+  },
+  {
+    questionEn: "When, how, and to whom is the security deposit paid and refunded?",
+    questionAr: "متى ولمن يُدفع مبلغ التأمين وكيف يتم استرجاعه؟",
+    answerEn:
+      "If a unit specifies a security deposit, the exact amount is displayed on the listing page prior to checkout and paid directly on-site to the Host before entry. After check-out inspection confirming no damage or house-rule breach, the Host returns the full deposit to you.",
+    answerAr:
+      "في حال اشتراط مبلغ تأمين للوحدة، تظهر قيمته بوضوح قبل الدفع ويُدفع مباشرة للمضيف عند الوصول وقبل تسليم العقار. وعند المغادرة يقوم المضيف بفحص الوحدة وإعادة كامل مبلغ التأمين فور التأكد من سلامة الممتلكات.",
+  },
+  {
+    questionEn: "How does Self Check-In with Digital Smart Locks work?",
     questionAr: "كيف يعمل الدخول الذاتي عبر الأقفال الرقمية الذكية؟",
     answerEn:
-      'Properties with the "Self Check-in" badge offer 100% contactless access. Once your reservation is confirmed and your national ID (or Iqama/passport) is verified, an encrypted digital access PIN is generated in your QafNest App and sent to your WhatsApp. The PIN automatically activates at the scheduled check-in hour (typically 3:00 PM) for secure keyless entry.',
+      'Properties displaying "Self Check-in" allow contactless arrival after your check-in time. Once confirmed, the Host manually sets your personal access PIN and displays it in your "My Bookings" portal prior to arrival.',
     answerAr:
-      'العقارات التي تحمل شارة "دخول ذاتي" تتيح وصولاً بدون تلامس بنسبة 100%. بمجرد تأكيد حجزك والتحقق من الهوية الوطنية أو الإقامة، يتم إنشاء رمز سري مشفر للدخول في تطبيق قف نست وإرساله عبر الواتساب. يُفعل الرمز تلقائياً في موعد تسجيل الوصول (الساعة 3:00 مساءً عادةً).',
+      'العقارات التي تدعم "الدخول الذاتي" تتيح الوصول بدون مفاتيح بعد موعد الدخول المحدد. بمجرد تأكيد حجزك، يقوم المضيف بتعيين رمز القفل الذكي يدوياً ليظهر مباشرة في صفحة "حجوزاتي" قبل موعد الوصول.',
   },
   {
-    questionEn: "Can I split my reservation payment in 4 installments with Tabby?",
-    questionAr: "هل يمكنني تقسيط قيمة الحجز على 4 دفعات مع تابي؟",
+    questionEn: "Can a confirmed booking be cancelled, postponed, or refunded?",
+    questionAr: "هل يمكن إلغاء الحجز أو تأجيله أو استرداد المبلغ؟",
     answerEn:
-      "Yes! During checkout, select Tabby as your payment method. Your total booking amount will be divided into 4 equal monthly installments with 0% interest and 0 hidden fees. First installment is paid at booking confirmation, and the remaining 3 are automatically deducted monthly. All installments are Sharia-compliant and approved by SAMA.",
+      "The reservation cannot be cancelled or postponed. Once payment is completed on QafNest, bookings are strictly final and non-refundable (0%). Please review stay dates, capacity, and host rules carefully prior to checkout.",
     answerAr:
-      "نعم بكل تأكيد! اختر تابي عند إتمام الحجز وسيتم تقسيم المبلغ الإجمالي على 4 دفعات شهرية متساوية بدون أي فوائد أو رسوم خفية. متوافق مع الشريعة الإسلامية ومعتمد من البنك المركزي السعودي (ساما).",
+      "لا يمكن إلغاء الحجز أو تأجيله. بمجرد إتمام دفع الحجز في قاف نست يصبح الحجز مؤكداً ونهائياً وغير قابل للاسترداد (٠٪)، لذا يُرجى مراجعة التواريخ وقواعد الوحدة بدقة قبل إتمام السداد.",
   },
   {
-    questionEn: "What is the cancellation, refund, and security deposit policy?",
-    questionAr: "ما هي سياسة الإلغاء والاسترجاع ومبلغ التأمين؟",
+    questionEn: "How do Hosts list properties, get paid, and qualify for Host Protection?",
+    questionAr: "كيف يسجل المضيف عقاره، ومتى تُحول المستحقات، وما هو برنامج حماية المضيف؟",
     answerEn:
-      "Each property listing displays its clear cancellation tier (Flexible, Moderate, or Strict). Eligible cancellations are refunded directly to your original card within 3–5 business days. For properties that require an on-site security deposit, the amount is held and automatically released upon check-out inspection, guaranteed under our Host-Guest Fair Resolution Policy.",
+      "Property owners or authorized sublessors can publish furnished, Tourism-licensed units in minutes through QafNest Host Portal with bilingual details and real photos. Net booking proceeds (after platform commission & VAT) transfer to the Host's verified Saudi IBAN within 24–48 hours of stay settlement, and confirmed stays qualify for Host Protection when direct damages are documented within 48 hours of checkout.",
     answerAr:
-      "يوضح كل إعلان عقاري سياسة الإلغاء بوضوح (مرنة، متوسطة، أو صارمة). في حال الإلغاء المستحق، يتم استرجاع المبلغ إلى نفس البطاقة خلال 3-5 أيام عمل. بالنسبة للتأمين، يتم حجزه وتفويضه تلقائياً بعد الفحص عند تسجيل المغادرة.",
-  },
-  {
-    questionEn: "Can I host a large family banquet or celebration at a chalet or farm?",
-    questionAr: "هل يمكن إقامة مناسبات أو تجمعات عائلية كبيرة في الشاليهات أو المزارع؟",
-    answerEn:
-      'Absolutely. Most of our chalets, villas, and farms are custom-architected for Saudi social culture, featuring separate expansive men’s and women’s majlis, outdoor barbecue facilities, children’s splash zones, and catering kitchens. Please check each property’s "Guest Capacity" spec on the booking card before finalizing your date.',
-    answerAr:
-      'بالتأكيد. تم تصميم معظم الشاليهات والفلل والمزارع خصيصاً لتناسب العائلات السعودية، وتضم مجالس واسعة منفصلة للرجال والنساء، مناطق شواء، وألعاب مائية للأطفال. يرجى التحقق من السعة القصوى المحددة في بطاقة كل عقار.',
-  },
-  {
-    questionEn: "How do I list my property as a host and what are the earnings?",
-    questionAr: "كيف أسجل عقاري كمضيف وما هي العوائد المتوقعة؟",
-    answerEn:
-      "Listing your chalet, farm, or villa takes only 2 minutes via our Host Portal. Hosts on QafNest earn between 18,000 SAR and 45,000 SAR monthly with our 1,000,000 SAR host property damage guarantee, automated calendar synchronization, and prompt bi-weekly direct bank transfers.",
-    answerAr:
-      "تسجيل شاليهك أو مزرعتك يستغرق دقيقتين فقط عبر بوابة المضيفين. يحقق المضيفون عوائد شهرية تتراوح بين 18,000 ر.س و45,000 ر.س، مع حماية للممتلكات تصل إلى 1,000,000 ر.س، وتزامن تلقائي للتقويم، وتحويلات بنكية مباشرة.",
+      "يمكن للمالك أو المستثمر المفوض تسجيل عقاره المفروش والمرخص من وزارة السياحة عبر بوابة المضيفين بصور واقعية وتفاصيل باللغتين. تُحول المستحقات الصافية بعد خصم عمولة المنصة إلى حساب الآيبان المعتمد خلال ٢٤ إلى ٤٨ ساعة من التسوية، كما يغطي برنامج حماية المضيف التلفيات المباشرة الموثقة خلال ٤٨ ساعة من المغادرة.",
   },
 ];
 

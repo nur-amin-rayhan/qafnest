@@ -1,8 +1,9 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { ShieldCheck, Apple } from "lucide-react";
+import { ShieldCheck } from "lucide-react";
 import { useApp } from "@/context/AppContext";
+import { OfficialPaymentIcon } from "@/components/common/OfficialPaymentIcon";
 
 export default function SafePayments() {
   const { language } = useApp();
@@ -50,21 +51,16 @@ export default function SafePayments() {
             className="flex flex-wrap items-center justify-center gap-3"
           >
             {/* Mada */}
-            <div className="glass px-3.5 py-2 rounded-xl flex items-center gap-2 border border-violet-200 dark:border-white/10 hover:border-emerald-400/40 transition-colors shadow-sm" data-cursor="hover">
-              <div className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
-              <span className="font-bold text-xs text-gray-900 dark:text-white tracking-wide">
-                mada
-              </span>
-            </div>
+            <OfficialPaymentIcon name="mada" heightClass="h-8" />
 
             {/* Apple Pay */}
-            <div className="glass px-3.5 py-2 rounded-xl flex items-center gap-2 border border-violet-200 dark:border-white/10 hover:border-violet-400 transition-colors shadow-sm" data-cursor="hover">
-              <Apple className="w-4 h-4 text-gray-900 dark:text-white" />
-              <span className="font-bold text-xs text-gray-900 dark:text-white">Apple Pay</span>
-            </div>
+            <OfficialPaymentIcon name="apple" heightClass="h-8" />
+
+            {/* Google Pay */}
+            <OfficialPaymentIcon name="google" heightClass="h-8" />
 
             {/* Tabby */}
-            <div className="glass px-3.5 py-2 rounded-xl flex items-center gap-1.5 border border-violet-200 dark:border-white/10 hover:border-emerald-400/40 transition-colors shadow-sm" data-cursor="hover">
+            <div className="glass px-3.5 py-1.5 rounded-xl flex items-center gap-1.5 border border-violet-200 dark:border-white/10 hover:border-emerald-400/40 transition-colors shadow-sm" data-cursor="hover">
               <span className="h-2 w-2 rounded-full bg-emerald-500" />
               <span className="font-bold text-xs text-emerald-600 dark:text-emerald-300">tabby</span>
               <span className="text-[9px] text-gray-500 dark:text-muted ml-0.5 rtl:mr-0.5 rtl:ml-0">
@@ -73,7 +69,7 @@ export default function SafePayments() {
             </div>
 
             {/* Tamara */}
-            <div className="glass px-3.5 py-2 rounded-xl flex items-center gap-1.5 border border-violet-200 dark:border-white/10 hover:border-fuchsia-400/40 transition-colors shadow-sm" data-cursor="hover">
+            <div className="glass px-3.5 py-1.5 rounded-xl flex items-center gap-1.5 border border-violet-200 dark:border-white/10 hover:border-fuchsia-400/40 transition-colors shadow-sm" data-cursor="hover">
               <span className="h-2 w-2 rounded-full bg-fuchsia-500" />
               <span className="font-bold text-xs text-fuchsia-600 dark:text-fuchsia-300">tamara</span>
               <span className="text-[9px] text-gray-500 dark:text-muted ml-0.5 rtl:mr-0.5 rtl:ml-0">
@@ -82,18 +78,11 @@ export default function SafePayments() {
             </div>
 
             {/* STC Pay */}
-            <div className="glass px-3.5 py-2 rounded-xl flex items-center gap-2 border border-violet-200 dark:border-white/10 hover:border-purple-400/40 transition-colors shadow-sm" data-cursor="hover">
-              <span className="font-bold text-xs text-purple-600 dark:text-purple-300">stc pay</span>
-            </div>
+            <OfficialPaymentIcon name="stcpay" heightClass="h-8" />
 
             {/* Visa / Mastercard */}
-            <div className="glass px-3.5 py-2 rounded-xl flex items-center gap-2 border border-violet-200 dark:border-white/10 hover:border-cyan-400/40 transition-colors shadow-sm" data-cursor="hover">
-              <span className="font-bold text-xs text-cyan-600 dark:text-cyan-300 font-mono">VISA</span>
-              <span className="text-gray-300 dark:text-white/40">|</span>
-              <span className="font-bold text-xs text-amber-600 dark:text-amber-300 font-mono">
-                Mastercard
-              </span>
-            </div>
+            <OfficialPaymentIcon name="visa" heightClass="h-8" />
+            <OfficialPaymentIcon name="mastercard" heightClass="h-8" />
           </motion.div>
         </div>
       </div>

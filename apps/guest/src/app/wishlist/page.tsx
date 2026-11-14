@@ -1,26 +1,52 @@
 "use client";
 
-import React, { useMemo } from "react";
+import React, { useEffect, useMemo } from "react";
 import Link from "next/link";
-import { Heart, ArrowRight } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Heart, ArrowRight, LoaderCircle } from "lucide-react";
 import Navbar from "@/components/common/Navbar";
 import Footer from "@/components/common/Footer";
 import SearchPropertyCard from "@/components/search/SearchPropertyCard";
 import BookingModal from "@/components/modals/BookingModal";
 import AuthModal from "@/components/modals/AuthModal";
 import SearchModal from "@/components/modals/SearchModal";
+import { useAuth } from "@/context/AuthContext";
 import { useApp } from "@/context/AppContext";
 import { useProperties } from "@/hooks/useProperties";
 
 export default function WishlistPage() {
+  const router = useRouter();
+  const { user, loading: authLoading, openAuthModal } = useAuth();
   const { wishlist, language } = useApp();
   const { properties, loading } = useProperties();
 
   const label = (en: string, ar: string) => (language === "ar" ? ar : en);
 
+  useEffect(() => {
+    if (!authLoading && !user) {
+      if (typeof window !== "undefined" && window.sessionStorage.getItem("qafnest_is_logging_out") === "1") {
+        router.replace("/");
+        return;
+      }
+      router.replace("/?auth=required");
+      openAuthModal("signin");
+    }
+  }, [authLoading, user, router, openAuthModal]);
+
   const savedProperties = useMemo(() => {
     return properties.filter((p) => wishlist.includes(p.id));
   }, [properties, wishlist]);
+
+  if (authLoading || !user) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-gray-50 dark:bg-[#08070D]">
+        <div className="flex items-center gap-2 text-sm text-gray-500">
+          <LoaderCircle className="h-5 w-5 animate-spin text-violet-600" />
+          <span>{label("Redirecting to home…", "جارٍ التحويل إلى الرئيسية…")}</span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-white text-gray-900 dark:bg-[#08070D] dark:text-gray-100 flex flex-col justify-between">
@@ -57,8 +83,8 @@ export default function WishlistPage() {
               ))}
             </div>
           ) : savedProperties.length === 0 ? (
-            <div className="my-12 flex flex-col items-center justify-center rounded-3xl border border-dashed border-gray-200 p-12 text-center dark:border-white/10 dark:bg-[#12101a]">
-              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-violet-50 text-violet-600 dark:bg-violet-400/10 dark:text-violet-300">
+            <div className="my-12 flex flex-col items-center justify-center rounded-3xl border border-violet-200/85 bg-white p-12 text-center shadow-[0_12px_35px_rgba(109,40,217,0.06)] dark:border-violet-500/20 dark:bg-[#12101a]">
+              <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-violet-50 text-violet-600 dark:bg-violet-400/10 dark:text-violet-300">
                 <Heart className="h-8 w-8" />
               </div>
               <h2 className="mt-4 text-xl font-bold text-gray-900 dark:text-white">
@@ -72,7 +98,7 @@ export default function WishlistPage() {
               </p>
               <Link
                 href="/search"
-                className="mt-6 inline-flex items-center gap-2 rounded-xl bg-violet-700 px-6 py-3 text-sm font-bold text-white shadow-md hover:bg-violet-800 transition active:scale-95"
+                className="mt-6 inline-flex items-center gap-2 rounded-2xl bg-violet-700 px-6 py-3 text-sm font-bold text-white shadow-md hover:bg-violet-800 transition active:scale-95"
               >
                 <span>{label("Explore all stays", "استكشف العقارات")}</span>
                 <ArrowRight className="h-4 w-4 rtl:rotate-180" />

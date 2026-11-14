@@ -29,6 +29,9 @@ export async function createClient() {
           }
         },
       },
+      cookieOptions: {
+        name: "sb-qafnest-host-auth",
+      },
     }
   );
 }

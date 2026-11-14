@@ -1,6 +1,10 @@
 {
   "compilerOptions": {
-    "lib": ["dom", "dom.iterable", "esnext"],
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "esnext"
+    ],
     "allowJs": true,
     "skipLibCheck": true,
     "strict": true,
@@ -18,9 +22,33 @@
       }
     ],
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": [
+        "./src/*"
+      ],
+      "auth-providers.js": [
+        "./src/components/providers/auth-providers.ts"
+      ],
+      "auth-providers": [
+        "./src/components/providers/auth-providers.ts"
+      ],
+      "@/components/providers/auth-providers.js": [
+        "./src/components/providers/auth-providers.ts"
+      ],
+      "@/providers/auth-providers.js": [
+        "./src/providers/auth-providers.ts"
+      ],
+      "@/lib/auth-providers.js": [
+        "./src/lib/auth-providers.ts"
+      ]
     }
   },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
-  "exclude": ["node_modules"]
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules"
+  ]
 }

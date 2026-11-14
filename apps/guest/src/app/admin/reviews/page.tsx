@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Check, ChevronLeft, ChevronRight, LoaderCircle, MessageSquareText, Send, ShieldCheck } from "lucide-react";
 import Navbar from "@/components/common/Navbar";
 import Footer from "@/components/common/Footer";
@@ -34,9 +35,17 @@ type AdminReviewsResponse = {
 };
 
 export default function AdminReviewsPage() {
+  const router = useRouter();
   const { language } = useApp();
   const { user, session, loading: authLoading, openAuthModal } = useAuth();
   const label = useCallback((en: string, ar: string) => language === "ar" ? ar : en, [language]);
+
+  useEffect(() => {
+    if (!authLoading && !user) {
+      router.replace("/?auth=required");
+      openAuthModal("signin");
+    }
+  }, [authLoading, user, router, openAuthModal]);
   const [reviews, setReviews] = useState<AdminReview[]>([]);
   const [drafts, setDrafts] = useState<Record<string, string>>({});
   const [arabicDrafts, setArabicDrafts] = useState<Record<string, string>>({});
@@ -119,6 +128,17 @@ export default function AdminReviewsPage() {
       setSavingId("");
     }
   };
+
+  if (authLoading || !user) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-gray-50 dark:bg-[#08070D]">
+        <div className="flex items-center gap-2 text-sm text-gray-500">
+          <LoaderCircle className="h-5 w-5 animate-spin text-violet-600" />
+          <span>{label("Redirecting to home…", "جارٍ التحويل إلى الرئيسية…")}</span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 text-gray-900 dark:bg-[#08070D] dark:text-gray-100">

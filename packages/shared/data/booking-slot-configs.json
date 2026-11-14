@@ -1,0 +1,29 @@
+{
+  "configs": {
+    "15aa3183-888f-464a-9b85-612c6f25441f": {
+      "propertyId": "15aa3183-888f-464a-9b85-612c6f25441f",
+      "slug": "abu-bodar-villa-72708f0b",
+      "enableStandard4pmTo12pm": true,
+      "enableTwelveHour12amTo12pm": true,
+      "twelveHourPrice": 100,
+      "hostBlockedDates": [],
+      "dateSlotOverrides": {},
+      "updatedBy": "host",
+      "updatedAt": "2026-11-11T17:50:48.132Z"
+    },
+    "abu-bodar-villa-72708f0b": {
+      "propertyId": "15aa3183-888f-464a-9b85-612c6f25441f",
+      "slug": "abu-bodar-villa-72708f0b",
+      "enableStandard4pmTo12pm": true,
+      "enableTwelveHour12amTo12pm": true,
+      "twelveHourPrice": 100,
+      "hostBlockedDates": [],
+      "dateSlotOverrides": {},
+      "updatedBy": "host",
+      "updatedAt": "2026-11-11T17:50:48.132Z"
+    }
+  },
+  "slugToPropertyId": {
+    "abu-bodar-villa-72708f0b": "15aa3183-888f-464a-9b85-612c6f25441f"
+  }
+}

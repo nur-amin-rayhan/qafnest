@@ -18,51 +18,63 @@ import {
 import { Property } from "@/data/properties";
 import { propertyDetailHref } from "@/lib/propertyUrls";
 import { useApp } from "@/context/AppContext";
+import {
+  getLocalizedPropertyTitle,
+  getLocalizedPropertyLocation,
+  type Locale,
+} from "@/lib/localization/localeHelper";
 
 interface PropertyCardProps {
   property: Property;
   priority?: boolean;
 }
 
-export default function PropertyCard({
-  property,
-  priority = false,
-}: PropertyCardProps) {
+export default function PropertyCard({ property, priority = false }: PropertyCardProps) {
   const { wishlist, toggleWishlist, language } = useApp();
   const router = useRouter();
   const [activeIdx, setActiveIdx] = useState(0);
 
-  const images =
-    property.images && property.images.length > 0
-      ? property.images
-      : [property.image];
+  const FALLBACK_IMG =
+    "https://images.unsplash.com/photo-1580587771525-78b9dba3b914?w=800&fit=crop";
+  const validImages = (property.images || []).filter(
+    (img): img is string => typeof img === "string" && img.trim().length > 0,
+  );
+  const images = validImages.length > 0 ? validImages : [property.image || FALLBACK_IMG];
   const isWishlisted = wishlist.includes(property.id);
   const detailHref = propertyDetailHref(property.id);
 
-  const title =
-    language === "ar" ? property.titleAr || property.title : property.title;
-  const district =
-    language === "ar"
-      ? property.districtAr || property.district || property.cityName
-      : property.district || property.cityName;
+  const locale: Locale = language === "ar" ? "ar" : "en";
+  const title = getLocalizedPropertyTitle(property, locale);
+  const { district } = getLocalizedPropertyLocation(property, locale);
 
-  const area = property.areaSqm || (property.category === "penthouse" ? 220 : 350);
+  const area =
+    typeof property.areaSqm === "number"
+      ? property.areaSqm
+      : property.category === "penthouse"
+        ? 220
+        : 350;
   const capacity =
-    property.capacity ||
-    parseInt(property.specs.match(/(\d+)\s*Guests?/i)?.[1] || "6", 10);
+    property.capacity ?? (parseInt(property.specs.match(/(\d+)\s*Guests?/i)?.[1] || "6", 10));
   const bedrooms =
-    property.bedroomsCount ||
-    parseInt(property.specs.match(/(\d+)\s*Bed/i)?.[1] || "2", 10);
+    typeof property.bedroomsCount === "number"
+      ? property.bedroomsCount
+      : parseInt(property.specs.match(/(\d+)\s*Bed/i)?.[1] || "0", 10);
 
   const amenitiesList = property.amenities || [];
+  const featuresList = property.features || [];
   const hasPool =
     property.hasPool ||
     amenitiesList.includes("private_pool") ||
     amenitiesList.includes("outdoor_pool") ||
-    amenitiesList.includes("indoor_pool");
+    amenitiesList.includes("indoor_pool") ||
+    featuresList.some((f) => f.includes("مسبح") || f.toLowerCase().includes("pool"));
   const hasSelfCheckin =
-    property.selfCheckin || amenitiesList.includes("self_checkin");
-  const hasWifi = amenitiesList.includes("wifi");
+    property.selfCheckin ||
+    amenitiesList.includes("self_checkin") ||
+    featuresList.some((f) => f.includes("دخول ذاتي"));
+  const hasWifi =
+    amenitiesList.includes("wifi") ||
+    featuresList.some((f) => f.includes("انترنت") || f.toLowerCase().includes("wifi"));
 
   const handlePrev = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -86,10 +98,7 @@ export default function PropertyCard({
         router.push(detailHref);
       }}
       onKeyDown={(event) => {
-        if (
-          event.target !== event.currentTarget ||
-          (event.key !== "Enter" && event.key !== " ")
-        )
+        if (event.target !== event.currentTarget || (event.key !== "Enter" && event.key !== " "))
           return;
         event.preventDefault();
         router.push(detailHref);
@@ -171,14 +180,16 @@ export default function PropertyCard({
             <div className="flex items-center gap-1 text-xs text-gray-900 dark:text-gray-100 font-medium">
               <Star className="w-3.5 h-3.5 fill-gray-900 text-gray-900 dark:fill-amber-400 dark:text-amber-400" />
               <span className="font-bold">{property.rating.toFixed(1)}</span>
-              <span className="text-gray-500 dark:text-gray-400">
-                ({property.reviewsCount})
-              </span>
+              <span className="text-gray-500 dark:text-gray-400">({property.reviewsCount})</span>
             </div>
 
             {property.chaletForAr && (
               <span className="text-[10px] text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-white/10 px-1.5 py-0.5 rounded">
-                {language === "ar" ? property.chaletForAr : property.chaletForAr === "عوائل وعزاب" ? "Families & Singles" : "Families"}
+                {language === "ar"
+                  ? property.chaletForAr
+                  : property.chaletForAr === "عوائل وعزاب"
+                    ? "Families & Singles"
+                    : "Families"}
               </span>
             )}
           </div>
@@ -192,9 +203,7 @@ export default function PropertyCard({
           </h3>
 
           {/* District / Location */}
-          <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 line-clamp-1">
-            {district}
-          </p>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 line-clamp-1">{district}</p>
 
           {/* Compact Feature Strip with Icons */}
           <div className="flex items-center gap-2 mt-1.5 py-1 border-t border-gray-100 dark:border-white/5 text-gray-600 dark:text-gray-400 text-[11px] flex-wrap">

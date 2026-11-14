@@ -1,198 +1,61 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect } from "react";
-import { Language, TRANSLATIONS } from "@/data/translations";
+import React, { createContext, useContext, useState } from "react";
+import { TRANSLATIONS } from "@/data/translations";
+import type {
+  AppContextType,
+  BookingModalState,
+  Currency,
+  Language,
+} from "./app/appContextTypes";
+import { useWishlistSync } from "./app/useWishlistSync";
+import { getRiyadhDate, useAppPreferences } from "./app/useAppPreferences";
 
-export type Currency = "SAR";
-
-interface BookingModalState {
-  isOpen: boolean;
-  propertyTitle: string;
-  basePrice: number;
-}
-
-interface AppContextType {
-  language: Language;
-  setLanguage: (lang: Language) => void;
-  toggleLanguage: () => void;
-  t: typeof TRANSLATIONS.en;
-  currency: Currency;
-  setCurrency: (c: Currency) => void;
-  formatPrice: (baseSAR: number) => string;
-  formatTabby: (baseSAR: number) => string;
-  selectedCity: string;
-  setSelectedCity: (city: string) => void;
-  selectedCategory: string;
-  setSelectedCategory: (cat: string) => void;
-  instantOnly: boolean;
-  setInstantOnly: (v: boolean) => void;
-  poolOnly: boolean;
-  setPoolOnly: (v: boolean) => void;
-  selfCheckinOnly: boolean;
-  setSelfCheckinOnly: (v: boolean) => void;
-  wishlist: string[];
-  toggleWishlist: (id: string) => void;
-  checkinDate: string;
-  setCheckinDate: (d: string) => void;
-  checkinTime: string;
-  setCheckinTime: (t: string) => void;
-  checkoutDate: string;
-  setCheckoutDate: (d: string) => void;
-  checkoutTime: string;
-  setCheckoutTime: (t: string) => void;
-  guestsCount: number;
-  setGuestsCount: (n: number) => void;
-  stayTiming: string;
-  setStayTiming: (t: string) => void;
-  rentMode: "daily" | "monthly";
-  setRentMode: (m: "daily" | "monthly") => void;
-  bookingModal: BookingModalState;
-  openBookingModal: (title: string, price: number) => void;
-  closeBookingModal: () => void;
-  searchModalOpen: boolean;
-  openSearchModal: () => void;
-  closeSearchModal: () => void;
-  appModalOpen: boolean;
-  openAppModal: () => void;
-  closeAppModal: () => void;
-  promoBannerVisible: boolean;
-  dismissPromoBanner: () => void;
-  isDarkTheme: boolean;
-  toggleTheme: () => void;
-}
+export type { Language, Currency, BookingModalState, AppContextType };
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
-function getRiyadhDate(offsetDays: number) {
-  const parts = new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Asia/Riyadh",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).formatToParts(new Date());
-  const part = (type: Intl.DateTimeFormatPartTypes) =>
-    Number(parts.find((item) => item.type === type)?.value || 0);
-  return new Date(Date.UTC(part("year"), part("month") - 1, part("day") + offsetDays))
-    .toISOString()
-    .slice(0, 10);
-}
+export function AppProvider({
+  children,
+  initialLang = "en",
+}: {
+  children: React.ReactNode;
+  initialLang?: Language;
+}) {
+  const {
+    language,
+    setLanguage,
+    toggleLanguage,
+    isDarkTheme,
+    toggleTheme,
+    formatPrice,
+    formatTabby,
+  } = useAppPreferences(initialLang);
 
-export function AppProvider({ children }: { children: React.ReactNode }) {
-  const [language, setLanguageState] = useState<Language>("en");
+  const { wishlist, toggleWishlist } = useWishlistSync();
+
   const [currency, setCurrency] = useState<Currency>("SAR");
   const [selectedCity, setSelectedCity] = useState<string>("all");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [instantOnly, setInstantOnly] = useState<boolean>(false);
   const [poolOnly, setPoolOnly] = useState<boolean>(false);
   const [selfCheckinOnly, setSelfCheckinOnly] = useState<boolean>(false);
-  const [wishlist, setWishlist] = useState<string[]>([]);
   const [checkinDate, setCheckinDate] = useState<string>(() => getRiyadhDate(0));
-  const [checkinTime, setCheckinTime] = useState<string>("15:00");
+  const [checkinTime, setCheckinTime] = useState<string>("16:00");
   const [checkoutDate, setCheckoutDate] = useState<string>(() => getRiyadhDate(1));
   const [checkoutTime, setCheckoutTime] = useState<string>("12:00");
-  const [guestsCount, setGuestsCount] = useState<number>(4);
+  const [guestsCount, setGuestsCount] = useState<number>(1);
   const [stayTiming, setStayTiming] = useState<string>("full_day");
   const [rentMode, setRentMode] = useState<"daily" | "monthly">("daily");
   const [promoBannerVisible, setPromoBannerVisible] = useState<boolean>(true);
-  const [isDarkTheme, setIsDarkTheme] = useState<boolean>(true);
-
-  // Sync language with localStorage & document attributes (dir and lang)
-  useEffect(() => {
-    try {
-      const storedLang = localStorage.getItem("qafnest_lang") as Language;
-      if (storedLang === "ar" || storedLang === "en") {
-        setLanguageState(storedLang);
-        document.documentElement.lang = storedLang;
-        document.documentElement.dir = storedLang === "ar" ? "rtl" : "ltr";
-        if (storedLang === "ar") {
-          document.documentElement.classList.add("rtl");
-        } else {
-          document.documentElement.classList.remove("rtl");
-        }
-      }
-    } catch {}
-  }, []);
-
-  const setLanguage = (lang: Language) => {
-    setLanguageState(lang);
-    document.documentElement.lang = lang;
-    document.documentElement.dir = lang === "ar" ? "rtl" : "ltr";
-    if (lang === "ar") {
-      document.documentElement.classList.add("rtl");
-    } else {
-      document.documentElement.classList.remove("rtl");
-    }
-    try {
-      localStorage.setItem("qafnest_lang", lang);
-    } catch {}
-  };
-
-  const toggleLanguage = () => {
-    setLanguage(language === "en" ? "ar" : "en");
-  };
-
-  // Sync theme with localStorage & documentElement
-  useEffect(() => {
-    try {
-      const stored = localStorage.getItem("qafnest_theme");
-      if (stored === "light") {
-        setIsDarkTheme(false);
-        document.documentElement.classList.add("light");
-        document.documentElement.classList.remove("dark");
-      } else {
-        setIsDarkTheme(true);
-        document.documentElement.classList.add("dark");
-        document.documentElement.classList.remove("light");
-      }
-    } catch {}
-  }, []);
 
   const [bookingModal, setBookingModal] = useState<BookingModalState>({
     isOpen: false,
-    propertyTitle: "Al-Ammariyah Royal Chalet",
-    basePrice: 1850,
+    propertyTitle: "",
+    basePrice: 0,
   });
   const [searchModalOpen, setSearchModalOpen] = useState<boolean>(false);
   const [appModalOpen, setAppModalOpen] = useState<boolean>(false);
-
-  // Formats price cleanly in SAR (fixed currency)
-  const formatPrice = (baseSAR: number) => {
-    const formatted = Math.round(baseSAR).toLocaleString();
-    if (language === "ar") {
-      return `${formatted} ر.س`;
-    }
-    return `${formatted} SAR`;
-  };
-
-  // Formats Tabby installment in SAR
-  const formatTabby = (baseSAR: number) => {
-    const split = Math.round(baseSAR / 4).toLocaleString();
-    if (language === "ar") {
-      return `${split} ر.س / شهر`;
-    }
-    return `${split} SAR / mo`;
-  };
-
-  // Sync wishlist with localStorage
-  useEffect(() => {
-    try {
-      const stored = localStorage.getItem("qafnest_wishlist");
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        if (Array.isArray(parsed)) setWishlist(parsed);
-      }
-    } catch {}
-  }, []);
-
-  const toggleWishlist = (id: string) => {
-    setWishlist((prev) => {
-      const next = prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id];
-      try {
-        localStorage.setItem("qafnest_wishlist", JSON.stringify(next));
-      } catch {}
-      return next;
-    });
-  };
 
   const openBookingModal = (title: string, price: number) => {
     setBookingModal({ isOpen: true, propertyTitle: title, basePrice: price });
@@ -209,26 +72,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const closeAppModal = () => setAppModalOpen(false);
 
   const dismissPromoBanner = () => setPromoBannerVisible(false);
-
-  const toggleTheme = () => {
-    setIsDarkTheme((prev) => {
-      const next = !prev;
-      if (next) {
-        document.documentElement.classList.add("dark");
-        document.documentElement.classList.remove("light");
-        try {
-          localStorage.setItem("qafnest_theme", "dark");
-        } catch {}
-      } else {
-        document.documentElement.classList.add("light");
-        document.documentElement.classList.remove("dark");
-        try {
-          localStorage.setItem("qafnest_theme", "light");
-        } catch {}
-      }
-      return next;
-    });
-  };
 
   const t = TRANSLATIONS[language];
 

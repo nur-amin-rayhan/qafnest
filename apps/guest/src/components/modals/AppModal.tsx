@@ -74,11 +74,12 @@ export default function AppModal() {
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
               placeholder="+966 5X XXX XXXX"
-              className="flex-grow rounded-xl bg-gray-50 dark:bg-surface/[0.05] border border-gray-200 dark:border-white/10 px-4 py-2.5 text-xs text-gray-900 dark:text-fg placeholder:text-gray-400 dark:placeholder:text-muted/40 focus:outline-none focus:border-violet-400"
+              className="flex-grow rounded-xl bg-gray-50 dark:bg-surface/[0.05] border border-gray-200 dark:border-white/10 px-4 py-2.5 text-xs text-gray-900 dark:text-fg placeholder:text-gray-400 dark:placeholder:text-muted/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-400 focus-visible:ring-offset-2 min-h-[44px]"
             />
             <button
               type="submit"
-              className="px-4 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-700 text-white font-bold text-xs tracking-wide shrink-0 shadow-md cursor-pointer"
+              disabled={!phone.trim()}
+              className="px-4 py-2.5 min-h-[44px] rounded-xl bg-violet-600 hover:bg-violet-700 text-white font-bold text-xs tracking-wide shrink-0 shadow-md cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed focus-visible:ring-2 focus-visible:ring-violet-400 focus-visible:outline-none"
             >
               {language === "ar" ? "إرسال الرابط" : "Send Link"}
             </button>

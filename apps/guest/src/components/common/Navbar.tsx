@@ -2,23 +2,16 @@
 
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { motion, AnimatePresence } from "framer-motion";
-import {
-  Moon,
-  Sun,
-  Globe,
-  ChevronDown,
-  Menu,
-  X,
-  LogOut,
-  Key,
-  CalendarDays,
-  Heart,
-  PlusCircle,
-} from "lucide-react";
+import { usePathname, useRouter } from "next/navigation";
+import { motion } from "framer-motion";
+import { Moon, Sun, Globe, Menu, X, PlusCircle, Search } from "lucide-react";
 import { useApp } from "@/context/AppContext";
 import { useAuth } from "@/context/AuthContext";
+import { localizePath, stripLocaleFromPathname } from "@/lib/localization/localeHelper";
+import { ECOSYSTEM_URLS } from "@qafnest/shared";
+import { getNavMenuItems, NavMenuItem } from "./navbar/navConstants";
+import NavUserDropdown from "./navbar/NavUserDropdown";
+import NavMobileMenu from "./navbar/NavMobileMenu";
 
 export default function Navbar() {
   const {
@@ -46,6 +39,22 @@ export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  const [headerSearchQuery, setHeaderSearchQuery] = useState("");
+  const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
+
+  const router = useRouter();
+
+  const handleHeaderSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!headerSearchQuery.trim()) return;
+    router.push(localizePath(`/search?q=${encodeURIComponent(headerSearchQuery.trim())}`, language));
+    setMobileSearchOpen(false);
+  };
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const navRef = useRef<HTMLElement>(null);
   const pathname = usePathname();
@@ -76,72 +85,18 @@ export default function Navbar() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Gathern-exact Header Navigation Links
-  const navMenuItems = [
-    {
-      id: "apartments",
-      labelEn: "Villas & Apartments",
-      labelAr: "شقق وفلل",
-      href: "/apartments",
-      type: "villa",
-      isActive:
-        pathname === "/apartments" ||
-        pathname === "/en/apartments" ||
-        (pathname === "/search" &&
-          (selectedCategory === "villa" || selectedCategory === "penthouse")),
-    },
-    {
-      id: "chalets",
-      labelEn: "Chalets & Resorts",
-      labelAr: "شاليهات ومنتجعات",
-      href: "/chalets",
-      type: "chalet",
-      isActive:
-        pathname === "/chalets" ||
-        pathname === "/en/chalets" ||
-        (pathname === "/search" && selectedCategory === "chalet"),
-    },
-    {
-      id: "farms",
-      labelEn: "Farms",
-      labelAr: "مزارع",
-      href: "/farms",
-      type: "farm",
-      isActive:
-        pathname === "/farms" ||
-        pathname === "/en/farms" ||
-        (pathname === "/search" && selectedCategory === "farm"),
-    },
-    {
-      id: "camps",
-      labelEn: "Camps",
-      labelAr: "مخيّمات",
-      href: "/camps",
-      type: "camp",
-      isActive:
-        pathname === "/camps" ||
-        pathname === "/en/camps" ||
-        (pathname === "/search" && selectedCategory === "camp"),
-    },
-    {
-      id: "blog",
-      labelEn: "Blog",
-      labelAr: "المدونة",
-      href: "/blog",
-      type: null,
-      isActive: pathname === "/blog" || pathname === "/en/blog",
-    },
-  ];
+  const navMenuItems = getNavMenuItems(pathname, selectedCategory, language);
 
   const handleNavClick = (
     e: React.MouseEvent<HTMLAnchorElement>,
-    item: (typeof navMenuItems)[0]
+    item: NavMenuItem
   ) => {
     if (item.type) {
       setSelectedCategory(item.type);
     }
     // If clicking on homepage, smoothly scroll to property listing if present
-    if (item.type && pathname === "/" && typeof window !== "undefined") {
+    const cleanPath = stripLocaleFromPathname(pathname);
+    if (item.type && cleanPath === "/" && typeof window !== "undefined") {
       const el = document.getElementById("properties");
       if (el) {
         e.preventDefault();
@@ -149,14 +104,6 @@ export default function Navbar() {
       }
     }
   };
-
-  const dropdownContainerClass = isDarkTheme
-    ? "bg-[#0B0B14] border-white/10 text-white shadow-[0_20px_50px_rgba(0,0,0,0.6)]"
-    : "bg-white border-purple-100 shadow-[0_20px_50px_rgba(88,28,135,0.16)] text-gray-800";
-
-  const dropdownItemClass = isDarkTheme
-    ? "text-white/80 hover:text-white hover:bg-white/[0.08]"
-    : "text-gray-700 hover:text-purple-900 hover:bg-purple-50/80";
 
   return (
     <header
@@ -173,22 +120,46 @@ export default function Navbar() {
       }`}
     >
       <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-10 flex items-center justify-between gap-4">
-        {/* ================= LEFT / START: BRAND LOGO ================= */}
-        <div className="flex items-center gap-6 shrink-0">
-          <Link href="/#top" className="flex items-center gap-3 group shrink-0">
-            <div className="relative flex items-center justify-center h-8 w-8 rounded-full border border-violet-500/40 bg-violet-950/40 shadow-[0_0_14px_rgba(168,85,247,0.4)]">
-              <div className="absolute inset-0 rounded-full border border-dashed border-violet-400/50 animate-[spin_10s_linear_infinite]" />
-              <div className="h-2.5 w-2.5 rounded-full bg-fuchsia-400 shadow-[0_0_10px_rgba(232,121,249,0.95)]" />
-            </div>
-
-            <div className="flex items-center font-display font-bold tracking-[0.14em] text-base sm:text-lg">
-              <span className={isDarkTheme ? "text-white" : "text-gray-900"}>QAF</span>
-              <span className="text-fuchsia-400 ml-1.5 rtl:mr-1.5 rtl:ml-0 font-extrabold text-gradient">NEST</span>
-            </div>
+        {/* Brand Logo */}
+        <div className="flex items-center gap-4 sm:gap-6 shrink-0">
+          <Link href={localizePath("/", language)} className="inline-flex items-center gap-1 select-none shrink-0 group">
+            <span
+              className={`text-[26px] sm:text-[30px] font-black tracking-[-0.05em] transition-colors ${
+                isDarkTheme ? "text-white" : "text-[#4F2396]"
+              }`}
+            >
+              Qaf<span className={isDarkTheme ? "text-violet-300" : "text-[#7c3aed]"}>Nest</span>
+              <span className="text-[#FF9750]">.</span>
+            </span>
           </Link>
         </div>
 
-        {/* ================= MIDDLE: GATHERN-STYLE MENU BAR ================= */}
+        {/* Desktop Header Property Search Bar */}
+        <form
+          onSubmit={handleHeaderSearchSubmit}
+          className="hidden md:flex items-center relative max-w-xs xl:max-w-sm w-full mx-2"
+        >
+          <input
+            type="text"
+            value={headerSearchQuery}
+            onChange={(e) => setHeaderSearchQuery(e.target.value)}
+            placeholder={language === "ar" ? "ابحث باسم العقار، الشاليه..." : "Search chalets, villas by name..."}
+            className={`w-full h-9 ps-3.5 pe-9 rounded-full text-xs font-medium transition-all focus:outline-none focus:ring-2 focus:ring-violet-500/50 ${
+              isDarkTheme
+                ? "bg-white/5 border border-white/10 text-white placeholder-white/40 focus:bg-white/10"
+                : "bg-purple-50/70 border border-purple-200/80 text-gray-800 placeholder-gray-400 focus:bg-white"
+            }`}
+          />
+          <button
+            type="submit"
+            title={language === "ar" ? "بحث عن عقار" : "Search Properties"}
+            className="absolute end-1 w-7 h-7 rounded-full bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 text-white flex items-center justify-center cursor-pointer transition shadow-xs"
+          >
+            <Search className="w-3.5 h-3.5" />
+          </button>
+        </form>
+
+        {/* Desktop Menu Bar */}
         <nav
           aria-label="Main Navigation"
           className="hidden min-[1025px]:flex items-center gap-1 xl:gap-2"
@@ -226,29 +197,24 @@ export default function Navbar() {
           </ul>
         </nav>
 
-        {/* ================= RIGHT: HOST CTA, USER AUTH, LANGUAGE & THEME ================= */}
+        {/* Host CTA (Visible only when signed out), Theme, User Auth, Language */}
         <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-          {/* Host Portal Link (Gathern "أعلن معنا / List your property") */}
-          <a
-            href={
-              process.env.NEXT_PUBLIC_HOST_PORTAL_URL ||
-              (process.env.NODE_ENV === "production"
-                ? "https://business-qafnest.vercel.app"
-                : "http://localhost:3001")
-            }
-            target="_blank"
-            rel="noopener noreferrer"
-            className={`hidden md:inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs sm:text-[13px] font-semibold transition-all duration-200 ${
-              isDarkTheme
-                ? "text-violet-300 hover:text-white hover:bg-violet-950/40 border border-violet-500/20"
-                : "text-purple-700 hover:text-purple-900 hover:bg-purple-50 border border-purple-200"
-            }`}
-          >
-            <PlusCircle className="w-3.5 h-3.5 text-fuchsia-400 shrink-0" />
-            <span>{t.nav.host}</span>
-          </a>
+          {!user && (
+            <a
+              href={`${ECOSYSTEM_URLS.host}/?lang=${language}`}
+              rel="noopener noreferrer"
+              className={`hidden md:inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs sm:text-[13px] font-semibold transition-all duration-200 cursor-pointer ${
+                isDarkTheme
+                  ? "text-violet-300 hover:text-white hover:bg-violet-950/40 border border-violet-500/20"
+                  : "text-purple-700 hover:text-purple-900 hover:bg-purple-50 border border-purple-200"
+              }`}
+            >
+              <PlusCircle className="w-3.5 h-3.5 text-fuchsia-400 shrink-0" />
+              <span>{t.nav.host}</span>
+            </a>
+          )}
 
-          {/* Theme Toggle (Moon / Sun) */}
+          {/* Theme Toggle */}
           <button
             onClick={toggleTheme}
             aria-label="Toggle Theme"
@@ -265,87 +231,20 @@ export default function Navbar() {
             )}
           </button>
 
-          {/* User Profile Menu (If Logged In) or Sign In button */}
-          {user ? (
-            <div className="relative">
-              <button
-                onClick={() => setUserDropdownOpen(!userDropdownOpen)}
-                className={`flex items-center gap-2 rounded-full p-1 pl-2 rtl:pl-1 rtl:pr-2 border transition-colors cursor-pointer ${
-                  isDarkTheme
-                    ? "bg-white/[0.05] border-white/10 hover:border-violet-400/40 text-white"
-                    : "bg-purple-50 border-purple-200 hover:border-purple-300 text-gray-900"
-                }`}
-              >
-                <div className="h-6 w-6 rounded-full bg-gradient-to-tr from-violet-600 to-fuchsia-400 flex items-center justify-center text-white font-bold text-[10px]">
-                  {accountName.charAt(0) || contactEmail.charAt(0)?.toUpperCase() || "U"}
-                </div>
-                <span className="hidden xl:inline-block max-w-[80px] truncate text-xs font-semibold">
-                  {accountName.split(" ")[0] || contactEmail.split("@")[0]}
-                </span>
-                <ChevronDown className="w-3 h-3 opacity-60 mr-1 rtl:ml-1 rtl:mr-0" />
-              </button>
-
-              <AnimatePresence>
-                {userDropdownOpen && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: 8 }}
-                    transition={{ duration: 0.15 }}
-                    className={`absolute right-0 rtl:right-auto rtl:left-0 top-full mt-2 w-56 rounded-2xl border p-2 shadow-2xl z-50 text-xs before:absolute before:-top-3 before:left-0 before:right-0 before:h-4 before:content-[''] ${dropdownContainerClass}`}
-                  >
-                    <div className="px-3 py-2 border-b border-purple-500/15">
-                      <p className="font-bold truncate">
-                        {accountName || "Valued User"}
-                      </p>
-                      <p className="text-[10px] text-muted truncate">{contactEmail}</p>
-                      <span className="inline-block mt-1 text-[9px] px-2 py-0.5 rounded-full bg-fuchsia-500/20 text-fuchsia-400 font-bold uppercase">
-                        {role}
-                      </span>
-                    </div>
-
-                    <div className="py-1">
-                      <Link
-                        href="/my-bookings"
-                        onClick={() => setUserDropdownOpen(false)}
-                        className={`w-full rounded-xl px-3 py-2 flex items-center gap-2 text-xs ${dropdownItemClass}`}
-                      >
-                        <CalendarDays className="w-3.5 h-3.5 text-violet-400" />{" "}
-                        {language === "ar" ? "حجوزاتي" : "My bookings"}
-                      </Link>
-                      <Link
-                        href="/wishlist"
-                        onClick={() => setUserDropdownOpen(false)}
-                        className={`w-full rounded-xl px-3 py-2 flex items-center gap-2 text-xs ${dropdownItemClass}`}
-                      >
-                        <Heart className="w-3.5 h-3.5 text-rose-400" />{" "}
-                        {language === "ar" ? "المفضلة" : "Wishlist"}
-                      </Link>
-
-                      <a
-                        href="https://business.qafnest.vercel.app"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        onClick={() => setUserDropdownOpen(false)}
-                        className="w-full text-left rtl:text-right px-3 py-2 rounded-xl flex items-center gap-2 cursor-pointer text-violet-600 dark:text-violet-400 hover:bg-purple-500/10 text-xs font-semibold"
-                      >
-                        <Key className="w-3.5 h-3.5 text-violet-500 shrink-0" /> {t.nav.host}
-                      </a>
-
-                      <button
-                        onClick={() => {
-                          setUserDropdownOpen(false);
-                          signOut();
-                        }}
-                        className="w-full text-left rtl:text-right px-3 py-2 rounded-xl text-rose-400 hover:bg-rose-500/10 flex items-center gap-2 cursor-pointer mt-1 font-semibold text-xs"
-                      >
-                        <LogOut className="w-3.5 h-3.5 text-rose-400" /> {t.nav.signOut}
-                      </button>
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
+          {/* User Profile or Sign In */}
+          {mounted && user ? (
+            <NavUserDropdown
+              accountName={accountName}
+              contactEmail={contactEmail}
+              role={role}
+              isOpen={userDropdownOpen}
+              onToggle={() => setUserDropdownOpen(!userDropdownOpen)}
+              onClose={() => setUserDropdownOpen(false)}
+              language={language}
+              t={t}
+              signOut={signOut}
+              isDarkTheme={isDarkTheme}
+            />
           ) : (
             <button
               onClick={() => openAuthModal("signin")}
@@ -359,7 +258,7 @@ export default function Navbar() {
             </button>
           )}
 
-          {/* ================= DEDICATED LANGUAGE SELECTION BUTTON ================= */}
+          {/* Language Selection */}
           <button
             onClick={toggleLanguage}
             aria-label="Switch Language"
@@ -367,6 +266,20 @@ export default function Navbar() {
           >
             <Globe className="w-3.5 h-3.5 text-white group-hover:rotate-45 transition-transform duration-300" />
             <span>{language === "en" ? "العربية" : "English"}</span>
+          </button>
+
+          {/* Mobile Search Toggle */}
+          <button
+            type="button"
+            onClick={() => setMobileSearchOpen(!mobileSearchOpen)}
+            className={`md:hidden p-2 rounded-xl transition-colors cursor-pointer ${
+              isDarkTheme
+                ? "text-white/80 hover:text-white hover:bg-white/5"
+                : "text-gray-700 hover:text-gray-900 hover:bg-gray-100"
+            }`}
+            aria-label="Toggle Property Search"
+          >
+            <Search className="w-4 h-4 text-violet-400" />
           </button>
 
           {/* Mobile Hamburger Toggle */}
@@ -384,122 +297,50 @@ export default function Navbar() {
         </div>
       </div>
 
-      {/* ================= MOBILE MENU DRAWER ================= */}
-      <AnimatePresence>
-        {mobileMenuOpen && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
-            exit={{ opacity: 0, height: 0 }}
-            className={`min-[1025px]:hidden border-b px-6 py-5 space-y-3 ${
-              isDarkTheme
-                ? "bg-[#0B0B14] border-white/10 text-white"
-                : "bg-white border-purple-100 text-gray-900 shadow-xl"
-            }`}
-          >
-            {navMenuItems.map((item) => {
-              const label = language === "ar" ? item.labelAr : item.labelEn;
-              return (
-                <Link
-                  key={item.id}
-                  href={item.href}
-                  onClick={(e) => {
-                    handleNavClick(e, item);
-                    setMobileMenuOpen(false);
-                  }}
-                  className={`block py-2 text-sm font-semibold rounded-lg px-2 transition-colors ${
-                    item.isActive
-                      ? "text-fuchsia-400 bg-purple-500/10 font-bold"
-                      : "hover:text-fuchsia-400"
-                  }`}
-                >
-                  {label}
-                </Link>
-              );
-            })}
+      {/* Expandable Mobile Search Bar */}
+      {mobileSearchOpen && (
+        <div className="md:hidden px-4 pt-2 pb-3 border-t border-purple-500/10 bg-inherit">
+          <form onSubmit={handleHeaderSearchSubmit} className="relative flex items-center w-full">
+            <input
+              type="text"
+              autoFocus
+              value={headerSearchQuery}
+              onChange={(e) => setHeaderSearchQuery(e.target.value)}
+              placeholder={language === "ar" ? "ابحث باسم العقار..." : "Search properties by name..."}
+              className={`w-full h-10 ps-3.5 pe-10 rounded-xl text-xs font-medium focus:outline-none focus:ring-2 focus:ring-violet-500/50 ${
+                isDarkTheme
+                  ? "bg-white/10 text-white placeholder-white/50 border border-white/10"
+                  : "bg-purple-50 text-gray-900 placeholder-gray-400 border border-purple-200"
+              }`}
+            />
+            <button
+              type="submit"
+              className="absolute end-1.5 w-7 h-7 rounded-lg bg-violet-600 text-white flex items-center justify-center cursor-pointer"
+            >
+              <Search className="w-3.5 h-3.5" />
+            </button>
+          </form>
+        </div>
+      )}
 
-            <div className="pt-2 border-t border-purple-500/15">
-              <a
-                href="https://business.qafnest.vercel.app"
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={() => setMobileMenuOpen(false)}
-                className="flex items-center gap-2 py-2 text-sm font-semibold text-violet-400 hover:text-fuchsia-400"
-              >
-                <PlusCircle className="w-4 h-4 text-fuchsia-400" />
-                <span>{t.nav.host}</span>
-              </a>
-            </div>
-
-            {/* Language Switch Button inside Mobile Menu */}
-            <div className="pt-1">
-              <button
-                onClick={() => {
-                  toggleLanguage();
-                  setMobileMenuOpen(false);
-                }}
-                className="w-full py-2.5 rounded-xl border border-violet-500/30 bg-violet-600/15 text-xs font-bold text-violet-300 flex items-center justify-center gap-2 cursor-pointer"
-              >
-                <Globe className="w-4 h-4" />
-                <span>
-                  {language === "en" ? "تبديل إلى العربية" : "Switch to English"}
-                </span>
-              </button>
-            </div>
-
-            <div className="pt-3 border-t border-purple-500/15">
-              {user ? (
-                <div className="flex w-full flex-col gap-2">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-xs font-bold">{accountName || contactEmail}</p>
-                      <span className="text-[10px] text-fuchsia-400 font-bold uppercase">
-                        {role}
-                      </span>
-                    </div>
-                    <button
-                      onClick={() => {
-                        setMobileMenuOpen(false);
-                        signOut();
-                      }}
-                      className="text-xs text-rose-400 font-bold"
-                    >
-                      {t.nav.signOut}
-                    </button>
-                  </div>
-                  <div className="flex items-center gap-3 pt-1">
-                    <Link
-                      href="/my-bookings"
-                      onClick={() => setMobileMenuOpen(false)}
-                      className="text-xs font-semibold text-violet-300"
-                    >
-                      {language === "ar" ? "حجوزاتي" : "My bookings"}
-                    </Link>
-                    <span className="text-white/20">·</span>
-                    <Link
-                      href="/wishlist"
-                      onClick={() => setMobileMenuOpen(false)}
-                      className="text-xs font-semibold text-rose-300"
-                    >
-                      {language === "ar" ? "المفضلة" : "Wishlist"}
-                    </Link>
-                  </div>
-                </div>
-              ) : (
-                <button
-                  onClick={() => {
-                    setMobileMenuOpen(false);
-                    openAuthModal("signin");
-                  }}
-                  className="w-full py-2.5 rounded-xl border border-violet-400/40 bg-violet-600/20 text-xs font-bold uppercase tracking-wider text-violet-300"
-                >
-                  {t.nav.signIn}
-                </button>
-              )}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* Mobile Menu Drawer */}
+      <NavMobileMenu
+        isOpen={mobileMenuOpen}
+        isDarkTheme={isDarkTheme}
+        navMenuItems={navMenuItems}
+        language={language}
+        onNavClick={handleNavClick}
+        onClose={() => setMobileMenuOpen(false)}
+        toggleLanguage={toggleLanguage}
+        mounted={mounted}
+        user={user}
+        accountName={accountName}
+        contactEmail={contactEmail}
+        role={role}
+        signOut={signOut}
+        openAuthModal={openAuthModal}
+        t={t}
+      />
     </header>
   );
 }

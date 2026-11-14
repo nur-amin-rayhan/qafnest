@@ -1,0 +1,55 @@
+{
+  "baseCommissionPercent": 15,
+  "guestServiceFeePercent": 13,
+  "guestFeeMode": "percentage",
+  "guestFixedFeeAmountSar": 25,
+  "syncGuestServiceFee": false,
+  "vatRatePercent": 15,
+  "enableCategoryOverrides": false,
+  "categoryOverrides": [
+    {
+      "category": "chalet",
+      "labelEn": "Chalets & Resorts",
+      "labelAr": "شاليهات ومنتجعات",
+      "ratePercent": 13,
+      "isActive": true
+    },
+    {
+      "category": "villa",
+      "labelEn": "Private Luxury Villas",
+      "labelAr": "فلل خاصة فارهة",
+      "ratePercent": 10,
+      "isActive": true
+    },
+    {
+      "category": "camp",
+      "labelEn": "Desert Camps & Glamping",
+      "labelAr": "مخيمات صحراوية",
+      "ratePercent": 14,
+      "isActive": false
+    },
+    {
+      "category": "farm",
+      "labelEn": "Rural Farms & Agritourism",
+      "labelAr": "مزارع ريفية",
+      "ratePercent": 12,
+      "isActive": false
+    },
+    {
+      "category": "penthouse",
+      "labelEn": "Serviced Apartments",
+      "labelAr": "شقق مخدومة",
+      "ratePercent": 10,
+      "isActive": false
+    }
+  ],
+  "newHostIntroRatePercent": 6,
+  "introPeriodDays": 90,
+  "enableIntroRate": false,
+  "minCommissionAmountSar": 0,
+  "welcomeBonusAmountSar": 50,
+  "welcomeBonusEnabled": true,
+  "lastUpdatedBy": "admin@qafnest.com",
+  "lastUpdatedAt": "2026-11-14T18:05:43.388Z",
+  "notes": "E2E automated test rollback to original rate"
+}
