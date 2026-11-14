@@ -55,6 +55,8 @@ export const QAFNEST_SUPPORT_CONTACT = {
   telHref: "tel:+966576707709",
   whatsappHref: "https://wa.me/966576707709",
   supportEmail: "support@qafnest.com",
+  hqAddressEn: "5040 Abu Masaoud Al Badri, 8121، حي طيبة، Jeddah 23835, Saudi Arabia",
+  hqAddressAr: "5040 أبو مسعود البدري، 8121، حي طيبة، جدة 23835، المملكة العربية السعودية",
 } as const;
 
 // Re-export Design System & Taste Skill Specifications

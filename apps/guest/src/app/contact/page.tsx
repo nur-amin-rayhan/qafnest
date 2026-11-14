@@ -57,8 +57,8 @@ export default function ContactUsPage() {
   const hostsEmail = contactInfo?.hostsEmail?.trim() || "hosts@qafnest.com";
   const financeEmail = contactInfo?.financeEmail?.trim() || "finance@qafnest.com";
   const hqAddress = language === "ar"
-    ? contactInfo?.addressAr?.trim() || "شركة تقنيات قاف نست للضيافة ذ.م.م · طريق الملك فهد، حي الملقا، الرياض 13524، المملكة العربية السعودية"
-    : contactInfo?.addressEn?.trim() || "QafNest Hospitality Technologies LLC · King Fahd Road, Al Malqa District, Riyadh 13524, Kingdom of Saudi Arabia";
+    ? contactInfo?.addressAr?.trim() || QAFNEST_SUPPORT_CONTACT.hqAddressAr
+    : contactInfo?.addressEn?.trim() || QAFNEST_SUPPORT_CONTACT.hqAddressEn;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -119,7 +119,7 @@ export default function ContactUsPage() {
             <p className="mt-3 text-sm sm:text-base text-violet-100 leading-relaxed">
               {language === "ar"
                 ? cmsPage?.subtitleAr ||
-                  "فريق الدعم الفني وخدمة العملاء في الرياض جاهز لمساعدتك في أي استفسار حول حجزك، الدخول الذكي، تسجيل عقارك، أو متابعة المدفوعات والاسترداد."
+                  "فريق الدعم الفني وخدمة العملاء جاهز لمساعدتك في أي استفسار حول حجزك، الدخول الذكي، تسجيل عقارك، أو متابعة المدفوعات والاسترداد."
                 : cmsPage?.subtitleEn ||
                   "Need assistance with a reservation, smart lock access, host partnership, or refund tracking? Our Saudi support team is available 24/7 to help you."}
             </p>

@@ -1,5 +1,6 @@
 import fs from "fs";
 import path from "path";
+import { QAFNEST_SUPPORT_CONTACT } from "./index";
 import {
   CmsPageSection,
   CmsFaqItem,
@@ -199,13 +200,13 @@ export const DEFAULT_CMS_PAGES: Record<string, CmsPageRecord> = {
     subtitleAr: "تواصل مع فريق عمليات منصة قاف نست المركزية للحجوزات ودعم المضيفين والاستفسارات.",
     lastUpdated: "2026-11-12",
     contactInfo: {
-      phone: "0576707709",
-      whatsapp: "0576707709",
-      supportEmail: "support@qafnest.com",
+      phone: QAFNEST_SUPPORT_CONTACT.displayPhone,
+      whatsapp: QAFNEST_SUPPORT_CONTACT.displayPhone,
+      supportEmail: QAFNEST_SUPPORT_CONTACT.supportEmail,
       hostsEmail: "hosts@qafnest.com",
       financeEmail: "finance@qafnest.com",
-      addressEn: "King Fahd Road, Al Malqa District, Riyadh 13524, Kingdom of Saudi Arabia",
-      addressAr: "طريق الملك فهد، حي الملقا، الرياض 13524، المملكة العربية السعودية",
+      addressEn: QAFNEST_SUPPORT_CONTACT.hqAddressEn,
+      addressAr: QAFNEST_SUPPORT_CONTACT.hqAddressAr,
       licenseNumber: "Ministry of Tourism License #73102999",
     },
   },

@@ -5,6 +5,7 @@ import Link from "next/link";
 import Navbar from "@/components/common/Navbar";
 import Footer from "@/components/common/Footer";
 import { useApp } from "@/context/AppContext";
+import { QAFNEST_SUPPORT_CONTACT } from "@qafnest/shared";
 import { ShieldCheck } from "lucide-react";
 
 export default function PrivacyPolicyPage() {
@@ -282,8 +283,8 @@ export default function PrivacyPolicyPage() {
                 </p>
                 <div className="p-4 rounded-2xl bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 text-xs space-y-1">
                   <p><strong>{label("Data Protection Email:", "بريد مسؤول حماية البيانات:")}</strong> <a href="mailto:privacy@qafnest.com" className="text-emerald-600 underline">privacy@qafnest.com</a></p>
-                  <p><strong>{label("Support Helpline:", "هاتف خدمة العملاء:")}</strong> <span dir="ltr">0576707709</span></p>
-                  <p><strong>{label("Headquarters:", "المقر الرئيسي:")}</strong> {label("King Fahd Road, Al Malqa District, Riyadh 13524, Kingdom of Saudi Arabia", "طريق الملك فهد، حي الملقا، الرياض 13524، المملكة العربية السعودية")}</p>
+                  <p><strong>{label("Support Helpline:", "هاتف خدمة العملاء:")}</strong> <span dir="ltr">{QAFNEST_SUPPORT_CONTACT.displayPhone}</span></p>
+                  <p><strong>{label("Headquarters:", "المقر الرئيسي:")}</strong> {label(QAFNEST_SUPPORT_CONTACT.hqAddressEn, QAFNEST_SUPPORT_CONTACT.hqAddressAr)}</p>
                 </div>
               </div>
             </section>
