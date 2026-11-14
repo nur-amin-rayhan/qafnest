@@ -25,6 +25,13 @@
       "@/*": [
         "./src/*"
       ],
+      "@qafnest/shared": [
+        "../../packages/shared/index.ts"
+      ],
+      "@qafnest/shared/*": [
+        "../../packages/shared/*.ts",
+        "../../packages/shared/*"
+      ],
       "auth-providers.js": [
         "./src/components/providers/auth-providers.ts"
       ],

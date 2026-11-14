@@ -10,12 +10,14 @@ const nextConfig = {
   swcMinify: true,
   poweredByHeader: false,
   compress: true,
+  transpilePackages: ['@qafnest/shared'],
   experimental: {
     optimizePackageImports: ['lucide-react', '@supabase/supabase-js'],
   },
   webpack: (config) => {
     config.resolve.alias = {
       ...config.resolve.alias,
+      '@qafnest/shared': path.resolve(__dirname, '../../packages/shared'),
       'auth-providers.js': path.resolve(__dirname, 'src/components/providers/auth-providers.ts'),
       'auth-providers': path.resolve(__dirname, 'src/components/providers/auth-providers.ts'),
       '@/components/providers/auth-providers.js': path.resolve(__dirname, 'src/components/providers/auth-providers.ts'),
