@@ -29,9 +29,16 @@ Before importing projects into Vercel, verify your production credentials exist:
 
 ## Step 2: Import All 4 Projects in Vercel
 
-Repeat this import flow **4 times** in **Vercel Dashboard -> Add New... -> Project** selecting `nur-amin-rayhan/qafnest` from GitHub (`main` branch):
+> [!WARNING]
+> **Do NOT use `Root Directory: ./` with `Application Preset: Services`!**
+> When importing `nur-amin-rayhan/qafnest` at repo root `./`, Vercel defaults to multi-service **Services** mode (asking for a `vercel.json`, showing `cms`/`guest`/`host` as `Internal` or auto-mapping `/admin`). QafNest uses **4 separate subdomains**, NOT path mounts. If you see the **Services** list:
+> 1. Click **`Refresh`** at the bottom right if you just pulled recent commits (root `package.json` no longer lists `next`, so no bogus root `app` is detected).
+> 2. Click **`Import single project ->`** next to each of the 4 apps (`apps/guest`, `apps/host`, `apps/cms`, `apps/admin`) **one by one** instead of importing `./` as a single multi-service project.
+> *(Note: This monorepo uses **npm workspaces** in `package.json`, not Turborepo/`turbo.json`, which is why Vercel does not display a Turborepo preset — each app builds cleanly as a standard Next.js project when imported via **`Import single project ->`** or **Edit -> Root Directory**.)*
 
-1. Click **Edit** next to **Root Directory** and pick the exact folder for that project:
+Repeat this single-project import flow **4 times** in **Vercel Dashboard -> Add New... -> Project** selecting `nur-amin-rayhan/qafnest` from GitHub (`main` branch):
+
+1. Click **`Import single project ->`** next to each app under `apps/` (or click **Edit** next to **Root Directory** and pick the exact folder):
    - Project 1 (`qafnest-guest`): `apps/guest`
    - Project 2 (`qafnest-host`): `apps/host`
    - Project 3 (`qafnest-cms`): `apps/cms`
