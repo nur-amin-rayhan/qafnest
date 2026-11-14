@@ -120,7 +120,7 @@ export function PropertyCardItem({ prop, t, onDelete }: PropertyCardItemProps) {
           {/* Direct Links */}
           <div className="flex items-center gap-2">
             <a
-              href={`${ECOSYSTEM_URLS.guest}/property/${prop.id}`}
+              href={`${ECOSYSTEM_URLS.guest}/${t("en", "ar")}/property/${prop.id}`}
               target="_blank"
               rel="noreferrer"
               className="p-2 rounded-xl border border-slate-200 text-slate-600 hover:text-[#4F2396] hover:bg-violet-50 transition cursor-pointer"
@@ -150,7 +150,7 @@ export function PropertyCardItem({ prop, t, onDelete }: PropertyCardItemProps) {
             )}
 
             <Link
-              href={`/properties/new?edit=${prop.id}`}
+              href={`/${t("en", "ar")}/properties/new?edit=${prop.id}`}
               className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-black transition-all shadow-xs ${
                 isRejected
                   ? "bg-[#4F2396] text-white hover:bg-[#3D1A78] ring-2 ring-violet-300"

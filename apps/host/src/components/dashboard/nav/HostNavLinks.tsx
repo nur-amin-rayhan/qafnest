@@ -111,7 +111,7 @@ export function HostNavLinks({
 
       {/* 5. المبيعات والتحليلات / ANALYTICS */}
       <Link
-        href="/app/analytics"
+        href={`/${lang}/app/analytics`}
         onClick={(e) => {
           e.preventDefault();
           setActive("analytics");
@@ -128,7 +128,7 @@ export function HostNavLinks({
 
       {/* 6. التقييمات / REVIEWS */}
       <Link
-        href="/app/reviews"
+        href={`/${lang}/app/reviews`}
         onClick={(e) => {
           e.preventDefault();
           setActive("reviews");
@@ -145,7 +145,7 @@ export function HostNavLinks({
 
       {/* 7. الحوالات المالية / FINANCIALS */}
       <Link
-        href="/app/finance"
+        href={`/${lang}/app/finance`}
         onClick={(e) => {
           e.preventDefault();
           setActive("finance");

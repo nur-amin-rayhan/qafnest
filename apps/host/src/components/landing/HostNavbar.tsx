@@ -40,7 +40,7 @@ export function HostNavbar({
   openHostAuthModal,
   t,
 }: HostNavbarProps) {
-  const homeHref = mounted && user ? "/app" : "/";
+  const homeHref = mounted && user ? `/${lang}/app` : `/${lang}`;
 
   return (
     <header className="fixed inset-x-0 top-0 z-50 border-b border-violet-100 bg-white/95 text-slate-900 shadow-xs backdrop-blur-xl transition-all duration-300">
@@ -66,7 +66,7 @@ export function HostNavbar({
               {t("Hosts", "المضيفين")}
             </Link>
             <a
-              href={ECOSYSTEM_URLS.guest}
+              href={`${ECOSYSTEM_URLS.guest}/${lang}`}
               target="_blank"
               rel="noreferrer"
               className="text-slate-600 hover:text-[#4F2396] transition"
@@ -90,7 +90,7 @@ export function HostNavbar({
           {mounted && user ? (
             <div className="flex items-center gap-2.5">
               <Link
-                href="/app"
+                href={`/${lang}/app`}
                 className="inline-flex items-center gap-2 rounded-full border border-violet-200 bg-violet-50/80 px-4 py-2 text-xs sm:text-sm font-extrabold text-[#4F2396] hover:bg-violet-100 transition"
               >
                 <Building2 size={15} className="text-[#4F2396]" />
@@ -104,7 +104,7 @@ export function HostNavbar({
               </Link>
 
               <Link
-                href="/properties/new?mode=new"
+                href={`/${lang}/properties/new?mode=new`}
                 className="inline-flex items-center gap-1.5 rounded-full bg-[#FF9750] hover:bg-[#f58438] px-4 py-2 text-xs sm:text-sm font-black text-[#2d1259] shadow-sm transition active:scale-[0.98]"
               >
                 <Plus size={15} />
@@ -125,7 +125,7 @@ export function HostNavbar({
             <>
               {/* Option 3: Host Login */}
               <Link
-                href={lang === "en" ? "/login?lang=en" : "/login?lang=ar"}
+                href={`/${lang}/login`}
                 className="inline-flex items-center gap-2 rounded-full border border-violet-300 px-5 py-2.5 text-xs sm:text-sm font-extrabold text-[#4F2396] hover:bg-violet-50 transition cursor-pointer"
               >
                 <LogIn size={15} />
@@ -135,7 +135,7 @@ export function HostNavbar({
               {/* Option 4: Register Property (Primary CTA) */}
               <button
                 type="button"
-                onClick={() => openHostAuthModal("signup", "/properties/new?mode=new")}
+                onClick={() => openHostAuthModal("signup", `/${lang}/properties/new?mode=new`)}
                 className="inline-flex items-center gap-2 rounded-full bg-[#FF9750] hover:bg-[#f58438] px-6 py-2.5 text-xs sm:text-sm font-black text-[#2d1259] shadow-lg shadow-black/15 transition active:scale-[0.98] cursor-pointer"
               >
                 <Plus size={16} />
@@ -167,7 +167,7 @@ export function HostNavbar({
             {t("Hosts", "المضيفين")}
           </Link>
           <a
-            href="http://localhost:3000"
+            href={`${ECOSYSTEM_URLS.guest}/${lang}`}
             target="_blank"
             rel="noreferrer"
             onClick={() => setMobileMenu(false)}
@@ -179,14 +179,14 @@ export function HostNavbar({
             {mounted && user ? (
               <>
                 <Link
-                  href="/app"
+                  href={`/${lang}/app`}
                   onClick={() => setMobileMenu(false)}
                   className="w-full rounded-full bg-violet-100 py-3 text-center text-sm font-black text-[#4F2396]"
                 >
                   {t("Host Dashboard", "لوحة تحكم المضيف")}
                 </Link>
                 <Link
-                  href="/properties/new?mode=new"
+                  href={`/${lang}/properties/new?mode=new`}
                   onClick={() => setMobileMenu(false)}
                   className="w-full rounded-full bg-[#FF9750] py-3 text-center text-sm font-black text-[#2d1259]"
                 >
@@ -206,7 +206,7 @@ export function HostNavbar({
             ) : (
               <>
                 <Link
-                  href={lang === "en" ? "/login?lang=en" : "/login?lang=ar"}
+                  href={`/${lang}/login`}
                   onClick={() => setMobileMenu(false)}
                   className="w-full block rounded-full border border-violet-300 py-3 text-center text-sm font-extrabold text-[#4F2396] cursor-pointer"
                 >
@@ -216,7 +216,7 @@ export function HostNavbar({
                   type="button"
                   onClick={() => {
                     setMobileMenu(false);
-                    openHostAuthModal("signup", "/properties/new?mode=new");
+                    openHostAuthModal("signup", `/${lang}/properties/new?mode=new`);
                   }}
                   className="w-full rounded-full bg-[#FF9750] py-3 text-center text-sm font-black text-[#2d1259] cursor-pointer"
                 >

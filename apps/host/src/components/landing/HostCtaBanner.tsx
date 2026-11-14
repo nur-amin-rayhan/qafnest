@@ -34,7 +34,7 @@ export function HostCtaBanner({ t, lang }: HostCtaBannerProps) {
 
             <div className="mt-8 flex flex-wrap gap-3">
               <Link
-                href="/app"
+                href={`/${lang}/app`}
                 className="inline-flex items-center gap-3 rounded-2xl bg-black/80 hover:bg-black px-5 py-3.5 text-left text-white border border-white/15 transition"
               >
                 <Smartphone size={22} className="text-[#FF9750]" />
@@ -46,7 +46,7 @@ export function HostCtaBanner({ t, lang }: HostCtaBannerProps) {
                 </div>
               </Link>
               <Link
-                href="/app"
+                href={`/${lang}/app`}
                 className="inline-flex items-center gap-3 rounded-2xl bg-black/80 hover:bg-black px-5 py-3.5 text-left text-white border border-white/15 transition"
               >
                 <Smartphone size={22} className="text-emerald-400" />
@@ -58,7 +58,7 @@ export function HostCtaBanner({ t, lang }: HostCtaBannerProps) {
                 </div>
               </Link>
               <Link
-                href="/app"
+                href={`/${lang}/app`}
                 className="inline-flex items-center gap-2 rounded-2xl bg-[#FF9750] px-6 py-3.5 text-sm font-black text-[#2d1259] hover:bg-white transition"
               >
                 <span>{t("Open Web Dashboard Now", "الدخول للوحة التحكم الآن")}</span>

@@ -46,7 +46,7 @@ export function OverviewPropertiesGrid({
 
         <div className="flex items-center gap-2.5">
           <Link
-            href="/properties/new?mode=new"
+            href={`/${lang}/properties/new?mode=new`}
             className="inline-flex items-center gap-1.5 rounded-xl bg-[#4F2396] hover:bg-[#3D1A78] text-white px-4 py-2 text-xs font-black shadow-xs transition cursor-pointer"
           >
             <Plus size={14} className="stroke-[3]" />
@@ -136,7 +136,7 @@ export function OverviewPropertiesGrid({
                     </button>
                   )}
                   <Link
-                    href={`/properties/new?edit=${prop.id}`}
+                    href={`/${lang}/properties/new?edit=${prop.id}`}
                     className={`text-xs font-black px-3 py-1.5 rounded-lg transition-colors ${
                       isRejected
                         ? "bg-[#4F2396] text-white hover:bg-[#3D1A78]"

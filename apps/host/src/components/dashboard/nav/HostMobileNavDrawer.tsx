@@ -9,6 +9,7 @@ interface HostMobileNavDrawerProps {
   active: Module;
   setActive: (module: Module) => void;
   onClose: () => void;
+  lang: "ar" | "en";
   t: (en: string, ar: string) => string;
 }
 
@@ -17,6 +18,7 @@ export function HostMobileNavDrawer({
   active,
   setActive,
   onClose,
+  lang,
   t,
 }: HostMobileNavDrawerProps) {
   if (!isOpen) return null;
@@ -37,7 +39,7 @@ export function HostMobileNavDrawer({
         ].map((item) => (
           <Link
             key={item.key}
-            href={`/app/${item.key === "overview" ? "overview" : item.key}`}
+            href={`/${lang}/app/${item.key === "overview" ? "overview" : item.key}`}
             onClick={(e) => {
               e.preventDefault();
               setActive(item.key as Module);

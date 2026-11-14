@@ -118,7 +118,7 @@ export default function HostPropertiesHub({
           )}
 
           <Link
-            href="/properties/new?mode=new"
+            href={`/${lang}/properties/new?mode=new`}
             className="inline-flex items-center gap-2 rounded-2xl bg-[#FF9750] px-5 py-3 text-xs sm:text-sm font-black text-slate-950 shadow-md hover:bg-[#ff8a38] transition-all transform active:scale-95 cursor-pointer"
           >
             <Plus size={16} className="stroke-[3]" />
@@ -199,7 +199,7 @@ export default function HostPropertiesHub({
             </p>
           </div>
           <Link
-            href="/properties/new?mode=new"
+            href={`/${lang}/properties/new?mode=new`}
             className="inline-flex items-center gap-2 rounded-2xl bg-[#4F2396] px-5 py-2.5 text-xs font-black text-white hover:bg-[#3D1A78] transition shadow-xs"
           >
             <Plus size={15} className="stroke-[3]" />

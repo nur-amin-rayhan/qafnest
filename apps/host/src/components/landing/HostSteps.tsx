@@ -72,7 +72,7 @@ export function HostSteps({ t, lang }: HostStepsProps) {
             </div>
             <div className="mt-5 border-t border-violet-200/60 pt-3">
               <Link
-                href="/properties/new?mode=new"
+                href={`/${lang}/properties/new?mode=new`}
                 className="inline-flex items-center gap-1.5 text-xs font-extrabold text-[#4F2396] hover:text-[#FF9750]"
               >
                 <span>{t("Start now", "ابدأ الآن")}</span>

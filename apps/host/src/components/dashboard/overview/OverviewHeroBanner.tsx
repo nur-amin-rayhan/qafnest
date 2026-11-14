@@ -55,7 +55,7 @@ export function OverviewHeroBanner({
         {/* Quick Actions Cluster */}
         <div className="flex flex-wrap items-center gap-3">
           <Link
-            href="/properties/new?mode=new"
+            href={`/${lang}/properties/new?mode=new`}
             className="inline-flex items-center gap-2 rounded-2xl bg-[#FF9750] px-5 py-3 text-xs sm:text-sm font-black text-slate-950 shadow-md hover:bg-[#ff8a38] transition-all transform active:scale-95 cursor-pointer"
           >
             <Plus size={16} className="stroke-[3]" />

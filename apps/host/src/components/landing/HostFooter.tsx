@@ -121,17 +121,23 @@ export function HostFooter({ t }: HostFooterProps) {
             <div className="grid grid-cols-2 gap-6 border-t border-gray-100 pt-6 lg:contents lg:border-t-0 lg:pt-0">
               <ul className="space-y-3 text-[13.5px] font-medium text-[#2c2c2c]">
                 <li>
-                  <Link href="/app" className="transition hover:text-[#4F2396]">
+                  <Link href={`/${t("en", "ar")}/app`} className="transition hover:text-[#4F2396]">
                     {t("Host Dashboard", "لوحة تحكم المضيف")}
                   </Link>
                 </li>
                 <li>
-                  <Link href="/properties/new?mode=new" className="transition hover:text-[#4F2396]">
+                  <Link
+                    href={`/${t("en", "ar")}/properties/new?mode=new`}
+                    className="transition hover:text-[#4F2396]"
+                  >
                     {t("Register New Property", "تسجيل عقار جديد")}
                   </Link>
                 </li>
                 <li>
-                  <Link href="/properties/new?mode=resume" className="transition hover:text-[#4F2396]">
+                  <Link
+                    href={`/${t("en", "ar")}/properties/new?mode=resume`}
+                    className="transition hover:text-[#4F2396]"
+                  >
                     {t("Resume Property Draft", "استكمال آخر عقار")}
                   </Link>
                 </li>
@@ -155,7 +161,7 @@ export function HostFooter({ t }: HostFooterProps) {
                 </li>
                 <li>
                   <a
-                    href={`${ECOSYSTEM_URLS.guest}/en/account?tab=terms`}
+                    href={`${ECOSYSTEM_URLS.guest}/${t("en", "ar")}/account?tab=terms`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="transition hover:text-[#4F2396]"
@@ -165,7 +171,7 @@ export function HostFooter({ t }: HostFooterProps) {
                 </li>
                 <li>
                   <a
-                    href={`${ECOSYSTEM_URLS.guest}/en/#faq`}
+                    href={`${ECOSYSTEM_URLS.guest}/${t("en", "ar")}/#faq`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="transition hover:text-[#4F2396]"
@@ -175,7 +181,7 @@ export function HostFooter({ t }: HostFooterProps) {
                 </li>
                 <li>
                   <a
-                    href={ECOSYSTEM_URLS.guest}
+                    href={`${ECOSYSTEM_URLS.guest}/${t("en", "ar")}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="transition hover:text-[#4F2396]"

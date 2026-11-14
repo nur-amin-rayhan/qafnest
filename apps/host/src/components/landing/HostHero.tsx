@@ -48,10 +48,12 @@ export function HostHero({ t, user, router, openHostAuthModal }: HostHeroProps) 
             <button
               type="button"
               onClick={() => {
+                const activeLang = t("en", "ar");
+                const targetUrl = `/${activeLang}/properties/new?mode=new`;
                 if (user) {
-                  router.push("/properties/new?mode=new");
+                  router.push(targetUrl);
                 } else {
-                  openHostAuthModal("signup", "/properties/new?mode=new");
+                  openHostAuthModal("signup", targetUrl);
                 }
               }}
               className="inline-flex items-center justify-center gap-2 rounded-full bg-[#FF9750] hover:bg-[#f58438] px-10 py-4 text-base font-black text-[#2d1259] shadow-xl shadow-amber-500/20 transition active:scale-[0.98] cursor-pointer"

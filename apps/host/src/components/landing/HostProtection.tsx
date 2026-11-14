@@ -44,7 +44,7 @@ export function HostProtection({ t }: HostProtectionProps) {
 
           <div className="pt-3">
             <Link
-              href="/app"
+              href={`/${t("en", "ar")}/app`}
               className="inline-flex h-[46px] min-w-[190px] items-center justify-center rounded-full bg-[#F69554] px-7 text-sm font-black text-[#4F2396] transition hover:bg-white"
             >
               {t("Learn More in Host Portal", "اعرف المزيد")}

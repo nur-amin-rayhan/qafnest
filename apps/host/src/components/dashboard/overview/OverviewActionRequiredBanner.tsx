@@ -54,7 +54,7 @@ export function OverviewActionRequiredBanner({
 
         <div className="flex items-center gap-2.5 shrink-0">
           <Link
-            href={`/properties/new?edit=${propertiesNeedingAction[0]?.id}`}
+            href={`/${lang}/properties/new?edit=${propertiesNeedingAction[0]?.id}`}
             className="inline-flex items-center gap-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white px-4 py-2.5 text-xs sm:text-sm font-black transition shadow-xs"
           >
             <span>{t("Review Feedback & Edit", "الاطلاع على الملاحظات والتعديل")}</span>

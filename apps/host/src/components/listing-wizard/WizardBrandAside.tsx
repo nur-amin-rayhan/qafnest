@@ -59,7 +59,7 @@ export function WizardBrandAside({
       {/* Top Bar inside Brand Panel: Exit & Language Toggle */}
       <div className="absolute top-5 inset-x-6 z-20 flex items-center justify-between">
         <Link
-          href="/app"
+          href={`/${lang}/app`}
           className="inline-flex items-center gap-1.5 rounded-xl bg-white/15 hover:bg-white/25 px-3 py-1.5 text-xs font-extrabold text-white backdrop-blur-sm transition"
         >
           <X size={14} />
