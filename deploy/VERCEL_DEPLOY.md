@@ -71,7 +71,7 @@ NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=<your-anon-or-publishable-key>
 - `NEXT_PUBLIC_SITE_URL=https://qafnest.com`
 - `SUPABASE_SERVICE_ROLE_KEY`
 - Public Firebase config (`NEXT_PUBLIC_FIREBASE_*`) & Google Maps key (`NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`)
-- MyFatoorah keys (`MYFATOORAH_API_KEY`, `MYFATOORAH_API_BASE_URL`, webhook secret)
+- MyFatoorah keys (`MYFATOORAH_API_KEY`, `MYFATOORAH_BASE_URL`, `MYFATOORAH_IS_TEST`, `MYFATOORAH_WEBHOOK_SECRET`)
 - `GMAIL_USER=qafnest@gmail.com`
 - `GMAIL_APP_PASSWORD=<16-char-app-password>`
 - `CONTACT_FROM_EMAIL=qafnest@gmail.com`
