@@ -13,6 +13,16 @@ const nextConfig = {
   transpilePackages: ['@qafnest/shared'],
   experimental: {
     optimizePackageImports: ['lucide-react', '@supabase/supabase-js'],
+    outputFileTracingExcludes: {
+      '**': [
+        '**/.next/cache/**',
+        '**/.git/**',
+        '../../apps/host/**',
+        '../../apps/admin/**',
+        '../../apps/cms/**',
+        '../../.qafnest-*.json',
+      ],
+    },
   },
   webpack: (config) => {
     config.resolve.alias = {

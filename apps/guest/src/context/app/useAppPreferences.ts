@@ -69,10 +69,10 @@ export function useAppPreferences(initialLang: Language = "en") {
         searchParams.delete("lang");
         const nextSearch = searchParams.toString();
         const search = nextSearch ? `?${nextSearch}` : "";
-        if (targetPath !== currentPath) {
-          window.location.href = targetPath + search;
-        } else {
-          window.history.replaceState({}, "", targetPath + search);
+        const nextUrl = targetPath + search;
+        if (nextUrl !== window.location.pathname + window.location.search) {
+          // Keep language switching client-side so EN <-> AR updates URL, RTL, and copy without a reload flash
+          window.history.replaceState(null, "", nextUrl);
         }
       }
     } catch {}

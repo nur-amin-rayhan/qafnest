@@ -29,18 +29,25 @@ export function isUnwritableFsError(err: unknown): boolean {
   return Boolean(code && READ_ONLY_FS_CODES.has(code));
 }
 
-/** Resolves the monorepo root containing packages/shared, falling back to process.cwd(). */
+/** Reads cwd dynamically so @vercel/nft does not expand process.cwd() across the entire monorepo. */
+function getRuntimeCwd(): string {
+  const proc = (globalThis as { process?: { cwd?: () => string } }).process;
+  return typeof proc?.cwd === "function" ? proc.cwd() : "";
+}
+
+/** Resolves the monorepo root containing packages/shared, falling back to current working directory. */
 export function findMonorepoRoot(): string {
-  let curr = process.cwd();
+  const cwd = getRuntimeCwd();
+  let curr = cwd;
   for (let i = 0; i < 6; i++) {
-    if (fs.existsSync(path.join(curr, "packages", "shared"))) {
+    if (curr && fs.existsSync(path.join(curr, "packages", "shared"))) {
       return curr;
     }
     const parent = path.dirname(curr);
     if (parent === curr) break;
     curr = parent;
   }
-  return process.cwd();
+  return cwd;
 }
 
 export function getTmpDataDir(): string {
@@ -48,6 +55,10 @@ export function getTmpDataDir(): string {
 }
 
 export function getBundledSharedDataDir(): string {
+  const localDataDir = path.resolve(__dirname, "data");
+  if (fs.existsSync(path.join(localDataDir, "platform-fee-config.json"))) {
+    return localDataDir;
+  }
   return path.join(findMonorepoRoot(), "packages", "shared", "data");
 }
 
@@ -59,12 +70,20 @@ export function getWritableLockDir(): string {
   return path.join(getWritableSharedDataDir(), ".locks");
 }
 
+/** Avoids static path.join(root, fileName) wildcards that make @vercel/nft trace the entire monorepo. */
+function joinRuntimeFile(dir: string, fileName: string): string {
+  const cleanDir = dir.endsWith(path.sep) ? dir.slice(0, -1) : dir;
+  return [cleanDir, path.basename(fileName)].join(path.sep);
+}
+
 function getRepoRootCandidates(fileName: string): string[] {
+  const cwd = getRuntimeCwd();
   const root = findMonorepoRoot();
+  const grandparent = path.dirname(path.dirname(cwd));
   const candidates = [
-    path.join(root, fileName),
-    path.resolve(process.cwd(), fileName),
-    path.resolve(process.cwd(), "..", "..", fileName),
+    joinRuntimeFile(root, fileName),
+    joinRuntimeFile(cwd, fileName),
+    joinRuntimeFile(grandparent, fileName),
   ];
   return Array.from(new Set(candidates));
 }
@@ -163,6 +182,9 @@ export function readRootJsonFile<T>(
   normalize?: (parsed: unknown) => T
 ): T {
   const tmpFile = path.join(getTmpDataDir(), fileName);
+  if (isReadOnlyServerlessEnv()) {
+    return readJsonFromCandidates([tmpFile], fallback, normalize);
+  }
   const candidates = Array.from(new Set([tmpFile, ...getRepoRootCandidates(fileName)]));
   return readJsonFromCandidates(candidates, fallback, normalize);
 }
@@ -171,7 +193,10 @@ export function readRootJsonFile<T>(
  * Atomically writes a root-level JSON file, falling back to /tmp/qafnest-data on read-only deployments.
  */
 export function writeRootJsonFile(fileName: string, data: unknown): boolean {
-  const primaryPath = path.join(findMonorepoRoot(), fileName);
   const tmpFallbackPath = path.join(getTmpDataDir(), fileName);
+  if (isReadOnlyServerlessEnv()) {
+    return writeJsonWithTmpFallback(tmpFallbackPath, tmpFallbackPath, data);
+  }
+  const primaryPath = joinRuntimeFile(findMonorepoRoot(), fileName);
   return writeJsonWithTmpFallback(primaryPath, tmpFallbackPath, data);
 }
