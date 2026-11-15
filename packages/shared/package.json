@@ -32,6 +32,9 @@
     "./blogStore": "./blogStore.ts",
     "./saudiCities": "./saudiCities.ts",
     "./propertyBilingual": "./propertyBilingual.ts",
+    "./propertyDeletionConfig": "./propertyDeletionConfig.ts",
+    "./propertyDeletionStore": "./propertyDeletionStore.ts",
+    "./unitCode": "./unitCode.ts",
     "./locationShare": "./locationShare.ts",
     "./serverJsonStore": "./serverJsonStore.ts"
   },

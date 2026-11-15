@@ -81,10 +81,10 @@ export async function POST(request: NextRequest) {
           { status: 400 }
         );
       }
-      const remittance = createPayoutRequest(authUser.id, amount);
+      const remittance = await createPayoutRequest(authUser.id, amount);
       return NextResponse.json({
         success: true,
-        message: "Payout transfer request submitted. Disbursing to your verified IBAN.",
+        message: "Post-checkout payout request sent to Admin for approval & Finance settlement.",
         remittance,
       });
     }
@@ -104,9 +104,15 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ code: "unknown_action" }, { status: 400 });
   } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : "Error processing request";
+    const isValidation =
+      msg.includes("escrow") ||
+      msg.includes("unlocked") ||
+      msg.includes("exceeds") ||
+      msg.includes("IBAN");
     return NextResponse.json(
-      { code: "server_error", message: err instanceof Error ? err.message : "Error processing request" },
-      { status: 500 }
+      { code: isValidation ? "payout_blocked" : "server_error", message: msg },
+      { status: isValidation ? 400 : 500 }
     );
   }
 }

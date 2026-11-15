@@ -181,11 +181,6 @@ export default function AuthModal() {
             setEmail={setEmail}
             password={password}
             setPassword={setPassword}
-            onDevGuestFill={() => {
-              setEmail("guest.dev@qafnest.com");
-              setPassword("QafNest@Dev2026!");
-              setIsEmailSignIn(true);
-            }}
             onSwitchToPhone={() => setAuthMethod("phone")}
             errorMsg={errorMsg}
             successMsg={successMsg}

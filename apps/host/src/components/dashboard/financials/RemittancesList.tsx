@@ -1,8 +1,9 @@
 "use client";
 
 import React, { useState } from "react";
-import { CheckCircle2, Clock, Copy, Search, Eye } from "lucide-react";
+import { CheckCircle2, Clock, Copy, Search, Eye, Download } from "lucide-react";
 import type { HostRemittance } from "@/lib/services/hostFinancialsService";
+import { downloadHostRemittanceVoucher } from "@/lib/services/downloadHostVoucher";
 import { RemittanceDetailsModal } from "./RemittanceDetailsModal";
 
 export type { HostRemittance as RemittanceItem };
@@ -126,8 +127,22 @@ export function RemittancesList({ remittances, lang, t }: RemittancesListProps) 
                     </span>
                   </div>
 
-                  <div className="hidden sm:grid h-8 w-8 place-items-center rounded-xl bg-slate-100 text-slate-500 hover:text-slate-900">
-                    <Eye size={15} />
+                  <div className="hidden sm:flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        downloadHostRemittanceVoucher(rem);
+                      }}
+                      title={t("Download Voucher", "تحميل السند")}
+                      aria-label={t("Download Voucher", "تحميل السند")}
+                      className="grid h-8 w-8 place-items-center rounded-xl bg-indigo-50 text-indigo-700 hover:bg-indigo-100 transition-colors cursor-pointer"
+                    >
+                      <Download size={14} />
+                    </button>
+                    <div className="grid h-8 w-8 place-items-center rounded-xl bg-slate-100 text-slate-500 hover:text-slate-900">
+                      <Eye size={15} />
+                    </div>
                   </div>
                 </div>
               </div>

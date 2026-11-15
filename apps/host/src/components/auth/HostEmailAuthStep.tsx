@@ -12,7 +12,6 @@ interface HostEmailAuthStepProps {
   setEmail: (val: string) => void;
   password: string;
   setPassword: (val: string) => void;
-  onDevHostFill: () => void;
   loading: boolean;
   onSubmit: (e: React.FormEvent) => void;
   t: (en: string, ar: string) => string;
@@ -27,7 +26,6 @@ export default function HostEmailAuthStep({
   setEmail,
   password,
   setPassword,
-  onDevHostFill,
   loading,
   onSubmit,
   t,
@@ -79,15 +77,6 @@ export default function HostEmailAuthStep({
           className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-900 outline-none focus:border-[#4F2396] focus:bg-white"
         />
       </div>
-
-      {/* Dev Host Auto-Fill Button */}
-      <button
-        type="button"
-        onClick={onDevHostFill}
-        className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl border border-violet-200 bg-violet-50 hover:bg-violet-100 text-xs font-bold text-violet-800 transition cursor-pointer"
-      >
-        <span>⚡ {t("Quick Dev Host Fill (host.dev@qafnest.com)", "تسجيل دخول سريع بمضيف التطوير (Dev Host)")}</span>
-      </button>
 
       <button
         type="submit"

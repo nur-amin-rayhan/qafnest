@@ -3,9 +3,9 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { Check, KeyRound, Copy } from "lucide-react";
+import { Check, KeyRound, Copy, ExternalLink } from "lucide-react";
+import { resolvePropertyGoogleMapsUrl } from "@qafnest/shared";
 import type { ConfirmedBooking } from "./types";
-import GuestLocationShareBar from "@/components/bookings/GuestLocationShareBar";
 import { getLocalizedPropertyTitle } from "@/lib/localization/localeHelper";
 
 interface ReservationConfirmedModalProps {
@@ -22,6 +22,27 @@ export default function ReservationConfirmedModal({
   if (!confirmedBooking) return null;
 
   const activeLocale = label("en", "ar") === "en" ? "en" : "ar";
+  const localizedPropertyTitle = getLocalizedPropertyTitle(confirmedBooking.property, activeLocale);
+  const propAny = confirmedBooking.property as Record<string, any> | undefined;
+  const mapsUrl = confirmedBooking.property
+    ? resolvePropertyGoogleMapsUrl({
+        title: confirmedBooking.property.title,
+        titleAr: propAny?.titleAr ?? propAny?.title_ar ?? null,
+        city: propAny?.city_name ?? propAny?.city ?? null,
+        state: propAny?.state ?? null,
+        stateAr: propAny?.stateAr ?? propAny?.state_ar ?? null,
+        district: propAny?.district ?? null,
+        districtAr: propAny?.districtAr ?? propAny?.district_ar ?? null,
+        street: propAny?.street ?? null,
+        streetAr: propAny?.streetAr ?? propAny?.street_ar ?? null,
+        address: propAny?.address ?? null,
+        addressAr: propAny?.addressAr ?? propAny?.address_ar ?? null,
+        postalCode: propAny?.postalCode ?? propAny?.postal_code ?? null,
+        lat: propAny?.lat ?? null,
+        lng: propAny?.lng ?? null,
+        googleMapsUrl: propAny?.googleMapsUrl ?? propAny?.google_maps_url ?? null,
+      })
+    : null;
 
   return (
     <motion.div
@@ -40,92 +61,73 @@ export default function ReservationConfirmedModal({
           <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-emerald-100 text-emerald-700 shadow-sm dark:bg-emerald-400/10 dark:text-emerald-300">
             <Check className="h-7 w-7" />
           </span>
-          <span className="mt-4 inline-block text-[10px] font-bold uppercase tracking-widest text-emerald-600 dark:text-emerald-300">
-            {label("Booking Confirmed · Verified", "تم تأكيد الحجز · مؤكد")}
+          <span className="mt-4 inline-block text-[11px] font-bold uppercase tracking-widest text-emerald-600 dark:text-emerald-300">
+            {label("Booking Confirmed", "تم تأكيد الحجز")} · #{confirmedBooking.bookingRef}
           </span>
-          <h2 className="mt-1 font-display text-2xl font-extrabold text-gray-950 dark:text-white">
-            {label("Instant Reservation Confirmed!", "تم تأكيد حجزك الفوري بنجاح!")}
+          <h2 className="mt-1.5 font-display text-2xl font-extrabold text-gray-950 dark:text-white">
+            {localizedPropertyTitle}
           </h2>
-          <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-            {label(
-              `Reference: ${confirmedBooking.bookingRef} · ${getLocalizedPropertyTitle(confirmedBooking.property, "en")}`,
-              `رقم الحجز: ${confirmedBooking.bookingRef} · ${getLocalizedPropertyTitle(confirmedBooking.property, "ar")}`
-            )}
+          <p className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-violet-50 px-3.5 py-1 text-xs font-extrabold text-violet-700 dark:bg-violet-500/15 dark:text-violet-300">
+            <span>{label("Total Paid:", "المبلغ المدفوع:")}</span>
+            <span>{confirmedBooking.amount.toLocaleString()} {label("SAR", "ر.س")}</span>
           </p>
         </div>
 
-        {/* Smart lock PIN */}
-        {confirmedBooking.smartLockPin ? (
-          <div className="mt-6 rounded-2xl border border-emerald-200 bg-emerald-50/80 p-5 text-center dark:border-emerald-400/20 dark:bg-emerald-400/10">
-            <div className="flex items-center justify-center gap-1.5 text-xs font-bold text-emerald-800 dark:text-emerald-200">
-              <KeyRound className="h-4 w-4" />
-              <span>
-                {label("Self Check-in Smart Lock PIN", "رمز القفل الذكي للدخول الذاتي")}
-              </span>
+        {/* Smart Lock & Open Map */}
+        <div className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-emerald-200 bg-emerald-50/80 p-4 dark:border-emerald-400/20 dark:bg-emerald-400/10">
+          {confirmedBooking.smartLockPin ? (
+            <div className="space-y-1">
+              <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-800 dark:text-emerald-200">
+                <KeyRound className="h-4 w-4" />
+                <span>{label("Smart Lock PIN", "رمز القفل الذكي")}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="font-mono text-2xl font-black tracking-[0.2em] text-emerald-950 dark:text-white">
+                  {confirmedBooking.smartLockPin}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    void navigator.clipboard.writeText(confirmedBooking.smartLockPin!);
+                    setPinCopied(true);
+                    setTimeout(() => setPinCopied(false), 2000);
+                  }}
+                  className="rounded-lg bg-emerald-200/70 px-2.5 py-1.5 text-[11px] font-bold text-emerald-900 hover:bg-emerald-200 dark:bg-emerald-400/20 dark:text-emerald-200 inline-flex items-center gap-1 cursor-pointer transition"
+                  title={label("Copy PIN", "نسخ الرمز")}
+                >
+                  {pinCopied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+                  <span>{pinCopied ? label("Copied", "تم النسخ") : label("Copy", "نسخ")}</span>
+                </button>
+              </div>
             </div>
-            <div className="mt-2 flex items-center justify-center gap-3">
-              <span className="font-mono text-3xl font-black tracking-[0.25em] text-emerald-950 dark:text-white">
-                {confirmedBooking.smartLockPin}
-              </span>
-              <button
-                type="button"
-                onClick={() => {
-                  void navigator.clipboard.writeText(confirmedBooking.smartLockPin!);
-                  setPinCopied(true);
-                  setTimeout(() => setPinCopied(false), 2000);
-                }}
-                className="rounded-lg bg-emerald-200/60 p-2 text-emerald-800 hover:bg-emerald-200 dark:bg-emerald-400/20 dark:text-emerald-200 cursor-pointer"
-                title={label("Copy PIN", "نسخ الرمز")}
-              >
-                {pinCopied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-              </button>
+          ) : (
+            <div className="flex items-center gap-2 text-xs font-semibold text-emerald-800 dark:text-emerald-200">
+              <KeyRound className="h-4 w-4 shrink-0" />
+              <span>{label("Access code will be shared before check-in.", "سيصلك رمز الدخول قبل تسجيل الوصول.")}</span>
             </div>
-            <p className="mt-2 text-[11px] text-emerald-700/80 dark:text-emerald-300/80">
-              {label(
-                "Enter this code on the door lock keypad upon arrival.",
-                "أدخل هذا الرمز في لوحة القفل الذكي عند وصولك للعقار."
-              )}
-            </p>
-          </div>
-        ) : (
-          <p className="mt-6 rounded-2xl border border-gray-200 bg-gray-50 p-4 text-center text-sm text-gray-600 dark:border-white/10 dark:bg-white/5 dark:text-gray-300">
-            {label(
-              "Your host will share access details before check-in.",
-              "سيشاركك المضيف تفاصيل الدخول قبل تسجيل الوصول."
-            )}
-          </p>
-        )}
+          )}
 
-        {/* Property Location & Directions Sharing */}
-        <GuestLocationShareBar
-          property={confirmedBooking.property}
-          bookingRef={confirmedBooking.bookingRef}
-          language={activeLocale}
-          label={label}
-          variant="card"
-        />
+          {mapsUrl && (
+            <a
+              href={mapsUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 rounded-xl border border-violet-200 bg-white px-3.5 py-2 text-xs font-bold text-violet-700 shadow-xs hover:bg-violet-50 dark:border-violet-500/30 dark:bg-white/10 dark:text-violet-200 transition shrink-0"
+            >
+              <ExternalLink className="h-3.5 w-3.5" />
+              <span>{label("Open Map", "فتح الخريطة")}</span>
+            </a>
+          )}
+        </div>
 
-        {/* Booking Summary */}
-        <div className="mt-5 space-y-2 rounded-2xl border border-gray-100 bg-gray-50 p-4 text-xs dark:border-white/5 dark:bg-white/[0.02]">
-          <div className="flex justify-between text-gray-600 dark:text-gray-300">
-            <span>{label("Dates", "التواريخ")}</span>
-            <span className="font-semibold text-gray-900 dark:text-white">
-              {confirmedBooking.checkIn} → {confirmedBooking.checkOut} (
-              {confirmedBooking.nights} {label("nights", "ليالٍ")})
-            </span>
-          </div>
-          <div className="flex justify-between text-gray-600 dark:text-gray-300">
-            <span>{label("Guests", "الضيوف")}</span>
-            <span className="font-semibold text-gray-900 dark:text-white">
-              {confirmedBooking.guests} {label("guests", "ضيوف")}
-            </span>
-          </div>
-          <div className="flex justify-between border-t border-gray-200/60 pt-2 font-bold text-gray-900 dark:border-white/10 dark:text-white">
-            <span>{label("Total Paid", "المبلغ المدفوع")}</span>
-            <span className="text-violet-600 dark:text-violet-400">
-              {confirmedBooking.amount.toLocaleString()} SAR
-            </span>
-          </div>
+        {/* Compact Stay Summary */}
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-gray-100 bg-gray-50 px-4 py-3 text-xs dark:border-white/5 dark:bg-white/[0.02]">
+          <span className="font-semibold text-gray-700 dark:text-gray-200" dir="ltr">
+            {confirmedBooking.checkIn} → {confirmedBooking.checkOut} ({confirmedBooking.nights} {label("nights", "ليالٍ")})
+          </span>
+          <span className="font-bold text-violet-700 dark:text-violet-400">
+            {confirmedBooking.amount.toLocaleString()} {label("SAR", "ر.س")}
+          </span>
         </div>
 
         {/* Action Buttons */}

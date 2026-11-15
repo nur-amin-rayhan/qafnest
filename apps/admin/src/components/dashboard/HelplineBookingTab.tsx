@@ -7,13 +7,20 @@ import {
   TWELVE_HOUR_CHECKIN_TIME,
   ECOSYSTEM_URLS,
   addDaysToIsoDate,
+  getNumericUnitCode,
   getRiyadhNowInfo,
+  matchesPropertySearchQuery,
   type PropertyBookingSlotConfig,
   type TimeSlotBooking,
 } from "@qafnest/shared";
 import { useAdminAuth } from "@/context/AdminAuthContext";
 import { HelplineDateCalendar } from "./helpline/HelplineDateCalendar";
-import type { BookingItem, PropertyItem, SelectedBookingDetail } from "./types";
+import {
+  buildSelectedBookingDetail,
+  type BookingItem,
+  type PropertyItem,
+  type SelectedBookingDetail,
+} from "./types";
 
 import { adminPath } from "@/lib/adminUrl";
 interface HelplineBookingTabProps {
@@ -58,6 +65,7 @@ interface CreatedConfirmation {
   propertyTitle: string;
   guestName: string;
   guestPhone: string;
+  guestEmail?: string | null;
   checkIn: string;
   checkOut: string;
   guestTotalSar: number;
@@ -65,6 +73,7 @@ interface CreatedConfirmation {
   paymentMode: "pending_sadad" | "confirmed_paid";
   smartLockPin?: string | null;
   sadadBillNumber?: string | null;
+  autoCreatedGuest?: boolean;
 }
 
 export function HelplineBookingTab({
@@ -116,12 +125,16 @@ export function HelplineBookingTab({
       name: string;
       phone: string;
       email: string;
+      nationalId?: string;
+      city?: string;
+      verified?: boolean;
       isActive: boolean;
       isSuspended: boolean;
       status: string;
     }>
   >([]);
   const [searchingUsers, setSearchingUsers] = useState(false);
+  const [userSearchError, setUserSearchError] = useState<string | null>(null);
   const [selectedGuestId, setSelectedGuestId] = useState<string | null>(null);
 
   // Mandatory Identity & Phone OTP Verification Gate
@@ -162,7 +175,7 @@ export function HelplineBookingTab({
   }, [properties]);
 
   const filteredProperties = useMemo(() => {
-    const q = searchTerm.trim().toLowerCase();
+    const q = searchTerm.trim();
     return properties.filter((p) => {
       if (listingScope === "approved" && !(p.status === "approved" || p.is_approved)) {
         return false;
@@ -170,14 +183,7 @@ export function HelplineBookingTab({
       const pCity = p.city_name || p.city || "";
       if (cityFilter !== "all" && pCity !== cityFilter) return false;
       if (!q) return true;
-      return (
-        String(p.title || "").toLowerCase().includes(q) ||
-        String(pCity).toLowerCase().includes(q) ||
-        String(p.district || "").toLowerCase().includes(q) ||
-        String(p.host_name || "").toLowerCase().includes(q) ||
-        String(p.host_phone || "").toLowerCase().includes(q) ||
-        String(p.id).toLowerCase().includes(q)
-      );
+      return matchesPropertySearchQuery(p, q);
     });
   }, [properties, listingScope, cityFilter, searchTerm]);
 
@@ -292,18 +298,19 @@ export function HelplineBookingTab({
 
   const handleSearchUsers = async (query: string) => {
     setUserSearchTerm(query);
-    if (!query.trim()) {
-      setUserSearchResults([]);
-      return;
-    }
     setSearchingUsers(true);
+    setUserSearchError(null);
     try {
       const res = await fetch(adminPath(`/api/admin/helpline/verify?search=${encodeURIComponent(query.trim())}`));
       const data = await res.json();
-      if (res.ok && Array.isArray(data.users)) {
-        setUserSearchResults(data.users);
+      if (!res.ok) {
+        setUserSearchResults([]);
+        setUserSearchError(data.error || "Could not search registered guests.");
+        return;
       }
+      setUserSearchResults(Array.isArray(data.users) ? data.users : []);
     } catch {
+      setUserSearchError("Network error while searching registered guests.");
     } finally {
       setSearchingUsers(false);
     }
@@ -477,6 +484,7 @@ export function HelplineBookingTab({
         propertyTitle: b.property_title || selectedProperty?.title || "Property",
         guestName: b.guest_name || guestName,
         guestPhone: b.guest_phone || guestPhone,
+        guestEmail: b.guest_email || guestEmail.trim() || null,
         checkIn: b.check_in || checkIn,
         checkOut: b.check_out || checkOut,
         guestTotalSar: b.pricing?.guestTotalSar ?? Number(b.total_price || 0),
@@ -484,6 +492,7 @@ export function HelplineBookingTab({
         paymentMode,
         smartLockPin: b.smart_lock_pin || null,
         sadadBillNumber: b.sadadBillNumber || null,
+        autoCreatedGuest: Boolean(data.autoCreatedGuest),
       });
 
       triggerToast(data.message || `Booking #${b.booking_reference} created.`);
@@ -626,8 +635,8 @@ export function HelplineBookingTab({
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   placeholder={t(
-                    "Search listing title, city, district, host or phone...",
-                    "ابحث باسم العقار، المدينة، الحي، المضيف..."
+                    "Search Unit # (e.g. 201001), listing name, city, district, host or phone...",
+                    "ابحث برقم الوحدة (مثل 201001)، اسم العقار، المدينة، الحي، المضيف..."
                   )}
                   className="w-full h-10 ps-9 pe-3 rounded-xl border border-surface-container bg-surface-container-low text-sm text-on-surface placeholder:text-outline focus:outline-none focus:ring-2 focus:ring-primary/30 focus:bg-white"
                 />
@@ -727,10 +736,15 @@ export function HelplineBookingTab({
                           </span>
                         </div>
 
-                        <p className="text-xs text-on-surface-variant mt-0.5 truncate">
-                          {prop.city_name || prop.city || "Riyadh"}
-                          {prop.district ? ` · ${prop.district}` : ""}
-                        </p>
+                        <div className="flex items-center justify-between gap-2 text-xs text-on-surface-variant mt-0.5">
+                          <p className="truncate">
+                            {prop.city_name || prop.city || "Riyadh"}
+                            {prop.district ? ` · ${prop.district}` : ""}
+                          </p>
+                          <span className="shrink-0 font-mono text-[10px] font-black px-1.5 py-0.5 rounded bg-surface-container text-primary">
+                            #{getNumericUnitCode(prop.id)}
+                          </span>
+                        </div>
 
                         <div className="mt-2 flex flex-wrap items-center justify-between gap-2 text-xs">
                           <span className="font-black text-primary">
@@ -754,9 +768,14 @@ export function HelplineBookingTab({
             <div className="rounded-2xl border border-surface-container bg-surface-container-lowest p-4 sm:p-5 shadow-xs space-y-3">
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-primary">
-                    {t("Selected Listing Details", "تفاصيل العقار المختار")}
-                  </span>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-primary">
+                      {t("Selected Listing Details", "تفاصيل العقار المختار")}
+                    </span>
+                    <span className="font-mono text-[11px] font-black px-2 py-0.5 rounded-full bg-primary/10 text-primary">
+                      {t("Unit", "وحدة")} #{getNumericUnitCode(selectedProperty.id)}
+                    </span>
+                  </div>
                   <h3 className="text-base font-black text-on-surface mt-0.5">
                     {selectedProperty.title}
                   </h3>
@@ -860,6 +879,12 @@ export function HelplineBookingTab({
                     setGuestName("");
                     setGuestPhone("");
                     setGuestEmail("");
+                    setSelectedGuestId(null);
+                    setVerificationSession(null);
+                    setVerificationLink(null);
+                    setVerificationNotice(null);
+                    setOtpInput("");
+                    setNationalIdInput("");
                     setOverridePrice("");
                     setSadadBillNumber("");
                   }}
@@ -869,11 +894,36 @@ export function HelplineBookingTab({
                 </button>
               </div>
 
+              {confirmation.autoCreatedGuest && (
+                <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 flex items-start gap-2.5 text-xs text-emerald-900">
+                  <span className="material-symbols-outlined text-[18px] text-emerald-700 shrink-0">
+                    person_check
+                  </span>
+                  <div>
+                    <p className="font-black">
+                      {t(
+                        "New Verified Guest Account Automatically Created",
+                        "تم إنشاء حساب عميل موثق جديد تلقائياً"
+                      )}
+                    </p>
+                    <p className="mt-0.5 text-emerald-800">
+                      {t(
+                        "Whenever this caller logs in on the Guest Portal with their phone number, their saved profile and reservation history will restore automatically.",
+                        "عند تسجيل دخول العميل مستقبلاً برقم جواله في بوابة الضيوف، ستظهر بياناته وسجل حجوزاته تلقائياً."
+                      )}
+                    </p>
+                  </div>
+                </div>
+              )}
+
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm">
                 <div className="p-3 rounded-xl bg-surface-container-low">
                   <div className="text-xs text-outline">{t("Caller", "الضيف")}</div>
                   <div className="font-bold text-on-surface mt-0.5">{confirmation.guestName}</div>
                   <div className="text-xs font-mono text-on-surface-variant">{confirmation.guestPhone}</div>
+                  {confirmation.guestEmail && (
+                    <div className="text-[11px] text-outline truncate">{confirmation.guestEmail}</div>
+                  )}
                 </div>
                 <div className="p-3 rounded-xl bg-surface-container-low">
                   <div className="text-xs text-outline">{t("Dates Locked", "التواريخ المحجوزة")}</div>
@@ -1048,6 +1098,9 @@ export function HelplineBookingTab({
                         onClick={() => {
                           setCallerType("new_caller");
                           setSelectedGuestId(null);
+                          setUserSearchTerm("");
+                          setUserSearchResults([]);
+                          setUserSearchError(null);
                         }}
                         className={`px-3 py-1 rounded-lg font-bold transition cursor-pointer ${
                           callerType === "new_caller"
@@ -1059,7 +1112,10 @@ export function HelplineBookingTab({
                       </button>
                       <button
                         type="button"
-                        onClick={() => setCallerType("existing_user")}
+                        onClick={() => {
+                          setCallerType("existing_user");
+                          void handleSearchUsers(userSearchTerm);
+                        }}
                         className={`px-3 py-1 rounded-lg font-bold transition cursor-pointer ${
                           callerType === "existing_user"
                             ? "bg-white text-primary shadow-xs"
@@ -1074,26 +1130,56 @@ export function HelplineBookingTab({
                   {/* Existing User Search Panel */}
                   {callerType === "existing_user" && (
                     <div className="p-3.5 rounded-xl border border-primary/20 bg-primary/5 space-y-2 text-xs">
-                      <label className="block font-bold text-on-surface">
-                        {t("Search Active Registered Guest (Name, Phone, or Email)", "ابحث عن عميل مسجل (الاسم، الجوال، أو البريد)")}
-                      </label>
-                      <div className="relative">
-                        <input
-                          type="text"
-                          value={userSearchTerm}
-                          onChange={(e) => handleSearchUsers(e.target.value)}
-                          placeholder={t("Type guest name, phone (+966), or email...", "اكتب اسم العميل، جواله، أو بريده...")}
-                          className="w-full h-9 px-3 rounded-lg border border-surface-container bg-white text-xs text-on-surface focus:outline-none focus:ring-2 focus:ring-primary/30"
-                        />
-                        {searchingUsers && (
-                          <span className="absolute end-3 top-2.5 material-symbols-outlined text-[16px] animate-spin text-primary">
-                            sync
-                          </span>
+                      <div className="flex items-center justify-between gap-2">
+                        <label className="block font-bold text-on-surface">
+                          {t("Search Active Registered Guest (Name, Phone, or Email)", "ابحث عن عميل مسجل (الاسم، الجوال، أو البريد)")}
+                        </label>
+                        {selectedGuestId && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSelectedGuestId(null);
+                              setUserSearchTerm("");
+                              void handleSearchUsers("");
+                            }}
+                            className="text-[11px] font-bold text-primary hover:underline cursor-pointer"
+                          >
+                            {t("Clear selection", "إلغاء التحديد")}
+                          </button>
                         )}
                       </div>
+                      <div className="relative flex gap-2">
+                        <div className="relative flex-1">
+                          <input
+                            type="text"
+                            value={userSearchTerm}
+                            onChange={(e) => void handleSearchUsers(e.target.value)}
+                            placeholder={t("Type guest name, phone (05 / +966), or email...", "اكتب اسم العميل، جواله (05 / +966)، أو بريده...")}
+                            className="w-full h-9 px-3 rounded-lg border border-surface-container bg-white text-xs text-on-surface focus:outline-none focus:ring-2 focus:ring-primary/30"
+                          />
+                          {searchingUsers && (
+                            <span className="absolute end-3 top-2.5 material-symbols-outlined text-[16px] animate-spin text-primary">
+                              sync
+                            </span>
+                          )}
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => void handleSearchUsers(userSearchTerm)}
+                          className="h-9 px-3 rounded-lg bg-primary text-on-primary font-bold text-xs hover:bg-primary/90 transition cursor-pointer shrink-0"
+                        >
+                          {t("Search", "بحث")}
+                        </button>
+                      </div>
 
-                      {userSearchResults.length > 0 && (
-                        <div className="max-h-40 overflow-y-auto divide-y divide-surface-container-low bg-white rounded-lg border border-surface-container">
+                      {userSearchError && (
+                        <div className="p-2 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 font-semibold">
+                          {userSearchError}
+                        </div>
+                      )}
+
+                      {userSearchResults.length > 0 ? (
+                        <div className="max-h-44 overflow-y-auto divide-y divide-surface-container-low bg-white rounded-lg border border-surface-container">
                           {userSearchResults.map((u) => (
                             <div
                               key={u.id}
@@ -1106,29 +1192,60 @@ export function HelplineBookingTab({
                                 setGuestName(u.name);
                                 setGuestPhone(u.phone || "");
                                 setGuestEmail(u.email || "");
+                                if (u.nationalId && !nationalIdInput) {
+                                  setNationalIdInput(u.nationalId);
+                                }
                                 setUserSearchResults([]);
-                                setUserSearchTerm(`${u.name} (${u.phone || u.email})`);
+                                setUserSearchTerm(`${u.name}${u.phone ? ` (${u.phone})` : ""}`);
                               }}
-                              className={`p-2 flex items-center justify-between transition cursor-pointer ${
+                              className={`p-2.5 flex items-center justify-between gap-2 transition cursor-pointer ${
                                 u.isSuspended ? "bg-rose-50/50 opacity-60 cursor-not-allowed" : "hover:bg-primary/5"
                               }`}
                             >
-                              <div>
-                                <span className="font-bold text-on-surface">{u.name}</span>
-                                <span className="text-[11px] text-outline ms-2 font-mono">{u.phone || u.email}</span>
+                              <div className="min-w-0">
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                  <span className="font-bold text-on-surface">{u.name}</span>
+                                  {u.verified && (
+                                    <span className="px-1.5 py-0.2 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-bold">
+                                      {t("Verified", "موثق")}
+                                    </span>
+                                  )}
+                                  {u.city && (
+                                    <span className="text-[10.5px] text-outline">· {u.city}</span>
+                                  )}
+                                </div>
+                                <div className="text-[11px] text-outline font-mono truncate">
+                                  {[u.phone, u.email].filter(Boolean).join(" · ") || u.id.slice(0, 8)}
+                                </div>
                               </div>
                               <span
-                                className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                                className={`px-2 py-0.5 rounded text-[10px] font-bold shrink-0 ${
                                   u.isSuspended
                                     ? "bg-rose-100 text-rose-800"
                                     : "bg-status-emerald/15 text-status-emerald"
                                 }`}
                               >
-                                {u.isSuspended ? t("Suspended", "موقوف") : t("Active", "نشط")}
+                                {u.isSuspended ? t("Suspended", "موقوف") : t("Select", "اختيار")}
                               </span>
                             </div>
                           ))}
                         </div>
+                      ) : (
+                        !searchingUsers &&
+                        !selectedGuestId &&
+                        !userSearchError && (
+                          <div className="p-2.5 rounded-lg bg-white/80 border border-surface-container text-[11px] text-outline">
+                            {userSearchTerm.trim()
+                              ? t(
+                                  `No registered guest matched "${userSearchTerm.trim()}". Try partial digits or switch to New Caller.`,
+                                  `لم يتم العثور على عميل مسجل يطابق "${userSearchTerm.trim()}". جرّب آخر أرقام الجوال أو اختر متصل جديد.`
+                                )
+                              : t(
+                                  "No registered guests loaded yet.",
+                                  "لا توجد حسابات مسجلة محملة حالياً."
+                                )}
+                          </div>
+                        )
                       )}
                     </div>
                   )}
@@ -1166,7 +1283,7 @@ export function HelplineBookingTab({
 
                     <div>
                       <label className="block text-xs font-bold text-on-surface mb-1">
-                        {t("Guests & Email (Optional)", "عدد الضيوف والبريد")}
+                        {t("Guests & Email (For Auto-Account)", "عدد الضيوف والبريد (لإنشاء الحساب)")}
                       </label>
                       <div className="flex gap-2">
                         <input
@@ -1618,19 +1735,8 @@ export function HelplineBookingTab({
                             type="button"
                             onClick={() =>
                               setSelectedBooking({
+                                ...buildSelectedBookingDetail(b, t),
                                 id: `#${b.booking_reference || b.id.slice(0, 8)}`,
-                                dbId: b.id,
-                                guestName: b.guest_name || "Phone Guest",
-                                phone: b.guest_phone || "N/A",
-                                propertyTitle: b.property_title || "Property",
-                                dates: `${b.check_in} — ${b.check_out}`,
-                                nights: Math.max(
-                                  1,
-                                  Math.round(
-                                    (Date.parse(b.check_out) - Date.parse(b.check_in)) / 86_400_000
-                                  ) || 1
-                                ),
-                                amount: Number(b.total_price || 0),
                                 status: isHold ? "pending_sadad" : b.status,
                                 payoutStatus:
                                   b.status === "confirmed" || b.status === "completed"
@@ -1638,11 +1744,6 @@ export function HelplineBookingTab({
                                     : isHold
                                     ? "Awaiting SADAD Payment"
                                     : b.payment_status,
-                                guests: `${b.guests_count || 1} Guests`,
-                                accommodations: b.property_city || "Saudi Arabia",
-                                refund: b.refund || null,
-                                transferClaim: b.transferClaim || null,
-                                settlement: b.settlement || null,
                               })
                             }
                             className="px-2.5 py-1 rounded-lg border border-surface-container bg-surface-container-low text-on-surface text-[11px] font-bold hover:bg-surface-container cursor-pointer"

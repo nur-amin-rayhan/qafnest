@@ -1,10 +1,14 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useHostAuth } from "@/context/HostAuthContext";
 import { CheckCircle2, X } from "lucide-react";
-import HostTopNav, { type Module } from "@/components/dashboard/HostTopNav";
+import HostTopNav, { type HostNotification, type Module } from "@/components/dashboard/HostTopNav";
+import {
+  HostNotificationDetailModal,
+  type NotificationDestination,
+} from "@/components/dashboard/nav/HostNotificationDetailModal";
 import HostBookingsManagement from "@/components/dashboard/HostBookingsManagement";
 import HostReviewsManagement from "@/components/dashboard/HostReviewsManagement";
 import HostAnalyticsDashboard from "@/components/dashboard/HostAnalyticsDashboard";
@@ -28,6 +32,8 @@ export default function HostWorkspace({ initialTab }: HostWorkspaceProps) {
   const { user, profile, loading: authLoading, signOut, openHostAuthModal, lang, setLang } = useHostAuth();
   const { activeTab, setActiveTab } = useHostTabRouting(initialTab, lang);
 
+  const [selectedNotification, setSelectedNotification] = useState<HostNotification | null>(null);
+
   const {
     submittedProperties,
     liveBookings,
@@ -37,6 +43,7 @@ export default function HostWorkspace({ initialTab }: HostWorkspaceProps) {
     bannerNotice,
     setBannerNotice,
     loadDashboardData,
+    handleMarkNotificationRead,
     handleMarkAllNotificationsRead,
     deleteTarget,
     deletingPropertyId,
@@ -77,6 +84,22 @@ export default function HostWorkspace({ initialTab }: HostWorkspaceProps) {
     );
   }
 
+  const handleSelectNotification = (notif: HostNotification) => {
+    setSelectedNotification(notif);
+    if (!notif.is_read) {
+      void handleMarkNotificationRead(notif.id);
+    }
+  };
+
+  const handleNavigateFromNotification = (dest: NotificationDestination) => {
+    setActiveTab(dest.module);
+    if (typeof window !== "undefined") {
+      const targetPath = localizeHostPath(`/app/${dest.module}`, lang);
+      const qs = dest.bookingId ? `?bookingId=${encodeURIComponent(dest.bookingId)}` : "";
+      router.replace(`${targetPath}${qs}`);
+    }
+  };
+
   const hasPropertyIssues = submittedProperties.some(
     (p) => p.status === "rejected" || Boolean(p.adminFeedback)
   );
@@ -100,7 +123,16 @@ export default function HostWorkspace({ initialTab }: HostWorkspaceProps) {
         hasPropertyIssues={hasPropertyIssues}
         bookingsCount={liveBookings.length}
         notifications={notifications}
+        onSelectNotification={handleSelectNotification}
         onMarkAllNotificationsRead={handleMarkAllNotificationsRead}
+      />
+
+      <HostNotificationDetailModal
+        notification={selectedNotification}
+        onClose={() => setSelectedNotification(null)}
+        onNavigateDestination={handleNavigateFromNotification}
+        lang={lang}
+        t={t}
       />
 
       {/* Dynamic Toast / Notice for property submission / resubmission */}
@@ -183,12 +215,16 @@ export default function HostWorkspace({ initialTab }: HostWorkspaceProps) {
       {/* Property Delete Confirmation Modal */}
       <DeletePropertyModal
         property={deleteTarget}
+        userId={user?.id}
         busy={Boolean(deletingPropertyId)}
         error={deleteError}
         lang={lang}
         t={t}
         onCancel={cancelDeleteProperty}
         onConfirm={confirmDeleteProperty}
+        onWithdrawn={async () => {
+          await loadDashboardData();
+        }}
       />
     </div>
   );

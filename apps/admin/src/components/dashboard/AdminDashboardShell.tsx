@@ -20,10 +20,11 @@ import { SettingsTab } from "@/components/dashboard/SettingsTab";
 import PromotionsTab from "@/components/dashboard/PromotionsTab";
 import LoyaltyTab from "@/components/dashboard/LoyaltyTab";
 import { useAdminDashboardData } from "@/components/dashboard/hooks/useAdminDashboardData";
-import type {
-  NavTab,
-  PropertyItem,
-  SelectedBookingDetail,
+import {
+  buildSelectedBookingDetail,
+  type NavTab,
+  type PropertyItem,
+  type SelectedBookingDetail,
 } from "@/components/dashboard/types";
 
 interface AdminDashboardShellProps {
@@ -32,7 +33,7 @@ interface AdminDashboardShellProps {
 
 export function AdminDashboardShell({ initialTab = "dashboard-overview" }: AdminDashboardShellProps) {
   const router = useRouter();
-  const { user, signOut, dir } = useAdminAuth();
+  const { user, signOut, dir, t } = useAdminAuth();
   const [activeTab, setActiveTabState] = useState<NavTab>(initialTab);
 
   useEffect(() => {
@@ -77,6 +78,8 @@ export function AdminDashboardShell({ initialTab = "dashboard-overview" }: Admin
     bookings,
     payoutReminders,
     urgentPayoutQueue,
+    deletionRequests,
+    reviewDeletionRequest,
     quickDisbursePayout,
     sendOverviewPayoutReminders,
     loadLiveAdminData,
@@ -110,6 +113,70 @@ export function AdminDashboardShell({ initialTab = "dashboard-overview" }: Admin
     }
   };
 
+  const clearUrlQueryParam = useCallback((paramKey: string) => {
+    if (typeof window === "undefined") return;
+    const url = new URL(window.location.href);
+    if (url.searchParams.has(paramKey)) {
+      url.searchParams.delete(paramKey);
+      const nextHref = `${url.pathname}${url.search ? url.search : ""}`;
+      window.history.replaceState(null, "", nextHref);
+    }
+  }, []);
+
+  const handleOpenNotificationTarget = useCallback(
+    (
+      tab: NavTab,
+      target: { bookingId?: string; propertyId?: string; payoutId?: string }
+    ) => {
+      const baseHref = getAdminTabHref(tab);
+      const params = new URLSearchParams();
+      if (target.bookingId) {
+        params.set("bookingId", target.bookingId);
+        const match = bookings.find((b) => b.id === target.bookingId);
+        if (match) {
+          setSelectedBooking(buildSelectedBookingDetail(match, t));
+        }
+      }
+      if (target.propertyId) {
+        params.set("propertyId", target.propertyId);
+        const match = properties.find((p) => p.id === target.propertyId);
+        if (match) {
+          setSelectedPropertyForDetail(match);
+        }
+      }
+      if (target.payoutId) {
+        params.set("payoutId", target.payoutId);
+      }
+
+      const qs = params.toString();
+      const targetHref = qs ? `${baseHref}?${qs}` : baseHref;
+      setActiveTabState(tab);
+      router.push(targetHref);
+    },
+    [bookings, properties, router, t]
+  );
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const targetBookingId = params.get("bookingId");
+    const targetPropertyId = params.get("propertyId");
+
+    if (targetBookingId && bookings.length > 0 && selectedBooking?.dbId !== targetBookingId) {
+      const match = bookings.find((b) => b.id === targetBookingId);
+      if (match) {
+        setSelectedBooking(buildSelectedBookingDetail(match, t));
+      }
+    }
+
+    if (targetPropertyId && properties.length > 0 && selectedPropertyForDetail?.id !== targetPropertyId) {
+      const match = properties.find((p) => p.id === targetPropertyId);
+      if (match) {
+        setSelectedPropertyForDetail(match);
+      }
+    }
+  }, [activeTab, bookings, properties, selectedBooking?.dbId, selectedPropertyForDetail?.id, t]);
+
   return (
     <div dir={dir} className="bg-surface font-body-md text-body-md text-on-surface antialiased min-h-screen w-full max-w-full overflow-x-hidden">
       {/* Toast Notification */}
@@ -122,22 +189,18 @@ export function AdminDashboardShell({ initialTab = "dashboard-overview" }: Admin
         <span className="font-body-sm text-body-sm font-medium">{toastMsg}</span>
       </div>
 
-      {/* Slide-over Booking Details Drawer */}
-      <BookingDrawer
-        selectedBooking={selectedBooking}
-        onClose={() => setSelectedBooking(null)}
-        onRefresh={loadLiveAdminData}
-        triggerToast={triggerToast}
-      />
-
       {/* Property Detail Drawer */}
       <PropertyDetailDrawer
         property={selectedPropertyForDetail}
         isOpen={Boolean(selectedPropertyForDetail)}
-        onClose={() => setSelectedPropertyForDetail(null)}
+        onClose={() => {
+          setSelectedPropertyForDetail(null);
+          clearUrlQueryParam("propertyId");
+        }}
         onApprove={async (id) => {
           await handleUpdatePropertyStatus(id, "approved");
           setSelectedPropertyForDetail(null);
+          clearUrlQueryParam("propertyId");
         }}
         onRequestRevisions={(prop) => {
           setPropertyReviewModalTarget(prop);
@@ -161,10 +224,16 @@ export function AdminDashboardShell({ initialTab = "dashboard-overview" }: Admin
         setActiveTab={setActiveTab}
         pendingPayoutsCount={metrics.pendingPayoutsCount}
         overduePayoutsCount={metrics.overduePayoutsCount}
+        onNavItemClick={() => {
+          setSelectedBooking(null);
+          setSelectedPropertyForDetail(null);
+          clearUrlQueryParam("bookingId");
+          clearUrlQueryParam("propertyId");
+        }}
       />
 
       {/* Main Content Area */}
-      <div className="lg:ps-72 flex flex-col min-h-screen w-full min-w-0 max-w-full transition-all duration-300">
+      <div className="lg:ps-64 xl:ps-72 flex flex-col min-h-screen w-full min-w-0 max-w-full transition-all duration-300">
         {/* Header */}
         <AdminHeader
           searchQuery={searchQuery}
@@ -177,13 +246,16 @@ export function AdminDashboardShell({ initialTab = "dashboard-overview" }: Admin
           onSignOut={signOut}
           properties={properties}
           bookings={bookings}
+          urgentPayoutQueue={urgentPayoutQueue}
+          deletionRequests={deletionRequests}
           onSelectProperty={(prop) => setSelectedPropertyForDetail(prop)}
           onSelectBooking={(b) => setSelectedBooking(b)}
           onNavigateTab={setActiveTab}
+          onOpenNotificationTarget={handleOpenNotificationTarget}
         />
 
         {/* Main Canvas */}
-        <main className="w-full min-w-0 max-w-full min-h-screen pt-24 sm:pt-28 pb-12 flex-1 bg-surface-desert-sand px-4 sm:px-6 lg:px-8">
+        <main className="w-full min-w-0 max-w-full min-h-screen pt-20 sm:pt-24 pb-12 flex-1 bg-surface-desert-sand px-3 sm:px-6 lg:px-8">
           <div className="flex flex-col w-full max-w-[1600px] mx-auto space-y-6">
             {errorMsg && (
               <div className="p-3.5 rounded-xl bg-error/10 border border-error/20 text-error text-xs font-bold">
@@ -191,7 +263,37 @@ export function AdminDashboardShell({ initialTab = "dashboard-overview" }: Admin
               </div>
             )}
 
-            {/* TAB 1: DASHBOARD OVERVIEW */}
+            {selectedBooking ? (
+              <BookingDrawer
+                selectedBooking={selectedBooking}
+                onClose={() => {
+                  setSelectedBooking(null);
+                  clearUrlQueryParam("bookingId");
+                }}
+                onRefresh={loadLiveAdminData}
+                onOpenFinancials={() =>
+                  selectedBooking?.payoutSummary?.id
+                    ? handleOpenNotificationTarget("financials-and-payouts", {
+                        payoutId: selectedBooking.payoutSummary.id,
+                      })
+                    : setActiveTab("financials-and-payouts")
+                }
+                onInspectProperty={(propertyId) => {
+                  setSelectedBooking(null);
+                  clearUrlQueryParam("bookingId");
+                  const match = properties.find((p) => p.id === propertyId);
+                  if (match) {
+                    setSelectedPropertyForDetail(match);
+                  } else {
+                    handleOpenNotificationTarget("properties-management", { propertyId });
+                    triggerToast(t("Opening property record...", "جاري فتح سجل العقار..."));
+                  }
+                }}
+                triggerToast={triggerToast}
+              />
+            ) : (
+              <>
+                {/* TAB 1: DASHBOARD OVERVIEW */}
             {activeTab === "dashboard-overview" && (
               <DashboardOverviewTab
                 metrics={metrics}
@@ -199,6 +301,9 @@ export function AdminDashboardShell({ initialTab = "dashboard-overview" }: Admin
                 bookings={bookings}
                 payoutReminders={payoutReminders}
                 urgentPayoutQueue={urgentPayoutQueue}
+                onInspectPayout={(payoutId) =>
+                  handleOpenNotificationTarget("financials-and-payouts", { payoutId })
+                }
                 onQuickDisbursePayout={quickDisbursePayout}
                 onSendPayoutReminders={sendOverviewPayoutReminders}
                 updatePropertyStatus={handleUpdatePropertyStatus}
@@ -234,6 +339,8 @@ export function AdminDashboardShell({ initialTab = "dashboard-overview" }: Admin
                 triggerToast={triggerToast}
                 onSelectProperty={(prop) => setSelectedPropertyForDetail(prop)}
                 onRequestReject={(prop) => setPropertyReviewModalTarget(prop)}
+                deletionRequests={deletionRequests}
+                onReviewDeletionRequest={reviewDeletionRequest}
               />
             )}
 
@@ -288,6 +395,8 @@ export function AdminDashboardShell({ initialTab = "dashboard-overview" }: Admin
 
             {/* TAB 6: SETTINGS */}
             {activeTab === "settings" && <SettingsTab />}
+              </>
+            )}
           </div>
         </main>
       </div>

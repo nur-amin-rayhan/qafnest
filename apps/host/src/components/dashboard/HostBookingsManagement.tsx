@@ -66,6 +66,19 @@ export default function HostBookingsManagement({
     fetchBookings();
   }, [fetchBookings]);
 
+  useEffect(() => {
+    if (typeof window === "undefined" || bookings.length === 0) return;
+    const targetBookingId = new URLSearchParams(window.location.search).get("bookingId");
+    if (targetBookingId && selectedBooking?.id !== targetBookingId) {
+      const match = bookings.find(
+        (b) => b.id === targetBookingId || b.booking_reference === targetBookingId
+      );
+      if (match) {
+        setSelectedBooking(match);
+      }
+    }
+  }, [bookings, selectedBooking?.id]);
+
   // Unique properties for dropdown filter
   const propertyOptions = useMemo(() => {
     const map = new Map<string, string>();
@@ -292,7 +305,16 @@ export default function HostBookingsManagement({
         actionLoadingId={actionLoadingId}
         lang={lang}
         t={t}
-        onClose={() => setSelectedBooking(null)}
+        onClose={() => {
+          setSelectedBooking(null);
+          if (typeof window !== "undefined") {
+            const url = new URL(window.location.href);
+            if (url.searchParams.has("bookingId")) {
+              url.searchParams.delete("bookingId");
+              window.history.replaceState(null, "", `${url.pathname}${url.search}`);
+            }
+          }
+        }}
         onCopyPin={handleCopyPin}
         onSetManualPin={handleSetManualPin}
       />

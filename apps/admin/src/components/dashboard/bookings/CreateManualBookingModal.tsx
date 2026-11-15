@@ -276,7 +276,7 @@ export function CreateManualBookingModal({
   };
 
   return (
-    <div dir={dir} className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
+    <div dir={dir} className="fixed inset-0 z-[90] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
       <div className="w-full max-w-3xl max-h-[92vh] overflow-y-auto rounded-3xl bg-surface-container-lowest border border-surface-container-high shadow-2xl p-6 sm:p-7 space-y-5 text-on-surface">
         {/* Header */}
         <div className="flex items-start justify-between gap-3 border-b border-surface-container pb-4">

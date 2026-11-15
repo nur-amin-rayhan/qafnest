@@ -1,5 +1,6 @@
-import type { SupabaseClient } from "@supabase/supabase-js";
+import type { SupabaseClient, User } from "@supabase/supabase-js";
 import { checkSignupGuard, claimWelcomeBonus } from "@/lib/auth/deviceFingerprint";
+import { setCachedAuth, syncSessionCookie, type Profile } from "@/context/auth/guestAuthStorage";
 
 export async function executeEmailAuth({
   supabase,
@@ -18,7 +19,31 @@ export async function executeEmailAuth({
 }): Promise<{ success: boolean; message: string; autoCloseDelay?: number }> {
   if (isEmailSignIn) {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) throw error;
+    if (error) {
+      if (process.env.NODE_ENV !== "production") {
+        const res = await fetch("/api/auth/dev-login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, password }),
+        }).catch(() => null);
+        if (res?.ok) {
+          const devData = (await res.json()) as {
+            success?: boolean;
+            user?: User;
+            profile?: Profile;
+          };
+          if (devData?.success && devData.user && devData.profile) {
+            setCachedAuth({ user: devData.user, profile: devData.profile });
+            syncSessionCookie("dev_guest_token");
+            if (typeof window !== "undefined") {
+              setTimeout(() => window.location.reload(), 650);
+            }
+            return { success: true, message: "Welcome back! Signing you in...", autoCloseDelay: 600 };
+          }
+        }
+      }
+      throw error;
+    }
     return { success: true, message: "Welcome back! Signing you in...", autoCloseDelay: 800 };
   } else {
     const guard = await checkSignupGuard({ email, phone, mode: "signup" });

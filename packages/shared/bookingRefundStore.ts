@@ -21,6 +21,7 @@ export interface BookingRefundRecord {
   cancellationReason: string;
   requestedAt: string;
   disbursedAt?: string;
+  transactionNumber?: string;
   status: "pending_review" | "approved" | "disbursed" | "rejected";
   refundMethod: "original_card" | "sadad_reversal" | "bank_transfer" | "wallet";
   payoutVoided: boolean;
@@ -193,18 +194,28 @@ export function createBookingRefundRecord(params: {
   return record;
 }
 
-export function markRefundDisbursed(bookingRef: string, adminNotes?: string): BookingRefundRecord | null {
+export function markRefundDisbursed(
+  bookingRef: string,
+  adminNotes?: string,
+  transactionNumber?: string
+): BookingRefundRecord | null {
   const records = loadRefunds();
   const record = records[bookingRef];
   if (!record) return null;
 
+  const cleanTxn = String(transactionNumber || "").trim();
   const now = new Date().toISOString();
   record.status = "disbursed";
   record.disbursedAt = now;
+  if (cleanTxn) {
+    record.transactionNumber = cleanTxn;
+  }
   record.timeline.push({
     step: "disbursed",
     title: "Refund Completed & Disbursed",
-    description: adminNotes || "Funds successfully remitted to guest's account.",
+    description: `${cleanTxn ? `Bank/SARIE Txn #${cleanTxn}. ` : ""}${
+      adminNotes || "Funds successfully remitted to guest's account."
+    }`,
     timestamp: now,
     actor: "admin",
   });

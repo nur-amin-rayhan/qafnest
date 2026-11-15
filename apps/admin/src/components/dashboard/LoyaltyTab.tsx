@@ -303,7 +303,7 @@ export default function LoyaltyTab({ triggerToast }: LoyaltyTabProps) {
           </label>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
           {/* Setting 1: Standard Earn Rate */}
           <div className="space-y-1.5">
             <label className="text-xs font-bold text-on-surface flex items-center justify-between">
@@ -506,7 +506,7 @@ export default function LoyaltyTab({ triggerToast }: LoyaltyTabProps) {
 
       {/* Modal for Edit / Add Campaign */}
       {modalOpen && editingOffer && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+        <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/50 p-4">
           <div className="bg-surface-container-lowest w-full max-w-lg rounded-2xl shadow-xl border border-surface-container p-6 space-y-4">
             <div className="flex items-center justify-between pb-3 border-b border-surface-container">
               <h3 className="font-title-md text-base font-bold text-on-surface">

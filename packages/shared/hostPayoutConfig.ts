@@ -4,9 +4,10 @@
  */
 
 export type PayoutRailMode = "sarie_bank" | "myfatoorah_split";
-export type PayoutSlaTrigger = "payment_confirmed" | "check_in";
+export type PayoutSlaTrigger = "payment_confirmed" | "check_in" | "check_out";
 export type PayoutStatus = "disbursed" | "pending" | "processing" | "on_hold";
-export type PayoutSlaTier = "overdue" | "urgent" | "on_track" | "on_hold" | "disbursed";
+export type PayoutSlaTier = "overdue" | "urgent" | "on_track" | "on_hold" | "disbursed" | "escrow";
+export type HostPayoutRequestStatus = "none" | "requested" | "approved" | "rejected";
 
 export interface HostPayoutPolicy {
   payoutRail: PayoutRailMode;
@@ -20,7 +21,7 @@ export interface HostPayoutPolicy {
 export const DEFAULT_HOST_PAYOUT_POLICY: HostPayoutPolicy = {
   payoutRail: "sarie_bank",
   slaHours: 24,
-  slaTrigger: "payment_confirmed",
+  slaTrigger: "check_out",
   reminderLeadHours: 6,
   autoNotifyHostOnDisburse: true,
 };
@@ -71,7 +72,191 @@ export interface SharedHostPayoutRecord {
   reminderCount?: number;
   bookings?: PayoutBookingItem[];
   source?: "booking" | "host_request" | "ledger";
+  checkInDate?: string;
+  checkOutDate?: string;
+  bookingStatus?: string;
+  payoutRequestStatus?: HostPayoutRequestStatus;
+  requestedAt?: string;
+  approvedAt?: string;
+  approvedBy?: string;
+  rejectionReason?: string;
   created_at: string;
+}
+
+export interface LegalTxnValidationResult {
+  valid: boolean;
+  cleaned: string;
+  errorEn?: string;
+  errorAr?: string;
+}
+
+const DISALLOWED_TXN_PLACEHOLDERS = new Set([
+  "test",
+  "testing",
+  "none",
+  "null",
+  "undefined",
+  "na",
+  "n/a",
+  "temp",
+  "sample",
+  "123456",
+  "000000",
+]);
+
+/**
+ * Validates that an admin-entered bank / SAMA SARIE receipt transaction number
+ * is real and properly formatted before allowing settlement.
+ */
+export function validateLegalTransactionNumber(rawRef?: string | null): LegalTxnValidationResult {
+  const cleaned = String(rawRef || "").trim();
+  if (!cleaned) {
+    return {
+      valid: false,
+      cleaned: "",
+      errorEn: "Legal Bank / SARIE Transaction Number is required before settlement.",
+      errorAr: "رقم العملية البنكية / سريع القانوني إلزامي قبل إتمام التسوية.",
+    };
+  }
+  if (cleaned.length < 6 || cleaned.length > 64) {
+    return {
+      valid: false,
+      cleaned,
+      errorEn: "Transaction Number must be between 6 and 64 characters.",
+      errorAr: "يجب أن يتراوح رقم العملية البنكية بين 6 و 64 خانة.",
+    };
+  }
+  if (DISALLOWED_TXN_PLACEHOLDERS.has(cleaned.toLowerCase())) {
+    return {
+      valid: false,
+      cleaned,
+      errorEn: "Please enter a valid bank receipt or SARIE transaction reference.",
+      errorAr: "يرجى إدخال رقم مرجعي صحيح من إيصال التحويل البنكي / سريع.",
+    };
+  }
+  if (!/^[A-Za-z0-9][A-Za-z0-9\-_\/.]{4,62}[A-Za-z0-9]$/.test(cleaned)) {
+    return {
+      valid: false,
+      cleaned,
+      errorEn: "Use letters, numbers, '-', '_', '/' or '.' without spaces.",
+      errorAr: "يرجى استخدام أحرف وأرقام أو (- / _ .) بدون مسافات.",
+    };
+  }
+  if (!/\d{2,}/.test(cleaned)) {
+    return {
+      valid: false,
+      cleaned,
+      errorEn: "Transaction Number must include the receipt reference digits.",
+      errorAr: "يجب أن يتضمن رقم العملية أرقام المرجع البنكي.",
+    };
+  }
+  return { valid: true, cleaned };
+}
+
+export interface PayoutCheckoutEligibility {
+  eligible: boolean;
+  unlocksAtIso?: string;
+  checkOutDate?: string;
+  remainingMs: number;
+  reasonEn: string;
+  reasonAr: string;
+}
+
+/**
+ * Parses a stay check-out date (YYYY-MM-DD or ISO) into standard Saudi checkout timestamp
+ * (12:00 PM Asia/Riyadh = UTC+3 on check-out day).
+ */
+export function getCheckoutUnlockTimestampMs(checkOutRaw?: string | null): number | null {
+  if (!checkOutRaw) return null;
+  const trimmed = String(checkOutRaw).trim();
+  if (!trimmed) return null;
+  const dateOnly = trimmed.slice(0, 10);
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dateOnly)) {
+    const ms = Date.parse(`${dateOnly}T12:00:00+03:00`);
+    return Number.isFinite(ms) ? ms : null;
+  }
+  const parsed = Date.parse(trimmed);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+/**
+ * Enforces post-checkout escrow protection:
+ * Host funds remain locked until guest check-in & check-out day finishes (12:00 PM Riyadh)
+ * or booking status is explicitly "completed" / "checked_out".
+ */
+export function isPayoutPostCheckoutEligible(
+  payout: Pick<
+    SharedHostPayoutRecord,
+    "source" | "bookings" | "checkOutDate" | "bookingStatus"
+  >,
+  nowMs: number = Date.now()
+): PayoutCheckoutEligibility {
+  const statusLower = String(payout.bookingStatus || "").toLowerCase();
+  if (statusLower === "completed" || statusLower === "checked_out") {
+    return {
+      eligible: true,
+      checkOutDate: payout.checkOutDate?.slice(0, 10),
+      remainingMs: 0,
+      reasonEn: "Guest check-out completed. Eligible for settlement.",
+      reasonAr: "تم تسجيل مغادرة الضيف. المستحق متاح للتسوية.",
+    };
+  }
+
+  let latestUnlockMs: number | null = null;
+  let latestDateStr: string | undefined;
+
+  if (Array.isArray(payout.bookings) && payout.bookings.length > 0) {
+    for (const bk of payout.bookings) {
+      const ms = getCheckoutUnlockTimestampMs(bk.checkOut);
+      if (ms !== null && (latestUnlockMs === null || ms > latestUnlockMs)) {
+        latestUnlockMs = ms;
+        latestDateStr = String(bk.checkOut).slice(0, 10);
+      }
+    }
+  }
+
+  if (latestUnlockMs === null && payout.checkOutDate) {
+    latestUnlockMs = getCheckoutUnlockTimestampMs(payout.checkOutDate);
+    latestDateStr = String(payout.checkOutDate).slice(0, 10);
+  }
+
+  if (latestUnlockMs === null) {
+    // Explicit host withdrawal requests were already verified against unlocked post-checkout ledger
+    if (payout.source === "host_request") {
+      return {
+        eligible: true,
+        remainingMs: 0,
+        reasonEn: "Post-checkout host withdrawal request verified.",
+        reasonAr: "تم التحقق من استحقاق طلب السحب بعد المغادرة.",
+      };
+    }
+    return {
+      eligible: false,
+      remainingMs: 0,
+      reasonEn: "Escrowed: Check-out date verification pending.",
+      reasonAr: "محجوز بالضمان: بانتظار التحقق من تاريخ مغادرة الضيف.",
+    };
+  }
+
+  if (nowMs >= latestUnlockMs) {
+    return {
+      eligible: true,
+      unlocksAtIso: new Date(latestUnlockMs).toISOString(),
+      checkOutDate: latestDateStr,
+      remainingMs: 0,
+      reasonEn: `Guest check-out (${latestDateStr}) completed. Eligible for payout.`,
+      reasonAr: `اكتملت مغادرة الضيف (${latestDateStr}). الدفعة مؤهلة للصرف.`,
+    };
+  }
+
+  return {
+    eligible: false,
+    unlocksAtIso: new Date(latestUnlockMs).toISOString(),
+    checkOutDate: latestDateStr,
+    remainingMs: Math.max(0, latestUnlockMs - nowMs),
+    reasonEn: `Escrow Lock: Releases after guest check-out on ${latestDateStr} (12:00 PM KSA).`,
+    reasonAr: `محجوز بالضمان: يُتاح للصرف بعد مغادرة الضيف يوم ${latestDateStr} (١٢:٠٠ ظهراً).`,
+  };
 }
 
 export interface PayoutSlaMetrics {
@@ -96,7 +281,18 @@ function formatDurationHm(ms: number): { h: number; m: number; s: number } {
 }
 
 export function computePayoutSlaMetrics(
-  payout: Pick<SharedHostPayoutRecord, "status" | "earnedAt" | "slaDeadlineAt" | "disbursedAt" | "created_at">,
+  payout: Pick<
+    SharedHostPayoutRecord,
+    | "status"
+    | "earnedAt"
+    | "slaDeadlineAt"
+    | "disbursedAt"
+    | "created_at"
+    | "source"
+    | "bookings"
+    | "checkOutDate"
+    | "bookingStatus"
+  >,
   nowMs: number = Date.now(),
   urgentLeadHours: number = 6
 ): PayoutSlaMetrics {
@@ -134,6 +330,24 @@ export function computePayoutSlaMetrics(
       countdownLabel: "Paused (On Hold)",
       countdownLabelAr: "معلق مؤقتاً",
       progressPercent: Math.min(100, Math.round((elapsedMs / totalSlaMs) * 100)),
+    };
+  }
+
+  const checkoutGate = isPayoutPostCheckoutEligible(payout, nowMs);
+  if (!checkoutGate.eligible) {
+    return {
+      tier: "escrow",
+      remainingMs: checkoutGate.remainingMs,
+      elapsedMs: 0,
+      isOverdue: false,
+      isUrgent: false,
+      countdownLabel: checkoutGate.checkOutDate
+        ? `Escrow · Out ${checkoutGate.checkOutDate}`
+        : "Escrowed (Until Check-Out)",
+      countdownLabelAr: checkoutGate.checkOutDate
+        ? `بالضمان · مغادرة ${checkoutGate.checkOutDate}`
+        : "محجوز بالضمان حتى المغادرة",
+      progressPercent: 0,
     };
   }
 
@@ -178,6 +392,8 @@ export interface PayoutReminderSummary {
   urgentAmountSar: number;
   onTrackCount: number;
   onTrackAmountSar: number;
+  escrowCount: number;
+  escrowAmountSar: number;
   dueWithin24hCount: number;
   dueWithin24hAmountSar: number;
   onHoldCount: number;
@@ -197,6 +413,8 @@ export function summarizePayoutReminders(
   let urgentAmountSar = 0;
   let onTrackCount = 0;
   let onTrackAmountSar = 0;
+  let escrowCount = 0;
+  let escrowAmountSar = 0;
   let onHoldCount = 0;
   let disbursedWithinSlaCount = 0;
   let disbursedTotalCount = 0;
@@ -212,6 +430,9 @@ export function summarizePayoutReminders(
     } else if (m.tier === "on_track") {
       onTrackCount++;
       onTrackAmountSar += p.netPayoutAmount;
+    } else if (m.tier === "escrow") {
+      escrowCount++;
+      escrowAmountSar += p.netPayoutAmount;
     } else if (m.tier === "on_hold") {
       onHoldCount++;
     } else if (m.tier === "disbursed") {
@@ -238,6 +459,8 @@ export function summarizePayoutReminders(
     urgentAmountSar: Math.round(urgentAmountSar * 100) / 100,
     onTrackCount,
     onTrackAmountSar: Math.round(onTrackAmountSar * 100) / 100,
+    escrowCount,
+    escrowAmountSar: Math.round(escrowAmountSar * 100) / 100,
     dueWithin24hCount,
     dueWithin24hAmountSar,
     onHoldCount,

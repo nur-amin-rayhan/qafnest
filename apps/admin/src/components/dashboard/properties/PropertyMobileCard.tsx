@@ -1,7 +1,11 @@
 "use client";
 
 import React from "react";
-import { getLocalizedSaudiCity, pickBilingualText } from "@qafnest/shared";
+import {
+  getLocalizedSaudiCity,
+  getNumericUnitCode,
+  pickBilingualText,
+} from "@qafnest/shared";
 import { PropertyItem } from "../types";
 
 interface PropertyMobileCardProps {
@@ -77,19 +81,26 @@ export function PropertyMobileCard({
             <span className="font-title-sm text-sm font-bold text-on-surface truncate">
               {displayTitle}
             </span>
-            {isApproved ? (
-              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide bg-status-emerald/15 text-status-emerald shrink-0">
-                ● {t("Published", "منشور")}
-              </span>
-            ) : isPending ? (
-              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide bg-status-sand/20 text-status-sand shrink-0">
-                ⏳ {t("Review", "مراجعة")}
-              </span>
-            ) : (
-              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide bg-status-terracotta/15 text-status-terracotta shrink-0">
-                ✕ {t("Rejected", "مرفوض")}
-              </span>
-            )}
+            <div className="flex items-center gap-1 shrink-0">
+              {isApproved ? (
+                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide bg-status-emerald/15 text-status-emerald shrink-0">
+                  ● {t("Published", "منشور")}
+                </span>
+              ) : isPending ? (
+                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide bg-status-sand/20 text-status-sand shrink-0">
+                  ⏳ {t("Review", "مراجعة")}
+                </span>
+              ) : (
+                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide bg-status-terracotta/15 text-status-terracotta shrink-0">
+                  ✕ {t("Rejected", "مرفوض")}
+                </span>
+              )}
+              {prop.pending_deletion_request?.status === "pending" && (
+                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-100 text-amber-900 border border-amber-300 shrink-0">
+                  {t("Removal Req", "طلب حذف")}
+                </span>
+              )}
+            </div>
           </div>
 
           <div className="flex items-center gap-2 text-xs text-on-surface-variant truncate mt-0.5">
@@ -101,8 +112,12 @@ export function PropertyMobileCard({
             <span className="capitalize">{prop.category || "—"}</span>
           </div>
 
-          <div className="flex items-center gap-2 mt-1 text-[11px] text-outline">
-            <span className="font-mono">ID: {prop.id}</span>
+          <div className="flex items-center gap-2 mt-1 text-[11px] text-outline flex-wrap">
+            <span className="font-mono font-black text-primary bg-primary/10 px-1.5 py-0.2 rounded">
+              Unit #{getNumericUnitCode(prop.id)}
+            </span>
+            <span>•</span>
+            <span className="font-mono">ID: {prop.id.slice(0, 8)}…</span>
             {prop.tourism_license_number && (
               <>
                 <span>•</span>

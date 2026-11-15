@@ -3,7 +3,6 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from "react";
 
 import { cmsPath } from "@/lib/cmsUrl";
-import { ECOSYSTEM_URLS } from "@qafnest/shared";
 export interface AdminUser {
   email: string;
   name: string;
@@ -77,7 +76,7 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
     } catch {}
     setUser(null);
     if (typeof window !== "undefined") {
-      window.location.href = ECOSYSTEM_URLS.guest;
+      window.location.replace(cmsPath("/login"));
     }
   };
 

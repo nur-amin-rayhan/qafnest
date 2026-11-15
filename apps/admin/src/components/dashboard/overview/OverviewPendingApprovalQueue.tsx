@@ -27,7 +27,7 @@ export function OverviewPendingApprovalQueue({
   );
 
   return (
-    <div className="lg:col-span-5 flex flex-col rounded-xl bg-surface-container-lowest p-space-lg shadow-sm">
+    <div className="xl:col-span-5 flex flex-col rounded-xl bg-surface-container-lowest p-space-lg shadow-sm">
       <div className="flex flex-wrap items-center justify-between gap-2 pb-space-md">
         <div>
           <span className="font-label-sm text-primary uppercase font-bold tracking-wider">

@@ -24,7 +24,7 @@ export function PromotionsStatsCards({
     totalRedemptions > 0 ? Math.round(totalEstSavings / totalRedemptions) : 0;
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
       <div className="p-4 rounded-2xl bg-surface-container-lowest border border-surface-container/60 shadow-xs flex flex-col justify-between">
         <span className="font-label-sm text-[11px] uppercase tracking-wider text-outline font-bold">
           {t("Active Promo Codes", "الأكواد النشطة")}

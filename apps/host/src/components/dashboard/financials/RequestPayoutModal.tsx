@@ -8,6 +8,7 @@ interface RequestPayoutModalProps {
   isOpen: boolean;
   onClose: () => void;
   availableBalance: string;
+  escrowedBalance?: string;
   ibanData: HostPayoutIban;
   onRequestPayout: (amount: number) => Promise<void>;
   lang: "ar" | "en";
@@ -18,12 +19,14 @@ export function RequestPayoutModal({
   isOpen,
   onClose,
   availableBalance,
+  escrowedBalance = "0.00",
   ibanData,
   onRequestPayout,
   lang,
   t,
 }: RequestPayoutModalProps) {
   const numericAvailable = parseFloat(availableBalance.replace(/,/g, "")) || 0;
+  const numericEscrowed = parseFloat(escrowedBalance.replace(/,/g, "")) || 0;
   const [amount, setAmount] = useState<string>(numericAvailable > 0 ? numericAvailable.toString() : "");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -76,10 +79,13 @@ export function RequestPayoutModal({
             </div>
             <div>
               <h3 className="text-lg font-black text-slate-900">
-                {t("Request Instant Bank Transfer", "طلب تحويل فوري للحساب")}
+                {t("Request Post-Checkout Payout", "طلب صرف مستحقات بعد المغادرة")}
               </h3>
               <p className="text-xs text-slate-500 font-medium">
-                {t("Direct SAMA Sarie transfer to your verified IBAN.", "إيداع فوري عبر نظام سريع إلى حسابك الموثق.")}
+                {t(
+                  "Admin approves your post-checkout request, Finance transfers to your IBAN & enters the official bank receipt number.",
+                  "تراجع الإدارة طلبك بعد مغادرة الضيف ثم يحول قسم المالية لحسابك مع إرفاق رقم الإيصال الرسمي (أو يتم الصرف يدوياً خلال ٢٤ ساعة)."
+                )}
               </p>
             </div>
           </div>
@@ -100,14 +106,22 @@ export function RequestPayoutModal({
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="rounded-2xl border border-violet-100 bg-violet-50/70 p-4">
-            <span className="text-xs font-bold text-slate-500 block">
-              {t("Available Balance for Instant Transfer", "الرصيد المتاح للتحويل الفوري")}
-            </span>
-            <div className="mt-1 flex items-baseline gap-2">
-              <span className="text-2xl font-black text-[#4F2396]">{availableBalance}</span>
-              <span className="text-xs font-bold text-slate-500">{t("SAR", "ر.س")}</span>
+          <div className="rounded-2xl border border-violet-100 bg-violet-50/70 p-4 space-y-2">
+            <div>
+              <span className="text-xs font-bold text-slate-500 block">
+                {t("Unlocked Balance Available (Post-Check-Out)", "الرصيد المحرر المتاح للسحب (بعد مغادرة الضيف)")}
+              </span>
+              <div className="mt-1 flex items-baseline gap-2">
+                <span className="text-2xl font-black text-[#4F2396]">{availableBalance}</span>
+                <span className="text-xs font-bold text-slate-500">{t("SAR", "ر.س")}</span>
+              </div>
             </div>
+            {numericEscrowed > 0 && (
+              <div className="border-t border-violet-200/70 pt-2 text-[11px] font-bold text-amber-800 flex items-center justify-between gap-2">
+                <span>{t("Escrow-Locked Until Guest Check-Out:", "محتجز بالضمان حتى مغادرة الضيف:")}</span>
+                <span className="font-mono">{escrowedBalance} {t("SAR", "ر.س")}</span>
+              </div>
+            )}
           </div>
 
           <div>

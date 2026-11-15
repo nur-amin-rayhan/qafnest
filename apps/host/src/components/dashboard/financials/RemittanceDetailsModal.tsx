@@ -1,8 +1,9 @@
 "use client";
 
 import React from "react";
-import { X, CheckCircle2, Clock, Calendar, ArrowUpRight, Copy } from "lucide-react";
+import { X, CheckCircle2, Clock, Calendar, Copy, Printer, Download } from "lucide-react";
 import type { HostRemittance } from "@/lib/services/hostFinancialsService";
+import { downloadHostRemittanceVoucher } from "@/lib/services/downloadHostVoucher";
 
 interface RemittanceDetailsModalProps {
   remittance: HostRemittance | null;
@@ -29,10 +30,18 @@ export function RemittanceDetailsModal({
     }
   };
 
+  const handlePrint = () => {
+    if (typeof window !== "undefined") window.print();
+  };
+
+  const handleDownloadVoucher = () => {
+    downloadHostRemittanceVoucher(remittance);
+  };
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
-      <div className="w-full max-w-xl rounded-3xl bg-white p-6 sm:p-8 shadow-2xl border border-slate-100 space-y-6 max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200 print:p-0 print:bg-white">
+      <div className="w-full max-w-xl rounded-3xl bg-white p-6 sm:p-8 shadow-2xl border border-slate-100 space-y-6 max-h-[90vh] overflow-y-auto print:border-none print:shadow-none print:max-w-none print:p-4">
+        <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-slate-100">
           <div className="flex items-center gap-3">
             <div
               className={`grid h-10 w-10 place-items-center rounded-2xl ${
@@ -51,7 +60,7 @@ export function RemittanceDetailsModal({
                 <button
                   type="button"
                   onClick={handleCopy}
-                  className="text-slate-400 hover:text-slate-700 cursor-pointer p-1"
+                  className="text-slate-400 hover:text-slate-700 cursor-pointer p-1 print:hidden"
                   title="Copy Reference"
                 >
                   <Copy size={13} />
@@ -63,13 +72,32 @@ export function RemittanceDetailsModal({
               </p>
             </div>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-xl p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-700 cursor-pointer"
-          >
-            <X size={18} />
-          </button>
+          <div className="flex items-center gap-2 print:hidden">
+            <button
+              type="button"
+              onClick={handlePrint}
+              className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 px-3 py-1.5 text-xs font-bold text-slate-700 cursor-pointer transition"
+            >
+              <Printer size={13} />
+              <span>{t("Print Voucher", "طباعة السند")}</span>
+            </button>
+            <button
+              type="button"
+              onClick={handleDownloadVoucher}
+              className="inline-flex items-center gap-1.5 rounded-xl border border-violet-200 bg-violet-50 hover:bg-violet-100 px-3 py-1.5 text-xs font-bold text-[#4F2396] cursor-pointer transition"
+            >
+              <Download size={13} />
+              <span>{t("Download", "تحميل")}</span>
+            </button>
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-xl p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-700 cursor-pointer"
+              aria-label={t("Close", "إغلاق")}
+            >
+              <X size={18} />
+            </button>
+          </div>
         </div>
 
         {/* Amount Summary Strip */}

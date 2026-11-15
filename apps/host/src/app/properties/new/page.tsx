@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { AlertTriangle, Trash2 } from "lucide-react";
 import { useHostAuth } from "@/context/HostAuthContext";
 import { WizardBrandAside } from "@/components/listing-wizard/WizardBrandAside";
@@ -11,11 +11,12 @@ import { StepDetailsPricing } from "@/components/listing-wizard/StepDetailsPrici
 import { StepSpecifications } from "@/components/listing-wizard/StepSpecifications";
 import { StepAmenitiesFeatures } from "@/components/listing-wizard/StepAmenitiesFeatures";
 import { StepPhotosDescription } from "@/components/listing-wizard/StepPhotosDescription";
+import type { PropertyDeletionReasonCode } from "@qafnest/shared";
 import { DeletePropertyModal } from "@/components/dashboard/properties/DeletePropertyModal";
 import { deleteHostPropertyRequest } from "@/lib/hostPropertyActions";
+import { getVisibleWizardSteps, WIZARD_STEPS } from "@/components/listing-wizard/types";
 import {
   DRAFT_STORAGE_KEY,
-  TOTAL_STEPS,
   useWizardDraft,
 } from "@/components/listing-wizard/useWizardDraft";
 import { useWizardSubmit } from "@/components/listing-wizard/useWizardSubmit";
@@ -36,6 +37,7 @@ function NewPropertyWizardInner() {
     pin,
     photos,
     setPhotos,
+    optimizingPhotos,
     editingPropertyId,
     adminFeedback,
     loadingEdit,
@@ -43,6 +45,7 @@ function NewPropertyWizardInner() {
     setDraftError,
     saveToLocal,
     updateDraft,
+    updateBedroomsCount,
     handleSetPin,
     toggleItem,
     handleAddPhotos,
@@ -69,18 +72,38 @@ function NewPropertyWizardInner() {
   const [deletingProperty, setDeletingProperty] = useState(false);
   const [deletePropertyError, setDeletePropertyError] = useState<string | null>(null);
 
-  const handleConfirmDeleteEditingProperty = async () => {
+  const visibleSteps = useMemo(
+    () => getVisibleWizardSteps(draft.mainFacilities),
+    [draft.mainFacilities]
+  );
+
+  // Snap safely to a visible step if a previously selected conditional facility is removed
+  useEffect(() => {
+    if (!visibleSteps.includes(step)) {
+      setStep(WIZARD_STEPS.DETAILS_PRICING);
+    }
+  }, [step, visibleSteps, setStep]);
+
+  const currentVisibleIndex = Math.max(0, visibleSteps.indexOf(step));
+  const totalVisibleSteps = visibleSteps.length;
+
+  const handleConfirmDeleteEditingProperty = async (payload: {
+    reasonCode: PropertyDeletionReasonCode;
+    reasonDetails: string;
+  }) => {
     if (!editingPropertyId || !user?.id) return;
     setDeletingProperty(true);
     setDeletePropertyError(null);
     try {
-      await deleteHostPropertyRequest(editingPropertyId, user.id, lang);
-      try {
-        localStorage.removeItem(DRAFT_STORAGE_KEY);
-        localStorage.removeItem("qafnest-host-listing-draft-v1");
-      } catch {}
+      await deleteHostPropertyRequest({
+        propertyId: editingPropertyId,
+        userId: user.id,
+        reasonCode: payload.reasonCode,
+        reasonDetails: payload.reasonDetails,
+        lang,
+      });
       setDeleteModalOpen(false);
-      router.push(localizeHostPath("/app?listing=deleted", lang));
+      router.push(localizeHostPath("/app?listing=deletion_requested", lang));
       router.refresh();
     } catch (err) {
       setDeletePropertyError(
@@ -123,10 +146,11 @@ function NewPropertyWizardInner() {
 
   const handleNext = async () => {
     if (!canProceed()) return;
-    if (step < TOTAL_STEPS - 1) {
-      const nextIdx = step + 1;
-      setStep(nextIdx);
-      saveToLocal(draft, nextIdx);
+    setSubmitError("");
+    if (currentVisibleIndex < visibleSteps.length - 1) {
+      const nextStepId = visibleSteps[currentVisibleIndex + 1];
+      setStep(nextStepId);
+      saveToLocal(draft, nextStepId);
       window.scrollTo({ top: 0, behavior: "smooth" });
     } else {
       await submitListing();
@@ -134,13 +158,13 @@ function NewPropertyWizardInner() {
   };
 
   const handlePrev = () => {
-    if (step === 0) {
+    if (currentVisibleIndex <= 0) {
       router.push(localizeHostPath("/app", lang));
       return;
     }
-    const prevIdx = Math.max(0, step - 1);
-    setStep(prevIdx);
-    saveToLocal(draft, prevIdx);
+    const prevStepId = visibleSteps[Math.max(0, currentVisibleIndex - 1)];
+    setStep(prevStepId);
+    saveToLocal(draft, prevStepId);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
@@ -183,6 +207,12 @@ function NewPropertyWizardInner() {
   }
 
   const activeError = submitError || draftError;
+  const isSpecStep =
+    step === WIZARD_STEPS.BEDROOM_DETAILS ||
+    step === WIZARD_STEPS.MAJLIS_DETAILS ||
+    step === WIZARD_STEPS.POOL_DETAILS ||
+    step === WIZARD_STEPS.KITCHEN_DETAILS ||
+    step === WIZARD_STEPS.BATHROOM_DETAILS;
 
   return (
     <div
@@ -201,8 +231,8 @@ function NewPropertyWizardInner() {
         }
         category={draft.category}
         isEditing={Boolean(editingPropertyId)}
-        step={step}
-        totalSteps={TOTAL_STEPS}
+        step={currentVisibleIndex}
+        totalSteps={totalVisibleSteps}
       />
 
       {/* 2. Main Wizard Card */}
@@ -267,7 +297,9 @@ function NewPropertyWizardInner() {
             )}
 
             {/* Steps 0, 1, 2: Info & Location */}
-            {(step === 0 || step === 1 || step === 2) && (
+            {(step === WIZARD_STEPS.CATEGORY_TITLE ||
+              step === WIZARD_STEPS.MAP_PIN ||
+              step === WIZARD_STEPS.LOCATION) && (
               <StepCategoryLocation
                 step={step}
                 draft={draft}
@@ -279,31 +311,34 @@ function NewPropertyWizardInner() {
               />
             )}
 
-            {/* Step 3: Area, Pricing & Facilities */}
-            {step === 3 && (
+            {/* Step 3: Area, Guest Capacity, Pricing & Dynamic Main Facilities */}
+            {step === WIZARD_STEPS.DETAILS_PRICING && (
               <StepDetailsPricing
                 draft={draft}
                 updateDraft={updateDraft}
+                updateBedroomsCount={updateBedroomsCount}
                 toggleItem={toggleItem}
                 lang={lang}
                 t={t}
               />
             )}
 
-            {/* Steps 4, 5, 6: Bedrooms, Majlis, Bathrooms */}
-            {(step === 4 || step === 5 || step === 6) && (
+            {/* Conditional Facility Detail Steps (Bedrooms, Majlis, Pool, Kitchen, Bathroom) */}
+            {isSpecStep && (
               <StepSpecifications
                 step={step}
                 draft={draft}
                 updateDraft={updateDraft}
+                updateBedroomsCount={updateBedroomsCount}
                 toggleItem={toggleItem}
                 lang={lang}
                 t={t}
               />
             )}
 
-            {/* Steps 7, 8: Amenities & Features */}
-            {(step === 7 || step === 8) && (
+            {/* Property Amenities & Features */}
+            {(step === WIZARD_STEPS.PROPERTY_AMENITIES ||
+              step === WIZARD_STEPS.PROPERTY_FEATURES) && (
               <StepAmenitiesFeatures
                 step={step}
                 draft={draft}
@@ -313,8 +348,8 @@ function NewPropertyWizardInner() {
               />
             )}
 
-            {/* Steps 9, 10: Description & Photos */}
-            {(step === 9 || step === 10) && (
+            {/* Description & Photos */}
+            {(step === WIZARD_STEPS.DESCRIPTION || step === WIZARD_STEPS.PHOTOS) && (
               <StepPhotosDescription
                 step={step}
                 draft={draft}
@@ -323,6 +358,7 @@ function NewPropertyWizardInner() {
                 setPhotos={setPhotos}
                 generateAiDescription={generateAiDescription}
                 handleAddPhotos={handleAddPhotos}
+                optimizingPhotos={optimizingPhotos}
                 lang={lang}
                 t={t}
               />
@@ -331,8 +367,8 @@ function NewPropertyWizardInner() {
 
           {/* Progress Bar & Actions */}
           <WizardProgressFooter
-            step={step}
-            totalSteps={TOTAL_STEPS}
+            step={currentVisibleIndex}
+            totalSteps={totalVisibleSteps}
             canProceed={canProceed()}
             submitting={submitting}
             onPrev={handlePrev}
@@ -352,6 +388,7 @@ function NewPropertyWizardInner() {
               }
             : null
         }
+        userId={user?.id}
         busy={deletingProperty}
         error={deletePropertyError}
         lang={lang}

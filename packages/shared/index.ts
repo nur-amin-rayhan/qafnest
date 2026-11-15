@@ -78,5 +78,7 @@ export * from "./bookingSlotConfig";
 export * from "./pricingEngine";
 export * from "./saudiIdentity";
 export * from "./saudiCities";
+export * from "./propertyDeletionConfig";
+export * from "./unitCode";
 export * from "./propertyBilingual";
 

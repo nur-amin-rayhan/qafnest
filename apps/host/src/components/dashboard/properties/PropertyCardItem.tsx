@@ -45,7 +45,7 @@ export function PropertyCardItem({ prop, t, onDelete }: PropertyCardItemProps) {
           )}
 
           {/* Status Badge Overlay */}
-          <div className="absolute top-3 start-3">
+          <div className="absolute top-3 start-3 flex flex-wrap gap-1.5">
             {isApproved ? (
               <span className="inline-flex items-center gap-1 rounded-full bg-emerald-600/95 text-white px-3 py-1 text-[11px] font-black backdrop-blur-md shadow-xs">
                 <CheckCircle2 size={13} />
@@ -62,11 +62,17 @@ export function PropertyCardItem({ prop, t, onDelete }: PropertyCardItemProps) {
                 <span>{t("Under Review", "قيد المراجعة")}</span>
               </span>
             )}
+            {prop.deletionRequest?.status === "pending" && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/95 text-white px-3 py-1 text-[11px] font-black backdrop-blur-md shadow-xs">
+                <Clock size={12} />
+                <span>{t("Removal Under Review", "طلب الحذف قيد المراجعة")}</span>
+              </span>
+            )}
           </div>
 
           {/* ID & Category Pill */}
           <div className="absolute top-3 end-3 rounded-full bg-black/60 px-2.5 py-0.5 text-[10px] font-mono text-white backdrop-blur-md">
-            #{prop.id.slice(0, 8)}
+            #{prop.unitCode || prop.id.slice(0, 8)}
           </div>
         </div>
 
@@ -102,6 +108,38 @@ export function PropertyCardItem({ prop, t, onDelete }: PropertyCardItemProps) {
               </p>
             </div>
           )}
+
+          {prop.deletionRequest?.status === "pending" && (
+            <div className="rounded-2xl border border-amber-300 bg-amber-50 p-3 text-xs text-amber-950 space-y-1">
+              <div className="flex items-center gap-1.5 font-black text-amber-900">
+                <Clock size={14} className="text-amber-600 shrink-0" />
+                <span>
+                  {t(
+                    "Removal Request Under Admin Review",
+                    "طلب إزالة العقار قيد مراجعة الإدارة"
+                  )}
+                </span>
+              </div>
+              <p className="font-medium text-amber-800 line-clamp-2">
+                {prop.deletionRequest.reasonDetails}
+              </p>
+            </div>
+          )}
+
+          {prop.deletionRequest?.status === "rejected" &&
+            prop.deletionRequest.adminNotes && (
+              <div className="rounded-2xl border border-rose-200 bg-rose-50 p-3 text-xs text-rose-950 space-y-1">
+                <div className="flex items-center gap-1.5 font-black text-rose-900">
+                  <AlertTriangle size={14} className="text-rose-600 shrink-0" />
+                  <span>
+                    {t("Removal Request Declined:", "تم رفض طلب الحذف:")}
+                  </span>
+                </div>
+                <p className="font-medium text-rose-800">
+                  {prop.deletionRequest.adminNotes}
+                </p>
+              </div>
+            )}
         </div>
       </div>
 
@@ -135,15 +173,29 @@ export function PropertyCardItem({ prop, t, onDelete }: PropertyCardItemProps) {
                 onClick={() =>
                   onDelete({
                     id: prop.id,
+                    unitCode: prop.unitCode,
                     title: prop.title,
                     titleAr: prop.titleAr,
                     isApproved: prop.isApproved,
                     status: prop.status,
+                    deletionRequest: prop.deletionRequest ?? null,
                   })
                 }
-                aria-label={t("Delete Property", "حذف العقار")}
-                title={t("Delete Property", "حذف العقار")}
-                className="p-2 rounded-xl border border-rose-200 text-rose-600 hover:bg-rose-50 hover:border-rose-300 transition cursor-pointer"
+                aria-label={
+                  prop.deletionRequest?.status === "pending"
+                    ? t("Manage Removal Request", "إدارة طلب الحذف")
+                    : t("Request Property Removal", "طلب حذف العقار")
+                }
+                title={
+                  prop.deletionRequest?.status === "pending"
+                    ? t("Manage Removal Request", "إدارة طلب الحذف")
+                    : t("Request Property Removal", "طلب حذف العقار")
+                }
+                className={`p-2 rounded-xl border transition cursor-pointer ${
+                  prop.deletionRequest?.status === "pending"
+                    ? "border-amber-300 bg-amber-50 text-amber-700 hover:bg-amber-100"
+                    : "border-rose-200 text-rose-600 hover:bg-rose-50 hover:border-rose-300"
+                }`}
               >
                 <Trash2 size={15} />
               </button>

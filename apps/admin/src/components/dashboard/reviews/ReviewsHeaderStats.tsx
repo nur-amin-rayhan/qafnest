@@ -63,7 +63,7 @@ export function ReviewsHeaderStats({
       </div>
 
       {/* Live KPI Statistics Bar */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mt-6 pt-5 border-t border-surface-container">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 mt-6 pt-5 border-t border-surface-container">
         <div className="rounded-xl bg-surface-container-low p-3.5 border border-surface-container-high">
           <span className="text-[11px] font-bold uppercase tracking-wider text-outline">
             {t("Total Reviews", "إجمالي التقييمات")}

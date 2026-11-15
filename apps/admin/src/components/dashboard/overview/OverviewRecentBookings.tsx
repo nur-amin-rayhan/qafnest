@@ -2,7 +2,12 @@
 
 import React from "react";
 import { useAdminAuth } from "@/context/AdminAuthContext";
-import { BookingItem, NavTab, SelectedBookingDetail } from "../types";
+import {
+  BookingItem,
+  NavTab,
+  SelectedBookingDetail,
+  buildSelectedBookingDetail,
+} from "../types";
 
 interface OverviewRecentBookingsProps {
   bookings: BookingItem[];
@@ -31,7 +36,7 @@ export function OverviewRecentBookings({
   };
 
   return (
-    <div className="lg:col-span-7 flex flex-col rounded-xl bg-surface-container-lowest p-space-lg shadow-sm">
+    <div className="xl:col-span-7 flex flex-col rounded-xl bg-surface-container-lowest p-space-lg shadow-sm">
       <div className="flex flex-wrap items-center justify-between gap-2 pb-space-md">
         <div>
           <span className="font-label-sm text-primary uppercase font-bold tracking-wider">
@@ -86,31 +91,10 @@ export function OverviewRecentBookings({
               </tr>
             ) : (
               bookings.slice(0, 5).map((item) => {
-                const startMs = item.check_in ? new Date(item.check_in).getTime() : 0;
-                const endMs = item.check_out ? new Date(item.check_out).getTime() : 0;
-                const diffDays = startMs && endMs && endMs > startMs ? Math.round((endMs - startMs) / 86400000) : 1;
                 return (
                   <tr
                     key={item.id}
-                    onClick={() => {
-                      setSelectedBooking({
-                        id: item.booking_reference || item.id,
-                        dbId: item.id,
-                        guestName: item.guest_name || t("Guest", "ضيف"),
-                        phone: item.guest_phone || "—",
-                        propertyTitle: item.property_title || t("Property", "عقار"),
-                        dates: `${item.check_in} → ${item.check_out}`,
-                        nights: diffDays,
-                        amount: Number(item.total_price || 0),
-                        status: item.status,
-                        payoutStatus: item.payment_status,
-                        guests: t(`${item.guests_count || 1} Guests`, `${item.guests_count || 1} ضيوف`),
-                        accommodations: [item.property_city, item.property_district].filter(Boolean).join(", ") || "—",
-                        refund: item.refund || null,
-                        transferClaim: item.transferClaim || null,
-                        settlement: item.settlement || null,
-                      });
-                    }}
+                    onClick={() => setSelectedBooking(buildSelectedBookingDetail(item, t))}
                     className="hover:bg-surface-container-low/60 transition-colors cursor-pointer"
                   >
                     <td className="py-3 px-3">

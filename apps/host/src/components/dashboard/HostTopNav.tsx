@@ -21,6 +21,9 @@ export type Module =
 
 export interface HostNotification {
   id: string;
+  property_id?: string | null;
+  booking_id?: string | null;
+  event_type?: string | null;
   title: string;
   body: string;
   is_read: boolean;
@@ -48,6 +51,7 @@ interface HostTopNavProps {
   hasPropertyIssues: boolean;
   bookingsCount: number;
   notifications: HostNotification[];
+  onSelectNotification?: (notification: HostNotification) => void;
   onMarkAllNotificationsRead: () => Promise<void>;
 }
 
@@ -64,6 +68,7 @@ export default function HostTopNav({
   hasPropertyIssues,
   bookingsCount,
   notifications,
+  onSelectNotification,
   onMarkAllNotificationsRead,
 }: HostTopNavProps) {
   const [mobileNav, setMobileNav] = useState(false);
@@ -153,6 +158,7 @@ export default function HostTopNav({
             notifications={notifications}
             notificationsOpen={notificationsOpen}
             setNotificationsOpen={setNotificationsOpen}
+            onSelectNotification={onSelectNotification}
             onMarkAllNotificationsRead={onMarkAllNotificationsRead}
             lang={lang}
             t={t}

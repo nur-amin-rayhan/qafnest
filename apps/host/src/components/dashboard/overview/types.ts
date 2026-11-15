@@ -1,5 +1,8 @@
+import type { PropertyDeletionRequestSummary } from "@qafnest/shared";
+
 export interface HostPropertySummary {
   id: string;
+  unitCode?: string;
   title: string;
   titleAr?: string;
   city: string;
@@ -15,6 +18,7 @@ export interface HostPropertySummary {
   rejectionReason?: string;
   reviewedAt?: string;
   images?: string[];
+  deletionRequest?: PropertyDeletionRequestSummary | null;
 }
 
 export interface HostBookingSummary {

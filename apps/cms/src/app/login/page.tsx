@@ -140,31 +140,6 @@ function CmsLoginContent() {
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-5">
-          {/* Quick Demo Credentials Badge */}
-          <div className="p-3 rounded-xl bg-purple-500/10 border border-purple-500/20 text-[11px] text-purple-200 flex flex-col gap-1">
-            <span className="font-bold uppercase tracking-wider text-purple-300">
-              {t("Authorized Admin Credentials:", "بيانات دخول المشرف المعتمدة:")}
-            </span>
-            <div className="flex flex-wrap items-center justify-between gap-2 font-mono text-[10px]" dir="ltr">
-              <span>
-                Email: <strong>admin@qafnest.com</strong>
-              </span>
-              <span>
-                Pass: <strong>QafNest@Admin2026!</strong>
-              </span>
-            </div>
-            <button
-              type="button"
-              onClick={() => {
-                setEmail("admin@qafnest.com");
-                setPassword("QafNest@Admin2026!");
-              }}
-              className="text-start font-bold text-teal-400 hover:underline pt-1 cursor-pointer"
-            >
-              {t("Fill Demo Credentials (Click to auto-fill)", "تعبئة البيانات التجريبية (انقر للملء التلقائي)")}
-            </button>
-          </div>
-
           {/* Email */}
           <div>
             <label className="block text-xs font-bold text-gray-300 mb-2">
@@ -176,7 +151,7 @@ function CmsLoginContent() {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="admin@qafnest.com"
+                placeholder="editor@qafnest.com"
                 required
                 dir="ltr"
                 className="w-full bg-white/[0.04] border border-white/10 rounded-2xl ps-11 pe-4 py-3.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-purple-500/80 focus:ring-1 focus:ring-purple-500/80 transition"

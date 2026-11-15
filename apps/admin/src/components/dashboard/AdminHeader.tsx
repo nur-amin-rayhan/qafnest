@@ -1,8 +1,40 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useMemo } from "react";
 import { useAdminAuth } from "@/context/AdminAuthContext";
-import type { AdminMetrics, PropertyItem, BookingItem, SelectedBookingDetail, NavTab } from "./types";
+import { getNumericUnitCode, matchesPropertySearchQuery } from "@qafnest/shared";
+import type { SharedHostPayoutRecord } from "@qafnest/shared/hostPayoutConfig";
+import {
+  buildSelectedBookingDetail,
+  type AdminMetrics,
+  type AdminPropertyDeletionRequest,
+  type PropertyItem,
+  type BookingItem,
+  type SelectedBookingDetail,
+  type NavTab,
+} from "./types";
+
+type PayoutQueueItem = SharedHostPayoutRecord & {
+  sla?: {
+    isOverdue?: boolean;
+    isUrgent?: boolean;
+    countdownLabel?: string;
+    countdownLabelAr?: string;
+  };
+};
+
+interface AdminNotificationItem {
+  id: string;
+  kind: "property" | "payout" | "booking";
+  title: string;
+  subtitle: string;
+  badge: string;
+  tone: "rose" | "amber" | "violet" | "emerald";
+  icon: string;
+  onSelect: () => void;
+}
+
+const READ_NOTIF_STORAGE_KEY = "qafnest_admin_read_notifications_v1";
 
 interface AdminHeaderProps {
   searchQuery: string;
@@ -15,9 +47,15 @@ interface AdminHeaderProps {
   onSignOut: () => void;
   properties?: PropertyItem[];
   bookings?: BookingItem[];
+  urgentPayoutQueue?: PayoutQueueItem[];
+  deletionRequests?: AdminPropertyDeletionRequest[];
   onSelectProperty?: (prop: PropertyItem) => void;
   onSelectBooking?: (booking: SelectedBookingDetail) => void;
   onNavigateTab?: (tab: NavTab) => void;
+  onOpenNotificationTarget?: (
+    tab: NavTab,
+    target: { bookingId?: string; propertyId?: string; payoutId?: string }
+  ) => void;
 }
 
 export default function AdminHeader({
@@ -31,42 +69,67 @@ export default function AdminHeader({
   onSignOut,
   properties = [],
   bookings = [],
+  urgentPayoutQueue = [],
+  deletionRequests = [],
   onSelectProperty,
   onSelectBooking,
   onNavigateTab,
+  onOpenNotificationTarget,
 }: AdminHeaderProps) {
   const { lang, toggleLang, dir, t, setMobileSidebarOpen } = useAdminAuth();
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [readIds, setReadIds] = useState<string[]>([]);
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const searchContainerRef = useRef<HTMLDivElement>(null);
   const mobileSearchContainerRef = useRef<HTMLDivElement>(null);
+  const notificationsContainerRef = useRef<HTMLDivElement>(null);
 
-  // Close dropdown on outside click
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(READ_NOTIF_STORAGE_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) setReadIds(parsed.map(String));
+      }
+    } catch {
+      // Ignore storage restrictions
+    }
+  }, []);
+
+  // Close search/notification dropdowns on outside click or Escape key
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       const target = e.target as Node;
       const inDesktop = searchContainerRef.current?.contains(target);
       const inMobile = mobileSearchContainerRef.current?.contains(target);
+      const inNotifications = notificationsContainerRef.current?.contains(target);
       if (!inDesktop && !inMobile) {
         setDropdownOpen(false);
       }
+      if (!inNotifications) {
+        setNotificationsOpen(false);
+      }
+    };
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setDropdownOpen(false);
+        setNotificationsOpen(false);
+      }
     };
     document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    document.addEventListener("keydown", handleEscape);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleEscape);
+    };
   }, []);
 
   const q = searchQuery.toLowerCase().trim();
 
-  // Filter properties
+  // Filter properties (including numeric Unit Number #, QN-/LIC- refs, host & location)
   const matchingProperties = q
-    ? properties
-        .filter(
-          (p) =>
-            (p.title || "").toLowerCase().includes(q) ||
-            (p.city || "").toLowerCase().includes(q) ||
-            (p.id || "").toLowerCase().includes(q)
-        )
-        .slice(0, 4)
+    ? properties.filter((p) => matchesPropertySearchQuery(p, q)).slice(0, 5)
     : [];
 
   // Filter bookings
@@ -100,23 +163,162 @@ export default function AdminHeader({
 
   const hasResults = matchingProperties.length > 0 || matchingBookings.length > 0 || matchingShortcuts.length > 0;
 
-  const toBookingDetail = (b: BookingItem): SelectedBookingDetail => ({
-    id: b.booking_reference || b.id,
-    dbId: b.id,
-    guestName: b.guest_name || t("Guest", "ضيف"),
-    phone: b.guest_phone || "—",
-    propertyTitle: b.property_title || t("Chalet", "شاليه"),
-    dates: `${b.check_in} – ${b.check_out}`,
-    nights: 1,
-    amount: b.total_price || 0,
-    status: b.status,
-    payoutStatus: "pending",
-    guests: t(`${b.guests_count || 1} Guests`, `${b.guests_count || 1} ضيوف`),
-    accommodations: b.property_city || t("Saudi Arabia", "المملكة العربية السعودية"),
-    refund: b.refund,
-    transferClaim: b.transferClaim,
-    settlement: b.settlement || null,
-  });
+  const toBookingDetail = (b: BookingItem): SelectedBookingDetail =>
+    buildSelectedBookingDetail(b, t);
+
+  const persistReadIds = (next: string[]) => {
+    setReadIds(next);
+    try {
+      localStorage.setItem(READ_NOTIF_STORAGE_KEY, JSON.stringify(next.slice(-100)));
+    } catch {
+      // Ignore storage limits
+    }
+  };
+
+  const markNotificationRead = (id: string) => {
+    if (!readIds.includes(id)) {
+      persistReadIds([...readIds, id]);
+    }
+  };
+
+  const notifications = useMemo<AdminNotificationItem[]>(() => {
+    const list: AdminNotificationItem[] = [];
+
+    // 1. Overdue & Urgent 24h Host Payouts
+    for (const p of urgentPayoutQueue.slice(0, 4)) {
+      const isOverdue = Boolean(p.sla?.isOverdue);
+      const slaText = lang === "ar" ? p.sla?.countdownLabelAr : p.sla?.countdownLabel;
+      list.push({
+        id: `payout:${p.id}:${p.status}`,
+        kind: "payout",
+        title: isOverdue
+          ? t(`Overdue Host Payout · ${p.hostName}`, `تأخير تحويل لمضيف · ${p.hostName}`)
+          : t(`Host Payout Due · ${p.hostName}`, `تحويل مستحق · ${p.hostName}`),
+        subtitle: `${p.reference} · ${Number(p.netPayoutAmount || 0).toFixed(0)} ${t("SAR", "ر.س")}${
+          slaText ? ` (${slaText})` : ""
+        }`,
+        badge: isOverdue ? t("Overdue", "متأخر") : t("24h SLA", "مهلة ٢٤س"),
+        tone: isOverdue ? "rose" : "amber",
+        icon: "payments",
+        onSelect: () => {
+          if (onOpenNotificationTarget) {
+            onOpenNotificationTarget("financials-and-payouts", { payoutId: p.id });
+          } else {
+            onNavigateTab?.("financials-and-payouts");
+          }
+        },
+      });
+    }
+
+    // 2. Pending Property Deletion Requests
+    const pendingDeletions = deletionRequests.filter((r) => r.status === "pending");
+    for (const delReq of pendingDeletions.slice(0, 4)) {
+      list.push({
+        id: `delreq:${delReq.id}:${delReq.requestedAt}`,
+        kind: "property",
+        title: t(
+          `Removal Request: ${delReq.propertyTitle}`,
+          `طلب حذف عقار: ${delReq.propertyTitleAr || delReq.propertyTitle}`
+        ),
+        subtitle: `${t(delReq.reasonLabelEn, delReq.reasonLabelAr)} · ${
+          delReq.activeBookingsCount > 0
+            ? t(
+                `Blocked (${delReq.activeBookingsCount} active res.)`,
+                `محظور (${delReq.activeBookingsCount} حجوزات نشطة)`
+              )
+            : t("0 active reservations", "0 حجوزات نشطة")
+        }`,
+        badge: t("Removal Req", "طلب حذف"),
+        tone: delReq.activeBookingsCount > 0 ? "rose" : "amber",
+        icon: "delete_sweep",
+        onSelect: () => {
+          onNavigateTab?.("properties-management");
+        },
+      });
+    }
+
+    // 2. Pending Property Approvals
+    const pendingProps = properties.filter((p) => !p.is_approved || p.status === "pending");
+    for (const prop of pendingProps.slice(0, 4)) {
+      list.push({
+        id: `prop:${prop.id}:${prop.status}`,
+        kind: "property",
+        title: t(`Property Review: ${prop.title}`, `مراجعة عقار: ${prop.title}`),
+        subtitle: `${prop.city || t("Saudi Arabia", "السعودية")} · ${
+          prop.host_name || t("Host Partner", "شريك مضيف")
+        }`,
+        badge: t("Pending Review", "قيد المراجعة"),
+        tone: "amber",
+        icon: "villa",
+        onSelect: () => {
+          if (onOpenNotificationTarget) {
+            onOpenNotificationTarget("properties-management", { propertyId: prop.id });
+          } else if (onSelectProperty) {
+            onSelectProperty(prop);
+          } else {
+            onNavigateTab?.("properties-management");
+          }
+        },
+      });
+    }
+
+    // 3. Actionable Bookings (Refunds / Pending SADAD / Bank Transfers) + Latest Confirmed
+    const actionBookings = bookings.filter(
+      (b) =>
+        b.status === "refund_requested" ||
+        b.status === "pending" ||
+        b.status === "pending_sadad" ||
+        Boolean(b.transferClaim)
+    );
+    const otherRecentBookings = bookings
+      .filter((b) => !actionBookings.some((ab) => ab.id === b.id))
+      .slice(0, 3);
+
+    for (const b of [...actionBookings.slice(0, 4), ...otherRecentBookings]) {
+      const ref = b.booking_reference || b.id.slice(0, 8).toUpperCase();
+      const isRefund = b.status === "refund_requested";
+      const isHold = b.status === "pending" || b.status === "pending_sadad";
+      list.push({
+        id: `booking:${b.id}:${b.status}`,
+        kind: "booking",
+        title: isRefund
+          ? t(`Refund Request · #${ref}`, `طلب استرداد · #${ref}`)
+          : b.transferClaim
+          ? t(`Bank Transfer Claim · #${ref}`, `إشعار تحويل بنكي · #${ref}`)
+          : isHold
+          ? t(`Pending SADAD Hold · #${ref}`, `حجز بانتظار السداد · #${ref}`)
+          : t(`New Reservation · #${ref}`, `حجز جديد · #${ref}`),
+        subtitle: `${b.guest_name || t("Guest", "ضيف")} · ${
+          b.property_title || t("Property", "عقار")
+        } · ${Number(b.total_price || 0).toLocaleString()} ${t("SAR", "ر.س")}`,
+        badge: isRefund
+          ? t("Refund", "استرداد")
+          : isHold
+          ? t("Action Req", "معلق")
+          : t("Confirmed", "مؤكد"),
+        tone: isRefund ? "rose" : isHold || b.transferClaim ? "violet" : "emerald",
+        icon: "calendar_month",
+        onSelect: () => {
+          if (onOpenNotificationTarget) {
+            onOpenNotificationTarget("bookings-and-reservations", { bookingId: b.id });
+          } else if (onSelectBooking) {
+            onSelectBooking(buildSelectedBookingDetail(b, t));
+          } else {
+            onNavigateTab?.("bookings-and-reservations");
+          }
+        },
+      });
+    }
+
+    return list;
+  }, [urgentPayoutQueue, deletionRequests, properties, bookings, lang, t, onNavigateTab, onSelectProperty, onSelectBooking]);
+
+  const unreadCount = notifications.filter((n) => !readIds.includes(n.id)).length;
+
+  const markAllNotificationsRead = () => {
+    const merged = Array.from(new Set([...readIds, ...notifications.map((n) => n.id)]));
+    persistReadIds(merged);
+  };
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -207,9 +409,15 @@ export default function AdminHeader({
                       className="w-full flex items-center justify-between gap-2 p-2 rounded-xl hover:bg-surface-container-low text-start text-xs transition cursor-pointer"
                     >
                       <div className="min-w-0">
-                        <div className="font-bold text-on-surface truncate">{p.title}</div>
-                        <div className="text-[11px] text-on-surface-variant truncate">
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <span className="font-mono text-[10px] font-black px-1.5 py-0.5 rounded bg-primary/10 text-primary shrink-0">
+                            #{getNumericUnitCode(p.id)}
+                          </span>
+                          <span className="font-bold text-on-surface truncate">{p.title}</span>
+                        </div>
+                        <div className="text-[11px] text-on-surface-variant truncate mt-0.5">
                           {p.city} · {p.district || p.category_name || t("Chalet", "شاليه")}
+                          {p.tourism_license_number ? ` · LIC-${p.tourism_license_number}` : ""}
                         </div>
                       </div>
                       <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-surface-container text-on-surface shrink-0">
@@ -266,10 +474,10 @@ export default function AdminHeader({
     <>
       <header
         dir={dir}
-        className="fixed top-0 start-0 lg:start-72 end-0 h-16 bg-surface-container-lowest/95 backdrop-blur-xl z-30 shadow-[0_1px_8px_rgba(0,0,0,0.04)] border-b border-surface-container flex items-center justify-between px-3 sm:px-6 transition-all duration-300 gap-2 sm:gap-3"
+        className="fixed top-0 start-0 lg:start-64 xl:start-72 end-0 h-16 bg-surface-container-lowest/95 backdrop-blur-xl z-30 shadow-[0_1px_8px_rgba(0,0,0,0.04)] border-b border-surface-container flex items-center justify-between px-3 sm:px-5 lg:px-6 transition-all duration-300 gap-2 sm:gap-3"
       >
         {/* Start: Mobile Hamburger + Mobile Search Trigger + Desktop/Tablet Flex Search Bar */}
-        <div ref={searchContainerRef} className="relative flex items-center gap-2 flex-1 min-w-0 max-w-lg">
+        <div ref={searchContainerRef} className="relative flex items-center gap-2 flex-1 min-w-0 max-w-sm xl:max-w-lg">
           {/* Mobile Hamburger Button */}
           <button
             type="button"
@@ -372,12 +580,17 @@ export default function AdminHeader({
             </span>
           </div>
 
-          {/* Pending Review Verification Pill (Visible on md+) */}
-          <div className="hidden md:flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-status-sand/15 border border-status-sand/30 text-xs font-bold text-status-sand whitespace-nowrap">
+          {/* Pending Review Verification Pill (Clickable shortcut on md+) */}
+          <button
+            type="button"
+            onClick={() => onNavigateTab?.("properties-management")}
+            title={t("Open Pending Property Reviews", "فتح العقارات قيد المراجعة")}
+            className="hidden md:flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-status-sand/15 hover:bg-status-sand/25 border border-status-sand/30 text-xs font-bold text-status-sand whitespace-nowrap cursor-pointer transition-colors"
+          >
             <span className="material-symbols-outlined text-[16px] shrink-0">pending_actions</span>
             <span>{metrics.pendingVerification}</span>
-            <span className="hidden lg:inline">{t("Pending Review", "قيد المراجعة")}</span>
-          </div>
+            <span className="hidden xl:inline">{t("Pending Review", "قيد المراجعة")}</span>
+          </button>
 
           {/* Refresh Button */}
           <button
@@ -391,29 +604,180 @@ export default function AdminHeader({
             </span>
           </button>
 
-          {/* Notification Bell */}
-          <button
-            type="button"
-            onClick={() =>
-              triggerToast(
-                t(
-                  `Reminders: ${metrics.pendingPayoutsCount || 0} host payout(s) in 24h queue (${metrics.overduePayoutsCount || 0} overdue) · ${metrics.pendingVerification} listing(s) awaiting review.`,
-                  `التنبيهات: ${metrics.pendingPayoutsCount || 0} تحويلات بانتظار الصرف خلال ٢٤ ساعة (${metrics.overduePayoutsCount || 0} متأخرة) · ${metrics.pendingVerification} عقارات قيد المراجعة.`
-                )
-              )
-            }
-            className="relative w-9 h-9 rounded-xl border border-surface-container-high/60 bg-surface-container-low hover:bg-surface-container text-on-surface-variant hover:text-on-surface flex items-center justify-center transition-colors cursor-pointer shrink-0"
-            title={t("Alerts & Notifications", "التنبيهات والإشعارات")}
-          >
-            <span className="material-symbols-outlined text-[20px]">notifications</span>
-            {(metrics.pendingVerification > 0 || (metrics.pendingPayoutsCount || 0) > 0) && (
-              <span className="absolute top-1.5 end-1.5 h-2 w-2 rounded-full bg-brand-accent-coral"></span>
+          {/* Actionable Notification Center Dropdown */}
+          <div ref={notificationsContainerRef} className="relative shrink-0">
+            <button
+              type="button"
+              onClick={() => {
+                setNotificationsOpen((prev) => !prev);
+                setDropdownOpen(false);
+              }}
+              aria-expanded={notificationsOpen}
+              aria-label={t("Alerts & Notifications", "التنبيهات والإشعارات")}
+              className={`relative w-9 h-9 rounded-xl border flex items-center justify-center transition-colors cursor-pointer shrink-0 ${
+                notificationsOpen
+                  ? "border-primary bg-primary/10 text-primary"
+                  : "border-surface-container-high/60 bg-surface-container-low hover:bg-surface-container text-on-surface-variant hover:text-on-surface"
+              }`}
+              title={t("Alerts & Notifications", "التنبيهات والإشعارات")}
+            >
+              <span className="material-symbols-outlined text-[20px]">notifications</span>
+              {unreadCount > 0 && (
+                <span className="absolute -top-1 -end-1 min-w-[18px] h-[18px] px-1 rounded-full bg-brand-accent-coral text-white text-[10px] font-black flex items-center justify-center shadow-xs">
+                  {unreadCount > 9 ? "9+" : unreadCount}
+                </span>
+              )}
+            </button>
+
+            {notificationsOpen && (
+              <div
+                dir={dir}
+                className="fixed sm:absolute top-16 sm:top-full sm:mt-2 inset-x-3 sm:inset-x-auto sm:end-0 sm:w-96 z-50 rounded-2xl border border-surface-container bg-surface-container-lowest shadow-2xl overflow-hidden animate-in fade-in duration-150"
+              >
+                <div className="px-4 py-3 border-b border-surface-container flex items-center justify-between gap-2 bg-surface-container-low/60">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="material-symbols-outlined text-[18px] text-primary shrink-0">
+                      notifications_active
+                    </span>
+                    <span className="font-title-sm text-xs font-black text-on-surface truncate">
+                      {t("Operations Notification Center", "مركز تنبيهات العمليات")}
+                    </span>
+                    {unreadCount > 0 && (
+                      <span className="px-1.5 py-0.5 rounded-full bg-primary/10 text-primary text-[10px] font-bold">
+                        {unreadCount}
+                      </span>
+                    )}
+                  </div>
+                  {unreadCount > 0 && (
+                    <button
+                      type="button"
+                      onClick={markAllNotificationsRead}
+                      className="text-[11px] font-bold text-primary hover:underline cursor-pointer shrink-0"
+                    >
+                      {t("Mark all read", "تحديد الكل كمقروء")}
+                    </button>
+                  )}
+                </div>
+
+                <div className="max-h-80 overflow-y-auto divide-y divide-surface-container-low">
+                  {notifications.length === 0 ? (
+                    <div className="p-6 text-center space-y-1.5">
+                      <span className="material-symbols-outlined text-[28px] text-status-emerald block">
+                        check_circle
+                      </span>
+                      <p className="text-xs font-bold text-on-surface">
+                        {t("All Caught Up", "لا توجد تنبيهات معلقة حالياً")}
+                      </p>
+                      <p className="text-[11px] text-outline">
+                        {t(
+                          "No pending property reviews, overdue payouts, or booking holds.",
+                          "لا توجد مراجعات عقارية أو تحويلات متأخرة أو حجوزات معلقة."
+                        )}
+                      </p>
+                    </div>
+                  ) : (
+                    notifications.map((n) => {
+                      const isRead = readIds.includes(n.id);
+                      const toneBadgeClass =
+                        n.tone === "rose"
+                          ? "bg-rose-50 text-rose-700 border-rose-200"
+                          : n.tone === "amber"
+                          ? "bg-amber-50 text-amber-800 border-amber-200"
+                          : n.tone === "violet"
+                          ? "bg-violet-50 text-primary border-violet-200"
+                          : "bg-emerald-50 text-emerald-700 border-emerald-200";
+                      const iconBgClass =
+                        n.tone === "rose"
+                          ? "bg-rose-100 text-rose-700"
+                          : n.tone === "amber"
+                          ? "bg-amber-100 text-amber-800"
+                          : n.tone === "violet"
+                          ? "bg-primary/10 text-primary"
+                          : "bg-emerald-100 text-emerald-700";
+
+                      return (
+                        <button
+                          key={n.id}
+                          type="button"
+                          onClick={() => {
+                            markNotificationRead(n.id);
+                            setNotificationsOpen(false);
+                            n.onSelect();
+                          }}
+                          className={`w-full p-3 text-start flex items-start gap-2.5 transition-colors cursor-pointer hover:bg-surface-container-low ${
+                            isRead ? "opacity-70" : "bg-primary/[0.02]"
+                          }`}
+                        >
+                          <div
+                            className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 mt-0.5 ${iconBgClass}`}
+                          >
+                            <span className="material-symbols-outlined text-[16px]">{n.icon}</span>
+                          </div>
+                          <div className="flex-1 min-w-0 space-y-1">
+                            <div className="flex items-start justify-between gap-2">
+                              <span className="text-xs font-bold text-on-surface line-clamp-1">
+                                {n.title}
+                              </span>
+                              <div className="flex items-center gap-1.5 shrink-0">
+                                <span
+                                  className={`px-1.5 py-0.5 rounded-full text-[9.5px] font-bold border ${toneBadgeClass}`}
+                                >
+                                  {n.badge}
+                                </span>
+                                {!isRead && (
+                                  <span className="w-2 h-2 rounded-full bg-brand-accent-coral shrink-0" />
+                                )}
+                              </div>
+                            </div>
+                            <p className="text-[11px] text-on-surface-variant line-clamp-2">
+                              {n.subtitle}
+                            </p>
+                          </div>
+                        </button>
+                      );
+                    })
+                  )}
+                </div>
+
+                <div className="px-3 py-2.5 border-t border-surface-container bg-surface-container-low/60 flex items-center justify-between gap-2 text-[11px] font-bold">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setNotificationsOpen(false);
+                      onNavigateTab?.("properties-management");
+                    }}
+                    className="text-primary hover:underline cursor-pointer"
+                  >
+                    {t("Properties Queue", "قائمة العقارات")}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onRefresh();
+                      triggerToast(t("Refreshing live notifications...", "جاري تحديث التنبيهات..."));
+                    }}
+                    className="text-on-surface-variant hover:text-on-surface cursor-pointer"
+                  >
+                    {t("Refresh", "تحديث")}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setNotificationsOpen(false);
+                      onNavigateTab?.("financials-and-payouts");
+                    }}
+                    className="text-primary hover:underline cursor-pointer"
+                  >
+                    {t("24h Payouts", "المدفوعات")}
+                  </button>
+                </div>
+              </div>
             )}
-          </button>
+          </div>
 
           {/* User Profile & Sign Out Strip */}
           <div className="flex items-center gap-1.5 sm:gap-2 ps-1.5 sm:ps-2 border-s border-surface-container-high shrink-0">
-            <div className="text-start hidden md:flex flex-col">
+            <div className="text-start hidden xl:flex flex-col">
               <span className="font-title-sm text-xs text-on-surface leading-tight font-bold truncate max-w-[120px]">
                 {userEmail?.split("@")[0] || t("Admin", "المدير")}
               </span>

@@ -47,9 +47,19 @@ export const SESSION_COOKIE_KEY = "qafnest_has_session";
 export function syncSessionCookie(tokenOrActive?: string | boolean | null) {
   if (typeof document === "undefined") return;
   try {
-    if (typeof tokenOrActive === "string" && tokenOrActive.length > 20) {
+    if (
+      typeof tokenOrActive === "string" &&
+      (tokenOrActive.length > 20 ||
+        (process.env.NODE_ENV !== "production" && tokenOrActive === "dev_guest_token"))
+    ) {
       document.cookie = `${SESSION_COOKIE_KEY}=${tokenOrActive}; path=/; max-age=3600; SameSite=Lax`;
     } else if (tokenOrActive === true) {
+      if (
+        process.env.NODE_ENV !== "production" &&
+        document.cookie.includes(`${SESSION_COOKIE_KEY}=dev_guest_token`)
+      ) {
+        return;
+      }
       if (isFirebaseConfigured()) {
         const fbUser = getFirebaseAuth().currentUser;
         if (fbUser) {

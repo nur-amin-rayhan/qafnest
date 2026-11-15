@@ -31,7 +31,13 @@ interface HostLedgersSectionProps {
   ) => Promise<void>;
   onBatchUpdateStatus?: (
     payoutIds: string[],
-    status: "disbursed" | "pending" | "processing" | "on_hold"
+    status: "disbursed" | "pending" | "processing" | "on_hold",
+    sarieTxnId?: string
+  ) => Promise<void>;
+  onReviewRequest?: (
+    payoutId: string,
+    decision: "approved" | "rejected",
+    rejectionReason?: string
   ) => Promise<void>;
   onSendReminder?: (payoutIds: string[]) => Promise<void>;
 }
@@ -50,6 +56,7 @@ export function HostLedgersSection({
   nowTick,
   onUpdateStatus,
   onBatchUpdateStatus,
+  onReviewRequest,
   onSendReminder,
 }: HostLedgersSectionProps) {
   const { t, dir } = useAdminAuth();
@@ -393,6 +400,7 @@ export function HostLedgersSection({
             nowTick={nowTick}
             onUpdateStatus={onUpdateStatus}
             onBatchUpdateStatus={onBatchUpdateStatus}
+            onReviewRequest={onReviewRequest}
             onSendReminder={onSendReminder}
           />
         </div>

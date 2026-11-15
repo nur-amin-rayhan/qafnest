@@ -270,14 +270,6 @@ export function useHostAuthFlow({
     }
   };
 
-  // Quick Dev Login
-  const handleDevHostFill = () => {
-    setEmail(process.env.NEXT_PUBLIC_DEV_HOST_EMAIL || "host.dev@qafnest.com");
-    setPassword(process.env.NEXT_PUBLIC_DEV_HOST_PASSWORD || "QafNest@Dev2026!");
-    setIsEmailSignIn(true);
-    setActiveTab("email");
-  };
-
   return {
     activeTab, setActiveTab, phoneStep, setPhoneStep,
     otpChannel, setOtpChannel, phone, setPhone,
@@ -291,6 +283,6 @@ export function useHostAuthFlow({
     recaptchaContainerRef, otpInputRefs,
     handleSendPhoneOtp, handleOtpChange, handleOtpKeyDown,
     handleVerifyOtp, handleSaveHostProfile, handleEmailAuth,
-    handleDevHostFill, finishAuth,
+    finishAuth,
   };
 }

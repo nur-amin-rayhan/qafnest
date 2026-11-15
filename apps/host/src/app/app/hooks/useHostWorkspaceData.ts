@@ -8,10 +8,15 @@ import {
 import type { HostNotification } from "@/components/dashboard/HostTopNav";
 import type { HostReviewSummary } from "@/components/dashboard/overview/types";
 import type { DeletePropertyTarget } from "@/components/dashboard/properties/DeletePropertyModal";
+import type {
+  PropertyDeletionReasonCode,
+  PropertyDeletionRequestSummary,
+} from "@qafnest/shared";
 import { useHostRealtime } from "@/hooks/useHostRealtime";
 
 export type HostSubmittedProperty = {
   id: string;
+  unitCode?: string;
   title: string;
   titleAr?: string;
   city: string;
@@ -27,6 +32,7 @@ export type HostSubmittedProperty = {
   rejectionReason?: string;
   reviewedAt?: string;
   images?: string[];
+  deletionRequest?: PropertyDeletionRequestSummary | null;
 };
 
 export type HostLiveBooking = {
@@ -81,6 +87,12 @@ export function useHostWorkspaceData(userId: string | undefined, lang: "ar" | "e
               ? "تم حذف العقار نهائياً بنجاح."
               : "Property deleted permanently."
           );
+        } else if (listingParam === "deletion_requested") {
+          setBannerNotice(
+            lang === "ar"
+              ? "تم إرسال طلب حذف العقار للمراجعة الإدارية بنجاح. سيتم الحذف تلقائياً فور الموافقة."
+              : "Property removal request submitted for admin review. It will be removed automatically upon approval."
+          );
         }
       }
     } catch {}
@@ -101,6 +113,7 @@ export function useHostWorkspaceData(userId: string | undefined, lang: "ar" | "e
       if (Array.isArray(data.properties)) {
         const mappedProps = data.properties.map((p: Record<string, unknown>) => ({
           id: String(p.id),
+          unitCode: typeof p.unit_code === "string" ? p.unit_code : undefined,
           title: String(p.title || ""),
           titleAr: typeof p.title_ar === "string" ? p.title_ar : "",
           city: String(p.city_name || p.city || ""),
@@ -116,6 +129,8 @@ export function useHostWorkspaceData(userId: string | undefined, lang: "ar" | "e
           rejectionReason: typeof p.rejection_reason === "string" ? p.rejection_reason : "",
           reviewedAt: typeof p.reviewed_at === "string" ? p.reviewed_at : "",
           images: Array.isArray(p.images) ? (p.images as string[]) : [],
+          deletionRequest:
+            (p.deletion_request as PropertyDeletionRequestSummary | null) ?? null,
         }));
         setSubmittedProperties(mappedProps);
       }
@@ -181,6 +196,27 @@ export function useHostWorkspaceData(userId: string | undefined, lang: "ar" | "e
     } catch {}
   }, []);
 
+  const handleMarkNotificationRead = useCallback(
+    async (notificationId: string) => {
+      if (!userId || !notificationId) return;
+      setNotifications((prev) =>
+        prev.map((n) => (n.id === notificationId ? { ...n, is_read: true } : n))
+      );
+      try {
+        const authHeaders = await getHostRequestHeaders(userId);
+        await fetch("/api/host/dashboard", {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            ...authHeaders,
+          },
+          body: JSON.stringify({ notificationId, hostId: userId }),
+        });
+      } catch {}
+    },
+    [userId]
+  );
+
   const handleMarkAllNotificationsRead = async () => {
     if (!userId) return;
     const authHeaders = await getHostRequestHeaders(userId);
@@ -206,33 +242,59 @@ export function useHostWorkspaceData(userId: string | undefined, lang: "ar" | "e
     setDeleteTarget(null);
   }, [deletingPropertyId]);
 
-  const confirmDeleteProperty = useCallback(async () => {
-    if (!deleteTarget) return;
-    const targetId = deleteTarget.id;
-    setDeletingPropertyId(targetId);
-    setDeleteError(null);
-    try {
-      await deleteHostPropertyRequest(targetId, userId, lang);
-      setSubmittedProperties((prev) => prev.filter((item) => item.id !== targetId));
-      setDeleteTarget(null);
-      setBannerNotice(
-        lang === "ar"
-          ? "تم حذف العقار نهائياً بنجاح."
-          : "Property deleted permanently."
-      );
-      void loadDashboardData();
-    } catch (err) {
-      setDeleteError(
-        err instanceof Error
-          ? err.message
-          : lang === "ar"
-            ? "تعذر حذف العقار."
-            : "Could not delete property."
-      );
-    } finally {
-      setDeletingPropertyId(null);
-    }
-  }, [deleteTarget, userId, lang, loadDashboardData]);
+  const confirmDeleteProperty = useCallback(
+    async (payload: {
+      reasonCode: PropertyDeletionReasonCode;
+      reasonDetails: string;
+    }) => {
+      if (!deleteTarget) return;
+      const targetId = deleteTarget.id;
+      setDeletingPropertyId(targetId);
+      setDeleteError(null);
+      try {
+        const result = await deleteHostPropertyRequest({
+          propertyId: targetId,
+          userId,
+          reasonCode: payload.reasonCode,
+          reasonDetails: payload.reasonDetails,
+          lang,
+        });
+        if (result.pendingReview) {
+          setSubmittedProperties((prev) =>
+            prev.map((item) =>
+              item.id === targetId
+                ? {
+                    ...item,
+                    deletionRequest: result.request ?? item.deletionRequest ?? null,
+                  }
+                : item
+            )
+          );
+        } else {
+          setSubmittedProperties((prev) => prev.filter((item) => item.id !== targetId));
+        }
+        setDeleteTarget(null);
+        setBannerNotice(
+          result.message ||
+            (lang === "ar"
+              ? "تم إرسال طلب حذف العقار للمراجعة الإدارية."
+              : "Property removal request submitted for admin review.")
+        );
+        void loadDashboardData();
+      } catch (err) {
+        setDeleteError(
+          err instanceof Error
+            ? err.message
+            : lang === "ar"
+              ? "تعذر إرسال طلب حذف العقار."
+              : "Could not submit property deletion request."
+        );
+      } finally {
+        setDeletingPropertyId(null);
+      }
+    },
+    [deleteTarget, userId, lang, loadDashboardData]
+  );
 
   return {
     submittedProperties,
@@ -243,6 +305,7 @@ export function useHostWorkspaceData(userId: string | undefined, lang: "ar" | "e
     bannerNotice,
     setBannerNotice,
     loadDashboardData,
+    handleMarkNotificationRead,
     handleMarkAllNotificationsRead,
     deleteTarget,
     deletingPropertyId,

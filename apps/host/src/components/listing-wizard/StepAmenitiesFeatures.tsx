@@ -1,15 +1,18 @@
 "use client";
 
 import React from "react";
-import { PROPERTY_AMENITIES, PROPERTY_FEATURES, WizardDraft } from "./types";
+import {
+  PROPERTY_AMENITIES,
+  PROPERTY_FEATURES,
+  WIZARD_STEPS,
+  type WizardArrayField,
+  type WizardDraft,
+} from "./types";
 
 interface StepAmenitiesFeaturesProps {
   step: number;
   draft: WizardDraft;
-  toggleItem: (
-    key: "mainFacilities" | "bathroomAmenities" | "propertyAmenities" | "propertyFeatures",
-    item: string
-  ) => void;
+  toggleItem: (key: WizardArrayField, item: string) => void;
   lang: "ar" | "en";
   t: (en: string, ar: string) => string;
 }
@@ -21,7 +24,7 @@ export function StepAmenitiesFeatures({
   lang,
   t,
 }: StepAmenitiesFeaturesProps) {
-  if (step === 7) {
+  if (step === WIZARD_STEPS.PROPERTY_AMENITIES) {
     return (
       <div className="space-y-5">
         <div className="flex items-baseline gap-2">
@@ -56,7 +59,7 @@ export function StepAmenitiesFeatures({
     );
   }
 
-  if (step === 8) {
+  if (step === WIZARD_STEPS.PROPERTY_FEATURES) {
     return (
       <div className="space-y-5">
         <div className="flex items-baseline gap-2">

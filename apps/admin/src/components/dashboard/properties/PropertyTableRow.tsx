@@ -1,7 +1,11 @@
 "use client";
 
 import React from "react";
-import { getLocalizedSaudiCity, pickBilingualText } from "@qafnest/shared";
+import {
+  getLocalizedSaudiCity,
+  getNumericUnitCode,
+  pickBilingualText,
+} from "@qafnest/shared";
 import { PropertyItem } from "../types";
 
 interface PropertyTableRowProps {
@@ -68,8 +72,8 @@ export function PropertyTableRow({
                 <span className="material-symbols-outlined text-[18px]">villa</span>
               </div>
             )}
-            <span className="absolute bottom-0.5 end-0.5 bg-surface/90 backdrop-blur-sm text-[9px] font-bold px-1 rounded text-primary">
-              #{prop.id.slice(0, 5)}
+            <span className="absolute bottom-0.5 end-0.5 bg-surface/95 backdrop-blur-sm text-[9px] font-mono font-black px-1 rounded text-primary">
+              #{getNumericUnitCode(prop.id)}
             </span>
           </div>
           <div className="flex flex-col min-w-0 flex-1">
@@ -95,12 +99,18 @@ export function PropertyTableRow({
                 {prop.category || "—"}
               </span>
             </div>
-            <div className="flex items-center gap-2 mt-1 text-[11px] text-outline">
-              <span className="font-mono">ID: {prop.id}</span>
+            <div className="flex items-center gap-2 mt-1 text-[11px] text-outline min-w-0 flex-wrap">
+              <span className="font-mono font-black text-primary bg-primary/10 px-1.5 py-0.2 rounded">
+                Unit #{getNumericUnitCode(prop.id)}
+              </span>
+              <span>•</span>
+              <span className="font-mono truncate max-w-[120px]" title={prop.id}>
+                ID: {prop.id}
+              </span>
               {prop.tourism_license_number && (
                 <>
                   <span>•</span>
-                  <span className="font-mono text-on-surface-variant">
+                  <span className="font-mono text-on-surface-variant truncate max-w-[130px]">
                     Lic: {prop.tourism_license_number}
                   </span>
                 </>
@@ -184,29 +194,36 @@ export function PropertyTableRow({
 
       {/* Column 4: Status */}
       <td className="py-3.5 px-4 align-middle text-center">
-        {isApproved ? (
-          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wide bg-status-emerald/15 text-status-emerald">
-            ● {t("Published", "منشور")}
-          </span>
-        ) : isPending ? (
-          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wide bg-status-sand/20 text-status-sand">
-            ⏳ {t("Review", "مراجعة")}
-          </span>
-        ) : (
-          <div className="flex flex-col items-center gap-0.5">
-            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wide bg-status-terracotta/15 text-status-terracotta">
-              ✕ {t("Rejected", "مرفوض")}
+        <div className="flex flex-col items-center gap-1">
+          {isApproved ? (
+            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wide bg-status-emerald/15 text-status-emerald">
+              ● {t("Published", "منشور")}
             </span>
-            {prop.admin_feedback && (
-              <span
-                className="text-[10px] text-status-terracotta font-medium truncate max-w-[100px]"
-                title={prop.admin_feedback}
-              >
-                {prop.admin_feedback}
+          ) : isPending ? (
+            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wide bg-status-sand/20 text-status-sand">
+              ⏳ {t("Review", "مراجعة")}
+            </span>
+          ) : (
+            <div className="flex flex-col items-center gap-0.5">
+              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wide bg-status-terracotta/15 text-status-terracotta">
+                ✕ {t("Rejected", "مرفوض")}
               </span>
-            )}
-          </div>
-        )}
+              {prop.admin_feedback && (
+                <span
+                  className="text-[10px] text-status-terracotta font-medium truncate max-w-[100px]"
+                  title={prop.admin_feedback}
+                >
+                  {prop.admin_feedback}
+                </span>
+              )}
+            </div>
+          )}
+          {prop.pending_deletion_request?.status === "pending" && (
+            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-100 text-amber-900 border border-amber-300">
+              {t("Removal Req", "طلب حذف")}
+            </span>
+          )}
+        </div>
       </td>
 
       {/* Column 5: Dedicated View Button & Quick Actions */}
@@ -214,7 +231,7 @@ export function PropertyTableRow({
         className="py-3.5 px-4 align-middle text-end"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-end gap-1.5">
+        <div className="flex items-center justify-end gap-1 flex-nowrap">
           <button
             type="button"
             onClick={() => onSelectProperty?.(prop)}

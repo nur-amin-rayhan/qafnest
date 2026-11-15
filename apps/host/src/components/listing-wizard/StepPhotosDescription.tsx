@@ -1,8 +1,8 @@
 "use client";
 
-import React, { ChangeEvent } from "react";
-import { WizardDraft } from "./types";
-import { validateImageFile } from "@/lib/storage/uploadBridge";
+import React, { ChangeEvent, useState } from "react";
+import { WIZARD_STEPS, type WizardDraft } from "./types";
+import { optimizePropertyImageToWebP } from "@/lib/storage/uploadBridge";
 import { StepDescriptionForm } from "./photos/StepDescriptionForm";
 import { FeaturedCoverPhotoCard } from "./photos/FeaturedCoverPhotoCard";
 import { PhotoGalleryGrid } from "./photos/PhotoGalleryGrid";
@@ -17,7 +17,8 @@ interface StepPhotosDescriptionProps {
     React.SetStateAction<{ file?: File; name: string; url: string }[]>
   >;
   generateAiDescription: (targetLang?: "ar" | "en") => void;
-  handleAddPhotos: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  handleAddPhotos: (e: React.ChangeEvent<HTMLInputElement>) => void | Promise<void>;
+  optimizingPhotos?: boolean;
   lang: "ar" | "en";
   t: (en: string, ar: string) => string;
 }
@@ -30,9 +31,12 @@ export function StepPhotosDescription({
   setPhotos,
   generateAiDescription,
   handleAddPhotos,
+  optimizingPhotos = false,
   lang,
   t,
 }: StepPhotosDescriptionProps) {
+  const [replacingFeatured, setReplacingFeatured] = useState(false);
+
   // Promote any photo to index 0 as the Featured Cover Photo
   const setAsFeatured = (idx: number) => {
     if (idx <= 0 || idx >= photos.length) return;
@@ -59,25 +63,35 @@ export function StepPhotosDescription({
     setPhotos((prev) => prev.filter((_, i) => i !== idx));
   };
 
-  // Replace the featured cover photo directly
-  const handleReplaceFeaturedPhoto = (e: ChangeEvent<HTMLInputElement>) => {
+  // Replace the featured cover photo directly with auto WebP optimization
+  const handleReplaceFeaturedPhoto = async (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file) return;
-    const val = validateImageFile(file);
-    if (!val.valid) {
-      alert(val.error || t("Invalid file selected.", "تم اختيار ملف غير صالح."));
-      return;
-    }
-    const newFeatured = { file, name: file.name, url: URL.createObjectURL(file) };
-    setPhotos((prev) => {
-      if (prev.length === 0) return [newFeatured];
-      return [newFeatured, ...prev.slice(1)];
-    });
     e.target.value = "";
+    if (!file) return;
+    setReplacingFeatured(true);
+    try {
+      const optimized = await optimizePropertyImageToWebP(file);
+      const newFeatured = {
+        file: optimized,
+        name: optimized.name,
+        url: URL.createObjectURL(optimized),
+      };
+      setPhotos((prev) => {
+        if (prev.length === 0) return [newFeatured];
+        return [newFeatured, ...prev.slice(1)];
+      });
+    } catch (err) {
+      alert(
+        err instanceof Error
+          ? err.message
+          : t("Invalid file selected.", "تم اختيار ملف غير صالح.")
+      );
+    } finally {
+      setReplacingFeatured(false);
+    }
   };
 
-  // Step 9: Description
-  if (step === 9) {
+  if (step === WIZARD_STEPS.DESCRIPTION) {
     return (
       <StepDescriptionForm
         draft={draft}
@@ -89,8 +103,7 @@ export function StepPhotosDescription({
     );
   }
 
-  // Step 10: Property Photos & Featured Cover Image
-  if (step === 10) {
+  if (step === WIZARD_STEPS.PHOTOS) {
     const featuredPhoto = photos.length > 0 ? photos[0] : null;
     const galleryPhotos = photos.length > 1 ? photos.slice(1) : [];
 
@@ -107,6 +120,15 @@ export function StepPhotosDescription({
             )}
           </p>
         </div>
+
+        {(optimizingPhotos || replacingFeatured) && (
+          <div className="rounded-xl border border-violet-200 bg-violet-50 px-3.5 py-2.5 text-xs font-bold text-[#4F2396]">
+            {t(
+              "Optimizing images to WebP (<= 2 MB) for faster loading...",
+              "جارٍ ضغط الصور وتحويلها إلى WebP (بحد أقصى 2 ميجابايت) لسرعة التحميل..."
+            )}
+          </div>
+        )}
 
         {/* 1. FEATURED COVER PHOTO SECTION */}
         <FeaturedCoverPhotoCard

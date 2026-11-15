@@ -117,10 +117,22 @@ export function useWizardSubmit({
           .replace(/^-|-$/g, "")
           .slice(0, 48) || "property";
 
+      const hasBedroom = draft.mainFacilities.includes("غرفة نوم");
+      const hasMajlis = draft.mainFacilities.includes("مجلس");
+      const hasPool = draft.mainFacilities.includes("مسبح");
+      const hasKitchen = draft.mainFacilities.includes("مطبخ");
+      const hasBathroom = draft.mainFacilities.includes("دورة مياه");
+
+      const effectiveBedrooms = hasBedroom ? draft.bedroomsCount : 0;
+      const effectiveMajlis = hasMajlis ? draft.mainMajlisCount : 0;
+      const effectiveCapacity = Math.max(1, draft.guestCapacity || 2);
+
       const features = Array.from(
         new Set([
           ...draft.mainFacilities,
-          ...draft.bathroomAmenities,
+          ...(hasPool ? draft.poolAmenities : []),
+          ...(hasKitchen ? draft.kitchenAmenities : []),
+          ...(hasBathroom ? draft.bathroomAmenities : []),
           ...draft.propertyAmenities,
           ...draft.propertyFeatures,
         ])
@@ -158,18 +170,18 @@ export function useWizardSubmit({
             street_ar: draft.streetAr.trim() || null,
             postal_code: draft.postalCode.trim() || null,
             google_maps_url: draft.googleMapsUrl?.trim() || null,
-            specs: `${draft.area} m² · ${draft.bedroomsCount} bedrooms · ${draft.mainMajlisCount} living rooms`,
+            specs: `${draft.area} m² · ${effectiveBedrooms} bedrooms · ${effectiveMajlis} living rooms · Up to ${effectiveCapacity} Guests`,
             base_price: Number(draft.weekdayPrice),
             weekday_price: Number(draft.weekdayPrice),
             weekend_price: Number(draft.weekendPrice || draft.weekdayPrice),
             tourism_license_number: draft.tourismLicenseNumber.trim() || null,
-            capacity: Math.max(2, draft.bedroomsCount * 2 + 2),
-            bedrooms_count: draft.bedroomsCount,
-            living_rooms_count: draft.mainMajlisCount,
+            capacity: effectiveCapacity,
+            bedrooms_count: effectiveBedrooms,
+            living_rooms_count: effectiveMajlis,
             area_sqm: Number(draft.area),
             images,
             features,
-            has_pool: draft.mainFacilities.includes("مسبح"),
+            has_pool: hasPool,
             self_checkin: draft.propertyFeatures.includes("دخول ذاتي"),
             lat: draft.latitude ?? Number((getCityInfo(draft.city).lat + (50 - pin.y) * 0.0035).toFixed(6)),
             lng: draft.longitude ?? Number((getCityInfo(draft.city).lng + (pin.x - 50) * 0.004).toFixed(6)),
@@ -182,6 +194,7 @@ export function useWizardSubmit({
         }
 
         localStorage.removeItem(DRAFT_STORAGE_KEY);
+        localStorage.removeItem("qafnest-host-listing-draft-v2");
         localStorage.removeItem("qafnest-host-listing-draft-v1");
         const activeLocale =
           getHostLocaleFromPathname(typeof window !== "undefined" ? window.location.pathname : null) ??
@@ -213,7 +226,7 @@ export function useWizardSubmit({
         street_ar: draft.streetAr.trim() || null,
         postal_code: draft.postalCode.trim() || null,
         google_maps_url: draft.googleMapsUrl?.trim() || null,
-        specs: `${draft.area} m² · ${draft.bedroomsCount} bedrooms · ${draft.mainMajlisCount} living rooms`,
+        specs: `${draft.area} m² · ${effectiveBedrooms} bedrooms · ${effectiveMajlis} living rooms · Up to ${effectiveCapacity} Guests`,
         base_price: Number(draft.weekdayPrice),
         weekday_price: Number(draft.weekdayPrice),
         weekend_price: Number(draft.weekendPrice || draft.weekdayPrice),
@@ -223,12 +236,12 @@ export function useWizardSubmit({
         status: "pending",
         tourism_license_number: draft.tourismLicenseNumber.trim() || null,
         is_licensed: Boolean(draft.tourismLicenseNumber.trim()),
-        capacity: Math.max(2, draft.bedroomsCount * 2 + 2),
-        bedrooms_count: draft.bedroomsCount,
-        living_rooms_count: draft.mainMajlisCount,
+        capacity: effectiveCapacity,
+        bedrooms_count: effectiveBedrooms,
+        living_rooms_count: effectiveMajlis,
         area_sqm: Number(draft.area),
         self_checkin: draft.propertyFeatures.includes("دخول ذاتي"),
-        has_pool: draft.mainFacilities.includes("مسبح"),
+        has_pool: hasPool,
         checkin_time: "15:00",
         checkout_time: "12:00",
         lat: draft.latitude ?? Number((getCityInfo(draft.city).lat + (50 - pin.y) * 0.0035).toFixed(6)),

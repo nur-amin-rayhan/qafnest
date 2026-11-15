@@ -9,6 +9,7 @@ import {
   getSharedHostIban,
   updateHostPayoutPolicy,
   syncConfirmedBookingsToPayouts,
+  reviewHostPayoutRequest,
   updateStoredPayoutStatus,
   batchUpdateStoredPayoutStatus,
   processStoredSarieBatch,
@@ -534,6 +535,30 @@ async function notifyHostIfPossible(params: {
   }
 }
 
+export async function reviewAdminPayoutRequest(
+  payoutId: string,
+  decision: "approved" | "rejected",
+  actorEmail?: string,
+  reason?: string
+) {
+  const updated = reviewHostPayoutRequest(payoutId, decision, actorEmail, reason);
+  if (updated) {
+    await notifyHostIfPossible({
+      hostId: updated.hostId,
+      eventType: decision === "approved" ? "payout_request_approved" : "payout_request_rejected",
+      title:
+        decision === "approved"
+          ? "تمت الموافقة على طلب تحويل مستحقاتك"
+          : "تحديث حول طلب تحويل المستحقات",
+      body:
+        decision === "approved"
+          ? `تمت مراجعة واعتماد طلب سحب مبلغ ${updated.netPayoutAmount.toFixed(2)} ر.س (${updated.reference}) وإحالته لقسم المالية لإتمام التحويل البنكي.`
+          : `تعذر اعتماد طلب السحب (${updated.reference}): ${updated.rejectionReason || "قيد المراجعة المالية"}.`,
+    });
+  }
+  return updated;
+}
+
 export async function updatePayoutStatus(
   payoutId: string,
   newStatus: PayoutStatus,
@@ -548,19 +573,23 @@ export async function updatePayoutStatus(
         hostId: updated.hostId,
         eventType: "payout_disbursed",
         title: "تم تحويل مستحقاتك البنكية (SARIE)",
-        body: `تم تحويل مبلغ ${updated.netPayoutAmount.toFixed(2)} ر.س لحساب الآيبان الخاص بك (${updated.reference}) برقم مرجع ${updated.sarieTxnId}.`,
+        body: `تم تحويل مبلغ ${updated.netPayoutAmount.toFixed(2)} ر.س لحساب الآيبان الخاص بك (${updated.reference}) برقم العملية البنكية المعتمد ${updated.sarieTxnId}.`,
       });
     }
   }
   return updated;
 }
 
-export function batchUpdatePayoutStatus(payoutIds: string[], newStatus: PayoutStatus) {
-  return batchUpdateStoredPayoutStatus(payoutIds, newStatus);
+export function batchUpdatePayoutStatus(
+  payoutIds: string[],
+  newStatus: PayoutStatus,
+  sarieTxnId?: string
+) {
+  return batchUpdateStoredPayoutStatus(payoutIds, newStatus, sarieTxnId);
 }
 
-export function processSarieSettlementBatch() {
-  return processStoredSarieBatch();
+export function processSarieSettlementBatch(sarieTxnId?: string) {
+  return processStoredSarieBatch(sarieTxnId);
 }
 
 export async function sendHostPayoutReminders(payoutIds?: string[]) {

@@ -13,7 +13,7 @@ export function FinancialsKpiStrip({ metrics }: FinancialsKpiStripProps) {
   const { dir, t } = useAdminAuth();
 
   return (
-    <div dir={dir} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+    <div dir={dir} className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-4">
       {/* 1. Total GMV */}
       <div className="p-5 rounded-2xl bg-surface-container-low border border-surface-container-high shadow-xs">
         <div className="flex items-center justify-between text-xs font-bold text-outline uppercase tracking-wider">

@@ -187,13 +187,14 @@ export function useAdminFinancials() {
 
   const handleBatchUpdateStatus = async (
     payoutIds: string[],
-    status: "disbursed" | "pending" | "processing" | "on_hold"
+    status: "disbursed" | "pending" | "processing" | "on_hold",
+    sarieTxnId?: string
   ) => {
     try {
       const res = await fetch(adminPath("/api/admin/financials"), {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "batch_update_status", payoutIds, status }),
+        body: JSON.stringify({ action: "batch_update_status", payoutIds, status, sarieTxnId }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || "Failed to batch update");
@@ -205,12 +206,12 @@ export function useAdminFinancials() {
     }
   };
 
-  const handleProcessSarieSettlement = async () => {
+  const handleProcessSarieSettlement = async (sarieTxnId?: string) => {
     try {
       const res = await fetch(adminPath("/api/admin/financials"), {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "process_settlement" }),
+        body: JSON.stringify({ action: "process_settlement", sarieTxnId }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || "Failed to process settlement");
@@ -219,6 +220,40 @@ export function useAdminFinancials() {
       triggerToast(data.message || "SAMA SARIE settlement processed successfully!");
     } catch (err: unknown) {
       triggerToast(err instanceof Error ? err.message : "Error processing settlement");
+    }
+  };
+
+  const handleReviewPayoutRequest = async (
+    payoutId: string,
+    decision: "approved" | "rejected",
+    rejectionReason?: string
+  ) => {
+    try {
+      const res = await fetch(adminPath("/api/admin/financials"), {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: decision === "approved" ? "approve_request" : "reject_request",
+          payoutId,
+          rejectionReason,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Failed to review payout request");
+
+      if (data.payout) {
+        setPayouts((prev) => prev.map((p) => (p.id === payoutId ? data.payout : p)));
+      } else {
+        await loadFinancials();
+      }
+      triggerToast(
+        data.message ||
+          (decision === "approved"
+            ? "Host payout request approved for Finance disbursement."
+            : "Host payout request declined.")
+      );
+    } catch (err: unknown) {
+      triggerToast(err instanceof Error ? err.message : "Error reviewing payout request");
     }
   };
 
@@ -287,6 +322,11 @@ export function useAdminFinancials() {
       if (statusFilter === "sla_urgent") {
         const m = computePayoutSlaMetrics(p, nowTick, policy.reminderLeadHours);
         if (m.tier !== "overdue" && m.tier !== "urgent") return false;
+      } else if (statusFilter === "escrow") {
+        const m = computePayoutSlaMetrics(p, nowTick, policy.reminderLeadHours);
+        if (p.status === "disbursed" || m.tier !== "escrow") return false;
+      } else if (statusFilter === "host_requested") {
+        if (p.status === "disbursed" || p.payoutRequestStatus !== "requested") return false;
       } else if (statusFilter !== "all" && p.status !== statusFilter) {
         return false;
       }
@@ -347,6 +387,7 @@ export function useAdminFinancials() {
     handleUpdateStatus,
     handleBatchUpdateStatus,
     handleProcessSarieSettlement,
+    handleReviewPayoutRequest,
     handleSendReminders,
     handleUpdatePolicy,
     handleCheckSuppliers,

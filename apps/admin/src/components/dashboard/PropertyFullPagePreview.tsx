@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import { Star, X } from "lucide-react";
-import { getLocalizedSaudiCity, pickBilingualText } from "@qafnest/shared";
+import { getLocalizedSaudiCity, getNumericUnitCode, pickBilingualText } from "@qafnest/shared";
 import { PropertyItem } from "./types";
 import { groupAmenities } from "@/lib/amenities";
 import { useAdminAuth } from "@/context/AdminAuthContext";
@@ -138,7 +138,10 @@ export function PropertyFullPagePreview({
   const bathrooms = property.bathrooms_count || bedrooms;
   const livingRooms = property.living_rooms_count || 0;
   const capacity = areaSqm ? Math.max(2, Math.round(areaSqm / 30)) : Math.max(1, bedrooms * 2);
-  const unitReference = property.tourism_license_number ? `LIC-${property.tourism_license_number}` : `QN-${property.id.slice(0, 6).toUpperCase()}`;
+  const numericUnit = getNumericUnitCode(property.id);
+  const unitReference = property.tourism_license_number
+    ? `${numericUnit} · LIC-${property.tourism_license_number}`
+    : numericUnit;
 
   // Amenities
   const hasPool = Boolean(property.features?.some((f) => f.toLowerCase().includes("pool") || f.toLowerCase().includes("مسبح")));
@@ -156,7 +159,7 @@ export function PropertyFullPagePreview({
 
   return (
     <div
-      className={`fixed inset-0 z-[100] overflow-y-auto bg-white text-gray-900 dark:bg-[#08070D] dark:text-gray-100 ${
+      className={`fixed inset-y-0 end-0 start-0 lg:start-64 xl:start-72 z-[45] overflow-y-auto bg-white text-gray-900 dark:bg-[#08070D] dark:text-gray-100 ${
         lang === "ar" ? "rtl" : "ltr"
       }`}
       dir={lang === "ar" ? "rtl" : "ltr"}

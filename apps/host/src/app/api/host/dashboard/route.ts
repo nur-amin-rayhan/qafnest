@@ -2,10 +2,16 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import {
   extractBilingualPropertyFields,
+  getNumericUnitCode,
   isMissingBilingualColumnError,
   parseExternalHostMeta,
   stripBilingualFromSelect,
 } from "@qafnest/shared";
+import {
+  getLatestDeletionRequestForProperty,
+  readPropertyDeletionRequests,
+  toDeletionRequestSummary,
+} from "@qafnest/shared/propertyDeletionStore";
 import { getSupabaseConfig } from "@/lib/supabase/config";
 import { verifyHostSession } from "@/lib/auth/serverAuth";
 
@@ -91,14 +97,18 @@ export async function GET(request: NextRequest) {
         p.external_host_id
       );
 
+      const latestDeletion = getLatestDeletionRequestForProperty(String(p.id));
+
       return {
         ...p,
         id: String(p.id),
+        unit_code: getNumericUnitCode(String(p.id)),
         title: typeof p.title === "string" ? p.title : "",
         address: p.address || p.district || p.city_name || p.city || "",
         admin_feedback,
         rejection_reason,
         reviewed_at,
+        deletion_request: toDeletionRequestSummary(latestDeletion),
       };
     });
     const propertyIds = hostProperties.map((p: { id: string }) => p.id);
@@ -167,7 +177,40 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    const notifications: Array<Record<string, unknown>> = notifResult.data || [];
+    const deletionNotifications: Array<Record<string, unknown>> = readPropertyDeletionRequests()
+      .filter((r) => r.hostId === effectiveHostId && r.status !== "cancelled")
+      .slice(0, 10)
+      .map((r) => ({
+        id: `del-notif-${r.id}-${r.status}`,
+        host_id: effectiveHostId,
+        property_id: r.propertyId,
+        booking_id: null,
+        event_type:
+          r.status === "approved"
+            ? "property_deletion_approved"
+            : r.status === "rejected"
+              ? "property_deletion_rejected"
+              : "property_deletion_pending",
+        title:
+          r.status === "approved"
+            ? `Property Removed: ${r.propertyTitle}`
+            : r.status === "rejected"
+              ? `Deletion Request Declined: ${r.propertyTitle}`
+              : `Deletion Under Review: ${r.propertyTitle}`,
+        body:
+          r.status === "approved"
+            ? `Admin approved removal (${r.reasonLabelEn}) and automatically deleted the listing.`
+            : r.status === "rejected"
+              ? `Admin declined removal: ${r.adminNotes || "Please contact support for details."}`
+              : `Submitted reason: ${r.reasonLabelEn} — awaiting admin approval.`,
+        is_read: false,
+        created_at: r.reviewedAt || r.requestedAt,
+      }));
+
+    const notifications: Array<Record<string, unknown>> = [
+      ...deletionNotifications,
+      ...(notifResult.data || []),
+    ];
 
     return NextResponse.json({
       success: true,

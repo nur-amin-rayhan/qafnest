@@ -197,7 +197,7 @@ export function SettlementStatementTab({
           <div className="p-3 bg-slate-50 rounded-2xl space-y-1">
             <span className="text-[11px] text-slate-400 font-bold block">{t("Release Guarantee", "ضمان تحرير المستحقات")}</span>
             <span className="font-bold text-emerald-600 block">
-              {t("24h Post Check-In Active", "مفعل (بعد 24 ساعة من الوصول)")}
+              {t("Escrow Until Check-Out + 24h Settlement", "ضمان حتى المغادرة + تسوية خلال 24 ساعة")}
             </span>
           </div>
           <div className="p-3 bg-slate-50 rounded-2xl space-y-1">

@@ -43,9 +43,10 @@ export function setHostSessionCookie(tokenOrActive: string | boolean) {
   if (typeof document === "undefined") return;
   try {
     const devHostId = process.env.NEXT_PUBLIC_DEV_HOST_ID || "00000000-0000-0000-0000-000000000002";
+    const isDevMode = process.env.NODE_ENV !== "production";
     if (typeof tokenOrActive === "string" && tokenOrActive.length > 0) {
       document.cookie = `${HOST_COOKIE_KEY}=${tokenOrActive}; path=/; max-age=86400; SameSite=Lax`;
-      if (tokenOrActive === "dev_host_token" || document.cookie.includes("qafnest_host_dev=1")) {
+      if (isDevMode && (tokenOrActive === "dev_host_token" || document.cookie.includes("qafnest_host_dev=1"))) {
         document.cookie = "qafnest_host_dev=1; path=/; max-age=86400; SameSite=Lax";
       }
     } else if (tokenOrActive === true) {
@@ -59,12 +60,12 @@ export function setHostSessionCookie(tokenOrActive: string | boolean) {
         }
       }
       // Check dev host session in non-production
-      if (typeof window !== "undefined") {
+      if (isDevMode && typeof window !== "undefined") {
         const raw = localStorage.getItem(HOST_CACHE_KEY);
         if (raw) {
           try {
             const parsed = JSON.parse(raw);
-            if (parsed?.user?.id === devHostId || parsed?.user?.email === "host.dev@qafnest.com") {
+            if (parsed?.user?.id === devHostId) {
               document.cookie = "qafnest_host_dev=1; path=/; max-age=86400; SameSite=Lax";
               document.cookie = `${HOST_COOKIE_KEY}=dev_host_token; path=/; max-age=86400; SameSite=Lax`;
             }
@@ -101,7 +102,7 @@ export function setCachedHostAuth(data: { user: User; profile: HostProfile } | n
     const devHostId = process.env.NEXT_PUBLIC_DEV_HOST_ID || "00000000-0000-0000-0000-000000000002";
     if (data) {
       localStorage.setItem(HOST_CACHE_KEY, JSON.stringify(data));
-      if (data.user?.id === devHostId || data.user?.email === "host.dev@qafnest.com") {
+      if (process.env.NODE_ENV !== "production" && data.user?.id === devHostId) {
         document.cookie = "qafnest_host_dev=1; path=/; max-age=86400; SameSite=Lax";
         document.cookie = `${HOST_COOKIE_KEY}=dev_host_token; path=/; max-age=86400; SameSite=Lax`;
       } else {

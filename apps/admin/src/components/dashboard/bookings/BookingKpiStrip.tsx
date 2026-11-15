@@ -51,7 +51,7 @@ export function BookingKpiStrip({ bookings = [], t }: BookingKpiStripProps) {
   const attentionCount = refundCount + pendingApprovalCount;
 
   return (
-    <div dir={dir} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-space-md">
+    <div dir={dir} className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-space-md">
       {/* Metric 1: Check-ins Today */}
       <div className="relative overflow-hidden rounded-xl bg-surface-container-lowest p-space-md shadow-sm flex flex-col justify-between">
         <div className="flex items-center justify-between">

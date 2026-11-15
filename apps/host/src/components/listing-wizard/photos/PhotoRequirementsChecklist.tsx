@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Bath, BedDouble, Building2, Sofa, Sparkles } from "lucide-react";
+import { Bath, BedDouble, Building2, FileImage, Sofa, Sparkles } from "lucide-react";
 
 interface PhotoRequirementsChecklistProps {
   t: (en: string, ar: string) => string;
@@ -9,7 +9,36 @@ interface PhotoRequirementsChecklistProps {
 
 export function PhotoRequirementsChecklist({ t }: PhotoRequirementsChecklistProps) {
   return (
-    <div className="rounded-2xl border border-slate-100 bg-[#f9f8fc] p-4 space-y-3">
+    <div className="space-y-3">
+      {/* Automated WebP & Size Optimization Guidelines */}
+      <div className="rounded-2xl border border-violet-200/80 bg-violet-50/70 p-4 space-y-2">
+        <div className="flex items-center gap-2 text-xs font-black text-[#4F2396]">
+          <FileImage size={16} className="shrink-0" />
+          <span>{t("Photo Size, Dimension & Format Guidelines", "إرشادات الصيغة والحجم والأبعاد المثالية")}</span>
+        </div>
+        <ul className="space-y-1 text-[11px] font-bold leading-5 text-slate-700 list-disc ps-4">
+          <li>
+            {t(
+              "Auto-compressed to lightweight WebP in your browser for fast mobile loading.",
+              "يتم ضغط الصور تلقائياً إلى صيغة WebP خفيفة لتحميل أسرع على الجوال."
+            )}
+          </li>
+          <li>
+            {t(
+              "Max file size: 2 MB after auto-optimization (supports raw uploads up to 15 MB).",
+              "الحد الأقصى لحجم الملف: 2 ميجابايت بعد الضغط التلقائي (يدعم رفع صور خام حتى 15 ميجابايت)."
+            )}
+          </li>
+          <li>
+            {t(
+              "Recommended dimensions: 1920 × 1080 px (or longest side <= 1920 px) in crisp landscape/vertical framing.",
+              "الأبعاد الموصى بها: 1920 × 1080 بكسل (أو ألا يتجاوز أطول ضلع 1920 بكسل) بجودة عالية."
+            )}
+          </li>
+        </ul>
+      </div>
+
+      <div className="rounded-2xl border border-slate-100 bg-[#f9f8fc] p-4 space-y-3">
       <p className="text-xs font-black leading-5 text-[#4F2396]">
         {t(
           "Based on your selections during registration, you are required to upload at least one photo for each of the following:",
@@ -58,6 +87,7 @@ export function PhotoRequirementsChecklist({ t }: PhotoRequirementsChecklistProp
             )}
           </span>
         </div>
+      </div>
       </div>
     </div>
   );

@@ -2,14 +2,19 @@
 
 import { useState, useEffect, useRef, type ChangeEvent } from "react";
 import { getFirebaseAuth, isFirebaseConfigured } from "@/lib/firebase/client";
-import { validateImageFile } from "@/lib/storage/uploadBridge";
+import { optimizePropertyImageToWebP } from "@/lib/storage/uploadBridge";
 import {
   INITIAL_DRAFT,
   CATEGORIES,
   MAIN_FACILITIES,
+  POOL_AMENITIES,
+  KITCHEN_AMENITIES,
   BATHROOM_AMENITIES,
   PROPERTY_AMENITIES,
   PROPERTY_FEATURES,
+  WIZARD_STEPS,
+  getVisibleWizardSteps,
+  type WizardArrayField,
   type WizardDraft,
 } from "./types";
 import {
@@ -20,8 +25,8 @@ import {
 import { coordsToCityPin, buildGoogleMapsUrl } from "@/lib/geo/mapsUrlParser";
 import { resolveSaudiCity } from "@qafnest/shared";
 
-export const TOTAL_STEPS = 11;
-export const DRAFT_STORAGE_KEY = "qafnest-host-listing-draft-v2";
+export const TOTAL_STEPS = 13;
+export const DRAFT_STORAGE_KEY = "qafnest-host-listing-draft-v3";
 
 interface UseWizardDraftOptions {
   mode: string | null;
@@ -30,10 +35,23 @@ interface UseWizardDraftOptions {
   t: (en: string, ar: string) => string;
 }
 
+/** Clamps master & single bed counts so their sum never exceeds total bedrooms. */
+function clampBedDistribution(bedroomsCount: number, masterBedsCount: number, singleBedsCount: number) {
+  const safeBedrooms = Math.max(0, bedroomsCount);
+  const clampedMaster = Math.min(Math.max(0, masterBedsCount), safeBedrooms);
+  const clampedSingle = Math.min(Math.max(0, singleBedsCount), Math.max(0, safeBedrooms - clampedMaster));
+  return {
+    bedroomsCount: safeBedrooms,
+    masterBedsCount: clampedMaster,
+    singleBedsCount: clampedSingle,
+  };
+}
+
 export function useWizardDraft({ mode, editId, lang, t }: UseWizardDraftOptions) {
   const [step, setStep] = useState(0);
   const [draft, setDraft] = useState<WizardDraft>(INITIAL_DRAFT);
   const [photos, setPhotos] = useState<{ file?: File; name: string; url: string }[]>([]);
+  const [optimizingPhotos, setOptimizingPhotos] = useState(false);
   const [pin, setPin] = useState({ x: 50, y: 50 });
   const [editingPropertyId, setEditingPropertyId] = useState<string | null>(null);
   const [adminFeedback, setAdminFeedback] = useState<string | null>(null);
@@ -47,6 +65,7 @@ export function useWizardDraft({ mode, editId, lang, t }: UseWizardDraftOptions)
   useEffect(() => {
     try {
       localStorage.removeItem("qafnest-host-listing-draft-v1");
+      localStorage.removeItem("qafnest-host-listing-draft-v2");
       if (mode === "new") {
         localStorage.removeItem(DRAFT_STORAGE_KEY);
         setDraft(INITIAL_DRAFT);
@@ -57,12 +76,14 @@ export function useWizardDraft({ mode, editId, lang, t }: UseWizardDraftOptions)
       const stored = localStorage.getItem(DRAFT_STORAGE_KEY);
       if (stored && !editId) {
         const parsed = JSON.parse(stored);
-        setDraft({ ...INITIAL_DRAFT, ...parsed });
+        const restoredDraft: WizardDraft = { ...INITIAL_DRAFT, ...parsed };
+        setDraft(restoredDraft);
         if (parsed.pin && typeof parsed.pin.x === "number" && typeof parsed.pin.y === "number") {
           setPin(parsed.pin);
         }
         if (mode === "resume" && typeof parsed.step === "number") {
-          setStep(Math.min(TOTAL_STEPS - 1, Math.max(0, parsed.step)));
+          const validSteps = getVisibleWizardSteps(restoredDraft.mainFacilities);
+          setStep(validSteps.includes(parsed.step) ? parsed.step : validSteps[0]);
         }
       }
     } catch {
@@ -101,6 +122,93 @@ export function useWizardDraft({ mode, editId, lang, t }: UseWizardDraftOptions)
 
         const loadedFeatures: string[] = Array.isArray(p.features) ? p.features : [];
         const matchGroup = (list: string[]) => loadedFeatures.filter((f) => list.includes(f));
+
+        const mainFacilityIds = MAIN_FACILITIES.map((item) => item.id);
+        const poolAmenityIds = POOL_AMENITIES.map((item) => item.id);
+        const kitchenAmenityIds = KITCHEN_AMENITIES.map((item) => item.id);
+        const bathroomAmenityIds = BATHROOM_AMENITIES.map((item) => item.id);
+        const propertyAmenityIds = PROPERTY_AMENITIES.map((item) => item.id);
+        const propertyFeatureIds = PROPERTY_FEATURES.map((item) => item.id);
+
+        const knownNonCustomIds = new Set([
+          ...mainFacilityIds,
+          ...poolAmenityIds,
+          ...kitchenAmenityIds,
+          ...bathroomAmenityIds,
+          ...propertyAmenityIds,
+          ...propertyFeatureIds,
+        ]);
+        const isKitchenCustomAmenity = (label: string) => {
+          const lower = label.toLowerCase();
+          return (
+            lower.includes("kitchen") ||
+            lower.includes("fridge") ||
+            lower.includes("refrigerator") ||
+            lower.includes("freezer") ||
+            lower.includes("oven") ||
+            lower.includes("stove") ||
+            lower.includes("microwave") ||
+            lower.includes("dishwasher") ||
+            lower.includes("kettle") ||
+            lower.includes("coffee") ||
+            lower.includes("espresso") ||
+            lower.includes("toaster") ||
+            lower.includes("blender") ||
+            lower.includes("fryer") ||
+            lower.includes("grill") ||
+            lower.includes("cook") ||
+            lower.includes("utensil") ||
+            lower.includes("cutlery") ||
+            lower.includes("plate") ||
+            lower.includes("cup") ||
+            lower.includes("pot") ||
+            lower.includes("pan") ||
+            lower.includes("dining") ||
+            lower.includes("water dispenser") ||
+            label.includes("مطبخ") ||
+            label.includes("ثلاجة") ||
+            label.includes("فرن") ||
+            label.includes("ميكروويف") ||
+            label.includes("غلاية") ||
+            label.includes("قهوة") ||
+            label.includes("طبخ") ||
+            label.includes("أواني") ||
+            label.includes("شواء") ||
+            label.includes("برادة")
+          );
+        };
+
+        const customAmenities = loadedFeatures.filter((f) => !knownNonCustomIds.has(f));
+        const hasLoadedKitchenContext =
+          loadedFeatures.includes("مطبخ") || matchGroup(kitchenAmenityIds).length > 0;
+        const matchedKitchenAmenities = [
+          ...matchGroup(kitchenAmenityIds),
+          ...customAmenities.filter((f) =>
+            isKitchenCustomAmenity(f) || (hasLoadedKitchenContext && !loadedFeatures.includes("دورة مياه") && matchGroup(bathroomAmenityIds).length === 0)
+          ),
+        ];
+        const matchedKitchenSet = new Set(matchedKitchenAmenities);
+        const matchedBathroomAmenities = [
+          ...matchGroup(bathroomAmenityIds),
+          ...customAmenities.filter((f) => !matchedKitchenSet.has(f)),
+        ];
+
+        const loadedMainFacilities = matchGroup(mainFacilityIds);
+        if (p.has_pool && !loadedMainFacilities.includes("مسبح")) {
+          loadedMainFacilities.push("مسبح");
+        }
+        if ((p.bedrooms_count ?? 0) > 0 && !loadedMainFacilities.includes("غرفة نوم")) {
+          loadedMainFacilities.push("غرفة نوم");
+        }
+        if ((p.living_rooms_count ?? 0) > 0 && !loadedMainFacilities.includes("مجلس")) {
+          loadedMainFacilities.push("مجلس");
+        }
+        if (matchedKitchenAmenities.length > 0 && !loadedMainFacilities.includes("مطبخ")) {
+          loadedMainFacilities.push("مطبخ");
+        }
+        if (matchedBathroomAmenities.length > 0 && !loadedMainFacilities.includes("دورة مياه")) {
+          loadedMainFacilities.push("دورة مياه");
+        }
 
         const rawCity = p.city_name || p.city || "";
         const hasCoords = typeof p.lat === "number" && typeof p.lng === "number";
@@ -153,6 +261,10 @@ export function useWizardDraft({ mode, editId, lang, t }: UseWizardDraftOptions)
             p.area_sqm !== undefined && p.area_sqm !== null
               ? String(p.area_sqm)
               : "0",
+          guestCapacity:
+            p.capacity !== undefined && p.capacity !== null && Number(p.capacity) > 0
+              ? Number(p.capacity)
+              : Math.max(2, (Number(p.bedrooms_count || 0) * 2) + 2),
           bedroomsCount:
             p.bedrooms_count !== undefined && p.bedrooms_count !== null
               ? Number(p.bedrooms_count)
@@ -170,12 +282,16 @@ export function useWizardDraft({ mode, editId, lang, t }: UseWizardDraftOptions)
             p.living_rooms_count !== undefined && p.living_rooms_count !== null
               ? Number(p.living_rooms_count)
               : 0,
+          poolsCount: p.has_pool ? 1 : 0,
+          kitchensCount: loadedFeatures.some((f) => kitchenAmenityIds.includes(f) || f === "مطبخ") ? 1 : 0,
           description: rawDescAr ? rawDesc : hasArabicScript(rawDesc) ? "" : rawDesc,
           descriptionAr: rawDescAr || (hasArabicScript(rawDesc) ? rawDesc : ""),
-          mainFacilities: matchGroup(MAIN_FACILITIES.map((item) => item.id)),
-          bathroomAmenities: matchGroup(BATHROOM_AMENITIES.map((item) => item.id)),
-          propertyAmenities: matchGroup(PROPERTY_AMENITIES.map((item) => item.id)),
-          propertyFeatures: matchGroup(PROPERTY_FEATURES.map((item) => item.id)),
+          mainFacilities: loadedMainFacilities,
+          poolAmenities: matchGroup(poolAmenityIds),
+          kitchenAmenities: matchedKitchenAmenities,
+          bathroomAmenities: matchedBathroomAmenities,
+          propertyAmenities: matchGroup(propertyAmenityIds),
+          propertyFeatures: matchGroup(propertyFeatureIds),
         }));
 
         if (coordsInfo) {
@@ -223,43 +339,72 @@ export function useWizardDraft({ mode, editId, lang, t }: UseWizardDraftOptions)
     });
   };
 
+  const updateBedroomsCount = (nextCount: number) => {
+    setDraft((prev) => {
+      const clamped = clampBedDistribution(nextCount, prev.masterBedsCount, prev.singleBedsCount);
+      const updated = { ...prev, ...clamped };
+      saveToLocal(updated, step);
+      return updated;
+    });
+  };
+
   const handleSetPin = (newPin: { x: number; y: number }) => {
     setPin(newPin);
     saveToLocal(draft, step, newPin);
   };
 
-  const toggleItem = (
-    key: "mainFacilities" | "bathroomAmenities" | "propertyAmenities" | "propertyFeatures",
-    item: string
-  ) => {
-    const current = draft[key];
-    const next = current.includes(item)
-      ? current.filter((x) => x !== item)
-      : [...current, item];
-    updateDraft(key, next);
+  const toggleItem = (key: WizardArrayField, item: string) => {
+    setDraft((prev) => {
+      const current = prev[key];
+      const next = current.includes(item)
+        ? current.filter((x) => x !== item)
+        : [...current, item];
+      const updated = { ...prev, [key]: next };
+      saveToLocal(updated, step);
+      return updated;
+    });
   };
 
-  const handleAddPhotos = (e: ChangeEvent<HTMLInputElement>) => {
+  const handleAddPhotos = async (e: ChangeEvent<HTMLInputElement>) => {
     const rawFiles = Array.from(e.target.files || []);
-    const validFiles: File[] = [];
-
-    for (const f of rawFiles) {
-      const val = validateImageFile(f);
-      if (!val.valid) {
-        setDraftError(val.error || t("Invalid file selected.", "تم اختيار ملف غير صالح."));
-      } else {
-        validFiles.push(f);
-      }
-    }
+    e.target.value = "";
+    if (rawFiles.length === 0) return;
 
     const remainingSlots = Math.max(0, 12 - photos.length);
-    const addedFiles = validFiles.slice(0, remainingSlots);
+    const candidateFiles = rawFiles.slice(0, remainingSlots);
+    if (candidateFiles.length === 0) return;
 
-    setPhotos((prev) => [
-      ...prev,
-      ...addedFiles.map((f) => ({ file: f, name: f.name, url: URL.createObjectURL(f) })),
-    ]);
-    e.target.value = "";
+    setDraftError("");
+    setOptimizingPhotos(true);
+    const optimizedFiles: File[] = [];
+
+    try {
+      for (const f of candidateFiles) {
+        try {
+          const webpFile = await optimizePropertyImageToWebP(f);
+          optimizedFiles.push(webpFile);
+        } catch (err) {
+          setDraftError(
+            err instanceof Error
+              ? err.message
+              : t("Invalid file selected.", "تم اختيار ملف غير صالح.")
+          );
+        }
+      }
+
+      if (optimizedFiles.length > 0) {
+        setPhotos((prev) => [
+          ...prev,
+          ...optimizedFiles.map((f) => ({
+            file: f,
+            name: f.name,
+            url: URL.createObjectURL(f),
+          })),
+        ]);
+      }
+    } finally {
+      setOptimizingPhotos(false);
+    }
   };
 
   const generateAiDescription = (targetLang?: "ar" | "en") => {
@@ -288,17 +433,27 @@ export function useWizardDraft({ mode, editId, lang, t }: UseWizardDraftOptions)
 
     const allCatalogItems = [
       ...MAIN_FACILITIES.map((i) => ({ id: i.id, ar: i.id, en: i.en })),
+      ...POOL_AMENITIES.map((i) => ({ id: i.id, ar: i.ar, en: i.en })),
+      ...KITCHEN_AMENITIES.map((i) => ({ id: i.id, ar: i.ar, en: i.en })),
       ...BATHROOM_AMENITIES.map((i) => ({ id: i.id, ar: i.ar, en: i.en })),
       ...PROPERTY_AMENITIES.map((i) => ({ id: i.id, ar: i.ar, en: i.en })),
       ...PROPERTY_FEATURES.map((i) => ({ id: i.id, ar: i.id, en: i.en })),
     ];
 
+    const hasBedroom = draft.mainFacilities.includes("غرفة نوم");
+    const hasMajlis = draft.mainFacilities.includes("مجلس");
+    const hasPool = draft.mainFacilities.includes("مسبح");
+    const hasKitchen = draft.mainFacilities.includes("مطبخ");
+    const hasBathroom = draft.mainFacilities.includes("دورة مياه");
+
     const rawSelected = Array.from(
       new Set([
         ...draft.propertyFeatures,
         ...draft.mainFacilities,
+        ...(hasPool ? draft.poolAmenities : []),
+        ...(hasKitchen ? draft.kitchenAmenities : []),
         ...draft.propertyAmenities,
-        ...draft.bathroomAmenities,
+        ...(hasBathroom ? draft.bathroomAmenities : []),
       ])
     );
 
@@ -317,9 +472,10 @@ export function useWizardDraft({ mode, editId, lang, t }: UseWizardDraftOptions)
     if (effectiveLang === "ar") {
       const specsParts: string[] = [];
       if (areaNum > 0) specsParts.push(`مساحة ${areaNum} متر مربع`);
-      if (draft.bedroomsCount > 0) specsParts.push(`${draft.bedroomsCount} غرف نوم`);
-      if (draft.mainMajlisCount > 0) specsParts.push(`${draft.mainMajlisCount} مجلس رئيسي`);
-      if (draft.bathroomsCount > 0) specsParts.push(`${draft.bathroomsCount} دورات مياه`);
+      if (draft.guestCapacity > 0) specsParts.push(`تتسع حتى ${draft.guestCapacity} ضيوف`);
+      if (hasBedroom && draft.bedroomsCount > 0) specsParts.push(`${draft.bedroomsCount} غرف نوم`);
+      if (hasMajlis && draft.mainMajlisCount > 0) specsParts.push(`${draft.mainMajlisCount} مجلس رئيسي`);
+      if (hasBathroom && draft.bathroomsCount > 0) specsParts.push(`${draft.bathroomsCount} دورات مياه`);
 
       const intro = `استمتع بإقامة استثنائية في ${draft.titleAr.trim() || draft.title.trim() || "وحدتنا الفاخرة"} (${localizedCategory})${
         locationPhrase ? ` الواقعة في ${locationPhrase}` : ""
@@ -337,13 +493,16 @@ export function useWizardDraft({ mode, editId, lang, t }: UseWizardDraftOptions)
 
     const specsPartsEn: string[] = [];
     if (areaNum > 0) specsPartsEn.push(`${areaNum} sqm of thoughtfully designed space`);
-    if (draft.bedroomsCount > 0) {
+    if (draft.guestCapacity > 0) {
+      specsPartsEn.push(`capacity for up to ${draft.guestCapacity} guests`);
+    }
+    if (hasBedroom && draft.bedroomsCount > 0) {
       specsPartsEn.push(`${draft.bedroomsCount} bedroom${draft.bedroomsCount === 1 ? "" : "s"}`);
     }
-    if (draft.mainMajlisCount > 0) {
+    if (hasMajlis && draft.mainMajlisCount > 0) {
       specsPartsEn.push(`${draft.mainMajlisCount} main majlis`);
     }
-    if (draft.bathroomsCount > 0) {
+    if (hasBathroom && draft.bathroomsCount > 0) {
       specsPartsEn.push(`${draft.bathroomsCount} bathroom${draft.bathroomsCount === 1 ? "" : "s"}`);
     }
 
@@ -361,14 +520,14 @@ export function useWizardDraft({ mode, editId, lang, t }: UseWizardDraftOptions)
   };
 
   const canProceed = () => {
-    if (step === 0) {
+    if (step === WIZARD_STEPS.CATEGORY_TITLE) {
       return (
         draft.title.trim().length > 0 &&
         draft.titleAr.trim().length > 0 &&
         draft.category.length > 0
       );
     }
-    if (step === 2) {
+    if (step === WIZARD_STEPS.LOCATION) {
       return (
         draft.city.trim().length > 0 &&
         draft.district.trim().length > 0 &&
@@ -377,20 +536,22 @@ export function useWizardDraft({ mode, editId, lang, t }: UseWizardDraftOptions)
         (draft.addressAr || "").trim().length > 0
       );
     }
-    if (step === 3)
+    if (step === WIZARD_STEPS.DETAILS_PRICING) {
       return (
         Number(draft.area) > 0 &&
+        draft.guestCapacity >= 1 &&
         Number(draft.weekdayPrice) > 0 &&
         Number(draft.weekendPrice || draft.weekdayPrice) > 0 &&
         draft.tourismLicenseNumber.trim().length > 0
       );
-    if (step === 9) {
+    }
+    if (step === WIZARD_STEPS.DESCRIPTION) {
       return (
         draft.description.trim().length >= 5 &&
         draft.descriptionAr.trim().length >= 5
       );
     }
-    if (step === 10) return photos.length > 0;
+    if (step === WIZARD_STEPS.PHOTOS) return photos.length > 0 && !optimizingPhotos;
     return true;
   };
 
@@ -403,6 +564,7 @@ export function useWizardDraft({ mode, editId, lang, t }: UseWizardDraftOptions)
     setPin,
     photos,
     setPhotos,
+    optimizingPhotos,
     editingPropertyId,
     adminFeedback,
     loadingEdit,
@@ -410,6 +572,7 @@ export function useWizardDraft({ mode, editId, lang, t }: UseWizardDraftOptions)
     setDraftError,
     saveToLocal,
     updateDraft,
+    updateBedroomsCount,
     handleSetPin,
     toggleItem,
     handleAddPhotos,
@@ -417,4 +580,3 @@ export function useWizardDraft({ mode, editId, lang, t }: UseWizardDraftOptions)
     canProceed,
   };
 }
-

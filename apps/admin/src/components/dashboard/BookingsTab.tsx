@@ -130,9 +130,9 @@ export function BookingsTab({
 
           {/* Primary Interactive Reservations Container */}
           <div className="w-full overflow-hidden bg-surface-container-lowest rounded-xl shadow-sm border border-surface-container/60">
-        {/* Desktop Table View (lg+) */}
-        <div className="hidden lg:block w-full overflow-hidden">
-          <table className="table-fixed w-full border-collapse text-start">
+        {/* Desktop Table View (xl+) */}
+        <div className="hidden xl:block w-full overflow-x-auto">
+          <table className="table-fixed w-full min-w-[860px] border-collapse text-start">
             <colgroup>
               <col style={{ width: "27%" }} />
               <col style={{ width: "25%" }} />
@@ -178,8 +178,8 @@ export function BookingsTab({
           </table>
         </div>
 
-        {/* Mobile & Tablet Card Layout (< lg) */}
-        <div className="block lg:hidden w-full divide-y divide-surface-container/60">
+        {/* Mobile & Tablet Card Layout (< xl) */}
+        <div className="block xl:hidden w-full divide-y divide-surface-container/60">
           {filteredBookings.length === 0 ? (
             <div className="py-12 text-center text-outline">
               {t("No reservations found in this view.", "لا توجد حجوزات في هذا العرض.")}

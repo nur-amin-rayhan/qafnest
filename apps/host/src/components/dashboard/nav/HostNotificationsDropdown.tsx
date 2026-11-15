@@ -8,6 +8,7 @@ interface HostNotificationsDropdownProps {
   notifications: HostNotification[];
   notificationsOpen: boolean;
   setNotificationsOpen: (val: boolean) => void;
+  onSelectNotification?: (notification: HostNotification) => void;
   onMarkAllNotificationsRead: () => Promise<void>;
   lang: "ar" | "en";
   t: (en: string, ar: string) => string;
@@ -21,6 +22,7 @@ export const HostNotificationsDropdown = React.forwardRef<
     notifications,
     notificationsOpen,
     setNotificationsOpen,
+    onSelectNotification,
     onMarkAllNotificationsRead,
     lang,
     t,
@@ -69,24 +71,37 @@ export const HostNotificationsDropdown = React.forwardRef<
               </div>
             ) : (
               notifications.map((notif) => (
-                <div
+                <button
                   key={notif.id}
-                  className={`rounded-xl p-3 text-xs transition ${
+                  type="button"
+                  onClick={() => {
+                    setNotificationsOpen(false);
+                    onSelectNotification?.(notif);
+                  }}
+                  className={`w-full text-start rounded-xl p-3 text-xs transition cursor-pointer ${
                     notif.is_read
-                      ? "bg-slate-50 text-slate-600"
-                      : "bg-violet-50/80 border border-violet-100 text-slate-900 font-extrabold"
+                      ? "bg-slate-50 hover:bg-slate-100 text-slate-600"
+                      : "bg-violet-50/80 hover:bg-violet-100/80 border border-violet-100 text-slate-900 font-extrabold"
                   }`}
                 >
                   <div className="flex items-start justify-between gap-2">
-                    <span className="font-black text-[#4F2396]">{notif.title}</span>
-                    <span className="text-[10px] text-slate-400">
+                    <span className="font-black text-[#4F2396] flex items-center gap-1.5">
+                      {!notif.is_read && (
+                        <span className="h-2 w-2 rounded-full bg-[#4F2396] shrink-0" />
+                      )}
+                      <span>{notif.title}</span>
+                    </span>
+                    <span className="text-[10px] text-slate-400 shrink-0">
                       {new Date(notif.created_at).toLocaleDateString()}
                     </span>
                   </div>
-                  <p className="mt-1 text-xs text-slate-700 leading-relaxed font-medium">
+                  <p className="mt-1 text-xs text-slate-700 leading-relaxed font-medium line-clamp-2">
                     {notif.body}
                   </p>
-                </div>
+                  <span className="mt-1.5 inline-block text-[10px] font-extrabold text-[#4F2396]">
+                    {t("Click to view details ->", "اضغط لعرض التفاصيل ←")}
+                  </span>
+                </button>
               ))
             )}
           </div>

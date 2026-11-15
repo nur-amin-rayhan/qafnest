@@ -288,7 +288,7 @@ export function SettingsTab() {
         {secData && (
           <>
             {/* Policy Toggles & Metrics */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 text-xs">
               <label className="p-3 rounded-xl bg-surface-container-low border border-surface-container flex items-center justify-between gap-2 cursor-pointer">
                 <div>
                   <span className="font-bold text-on-surface block">

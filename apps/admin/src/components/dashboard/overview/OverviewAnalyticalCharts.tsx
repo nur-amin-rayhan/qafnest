@@ -63,9 +63,9 @@ export function OverviewAnalyticalCharts({ metrics, bookings = [] }: OverviewAna
   }
 
   return (
-    <div dir={dir} className="grid grid-cols-1 lg:grid-cols-12 gap-space-lg mb-space-lg">
+    <div dir={dir} className="grid grid-cols-1 xl:grid-cols-12 gap-space-lg mb-space-lg">
       {/* Revenue Velocity Vector Chart */}
-      <div className="lg:col-span-8 flex flex-col rounded-xl bg-surface-container-lowest p-space-lg shadow-sm">
+      <div className="xl:col-span-8 flex flex-col rounded-xl bg-surface-container-lowest p-space-lg shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-2 pb-space-md">
           <div>
             <span className="font-label-sm text-primary uppercase font-bold tracking-wider">
@@ -176,7 +176,7 @@ export function OverviewAnalyticalCharts({ metrics, bookings = [] }: OverviewAna
       </div>
 
       {/* Demand Analytics (Donut) */}
-      <div className="lg:col-span-4 flex flex-col justify-between rounded-xl bg-surface-container-lowest p-space-lg shadow-sm">
+      <div className="xl:col-span-4 flex flex-col justify-between rounded-xl bg-surface-container-lowest p-space-lg shadow-sm">
         <div>
           <span className="font-label-sm text-primary uppercase font-bold tracking-wider">
             {t("Demand Analytics", "تحليلات الطلب")}

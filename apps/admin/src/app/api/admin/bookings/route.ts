@@ -403,21 +403,129 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ code: "slot_unavailable", message: msg }, { status: 409 });
       }
 
-      // Match existing guest profile by verified session or trailing digits of Saudi phone
-      let matchedGuestId: string | null = verifiedSession.guestId || null;
-      if (!matchedGuestId) {
-        const phoneDigits = guestPhone.replace(/\D/g, "").slice(-9);
-        if (phoneDigits.length >= 8) {
-          const { data: matchedProfile } = await supabase
-            .from("profiles")
-            .select("id")
-            .ilike("phone", `%${phoneDigits}%`)
-            .limit(1)
-            .maybeSingle();
-          if (matchedProfile?.id) {
-            matchedGuestId = String(matchedProfile.id);
-          }
+      // Match existing guest profile by verified session, Phone OTP digits, or Email — or auto-create verified guest account for New Callers
+      const normalizeSaudiE164 = (raw: string): string => {
+        const d = String(raw || "").replace(/\D/g, "");
+        if (!d) return "";
+        if (d.startsWith("00966") && d.length >= 12) return `+966${d.slice(5)}`;
+        if (d.startsWith("966") && d.length >= 11) return `+${d}`;
+        if (d.startsWith("05") && d.length === 10) return `+966${d.slice(1)}`;
+        if (d.startsWith("5") && d.length === 9) return `+966${d}`;
+        if (raw.trim().startsWith("+") && d.length >= 8) return `+${d}`;
+        return "";
+      };
+
+      const rawPhoneDigits = guestPhone.replace(/\D/g, "");
+      const phoneDigits9 = rawPhoneDigits.length >= 8 ? rawPhoneDigits.slice(-9) : rawPhoneDigits;
+      const e164Phone = normalizeSaudiE164(guestPhone);
+      const validEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(guestEmail)
+        ? guestEmail.toLowerCase()
+        : "";
+
+      let matchedGuestId: string | null =
+        verifiedSession.guestId ||
+        (typeof body.guestId === "string" && body.guestId.trim() ? body.guestId.trim() : null);
+      let autoCreatedGuest = false;
+
+      if (!matchedGuestId && phoneDigits9.length >= 8) {
+        const { data: matchedProfile } = await supabase
+          .from("profiles")
+          .select("id")
+          .ilike("phone", `%${phoneDigits9}%`)
+          .limit(1)
+          .maybeSingle();
+        if (matchedProfile?.id) {
+          matchedGuestId = String(matchedProfile.id);
         }
+      }
+
+      if (!matchedGuestId && typeof supabase.auth?.admin?.listUsers === "function") {
+        try {
+          const { data: listData } = await supabase.auth.admin.listUsers({ page: 1, perPage: 500 });
+          const authUsers = listData?.users || [];
+          const existingAuthUser = authUsers.find((au) => {
+            const auPhoneDigits = String(au.phone || au.user_metadata?.phone || "")
+              .replace(/\D/g, "")
+              .slice(-9);
+            if (phoneDigits9.length >= 8 && auPhoneDigits === phoneDigits9) return true;
+            const auEmail = String(au.email || "").toLowerCase();
+            const metaEmail = String(au.user_metadata?.contact_email || "").toLowerCase();
+            if (validEmail && (auEmail === validEmail || metaEmail === validEmail)) return true;
+            return false;
+          });
+
+          if (existingAuthUser?.id) {
+            matchedGuestId = existingAuthUser.id;
+            await supabase
+              .from("profiles")
+              .upsert(
+                {
+                  id: matchedGuestId,
+                  full_name: guestName,
+                  phone: e164Phone || guestPhone,
+                  national_id: verifiedSession.nationalId || null,
+                  updated_at: new Date().toISOString(),
+                },
+                { onConflict: "id" }
+              );
+          }
+        } catch {}
+      }
+
+      if (!matchedGuestId && typeof supabase.auth?.admin?.createUser === "function") {
+        const fallbackSynthEmail = `caller_${phoneDigits9 || Date.now()}_${Date.now().toString(36)}@phone.qafnest.sa`;
+        const authEmail = validEmail || `caller_${phoneDigits9 || Date.now()}@phone.qafnest.sa`;
+        const hasValidE164 = /^\+[1-9]\d{7,14}$/.test(e164Phone);
+        const nowIso = new Date().toISOString();
+        const userMetadataPayload: Record<string, unknown> = {
+          full_name: guestName,
+          phone: e164Phone || guestPhone,
+          ...(validEmail ? { contact_email: validEmail } : {}),
+          ...(verifiedSession.nationalId ? { national_id: verifiedSession.nationalId } : {}),
+          ...(verifiedSession.idType === "iqama" && verifiedSession.nationalId
+            ? { iqama: verifiedSession.nationalId }
+            : {}),
+          id_type: verifiedSession.idType || "national_id",
+          is_verified: true,
+          nafath_verified_at: verifiedSession.identityVerifiedAt || verifiedSession.otpVerifiedAt || nowIso,
+          role: "guest",
+          account_type: "guest",
+          created_via: "admin_helpline",
+        };
+
+        try {
+          let createRes = await supabase.auth.admin.createUser({
+            email: authEmail,
+            email_confirm: true,
+            ...(hasValidE164 ? { phone: e164Phone, phone_confirm: true } : {}),
+            user_metadata: userMetadataPayload,
+          });
+
+          if ((createRes.error || !createRes.data?.user?.id) && (validEmail || hasValidE164)) {
+            createRes = await supabase.auth.admin.createUser({
+              email: fallbackSynthEmail,
+              email_confirm: true,
+              user_metadata: userMetadataPayload,
+            });
+          }
+
+          if (createRes.data?.user?.id) {
+            matchedGuestId = createRes.data.user.id;
+            autoCreatedGuest = true;
+            await supabase
+              .from("profiles")
+              .upsert(
+                {
+                  id: matchedGuestId,
+                  full_name: guestName,
+                  phone: e164Phone || guestPhone,
+                  national_id: verifiedSession.nationalId || null,
+                  updated_at: nowIso,
+                },
+                { onConflict: "id" }
+              );
+          }
+        } catch {}
       }
 
       const bookingRef = generateBookingReference();
@@ -528,6 +636,20 @@ export async function POST(request: NextRequest) {
 
       const adminSession = getAdminSession(request);
       try {
+        if (autoCreatedGuest && matchedGuestId) {
+          recordUserActivity({
+            userId: matchedGuestId,
+            userName: guestName,
+            role: "guest",
+            category: "auth",
+            action: "auto_created_via_helpline",
+            title: `Verified guest account created via Helpline`,
+            details: `${e164Phone || guestPhone}${validEmail ? ` · ${validEmail}` : ""}`,
+            targetId: matchedGuestId,
+            targetLabel: guestName,
+            actor: adminSession?.email || "Admin Helpline",
+          });
+        }
         recordUserActivity({
           userId: matchedGuestId || guestPhone,
           userName: guestName,
@@ -546,13 +668,17 @@ export async function POST(request: NextRequest) {
 
       return NextResponse.json({
         success: true,
+        autoCreatedGuest,
+        guestId: matchedGuestId,
         message: isPaidNow
           ? `Helpline booking #${bookingRef} confirmed & locked for ${guestName}.`
           : `Helpline reservation #${bookingRef} held awaiting SADAD payment for ${guestName}.`,
         booking: {
           ...createdBooking,
+          guest_id: matchedGuestId,
           guest_name: guestName,
-          guest_phone: guestPhone,
+          guest_phone: e164Phone || guestPhone,
+          guest_email: validEmail || null,
           property_title: check.prop.title,
           sadadBillNumber: sadadBillNumber || null,
           smart_lock_pin: smartLockPin,
@@ -601,8 +727,22 @@ export async function PATCH(request: NextRequest) {
     }
 
     if (action === "mark_refund_disbursed") {
+      const { validateLegalTransactionNumber } = await import("@qafnest/shared");
+      const rawTxn =
+        typeof body.transactionNumber === "string"
+          ? body.transactionNumber
+          : typeof body.sarieTxnId === "string"
+          ? body.sarieTxnId
+          : "";
+      const txnCheck = validateLegalTransactionNumber(rawTxn);
+      if (!txnCheck.valid) {
+        return NextResponse.json(
+          { code: "missing_transaction_number", message: txnCheck.errorEn },
+          { status: 400 }
+        );
+      }
       const adminNotes = String(body.adminNotes || "Disbursed via Saudi banking payment rail by Admin Helpline.");
-      const updatedRefund = markRefundDisbursed(existing.booking_reference, adminNotes);
+      const updatedRefund = markRefundDisbursed(existing.booking_reference, adminNotes, txnCheck.cleaned);
       if (!updatedRefund) {
         return NextResponse.json({ code: "refund_not_found", message: "No refund record found for this booking." }, { status: 404 });
       }
@@ -615,8 +755,8 @@ export async function PATCH(request: NextRequest) {
           role: "guest",
           category: "payment",
           action: "refund_disbursed",
-          title: `Refund disbursed for #${existing.booking_reference} (${updatedRefund.refundAmount} SAR)`,
-          details: `Remitted via ${updatedRefund.refundMethod}. ${adminNotes}`,
+          title: `Refund disbursed for #${existing.booking_reference} (${updatedRefund.refundAmount} SAR · Txn #${txnCheck.cleaned})`,
+          details: `Remitted via ${updatedRefund.refundMethod} (Txn #${txnCheck.cleaned}). ${adminNotes}`,
           targetId: existing.id,
           targetLabel: existing.booking_reference,
           actor: adminSession?.email || "Admin Helpline",
@@ -625,7 +765,7 @@ export async function PATCH(request: NextRequest) {
 
       return NextResponse.json({
         success: true,
-        message: `Refund #${updatedRefund.id} (${updatedRefund.refundAmount} SAR) marked as disbursed!`,
+        message: `Refund #${updatedRefund.id} (${updatedRefund.refundAmount} SAR) settled with Txn #${txnCheck.cleaned}!`,
         refund: updatedRefund,
       });
     }

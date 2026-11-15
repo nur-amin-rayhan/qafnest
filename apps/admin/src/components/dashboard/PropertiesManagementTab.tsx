@@ -2,13 +2,14 @@
 
 import React, { useMemo } from "react";
 import { useAdminAuth } from "@/context/AdminAuthContext";
-import { PropertyItem } from "./types";
+import { PropertyItem, type AdminPropertyDeletionRequest } from "./types";
 import { PropertyTableRow } from "./properties/PropertyTableRow";
 import { PropertyMobileCard } from "./properties/PropertyMobileCard";
 import { PropertyFiltersBar } from "./properties/PropertyFiltersBar";
 import { PropertiesStatsStrip } from "./properties/PropertiesStatsStrip";
 import { PropertiesHeaderActions } from "./properties/PropertiesHeaderActions";
 import { PropertiesInsightsStrip } from "./properties/PropertiesInsightsStrip";
+import { PropertyDeletionRequestsPanel } from "./properties/PropertyDeletionRequestsPanel";
 
 interface PropertiesManagementTabProps {
   properties: PropertyItem[];
@@ -37,6 +38,12 @@ interface PropertiesManagementTabProps {
   triggerToast: (msg: string) => void;
   onSelectProperty?: (property: PropertyItem) => void;
   onRequestReject?: (property: PropertyItem) => void;
+  deletionRequests?: AdminPropertyDeletionRequest[];
+  onReviewDeletionRequest?: (params: {
+    requestId: string;
+    action: "approve" | "reject";
+    adminNotes?: string;
+  }) => Promise<{ ok: boolean; error?: string }>;
 }
 
 export function PropertiesManagementTab({
@@ -62,6 +69,8 @@ export function PropertiesManagementTab({
   triggerToast,
   onSelectProperty,
   onRequestReject,
+  deletionRequests = [],
+  onReviewDeletionRequest,
 }: PropertiesManagementTabProps) {
   const { dir, t } = useAdminAuth();
 
@@ -77,6 +86,17 @@ export function PropertiesManagementTab({
 
   return (
     <div dir={dir} className="flex flex-col w-full space-y-6">
+      {onReviewDeletionRequest && (
+        <PropertyDeletionRequestsPanel
+          requests={deletionRequests}
+          onReviewDeletionRequest={onReviewDeletionRequest}
+          onInspectProperty={(propertyId) => {
+            const match = properties.find((p) => p.id === propertyId);
+            if (match) onSelectProperty?.(match);
+          }}
+        />
+      )}
+
       {/* 1. Top Stats & Performance Summary Strip */}
       <PropertiesStatsStrip properties={properties} />
 
@@ -143,15 +163,15 @@ export function PropertiesManagementTab({
           </div>
         </div>
 
-        {/* Desktop Table View (lg+) */}
-        <div className="hidden lg:block w-full overflow-hidden">
-          <table className="table-fixed w-full border-collapse text-start">
+        {/* Desktop Table View (xl+) */}
+        <div className="hidden xl:block w-full overflow-x-auto">
+          <table className="table-fixed w-full min-w-[920px] border-collapse text-start">
             <colgroup>
-              <col style={{ width: "36%" }} />
-              <col style={{ width: "28%" }} />
+              <col style={{ width: "33%" }} />
+              <col style={{ width: "24%" }} />
               <col style={{ width: "14%" }} />
-              <col style={{ width: "10%" }} />
-              <col style={{ width: "12%" }} />
+              <col style={{ width: "13%" }} />
+              <col style={{ width: "16%" }} />
             </colgroup>
             <thead>
               <tr className="bg-surface-container-low font-label-sm text-label-sm uppercase tracking-wider text-outline select-none border-b border-surface-container/60">
@@ -200,8 +220,8 @@ export function PropertiesManagementTab({
           </table>
         </div>
 
-        {/* Mobile & Tablet Card Layout (< lg) */}
-        <div className="block lg:hidden w-full divide-y divide-surface-container/60">
+        {/* Mobile & Tablet Card Layout (< xl) */}
+        <div className="block xl:hidden w-full divide-y divide-surface-container/60">
           {filteredProperties.length === 0 ? (
             <div className="py-12 text-center text-outline">
               {t("No properties match your filter criteria.", "لا توجد عقارات تطابق معايير التصفية المحددة.")}

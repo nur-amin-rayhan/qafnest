@@ -74,24 +74,34 @@ export function OverviewPropertiesGrid({
               className="rounded-2xl border border-slate-200/90 bg-white p-5 shadow-xs flex flex-col justify-between hover:shadow-md transition-shadow gap-4"
             >
               <div>
-                <div className="flex items-center justify-between">
-                  {isApproved ? (
-                    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2.5 py-0.5 text-[11px] font-black text-emerald-800">
-                      <CheckCircle2 size={12} className="text-emerald-600" />
-                      <span>{t("Live on Guest App", "معتمد ومعروض")}</span>
-                    </span>
-                  ) : isRejected ? (
-                    <span className="inline-flex items-center gap-1 rounded-full bg-rose-100 px-2.5 py-0.5 text-[11px] font-black text-rose-800">
-                      <AlertTriangle size={12} className="text-rose-600" />
-                      <span>{t("Revisions Requested", "مطلوب تعديلات")}</span>
-                    </span>
-                  ) : (
-                    <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2.5 py-0.5 text-[11px] font-black text-amber-800">
-                      <Clock size={12} className="text-amber-600" />
-                      <span>{t("Under Review", "قيد مراجعة الإدارة")}</span>
-                    </span>
-                  )}
-                  <span className="text-[11px] font-mono text-slate-400">#{prop.id.slice(0, 8)}</span>
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    {isApproved ? (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2.5 py-0.5 text-[11px] font-black text-emerald-800">
+                        <CheckCircle2 size={12} className="text-emerald-600" />
+                        <span>{t("Live on Guest App", "معتمد ومعروض")}</span>
+                      </span>
+                    ) : isRejected ? (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-rose-100 px-2.5 py-0.5 text-[11px] font-black text-rose-800">
+                        <AlertTriangle size={12} className="text-rose-600" />
+                        <span>{t("Revisions Requested", "مطلوب تعديلات")}</span>
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2.5 py-0.5 text-[11px] font-black text-amber-800">
+                        <Clock size={12} className="text-amber-600" />
+                        <span>{t("Under Review", "قيد مراجعة الإدارة")}</span>
+                      </span>
+                    )}
+                    {prop.deletionRequest?.status === "pending" && (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 border border-amber-300 px-2.5 py-0.5 text-[11px] font-black text-amber-900">
+                        <Clock size={11} className="text-amber-600" />
+                        <span>{t("Removal Under Review", "طلب الحذف قيد المراجعة")}</span>
+                      </span>
+                    )}
+                  </div>
+                  <span className="text-[11px] font-mono text-slate-400">
+                    #{prop.unitCode || prop.id.slice(0, 8)}
+                  </span>
                 </div>
 
                 <h3 className="mt-3 text-base font-black text-slate-900 line-clamp-1">
@@ -122,15 +132,29 @@ export function OverviewPropertiesGrid({
                       onClick={() =>
                         onDeleteProperty({
                           id: prop.id,
+                          unitCode: prop.unitCode,
                           title: prop.title,
                           titleAr: prop.titleAr,
                           isApproved: prop.isApproved,
                           status: prop.status,
+                          deletionRequest: prop.deletionRequest ?? null,
                         })
                       }
-                      aria-label={t("Delete Property", "حذف العقار")}
-                      title={t("Delete Property", "حذف العقار")}
-                      className="p-1.5 rounded-lg border border-rose-200 text-rose-600 hover:bg-rose-50 transition cursor-pointer"
+                      aria-label={
+                        prop.deletionRequest?.status === "pending"
+                          ? t("Manage Removal Request", "إدارة طلب الحذف")
+                          : t("Request Property Removal", "طلب حذف العقار")
+                      }
+                      title={
+                        prop.deletionRequest?.status === "pending"
+                          ? t("Manage Removal Request", "إدارة طلب الحذف")
+                          : t("Request Property Removal", "طلب حذف العقار")
+                      }
+                      className={`p-1.5 rounded-lg border transition cursor-pointer ${
+                        prop.deletionRequest?.status === "pending"
+                          ? "border-amber-300 bg-amber-50 text-amber-700 hover:bg-amber-100"
+                          : "border-rose-200 text-rose-600 hover:bg-rose-50"
+                      }`}
                     >
                       <Trash2 size={14} />
                     </button>

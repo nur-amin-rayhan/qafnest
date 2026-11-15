@@ -35,6 +35,7 @@ export interface WizardDraft {
   longitude?: number;
   googleMapsUrl?: string;
   area: string;
+  guestCapacity: number;
   mainFacilities: string[];
   bedroomsCount: number;
   weekdayPrice: string;
@@ -46,6 +47,10 @@ export interface WizardDraft {
   extraMajlisCount: number;
   outdoorSeatingCount: number;
   externalAnnexCount: number;
+  poolsCount: number;
+  poolAmenities: string[];
+  kitchensCount: number;
+  kitchenAmenities: string[];
   bathroomsCount: number;
   bathroomAmenities: string[];
   propertyAmenities: string[];
@@ -74,6 +79,7 @@ export const INITIAL_DRAFT: WizardDraft = {
   longitude: undefined,
   googleMapsUrl: "",
   area: "0",
+  guestCapacity: 2,
   mainFacilities: [],
   bedroomsCount: 0,
   weekdayPrice: "",
@@ -85,6 +91,10 @@ export const INITIAL_DRAFT: WizardDraft = {
   extraMajlisCount: 0,
   outdoorSeatingCount: 0,
   externalAnnexCount: 0,
+  poolsCount: 0,
+  poolAmenities: [],
+  kitchensCount: 0,
+  kitchenAmenities: [],
   bathroomsCount: 0,
   bathroomAmenities: [],
   propertyAmenities: [],
@@ -98,62 +108,52 @@ export const CATEGORIES = [
   {
     id: "شقة",
     en: "Apartment",
-    image:
-      "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&w=400&q=80",
+    image: "/images/categories/apartment.webp",
   },
   {
     id: "شاليه",
     en: "Chalet",
-    image:
-      "https://images.unsplash.com/photo-1580587771525-78b9dba3b914?auto=format&fit=crop&w=400&q=80",
+    image: "/images/categories/chalet.webp",
   },
   {
     id: "استراحة",
     en: "Rest House",
-    image:
-      "https://images.unsplash.com/photo-1613977257363-707ba9348227?auto=format&fit=crop&w=400&q=80",
+    image: "/images/categories/rest-house.webp",
   },
   {
     id: "استديو",
     en: "Studio",
-    image:
-      "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=400&q=80",
+    image: "/images/categories/studio.webp",
   },
   {
     id: "مخيم",
     en: "Camp",
-    image:
-      "https://images.unsplash.com/photo-1504280390367-361c6d9f38f4?auto=format&fit=crop&w=400&q=80",
+    image: "/images/categories/camp.webp",
   },
   {
     id: "فيلا",
     en: "Villa",
-    image:
-      "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=400&q=80",
+    image: "/images/categories/villa.webp",
   },
   {
     id: "منتجع فندقي",
     en: "Hotel Resort",
-    image:
-      "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=400&q=80",
+    image: "/images/categories/hotel-resort.webp",
   },
   {
     id: "غرفة",
     en: "Room",
-    image:
-      "https://images.unsplash.com/photo-1631049307264-da0ec9d70304?auto=format&fit=crop&w=400&q=80",
+    image: "/images/categories/room.webp",
   },
   {
     id: "مزرعة",
     en: "Farm",
-    image:
-      "https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=400&q=80",
+    image: "/images/categories/farm.webp",
   },
   {
     id: "شقق مخدومة",
     en: "Serviced Apt",
-    image:
-      "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?auto=format&fit=crop&w=400&q=80",
+    image: "/images/categories/serviced-apt.webp",
   },
 ];
 
@@ -163,6 +163,24 @@ export const MAIN_FACILITIES = [
   { id: "مسبح", en: "Pool", icon: Waves },
   { id: "مطبخ", en: "Kitchen", icon: CookingPot },
   { id: "دورة مياه", en: "Bathroom", icon: Bath },
+];
+
+export const POOL_AMENITIES = [
+  { id: "outdoor_pool", en: "Outdoor Pool", ar: "مسبح خارجي خاص" },
+  { id: "indoor_pool", en: "Indoor Pool", ar: "مسبح داخلي خاص" },
+  { id: "heated_pool", en: "Heated Pool", ar: "مسبح مدفأ" },
+  { id: "pool_barrier", en: "Child Safety Barrier", ar: "حاجز حماية للأطفال" },
+  { id: "kids_pool", en: "Kids Pool / Water Games", ar: "مسبح أطفال وألعاب مائية" },
+];
+
+export const KITCHEN_AMENITIES = [
+  { id: "equipped_kitchen", en: "Fully Equipped Kitchen", ar: "مطبخ مجهز بالكامل" },
+  { id: "refrigerator", en: "Refrigerator & Freezer", ar: "ثلاجة وفريزر" },
+  { id: "oven_stove", en: "Oven & Stove", ar: "فرن وموقد طهي" },
+  { id: "microwave", en: "Microwave", ar: "مايكرويف" },
+  { id: "electric_kettle", en: "Electric Kettle", ar: "غلاية ماء كهربائية" },
+  { id: "coffee_machine", en: "Coffee Machine", ar: "آلة تحضير قهوة" },
+  { id: "cookware_dishes", en: "Cookware & Tableware", ar: "أواني طبخ وصحون تقديم" },
 ];
 
 export const BATHROOM_AMENITIES = [
@@ -221,6 +239,51 @@ export function normalizeCategory(category: string) {
   return "chalet";
 }
 
+export type WizardArrayField =
+  | "mainFacilities"
+  | "poolAmenities"
+  | "kitchenAmenities"
+  | "bathroomAmenities"
+  | "propertyAmenities"
+  | "propertyFeatures";
+
 export function normalizeCity(city: string) {
   return normalizeSaudiCityId(city);
+}
+
+export const WIZARD_STEPS = {
+  CATEGORY_TITLE: 0,
+  MAP_PIN: 1,
+  LOCATION: 2,
+  DETAILS_PRICING: 3,
+  BEDROOM_DETAILS: 4,
+  MAJLIS_DETAILS: 5,
+  POOL_DETAILS: 6,
+  KITCHEN_DETAILS: 7,
+  BATHROOM_DETAILS: 8,
+  PROPERTY_AMENITIES: 9,
+  PROPERTY_FEATURES: 10,
+  DESCRIPTION: 11,
+  PHOTOS: 12,
+} as const;
+
+export function getVisibleWizardSteps(mainFacilities: string[]): number[] {
+  const steps: number[] = [
+    WIZARD_STEPS.CATEGORY_TITLE,
+    WIZARD_STEPS.MAP_PIN,
+    WIZARD_STEPS.LOCATION,
+    WIZARD_STEPS.DETAILS_PRICING,
+  ];
+  if (mainFacilities.includes("غرفة نوم")) steps.push(WIZARD_STEPS.BEDROOM_DETAILS);
+  if (mainFacilities.includes("مجلس")) steps.push(WIZARD_STEPS.MAJLIS_DETAILS);
+  if (mainFacilities.includes("مسبح")) steps.push(WIZARD_STEPS.POOL_DETAILS);
+  if (mainFacilities.includes("مطبخ")) steps.push(WIZARD_STEPS.KITCHEN_DETAILS);
+  if (mainFacilities.includes("دورة مياه")) steps.push(WIZARD_STEPS.BATHROOM_DETAILS);
+  steps.push(
+    WIZARD_STEPS.PROPERTY_AMENITIES,
+    WIZARD_STEPS.PROPERTY_FEATURES,
+    WIZARD_STEPS.DESCRIPTION,
+    WIZARD_STEPS.PHOTOS
+  );
+  return steps;
 }

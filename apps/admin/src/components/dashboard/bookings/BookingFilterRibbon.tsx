@@ -21,7 +21,7 @@ export function BookingFilterRibbon({
   t,
 }: BookingFilterRibbonProps) {
   return (
-    <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-space-md bg-surface-container-lowest p-space-sm rounded-xl shadow-xs border border-surface-container/60">
+    <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-space-md bg-surface-container-lowest p-space-sm rounded-xl shadow-xs border border-surface-container/60">
       <div className="flex flex-wrap items-center gap-1">
         <button
           type="button"
@@ -107,7 +107,7 @@ export function BookingFilterRibbon({
       </div>
 
       {/* Search within Bookings */}
-      <div className="relative w-full lg:w-72">
+      <div className="relative w-full xl:w-72">
         <span className="material-symbols-outlined absolute start-3 top-2.5 text-outline text-[18px]">
           search
         </span>

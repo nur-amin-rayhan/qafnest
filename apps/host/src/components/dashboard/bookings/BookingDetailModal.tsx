@@ -13,14 +13,10 @@ import {
   MapPin,
   Check,
   Lock,
-  ExternalLink,
-  Link as LinkIcon,
 } from "lucide-react";
 import {
   buildBookingWhatsAppLocationUrl,
   buildLocationCopyText,
-  formatPropertyAddressLine,
-  resolvePropertyGoogleMapsUrl,
 } from "@qafnest/shared";
 import type { HostBookingItem } from "./types";
 
@@ -48,7 +44,7 @@ export function BookingDetailModal({
   const [isManualMode, setIsManualMode] = useState(false);
   const [manualPinInput, setManualPinInput] = useState("");
   const [manualPinError, setManualPinError] = useState<string | null>(null);
-  const [copiedLocationMode, setCopiedLocationMode] = useState<"full" | "link" | null>(null);
+  const [copiedLocation, setCopiedLocation] = useState(false);
 
   if (!booking) return null;
 
@@ -70,8 +66,6 @@ export function BookingDetailModal({
     googleMapsUrl: booking.propertyGoogleMapsUrl,
   };
 
-  const mapsUrl = resolvePropertyGoogleMapsUrl(locationFields);
-  const formattedAddress = formatPropertyAddressLine(locationFields, lang);
   const copyLocationText = buildLocationCopyText(
     { ...locationFields, bookingRef: booking.booking_reference },
     lang
@@ -90,15 +84,8 @@ export function BookingDetailModal({
   const handleCopyLocationFull = (e: React.MouseEvent) => {
     e.stopPropagation();
     navigator.clipboard.writeText(copyLocationText);
-    setCopiedLocationMode("full");
-    setTimeout(() => setCopiedLocationMode(null), 2200);
-  };
-
-  const handleCopyGoogleLink = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    navigator.clipboard.writeText(mapsUrl);
-    setCopiedLocationMode("link");
-    setTimeout(() => setCopiedLocationMode(null), 2200);
+    setCopiedLocation(true);
+    setTimeout(() => setCopiedLocation(false), 2200);
   };
 
   const handleSaveManualPin = () => {
@@ -265,61 +252,28 @@ export function BookingDetailModal({
           )}
         </div>
 
-        {/* Property Location & One-Click Sharing Actions */}
-        <div className="rounded-2xl border border-emerald-200/80 bg-emerald-50/40 p-4 space-y-2.5">
-          <div className="flex items-center justify-between gap-2">
-            <h4 className="text-xs font-black text-slate-900 flex items-center gap-1.5">
-              <MapPin size={14} className="text-[#4F2396] shrink-0" />
-              <span>{t("Property Location & Google Maps", "موقع العقار وخرائط جوجل")}</span>
-            </h4>
-            <a
-              href={mapsUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 rounded-lg bg-white border border-slate-200 px-2.5 py-1 text-[11px] font-black text-[#4F2396] hover:bg-violet-50 transition"
-            >
-              <ExternalLink size={11} />
-              <span>{t("Open Map", "فتح الخريطة")}</span>
-            </a>
+        {/* Simplified Single Location Share Action Bar (WhatsApp / Copy) */}
+        <div className="rounded-2xl border border-emerald-200/80 bg-emerald-50/40 p-3.5 flex flex-wrap items-center justify-between gap-2.5">
+          <div className="flex items-center gap-1.5 text-xs font-black text-slate-900">
+            <MapPin size={14} className="text-[#4F2396] shrink-0" />
+            <span>{t("Share Location with Guest", "مشاركة موقع العقار مع الضيف")}</span>
           </div>
 
-          <p className="text-xs font-bold text-slate-700 leading-relaxed">{formattedAddress}</p>
-          <p className="font-mono text-[11px] text-slate-500 truncate" dir="ltr">
-            {mapsUrl}
-          </p>
-
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-1">
+          <div className="flex flex-wrap items-center gap-2">
             <button
               type="button"
               onClick={handleCopyLocationFull}
-              className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-800 py-2.5 px-3 text-xs font-black shadow-xs transition cursor-pointer"
+              className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-800 py-2 px-3 text-xs font-black shadow-xs transition cursor-pointer"
             >
-              {copiedLocationMode === "full" ? (
+              {copiedLocation ? (
                 <CheckCircle2 size={13} className="text-emerald-600" />
               ) : (
                 <Copy size={13} className="text-[#4F2396]" />
               )}
               <span>
-                {copiedLocationMode === "full"
+                {copiedLocation
                   ? t("Copied!", "تم النسخ!")
                   : t("Copy Location", "نسخ الموقع")}
-              </span>
-            </button>
-
-            <button
-              type="button"
-              onClick={handleCopyGoogleLink}
-              className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-800 py-2.5 px-3 text-xs font-black shadow-xs transition cursor-pointer"
-            >
-              {copiedLocationMode === "link" ? (
-                <CheckCircle2 size={13} className="text-emerald-600" />
-              ) : (
-                <LinkIcon size={13} className="text-[#4F2396]" />
-              )}
-              <span>
-                {copiedLocationMode === "link"
-                  ? t("Link Copied!", "تم نسخ الرابط!")
-                  : t("Copy Google Link", "نسخ رابط جوجل")}
               </span>
             </button>
 
@@ -327,7 +281,7 @@ export function BookingDetailModal({
               href={waLink}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 px-3 text-xs font-black shadow-xs transition cursor-pointer"
+              className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white py-2 px-3.5 text-xs font-black shadow-xs transition cursor-pointer"
             >
               <MessageCircle size={13} />
               <span>{t("WhatsApp Location", "إرسال بالواتساب")}</span>

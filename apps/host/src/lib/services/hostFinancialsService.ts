@@ -3,7 +3,11 @@ import { getSupabaseConfig } from "@/lib/supabase/config";
 import { detectSaudiBank, formatSaudiIban, validateSaudiIban } from "@/lib/financials/saudiBanks";
 import { getServerPlatformFeeConfig } from "@qafnest/shared/platformFeeStore";
 import { resolveBookingSettlement } from "@qafnest/shared/bookingFinancialsStore";
-import { generateZatcaTlvBase64, QAFNEST_ZATCA_DEFAULTS } from "@qafnest/shared";
+import {
+  generateZatcaTlvBase64,
+  isPayoutPostCheckoutEligible,
+  QAFNEST_ZATCA_DEFAULTS,
+} from "@qafnest/shared";
 import {
   getAllStoredPayouts,
   getSharedHostIban,
@@ -284,6 +288,8 @@ export async function getHostFinancialData(hostId: string, propertyIdFilter?: st
   let commission = 0;
   let vatOnCommission = 0;
   let netEarnings = 0;
+  let escrowedBalance = 0;
+  let unlockedEarningsTotal = 0;
 
   for (const b of scopedConfirmed) {
     const grossPaid = round2(Number(b.total_price) || 0);
@@ -302,12 +308,26 @@ export async function getHostFinancialData(hostId: string, propertyIdFilter?: st
     commission += settlement.hostCommissionAmountSar + settlement.promoDeductionFromHostSar;
     vatOnCommission += settlement.governmentVatRemittanceSar;
     netEarnings += settlement.hostNetPayoutSar;
+
+    const matchedPayout = payoutByBookingId.get(b.id);
+    const checkoutCheck = isPayoutPostCheckoutEligible({
+      source: matchedPayout?.source,
+      checkOutDate: matchedPayout?.checkOutDate || b.check_out,
+      bookingStatus: matchedPayout?.bookingStatus || b.status,
+    });
+    if (checkoutCheck.eligible) {
+      unlockedEarningsTotal += settlement.hostNetPayoutSar;
+    } else if (matchedPayout?.status !== "disbursed") {
+      escrowedBalance += settlement.hostNetPayoutSar;
+    }
   }
 
   liveGrossTotal = round2(liveGrossTotal);
   commission = round2(commission);
   vatOnCommission = round2(vatOnCommission);
   netEarnings = round2(netEarnings);
+  escrowedBalance = round2(escrowedBalance);
+  unlockedEarningsTotal = round2(unlockedEarningsTotal);
 
   const selectedPropertyLedger = activePropertyId !== "all" ? propertyBuckets.get(activePropertyId) : null;
   const totalPaidOut = selectedPropertyLedger
@@ -317,8 +337,24 @@ export async function getHostFinancialData(hostId: string, propertyIdFilter?: st
           .filter((p) => p.status === "disbursed")
           .reduce((sum, p) => sum + (Number(p.netPayoutAmount) || 0), 0)
       );
+  const pendingRequestedAmount =
+    activePropertyId === "all"
+      ? round2(
+          hostStoredPayouts
+            .filter(
+              (p) =>
+                p.source === "host_request" &&
+                p.status !== "disbursed" &&
+                p.payoutRequestStatus !== "rejected"
+            )
+            .reduce((sum, p) => sum + (Number(p.netPayoutAmount) || 0), 0)
+        )
+      : 0;
   const upcomingPayout = Math.max(0, round2(netEarnings - totalPaidOut));
-  const availableInstantBalance = round2(upcomingPayout * 0.85);
+  const availableInstantBalance = Math.max(
+    0,
+    round2(unlockedEarningsTotal - totalPaidOut - pendingRequestedAmount)
+  );
 
   const defaultRemittances = getDefaultRemittances(hostIban);
   const sharedRequests: HostRemittance[] = hostStoredPayouts.map((p) => {
@@ -445,6 +481,7 @@ export async function getHostFinancialData(hostId: string, propertyIdFilter?: st
       totalPaidOut: totalPaidOut.toLocaleString("en-US", { minimumFractionDigits: 2 }),
       upcomingPayout: upcomingPayout.toLocaleString("en-US", { minimumFractionDigits: 2 }),
       availableInstantBalance: availableInstantBalance.toLocaleString("en-US", { minimumFractionDigits: 2 }),
+      escrowedBalance: escrowedBalance.toLocaleString("en-US", { minimumFractionDigits: 2 }),
     },
     iban: hostIban,
     remittances: allRemittances,
@@ -492,11 +529,31 @@ export function updateHostIban(hostId: string, newIban: string, accountHolder: s
   return updated;
 }
 
-export function createPayoutRequest(hostId: string, amount: number) {
+export async function createPayoutRequest(hostId: string, amount: number) {
   const shared = getSharedHostIban(hostId);
   const hostIban = customHostIbans[hostId] || shared;
   if (!hostIban || !hostIban.iban) {
     throw new Error("Please configure and verify your payout IBAN before requesting a payout.");
+  }
+
+  const financialSnapshot = await getHostFinancialData(hostId);
+  const unlockedAvailable =
+    parseFloat(String(financialSnapshot.kpis.availableInstantBalance || "0").replace(/,/g, "")) || 0;
+  const escrowedSar =
+    parseFloat(String(financialSnapshot.kpis.escrowedBalance || "0").replace(/,/g, "")) || 0;
+
+  if (unlockedAvailable <= 0) {
+    throw new Error(
+      escrowedSar > 0
+        ? `Funds (${escrowedSar.toFixed(2)} SAR) remain locked in escrow until guest check-out is completed (12:00 PM check-out day).`
+        : "No unlocked post-checkout earnings are currently available to request."
+    );
+  }
+
+  if (amount > unlockedAvailable + 0.01) {
+    throw new Error(
+      `Requested amount (${amount.toFixed(2)} SAR) exceeds your unlocked post-checkout balance (${unlockedAvailable.toFixed(2)} SAR). Pre-checkout bookings remain in escrow.`
+    );
   }
 
   const feeCfg = getServerPlatformFeeConfig();

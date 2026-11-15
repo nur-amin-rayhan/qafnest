@@ -144,9 +144,9 @@ export function HostAuthProvider({
     const devHostId = process.env.NEXT_PUBLIC_DEV_HOST_ID || "00000000-0000-0000-0000-000000000002";
 
     const isCurrentDevHost = () => {
-      if (typeof window === "undefined") return false;
+      if (process.env.NODE_ENV === "production" || typeof window === "undefined") return false;
       const cached = getCachedHostAuth();
-      if (cached?.user?.id === devHostId || cached?.user?.email === "host.dev@qafnest.com") return true;
+      if (cached?.user?.id === devHostId) return true;
       if (typeof document !== "undefined" && document.cookie.includes("qafnest_host_dev=1")) return true;
       return false;
     };
@@ -267,7 +267,7 @@ export function HostAuthProvider({
         window.localStorage.removeItem(HOST_CACHE_KEY);
         window.sessionStorage.setItem("qafnest_host_is_logging_out", "1");
       } catch {}
-      window.location.replace(localizeHostPath("/", lang));
+      window.location.replace(localizeHostPath("/login", lang));
     }
 
     try {

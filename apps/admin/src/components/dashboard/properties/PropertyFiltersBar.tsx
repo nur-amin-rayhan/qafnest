@@ -93,22 +93,25 @@ export function PropertyFiltersBar({
           </button>
         </div>
 
-        <div className="hidden lg:flex items-center gap-2 text-outline font-body-sm text-body-sm pe-2">
+        <div className="hidden xl:flex items-center gap-2 text-outline font-body-sm text-body-sm pe-2 shrink-0">
           <span className="material-symbols-outlined text-[18px]">sync</span>
           <span>{t("Auto-sync enabled", "المزامنة التلقائية مفعّلة")}</span>
         </div>
       </div>
 
       {/* Filter Fields Row */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-space-sm items-center pt-1">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-12 gap-space-sm items-center pt-1">
         {/* Search Input (Flexbox - prevents RTL/LTR icon overlap) */}
-        <div className="lg:col-span-5 flex items-center h-10 px-3 gap-2 bg-surface-container-low focus-within:bg-surface-container-lowest rounded-lg focus-within:ring-2 focus-within:ring-violet-400 transition-all">
+        <div className="sm:col-span-2 xl:col-span-5 flex items-center h-10 px-3 gap-2 bg-surface-container-low focus-within:bg-surface-container-lowest rounded-lg focus-within:ring-2 focus-within:ring-violet-400 transition-all">
           <span className="material-symbols-outlined text-outline text-[20px] shrink-0">
             search
           </span>
           <input
             className="flex-1 min-w-0 bg-transparent font-body-sm text-body-sm text-on-surface placeholder:text-outline focus:outline-none"
-            placeholder={t("Search by listing name, ID, host name, or neighborhood...", "ابحث باسم العقار، المعرف، اسم المضيف، أو الحي...")}
+            placeholder={t(
+              "Search by Unit # (e.g. 201001), listing name, ID, host, or neighborhood...",
+              "ابحث برقم الوحدة (مثل 201001)، اسم العقار، المعرف، المضيف، أو الحي..."
+            )}
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
@@ -126,7 +129,7 @@ export function PropertyFiltersBar({
         </div>
 
         {/* City Filter */}
-        <div className="lg:col-span-2">
+        <div className="xl:col-span-2">
           <div className="relative">
             <select
               value={propertyCityFilter}
@@ -148,7 +151,7 @@ export function PropertyFiltersBar({
         </div>
 
         {/* Property Type Filter */}
-        <div className="lg:col-span-2">
+        <div className="xl:col-span-2">
           <div className="relative">
             <select
               value={propertyTypeFilter}
@@ -170,7 +173,7 @@ export function PropertyFiltersBar({
         </div>
 
         {/* Pricing Tier Filter */}
-        <div className="lg:col-span-2">
+        <div className="xl:col-span-2">
           <div className="relative">
             <select
               className="w-full h-10 ps-3 pe-8 bg-surface-container-low focus:bg-surface-container-lowest rounded-lg font-body-sm text-body-sm text-on-surface appearance-none focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-400 focus-visible:ring-offset-2 cursor-pointer"
@@ -189,7 +192,7 @@ export function PropertyFiltersBar({
         </div>
 
         {/* Reset Button */}
-        <div className="lg:col-span-1 flex justify-end">
+        <div className="xl:col-span-1 flex justify-end">
           <button
             type="button"
             onClick={() => {

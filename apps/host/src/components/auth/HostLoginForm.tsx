@@ -79,7 +79,6 @@ export default function HostLoginForm({
     handleVerifyOtp,
     handleSaveHostProfile,
     handleEmailAuth,
-    handleDevHostFill,
     finishAuth,
   } = useHostAuthFlow({
     effectiveLang,
@@ -256,7 +255,6 @@ export default function HostLoginForm({
             setEmail={setEmail}
             password={password}
             setPassword={setPassword}
-            onDevHostFill={handleDevHostFill}
             loading={loading}
             onSubmit={handleEmailAuth}
             t={t}

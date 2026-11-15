@@ -173,9 +173,9 @@ export default function PromotionsTab({ triggerToast }: PromotionsTabProps) {
 
       {/* Coupons Table & Cards List */}
       <div className="bg-surface-container-lowest rounded-2xl shadow-sm border border-surface-container/60 overflow-hidden">
-        {/* Desktop Table View (>= lg) */}
-        <div className="hidden lg:block overflow-x-auto">
-          <table className="w-full text-start border-collapse">
+        {/* Desktop Table View (>= xl) */}
+        <div className="hidden xl:block overflow-x-auto">
+          <table className="w-full min-w-[820px] text-start border-collapse">
             <thead>
               <tr className="border-b border-surface-container/80 bg-surface-container-low/50 text-[11px] font-bold uppercase tracking-wider text-outline">
                 <th className="py-3 px-4 text-start">{t("Coupon Code", "كود الخصم")}</th>
@@ -221,8 +221,8 @@ export default function PromotionsTab({ triggerToast }: PromotionsTabProps) {
           </table>
         </div>
 
-        {/* Mobile & Tablet Fluid Card Layout (< lg) */}
-        <div className="block lg:hidden w-full divide-y divide-surface-container/60">
+        {/* Mobile & Tablet Fluid Card Layout (< xl) */}
+        <div className="block xl:hidden w-full divide-y divide-surface-container/60">
           {filteredCoupons.length === 0 ? (
             <div className="py-12 text-center text-outline">
               {t("No promo codes match your filter.", "لا توجد أكواد خصم تطابق معايير البحث.")}

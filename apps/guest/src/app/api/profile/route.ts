@@ -71,18 +71,43 @@ export async function GET(request: NextRequest) {
     }
   }
 
+  // Fallback by verified phone suffix so callers auto-created via Helpline or logging in via Firebase/Supabase OTP restore their saved profile
+  const phoneDigitsRaw = String(authUser.phone || "").replace(/\D/g, "");
+  const phoneDigits9 = phoneDigitsRaw.length >= 8 ? phoneDigitsRaw.slice(-9) : "";
+  if ((!profile || !profile.full_name) && phoneDigits9) {
+    const { data: phoneProfile } = await db
+      .from("profiles")
+      .select("id, full_name, phone, national_id, avatar_url")
+      .ilike("phone", `%${phoneDigits9}%`)
+      .limit(1)
+      .maybeSingle();
+
+    if (phoneProfile) {
+      profile = phoneProfile;
+      if (phoneProfile.id && typeof (db as any).auth?.admin?.getUserById === "function") {
+        try {
+          const { data: matchedAuthRes } = await (db as any).auth.admin.getUserById(phoneProfile.id);
+          const matchedMeta = (matchedAuthRes?.user?.user_metadata || {}) as Record<string, unknown>;
+          userMeta = { ...matchedMeta, ...userMeta };
+        } catch {}
+      }
+    }
+  }
+
   const storedNationalId = profile?.national_id || (userMeta.national_id as string | undefined) || null;
   const storedIqama = (userMeta.iqama as string | undefined) || (storedNationalId?.startsWith("2") ? storedNationalId : null);
+  const resolvedAuthEmail =
+    authUser.email && !String(authUser.email).endsWith("@phone.qafnest.sa") ? authUser.email : null;
 
   return NextResponse.json({
-    id: authUser.id,
+    id: profile?.id || authUser.id,
     full_name: profile?.full_name || (userMeta.full_name as string | undefined) || authUser.name || null,
     phone: profile?.phone || authUser.phone || null,
     national_id: storedNationalId,
     iqama: storedIqama,
     id_type: (userMeta.id_type as string | undefined) || (storedIqama ? "iqama" : storedNationalId ? "national_id" : null),
     city: (userMeta.city as string | undefined) || null,
-    email: (userMeta.contact_email as string | undefined) || authUser.email || null,
+    email: (userMeta.contact_email as string | undefined) || resolvedAuthEmail || null,
     is_verified: Boolean(userMeta.is_verified),
     avatar_url: profile?.avatar_url || (userMeta.avatar_url as string | undefined) || null,
   });

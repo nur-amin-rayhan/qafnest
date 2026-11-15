@@ -11,6 +11,7 @@ interface AdminSidebarProps {
   setActiveTab: (tab: NavTab) => void;
   pendingPayoutsCount?: number;
   overduePayoutsCount?: number;
+  onNavItemClick?: () => void;
 }
 
 export default function AdminSidebar({
@@ -18,6 +19,7 @@ export default function AdminSidebar({
   setActiveTab,
   pendingPayoutsCount = 0,
   overduePayoutsCount = 0,
+  onNavItemClick,
 }: AdminSidebarProps) {
   const { lang, dir, t, mobileSidebarOpen, setMobileSidebarOpen } = useAdminAuth();
 
@@ -88,7 +90,7 @@ export default function AdminSidebar({
       {/* Main Sidebar (Fixed on Desktop, Slide-over Drawer on Mobile) */}
       <aside
         dir={dir}
-        className={`fixed top-0 bottom-0 start-0 h-full w-72 bg-surface-container-lowest z-50 flex flex-col justify-between shadow-[0_1px_12px_rgba(0,0,0,0.06)] border-e border-surface-container transition-transform duration-300 ease-in-out ${
+        className={`fixed top-0 bottom-0 start-0 h-full w-64 xl:w-72 bg-surface-container-lowest z-50 flex flex-col justify-between shadow-[0_1px_12px_rgba(0,0,0,0.06)] border-e border-surface-container transition-transform duration-300 ease-in-out ${
           mobileSidebarOpen
             ? "translate-x-0"
             : dir === "rtl"
@@ -141,6 +143,7 @@ export default function AdminSidebar({
                   href={getAdminTabHref(item.id)}
                   onClick={() => {
                     setMobileSidebarOpen(false);
+                    onNavItemClick?.();
                   }}
                   className={`group relative min-h-[46px] px-3.5 rounded-xl flex items-center gap-3 transition-all cursor-pointer text-start focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 ${
                     isActive
@@ -163,7 +166,7 @@ export default function AdminSidebar({
 
                   {/* Fluid, non-clipping menu label */}
                   <span
-                    className={`text-[13.5px] font-semibold tracking-tight text-start whitespace-nowrap leading-snug ${
+                    className={`text-[13px] xl:text-[13.5px] font-semibold tracking-tight text-start truncate leading-snug ${
                       isActive ? "text-on-primary" : "text-on-surface-variant group-hover:text-on-surface"
                     }`}
                     title={item.label}

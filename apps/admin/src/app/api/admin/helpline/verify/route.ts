@@ -11,6 +11,17 @@ import { readUserGovernanceStore } from "@qafnest/shared/userActivityStore";
 
 export const dynamic = "force-dynamic";
 
+function extractPhoneDigits(raw: unknown): { digits: string; digits9: string } {
+  const digits = String(raw || "").replace(/\D/g, "");
+  if (!digits) return { digits: "", digits9: "" };
+  let stripped = digits;
+  if (stripped.startsWith("00966")) stripped = stripped.slice(5);
+  else if (stripped.startsWith("966")) stripped = stripped.slice(3);
+  else if (stripped.startsWith("05")) stripped = stripped.slice(1);
+  const digits9 = stripped.length >= 9 ? stripped.slice(-9) : stripped;
+  return { digits, digits9 };
+}
+
 export async function GET(request: NextRequest) {
   if (!isAdminRequest(request)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -29,41 +40,182 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ session });
   }
 
-  // 2. If searching existing active users
+  // 2. If searching existing active users (merges auth.users + profiles safely)
   const supabase = createAdminDataClient();
   if (!supabase) {
     return NextResponse.json({ error: "Database not configured" }, { status: 503 });
   }
   const governanceStore = readUserGovernanceStore();
 
-  let query = supabase.from("profiles").select("id, full_name, email, phone, role, created_at").limit(30);
+  const [profilesRes, authUsersRes] = await Promise.allSettled([
+    supabase.from("profiles").select("*").limit(500),
+    typeof supabase.auth?.admin?.listUsers === "function"
+      ? supabase.auth.admin.listUsers({ page: 1, perPage: 500 })
+      : Promise.resolve({ data: { users: [] }, error: null }),
+  ]);
 
-  if (searchQuery && searchQuery.trim().length > 0) {
-    const term = searchQuery.trim();
-    query = query.or(`full_name.ilike.%${term}%,email.ilike.%${term}%,phone.ilike.%${term}%`);
+  const profileRows: Array<Record<string, unknown>> =
+    profilesRes.status === "fulfilled" && Array.isArray(profilesRes.value.data)
+      ? (profilesRes.value.data as unknown as Array<Record<string, unknown>>)
+      : [];
+
+  const authUsers: Array<{
+    id: string;
+    email?: string | null;
+    phone?: string | null;
+    created_at?: string | null;
+    email_confirmed_at?: string | null;
+    phone_confirmed_at?: string | null;
+    confirmed_at?: string | null;
+    user_metadata?: Record<string, unknown> | null;
+    app_metadata?: Record<string, unknown> | null;
+  }> =
+    authUsersRes.status === "fulfilled" && Array.isArray(authUsersRes.value.data?.users)
+      ? (authUsersRes.value.data.users as unknown as Array<{
+          id: string;
+          email?: string | null;
+          phone?: string | null;
+          created_at?: string | null;
+          email_confirmed_at?: string | null;
+          phone_confirmed_at?: string | null;
+          confirmed_at?: string | null;
+          user_metadata?: Record<string, unknown> | null;
+          app_metadata?: Record<string, unknown> | null;
+        }>)
+      : [];
+
+  if (profileRows.length === 0 && authUsers.length === 0) {
+    const errMsg =
+      profilesRes.status === "fulfilled" && profilesRes.value.error
+        ? profilesRes.value.error.message
+        : undefined;
+    if (errMsg && profilesRes.status === "fulfilled") {
+      return NextResponse.json({ error: errMsg }, { status: 500 });
+    }
   }
 
-  const { data: profiles, error } = await query;
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  interface MergedCallerRecord {
+    id: string;
+    name: string;
+    email: string;
+    phone: string;
+    nationalId: string;
+    city: string;
+    role: string;
+    verified: boolean;
+    createdAt: string;
   }
 
-  // Filter and enrich with active status
-  const users = (profiles || []).map((p) => {
-    const gov = governanceStore.overrides[p.id];
-    const isSuspended = gov ? Boolean(gov.suspended) : false;
-    return {
-      id: p.id,
-      name: p.full_name || p.email?.split("@")[0] || "Guest Caller",
-      email: p.email || "",
-      phone: p.phone || "",
-      role: p.role || "guest",
-      isActive: !isSuspended,
-      isSuspended,
-      status: isSuspended ? "suspended" : "active",
-      createdAt: p.created_at,
-    };
-  });
+  const callerMap = new Map<string, MergedCallerRecord>();
+
+  for (const au of authUsers) {
+    const meta = (au.user_metadata || {}) as Record<string, unknown>;
+    const appMeta = (au.app_metadata || {}) as Record<string, unknown>;
+    const role = String(meta.role || meta.account_type || appMeta.role || "guest").toLowerCase();
+    const email = String(meta.contact_email || au.email || "").trim();
+    const phone = String(au.phone || meta.phone || meta.mobile || "").trim();
+    const name = String(
+      meta.full_name ||
+        meta.name ||
+        (email && !email.endsWith("@phone.qafnest.sa") ? email.split("@")[0] : "") ||
+        phone ||
+        "Registered User"
+    ).trim();
+    const nationalId = String(meta.national_id || meta.iqama || "").trim();
+    const city = String(meta.city || "").trim();
+    const verified = Boolean(
+      meta.is_verified || au.phone_confirmed_at || au.email_confirmed_at || au.confirmed_at
+    );
+
+    callerMap.set(au.id, {
+      id: au.id,
+      name,
+      email: email.endsWith("@phone.qafnest.sa") ? "" : email,
+      phone,
+      nationalId,
+      city,
+      role,
+      verified,
+      createdAt: String(au.created_at || ""),
+    });
+  }
+
+  for (const p of profileRows) {
+    const id = String(p.id || "").trim();
+    if (!id) continue;
+    const existing = callerMap.get(id);
+    const pEmail = String(p.email || "").trim();
+    const pPhone = String(p.phone || "").trim();
+    const pName = String(p.full_name || "").trim();
+    const pNationalId = String(p.national_id || "").trim();
+    const pCity = String(p.city || "").trim();
+    const pRole = String(p.role || existing?.role || "guest").toLowerCase();
+
+    callerMap.set(id, {
+      id,
+      name: pName || existing?.name || (pEmail ? pEmail.split("@")[0] : "") || pPhone || "Registered User",
+      email: (pEmail && !pEmail.endsWith("@phone.qafnest.sa") ? pEmail : "") || existing?.email || "",
+      phone: pPhone || existing?.phone || "",
+      nationalId: pNationalId || existing?.nationalId || "",
+      city: pCity || existing?.city || "",
+      role: pRole,
+      verified: Boolean(existing?.verified || pNationalId),
+      createdAt: String(p.created_at || p.updated_at || existing?.createdAt || ""),
+    });
+  }
+
+  const rawTerm = String(searchQuery || "").trim();
+  const termLower = rawTerm.toLowerCase();
+  const { digits: termDigits, digits9: termDigits9 } = extractPhoneDigits(rawTerm);
+
+  const users = Array.from(callerMap.values())
+    .filter((u) => !["admin", "superadmin", "super_admin", "staff"].includes(u.role))
+    .filter((u) => {
+      if (!termLower) return true;
+      if (
+        u.name.toLowerCase().includes(termLower) ||
+        u.email.toLowerCase().includes(termLower) ||
+        u.city.toLowerCase().includes(termLower) ||
+        u.phone.toLowerCase().includes(termLower) ||
+        u.id.toLowerCase().includes(termLower)
+      ) {
+        return true;
+      }
+      if (termDigits.length >= 3) {
+        const { digits: uDigits, digits9: uDigits9 } = extractPhoneDigits(u.phone);
+        if (
+          uDigits.includes(termDigits) ||
+          (termDigits9.length >= 4 && (uDigits.includes(termDigits9) || uDigits9.includes(termDigits9)))
+        ) {
+          return true;
+        }
+        const nidDigits = u.nationalId.replace(/\D/g, "");
+        if (nidDigits && nidDigits.includes(termDigits)) {
+          return true;
+        }
+      }
+      return false;
+    })
+    .sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""))
+    .slice(0, 35)
+    .map((u) => {
+      const gov = governanceStore.overrides[u.id];
+      const isSuspended = gov ? Boolean(gov.suspended) : false;
+      return {
+        id: u.id,
+        name: u.name,
+        email: u.email,
+        phone: u.phone,
+        nationalId: u.nationalId || undefined,
+        city: u.city || undefined,
+        role: u.role || "guest",
+        verified: u.verified,
+        isActive: !isSuspended,
+        isSuspended,
+        status: isSuspended ? "suspended" : "active",
+        createdAt: u.createdAt,
+      };
+    });
 
   return NextResponse.json({ users });
 }

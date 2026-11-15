@@ -73,7 +73,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           code: "file_too_large",
-          message: `File "${file.name}" exceeds 10 MB limit (${(file.size / (1024 * 1024)).toFixed(1)} MB).`,
+          message: `File "${file.name}" exceeds 2 MB limit (${(file.size / (1024 * 1024)).toFixed(2)} MB).`,
         },
         { status: 400 }
       );
@@ -97,6 +97,7 @@ export async function POST(request: NextRequest) {
         .from(bucketName)
         .upload(filePath, buffer, {
           contentType: file.type,
+          cacheControl: "31536000",
           upsert: false,
         });
 

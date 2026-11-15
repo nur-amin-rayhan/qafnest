@@ -108,7 +108,7 @@ export default function HostFinancialsHub({ lang, t }: HostFinancialsHubProps) {
             className="inline-flex items-center gap-1.5 rounded-2xl bg-[#4F2396] hover:bg-[#3d1979] px-4 py-2 text-xs font-black text-white transition shadow-sm cursor-pointer"
           >
             <Send size={13} />
-            <span>{t("Request Instant Transfer", "طلب تحويل فوري")}</span>
+            <span>{t("Request Payout", "طلب صرف المستحقات")}</span>
           </button>
 
           <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-2xl">
@@ -211,24 +211,29 @@ export default function HostFinancialsHub({ lang, t }: HostFinancialsHubProps) {
 
         <div className="rounded-3xl border border-slate-200/90 bg-white p-6 shadow-xs flex flex-col justify-between">
           <span className="text-xs font-extrabold text-slate-400 uppercase">
-            {t("Upcoming Payout", "الحوالة القادمة المجدولة")}
+            {t("Escrow & Unlocked Payouts", "المستحقات (الضمان والمتاح)")}
           </span>
           <div className="mt-3 flex items-baseline gap-2">
             <span className="text-2xl sm:text-3xl font-black text-[#4F2396]">
-              {kpis.upcomingPayout}
+              {kpis.availableInstantBalance}
             </span>
-            <span className="text-xs font-bold text-slate-500">{t("SAR", "ر.س")}</span>
+            <span className="text-xs font-bold text-slate-500">
+              {t("SAR Unlocked", "ر.س متاح للصرف")}
+            </span>
           </div>
-          <span
-            className={`mt-2 text-xs font-bold flex items-center gap-1 ${
-              parseFloat(kpis.upcomingPayout.replace(/,/g, "")) > 0 ? "text-violet-700" : "text-slate-400"
-            }`}
-          >
-            <Clock size={13} />
-            {parseFloat(kpis.upcomingPayout.replace(/,/g, "")) > 0
-              ? t("Scheduled for Wednesday", "مجدول للتحويل يوم الأربعاء")
-              : t("No pending balance scheduled", "لا يوجد رصيد مستحق مجدول حالياً")}
-          </span>
+          <div className="mt-2 space-y-1 text-xs font-bold">
+            <div className="text-amber-700 flex items-center justify-between gap-2">
+              <span>{t("Locked in Escrow (Pre-Check-Out):", "محجوز بالضمان (قبل المغادرة):")}</span>
+              <span className="font-mono">{kpis.escrowedBalance || "0.00"} {t("SAR", "ر.س")}</span>
+            </div>
+            <span className="text-[11px] font-medium text-slate-500 flex items-center gap-1">
+              <Clock size={12} />
+              {t(
+                "Unlocks at guest check-out (request early or 24h manual settlement)",
+                "يُحرر بعد مغادرة الضيف (طلب مبكر أو تحويل خلال ٢٤ ساعة)"
+              )}
+            </span>
+          </div>
         </div>
 
         <div className="rounded-3xl border border-slate-200/90 bg-white p-6 shadow-xs flex flex-col justify-between">
@@ -292,11 +297,12 @@ export default function HostFinancialsHub({ lang, t }: HostFinancialsHubProps) {
         <VatInvoicesList invoices={vatInvoices} lang={lang} t={t} />
       )}
 
-      {/* Instant Payout Modal */}
+      {/* Post-Checkout Payout Request Modal */}
       <RequestPayoutModal
         isOpen={payoutModalOpen}
         onClose={() => setPayoutModalOpen(false)}
         availableBalance={kpis.availableInstantBalance}
+        escrowedBalance={kpis.escrowedBalance}
         ibanData={iban}
         onRequestPayout={handleRequestPayout}
         lang={lang}

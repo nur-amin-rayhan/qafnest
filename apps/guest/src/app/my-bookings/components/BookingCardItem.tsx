@@ -20,7 +20,7 @@ import type { Booking } from "../types";
 import { GuestInvoiceModal } from "./GuestInvoiceModal";
 import { GuestCancelRefundModal } from "./GuestCancelRefundModal";
 import { GuestTransferClaimModal } from "./GuestTransferClaimModal";
-import GuestLocationShareBar from "@/components/bookings/GuestLocationShareBar";
+import { resolvePropertyGoogleMapsUrl } from "@qafnest/shared";
 import { formatPinDisplay } from "@/lib/services/smartLockPinService";
 import {
   getLocalizedPropertyTitle,
@@ -78,6 +78,26 @@ export default function BookingCardItem({
 
   const propertyId = booking.property?.id || (booking as unknown as { property_id?: string }).property_id;
   const propertyUrl = propertyId ? `/property/${encodeURIComponent(propertyId)}` : null;
+  const propLoc = booking.property as Record<string, any> | undefined;
+  const mapsUrl = booking.property
+    ? resolvePropertyGoogleMapsUrl({
+        title: booking.property.title,
+        titleAr: propLoc?.titleAr ?? propLoc?.title_ar ?? null,
+        city: propLoc?.city_name ?? propLoc?.city ?? null,
+        state: propLoc?.state ?? null,
+        stateAr: propLoc?.stateAr ?? propLoc?.state_ar ?? null,
+        district: propLoc?.district ?? null,
+        districtAr: propLoc?.districtAr ?? propLoc?.district_ar ?? null,
+        street: propLoc?.street ?? null,
+        streetAr: propLoc?.streetAr ?? propLoc?.street_ar ?? null,
+        address: propLoc?.address ?? null,
+        addressAr: propLoc?.addressAr ?? propLoc?.address_ar ?? null,
+        postalCode: propLoc?.postalCode ?? propLoc?.postal_code ?? null,
+        lat: propLoc?.lat ?? null,
+        lng: propLoc?.lng ?? null,
+        googleMapsUrl: propLoc?.googleMapsUrl ?? propLoc?.google_maps_url ?? null,
+      })
+    : null;
 
   const handleCopyPin = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -193,9 +213,9 @@ export default function BookingCardItem({
           </div>
         )}
 
-        {/* Smart Lock Keyless Access Strip */}
+        {/* Smart Lock Keyless Access Strip with Open Map Button */}
         {isPaidAndConfirmed && (
-          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-emerald-200 bg-emerald-50/70 px-5 py-4 dark:border-emerald-500/20 dark:bg-emerald-500/5 sm:px-6">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-emerald-200 bg-emerald-50/70 px-5 py-3.5 dark:border-emerald-500/20 dark:bg-emerald-500/5 sm:px-6">
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300">
                 <KeyRound className="h-5 w-5" />
@@ -216,7 +236,7 @@ export default function BookingCardItem({
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               {currentPin && (
                 <button
                   type="button"
@@ -227,19 +247,20 @@ export default function BookingCardItem({
                   <span>{copiedPin ? label("Copied", "تم النسخ") : label("Copy", "نسخ")}</span>
                 </button>
               )}
+
+              {mapsUrl && (
+                <a
+                  href={mapsUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-violet-200 bg-white px-3 py-1.5 text-xs font-bold text-violet-700 shadow-xs hover:bg-violet-50 dark:border-violet-500/30 dark:bg-white/5 dark:text-violet-300 transition"
+                >
+                  <ExternalLink className="h-3.5 w-3.5" />
+                  <span>{label("Open Map", "فتح الخريطة")}</span>
+                </a>
+              )}
             </div>
           </div>
-        )}
-
-        {/* Confirmed Property Location & Sharing Bar */}
-        {isPaidAndConfirmed && booking.property && (
-          <GuestLocationShareBar
-            property={booking.property}
-            bookingRef={booking.booking_reference || booking.id}
-            language={language}
-            label={label}
-            variant="strip"
-          />
         )}
 
         {/* Cancelled Booking Status Strip */}

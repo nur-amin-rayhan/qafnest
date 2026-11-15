@@ -1,12 +1,16 @@
 "use client";
 
 import React from "react";
-import { BookingItem, SelectedBookingDetail } from "../types";
+import {
+  BookingItem,
+  SelectedBookingDetail,
+  buildSelectedBookingDetail,
+} from "../types";
 
 interface BookingLedgerRowProps {
   b: BookingItem;
   setSelectedBooking: (booking: SelectedBookingDetail | null) => void;
-  t: (ar: string, en: string) => string;
+  t: (en: string, ar: string) => string;
 }
 
 export function BookingLedgerRow({
@@ -23,9 +27,6 @@ export function BookingLedgerRow({
   const guestPhone = b.guest_phone || "—";
   const propertyTitle = b.property_title || (b.property_id ? `#${b.property_id.slice(0, 8)}` : "—");
   const propertyLocation = [b.property_city, b.property_district].filter(Boolean).join(", ") || "—";
-  const startMs = b.check_in ? new Date(b.check_in).getTime() : 0;
-  const endMs = b.check_out ? new Date(b.check_out).getTime() : 0;
-  const nightsCount = startMs && endMs && endMs > startMs ? Math.round((endMs - startMs) / 86400000) : 1;
   const initials = guestName
     .split(" ")
     .filter(Boolean)
@@ -35,23 +36,7 @@ export function BookingLedgerRow({
     .toUpperCase() || "G";
 
   const handleSelect = () => {
-    setSelectedBooking({
-      id: b.booking_reference || b.id,
-      dbId: b.id,
-      guestName,
-      phone: guestPhone,
-      propertyTitle,
-      dates: `${b.check_in} → ${b.check_out}`,
-      nights: nightsCount,
-      amount: Number(b.total_price || 0),
-      status: b.status,
-      payoutStatus: b.payment_status,
-      guests: `${b.guests_count} Guests`,
-      accommodations: propertyLocation,
-      refund: b.refund || null,
-      transferClaim: b.transferClaim || null,
-      settlement: b.settlement || null,
-    });
+    setSelectedBooking(buildSelectedBookingDetail(b, t));
   };
 
   return (

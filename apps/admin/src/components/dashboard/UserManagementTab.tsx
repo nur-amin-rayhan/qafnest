@@ -737,7 +737,7 @@ export function UserManagementTab({ triggerToast }: UserManagementTabProps) {
 
       {/* SLIDE-OVER USER INSPECTION, GOVERNANCE & ACTIVITY TIMELINE DRAWER */}
       {selectedTarget && (
-        <div className="fixed inset-0 z-50 flex justify-end bg-black/45 backdrop-blur-xs">
+        <div className="fixed inset-0 z-[90] flex justify-end bg-black/45 backdrop-blur-xs">
           <div
             data-testid="user-detail-drawer"
             className="w-full max-w-2xl bg-surface-container-lowest h-full shadow-2xl border-s border-surface-container flex flex-col overflow-hidden"

@@ -1,4 +1,8 @@
-import { getLocalizedSaudiCity, normalizeSaudiCityId } from "@qafnest/shared";
+import {
+  getLocalizedSaudiCity,
+  matchesPropertySearchQuery,
+  normalizeSaudiCityId,
+} from "@qafnest/shared";
 import type { PropertyItem, BookingItem } from "@/components/dashboard/types";
 
 export interface PropertyFilterParams {
@@ -33,24 +37,7 @@ export function filterProperties(
     }
 
     if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
-      const matchesTitle =
-        p.title.toLowerCase().includes(q) ||
-        (p.title_ar || "").toLowerCase().includes(q);
-      const matchesDistrict =
-        (p.district || "").toLowerCase().includes(q) ||
-        (p.district_ar || "").toLowerCase().includes(q);
-      const matchesAddress =
-        (p.address || "").toLowerCase().includes(q) ||
-        (p.address_ar || "").toLowerCase().includes(q);
-      const matchesCity =
-        (p.city || "").toLowerCase().includes(q) ||
-        (p.city_name || "").toLowerCase().includes(q) ||
-        getLocalizedSaudiCity(p.city || p.city_name, "en").toLowerCase().includes(q) ||
-        getLocalizedSaudiCity(p.city || p.city_name, "ar").toLowerCase().includes(q);
-      const matchesHost = (p.host_id || "").toLowerCase().includes(q);
-      const matchesId = p.id.toLowerCase().includes(q);
-      return matchesTitle || matchesDistrict || matchesAddress || matchesCity || matchesHost || matchesId;
+      return matchesPropertySearchQuery(p, searchQuery);
     }
 
     return true;

@@ -57,7 +57,6 @@ export default function HostAuthModal() {
     handleVerifyOtp,
     handleSaveHostProfile,
     handleEmailAuth,
-    handleDevHostFill,
   } = useHostAuthFlow({
     effectiveLang: lang,
     returnUrl: hostReturnUrl || `/${lang}/app`,
@@ -229,7 +228,6 @@ export default function HostAuthModal() {
             setEmail={setEmail}
             password={password}
             setPassword={setPassword}
-            onDevHostFill={handleDevHostFill}
             loading={loading}
             onSubmit={handleEmailAuth}
             t={t}

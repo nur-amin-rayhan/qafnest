@@ -119,10 +119,10 @@ export function SettlementSettingsModal({
           <label className="flex items-center justify-between p-2 rounded-xl hover:bg-slate-50 cursor-pointer">
             <div className="space-y-0.5">
               <span className="font-bold block text-slate-900">
-                {t("24-Hour Post Check-In Release Guarantee", "تحرير المستحقات بعد 24 ساعة من تسجيل وصول الضيف")}
+                {t("Post Check-Out Escrow Lock + 24h Settlement", "تحرير المستحقات بعد تسجيل مغادرة الضيف (خلال 24 ساعة)")}
               </span>
               <span className="text-[11px] text-slate-500 block">
-                {t("Standard hospitality protection policy", "سياسة حماية مستحقات الاستضافة المعتمدة")}
+                {t("Funds remain in escrow until guest check-out completes", "حماية كاملة: لا يتم صرف المستحقات إلا بعد انتهاء الإقامة ومغادرة الضيف")}
               </span>
             </div>
             <input

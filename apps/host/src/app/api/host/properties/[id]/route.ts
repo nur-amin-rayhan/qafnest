@@ -3,12 +3,19 @@ import { createClient } from "@supabase/supabase-js";
 import {
   extractBilingualPropertyFields,
   extractExtendedLocationToExternalMeta,
+  getNumericUnitCode,
   isMissingBilingualColumnError,
   parseExternalHostMeta,
   stripBilingualColumnsWithFallback,
 } from "@qafnest/shared";
+import {
+  createOrUpdatePendingDeletionRequest,
+  toDeletionRequestSummary,
+  validateDeletionReasonInput,
+} from "@qafnest/shared/propertyDeletionStore";
 import { getSupabaseConfig } from "@/lib/supabase/config";
 import { verifyHostSession } from "@/lib/auth/serverAuth";
+import { checkHostPropertyDeletionEligibility } from "@/lib/propertyDeletionCheck";
 
 function getAdminClient() {
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
@@ -262,7 +269,7 @@ export async function DELETE(
   try {
     const { data: existing, error: checkError } = await supabase
       .from("properties")
-      .select("id, host_id, title")
+      .select("id, host_id, title, title_ar, city, city_name")
       .eq("id", propertyId)
       .single();
 
@@ -277,58 +284,72 @@ export async function DELETE(
       );
     }
 
-    // Prevent accidental deletion if active upcoming confirmed/held stays exist
-    const todayIso = new Date().toISOString().slice(0, 10);
-    const { data: activeBookings, error: bookingsCheckError } = await supabase
-      .from("bookings")
-      .select("id, status, payment_status, auth_subject, check_out")
-      .eq("property_id", propertyId)
-      .in("status", ["confirmed", "pending"])
-      .gte("check_out", todayIso);
-
-    if (bookingsCheckError) {
+    // 1. Strict guard: block deletion or removal request while any active/upcoming/unchecked-out/unsettled stay exists
+    const { eligibility, error: eligibilityError } = await checkHostPropertyDeletionEligibility(
+      supabase,
+      propertyId
+    );
+    if (eligibilityError) {
       return NextResponse.json(
-        { code: "bookings_check_failed", message: bookingsCheckError.message },
+        { code: "bookings_check_failed", message: eligibilityError },
         { status: 500 }
       );
     }
-
-    const blockingBookings = (activeBookings || []).filter(
-      (b) =>
-        !(
-          b.status === "pending" &&
-          b.payment_status === "initiated" &&
-          !String(b.auth_subject || "").includes("SADAD_HOLD")
-        )
-    );
-
-    if (blockingBookings.length > 0) {
+    if (!eligibility.eligible) {
       return NextResponse.json(
         {
           code: "active_bookings_exist",
-          message:
-            "Cannot delete this property while it has active upcoming or confirmed guest bookings.",
-          message_ar:
-            "لا يمكن حذف هذا العقار لوجود حجوزات قائمة أو مؤكدة قادمة عليه.",
+          message: eligibility.reasonEn,
+          message_ar: eligibility.reasonAr,
+          blockingBookings: eligibility.blockingBookings,
         },
         { status: 409 }
       );
     }
 
-    let deleteQuery = supabase.from("properties").delete().eq("id", propertyId);
-    if (existing.host_id) {
-      deleteQuery = deleteQuery.eq("host_id", existing.host_id);
-    }
-    const { error: deleteError } = await deleteQuery;
-
-    if (deleteError) {
+    // 2. Mandatory reason & Admin Review workflow (no unreviewed immediate host deletion)
+    const body = (await request.json().catch(() => ({}))) as {
+      reasonCode?: string;
+      reasonDetails?: string;
+    };
+    const reasonCheck = validateDeletionReasonInput(body.reasonCode, body.reasonDetails);
+    if (!reasonCheck.valid || !reasonCheck.option) {
       return NextResponse.json(
-        { code: "property_delete_failed", message: deleteError.message },
-        { status: 500 }
+        {
+          code: "reason_required",
+          message: reasonCheck.errorEn || "Specific deletion reason is required for admin review.",
+          message_ar: reasonCheck.errorAr || "يجب تحديد سبب حذف العقار وإرساله لمراجعة الإدارة.",
+        },
+        { status: 400 }
       );
     }
 
-    return NextResponse.json({ success: true, deletedId: propertyId });
+    const createdRequest = createOrUpdatePendingDeletionRequest({
+      propertyId,
+      unitCode: getNumericUnitCode(propertyId),
+      propertyTitle: String(existing.title || "Property"),
+      propertyTitleAr: typeof existing.title_ar === "string" ? existing.title_ar : undefined,
+      propertyCity: String(existing.city_name || existing.city || ""),
+      hostId: authUser.id,
+      hostName: authUser.name || undefined,
+      hostPhone: authUser.phone || undefined,
+      hostEmail: authUser.email || undefined,
+      reasonCode: reasonCheck.option.code,
+      reasonDetails: reasonCheck.cleanedDetails,
+    });
+
+    return NextResponse.json(
+      {
+        success: true,
+        pendingReview: true,
+        message:
+          "Property removal request submitted for Admin review. Once approved, the listing will be automatically deleted.",
+        message_ar:
+          "تم رفع طلب حذف العقار لمراجعة الإدارة. عند الموافقة سيتم حذف العقار تلقائياً.",
+        request: toDeletionRequestSummary(createdRequest),
+      },
+      { status: 202 }
+    );
   } catch (err) {
     return NextResponse.json(
       { code: "server_error", message: err instanceof Error ? err.message : "Error" },

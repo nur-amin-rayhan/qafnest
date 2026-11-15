@@ -49,15 +49,15 @@ export function PropertiesInsightsStrip({
   ];
 
   return (
-    <div dir={dir} className="grid grid-cols-1 lg:grid-cols-3 gap-space-lg mb-space-lg">
+    <div dir={dir} className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6 mb-space-lg">
       {/* Regional Breakdown */}
       <div className="bg-surface-container-lowest p-space-lg rounded-xl shadow-sm flex flex-col justify-between">
         <div>
-          <div className="flex items-center justify-between mb-space-sm">
+          <div className="flex flex-wrap items-center justify-between gap-2 mb-space-sm">
             <h3 className="font-title-md text-title-md font-bold text-on-surface">
               {t("Regional Breakdown", "التوزيع الجغرافي للمناطق")}
             </h3>
-            <span className="font-label-sm text-label-sm text-primary uppercase font-bold">
+            <span className="font-label-sm text-label-sm text-primary uppercase font-bold shrink-0">
               {t("Kingdom Map", "خريطة المملكة")}
             </span>
           </div>
@@ -91,11 +91,11 @@ export function PropertiesInsightsStrip({
       {/* Compliance & Verification */}
       <div className="bg-surface-container-lowest p-space-lg rounded-xl shadow-sm flex flex-col justify-between">
         <div>
-          <div className="flex items-center justify-between mb-space-sm">
+          <div className="flex flex-wrap items-center justify-between gap-2 mb-space-sm">
             <h3 className="font-title-md text-title-md font-bold text-on-surface">
               {t("Compliance & Verification", "الامتثال والتوثيق النظامي")}
             </h3>
-            <span className="font-label-sm text-label-sm text-status-emerald uppercase font-bold">
+            <span className="font-label-sm text-label-sm text-status-emerald uppercase font-bold shrink-0">
               {compliancePct}% {t("Compliant", "متوافق")}
             </span>
           </div>
@@ -138,10 +138,10 @@ export function PropertiesInsightsStrip({
       </div>
 
       {/* Partner Concierge Banner */}
-      <div className="bg-gradient-to-br from-primary via-primary to-primary-container p-space-lg rounded-xl shadow-md text-on-primary flex flex-col justify-between relative overflow-hidden">
+      <div className="md:col-span-2 xl:col-span-1 bg-gradient-to-br from-primary via-primary to-primary-container p-space-lg rounded-xl shadow-md text-on-primary flex flex-col justify-between relative overflow-hidden">
         <div className="absolute -end-12 -top-12 w-48 h-48 bg-on-primary/10 rounded-full blur-2xl pointer-events-none" />
         <div>
-          <div className="flex items-center justify-between mb-space-sm">
+          <div className="flex flex-wrap items-center justify-between gap-2 mb-space-sm">
             <span className="font-label-sm text-label-sm uppercase tracking-wider text-primary-fixed font-bold">
               {t("Partner Support", "دعم الشركاء والمضيفين")}
             </span>

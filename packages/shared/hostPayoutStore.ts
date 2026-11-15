@@ -6,6 +6,9 @@
 
 import {
   DEFAULT_HOST_PAYOUT_POLICY,
+  getCheckoutUnlockTimestampMs,
+  isPayoutPostCheckoutEligible,
+  validateLegalTransactionNumber,
   type HostPayoutPolicy,
   type PayoutStatus,
   type SharedHostPayoutRecord,
@@ -208,18 +211,47 @@ export function syncConfirmedBookingsToPayouts(liveBookings: SyncBookingInput[])
         Math.abs(existing.netPayoutAmount - settlement.hostNetPayoutSar) > 0.01 ||
         Math.abs(existing.vatAmount - settlement.governmentVatRemittanceSar) > 0.01;
 
-      if (needsUpgrade && existing.source !== "host_request") {
-        existing.grossAmount = settlement.hostGrossEntitlementSar;
-        existing.commissionRate = settlement.hostCommissionPercent / 100;
-        existing.commissionAmount = settlement.hostCommissionAmountSar;
-        existing.vatAmount = settlement.governmentVatRemittanceSar;
-        existing.netPayoutAmount = settlement.hostNetPayoutSar;
-        existing.guestPaidTotal = settlement.guestTotalCollectedSar;
-        existing.guestServiceFeeAmount = settlement.guestServiceFeeSar;
-        existing.promoDiscountAmount = settlement.promoDeductionFromHostSar;
-        existing.welcomeBonusSubsidyAmount = settlement.platformWelcomeBonusSubsidySar;
-        existing.platformNetRevenue = settlement.platformNetRevenueSar;
-        existing.settlementVersion = 2;
+      // Upgrade legacy payouts or keep financial breakdown & checkout escrow metadata aligned with live booking
+      const needsCheckoutSync =
+        existing.status !== "disbursed" &&
+        (existing.checkOutDate !== b.check_out ||
+          existing.checkInDate !== b.check_in ||
+          existing.bookingStatus !== b.status);
+
+      if ((needsUpgrade || needsCheckoutSync) && existing.source !== "host_request") {
+        if (needsUpgrade) {
+          existing.grossAmount = settlement.hostGrossEntitlementSar;
+          existing.commissionRate = settlement.hostCommissionPercent / 100;
+          existing.commissionAmount = settlement.hostCommissionAmountSar;
+          existing.vatAmount = settlement.governmentVatRemittanceSar;
+          existing.netPayoutAmount = settlement.hostNetPayoutSar;
+          existing.guestPaidTotal = settlement.guestTotalCollectedSar;
+          existing.guestServiceFeeAmount = settlement.guestServiceFeeSar;
+          existing.promoDiscountAmount = settlement.promoDeductionFromHostSar;
+          existing.welcomeBonusSubsidyAmount = settlement.platformWelcomeBonusSubsidySar;
+          existing.platformNetRevenue = settlement.platformNetRevenueSar;
+          existing.settlementVersion = 2;
+        }
+        existing.checkInDate = b.check_in;
+        existing.checkOutDate = b.check_out;
+        existing.bookingStatus = b.status;
+        if (Array.isArray(existing.bookings) && existing.bookings[0]) {
+          existing.bookings[0].checkIn = b.check_in;
+          existing.bookings[0].checkOut = b.check_out;
+        }
+        if (existing.status !== "disbursed") {
+          const checkOutMs = getCheckoutUnlockTimestampMs(b.check_out);
+          const earnedMs =
+            policy.slaTrigger === "check_out" && checkOutMs !== null
+              ? checkOutMs
+              : policy.slaTrigger === "check_in" && b.check_in
+              ? Date.parse(`${b.check_in.slice(0, 10)}T15:00:00+03:00`) || Date.now()
+              : Date.parse(b.created_at || "") || Date.now();
+          const deadlineIso = new Date(earnedMs + (policy.slaHours || 24) * 3600_000).toISOString();
+          existing.earnedAt = new Date(earnedMs).toISOString();
+          existing.slaDeadlineAt = deadlineIso;
+          existing.scheduledDate = deadlineIso.slice(0, 10);
+        }
         changed = true;
       }
       continue;
@@ -228,12 +260,14 @@ export function syncConfirmedBookingsToPayouts(liveBookings: SyncBookingInput[])
     const hostId = b.property?.host_id || "";
     const hostBank = hostId ? store.hostIbans[hostId] : undefined;
 
-    // Compute 24h SLA start time based on configured trigger
-    const earnedIso =
-      policy.slaTrigger === "check_in" && b.check_in
-        ? `${b.check_in}T15:00:00.000Z`
-        : b.created_at || new Date().toISOString();
-    const earnedMs = Date.parse(earnedIso) || Date.now();
+    // Compute 24h SLA start time based on configured trigger (defaults to post check-out escrow release)
+    const checkOutMs = getCheckoutUnlockTimestampMs(b.check_out);
+    const earnedMs =
+      policy.slaTrigger === "check_out" && checkOutMs !== null
+        ? checkOutMs
+        : policy.slaTrigger === "check_in" && b.check_in
+        ? Date.parse(`${b.check_in.slice(0, 10)}T15:00:00+03:00`) || Date.now()
+        : Date.parse(b.created_at || "") || Date.now();
     const deadlineIso = new Date(earnedMs + (policy.slaHours || 24) * 3600_000).toISOString();
 
     const record: SharedHostPayoutRecord = {
@@ -265,6 +299,10 @@ export function syncConfirmedBookingsToPayouts(liveBookings: SyncBookingInput[])
       slaDeadlineAt: deadlineIso,
       scheduledDate: deadlineIso.slice(0, 10),
       payoutRail: policy.payoutRail,
+      checkInDate: b.check_in,
+      checkOutDate: b.check_out,
+      bookingStatus: b.status,
+      payoutRequestStatus: "none",
       bookings: [
         {
           id: b.id,
@@ -332,7 +370,9 @@ export function upsertHostPayoutRequest(params: {
     vatAmount: approxVat,
     netPayoutAmount: netAmount,
     settlementVersion: 2,
-    status: "processing",
+    status: "pending",
+    payoutRequestStatus: "requested",
+    requestedAt: now.toISOString(),
     earnedAt: now.toISOString(),
     slaDeadlineAt: deadline.toISOString(),
     scheduledDate: deadline.toISOString().slice(0, 10),
@@ -346,6 +386,53 @@ export function upsertHostPayoutRequest(params: {
   return newRecord;
 }
 
+export function reviewHostPayoutRequest(
+  payoutId: string,
+  decision: "approved" | "rejected",
+  actorEmail?: string,
+  reason?: string
+): SharedHostPayoutRecord | undefined {
+  const store = readStore();
+  let updatedItem: SharedHostPayoutRecord | undefined;
+  const nowIso = new Date().toISOString();
+
+  store.payouts = store.payouts.map((p) => {
+    if (p.id !== payoutId) return p;
+    if (p.status === "disbursed") {
+      throw new Error("Disbursed payouts cannot be modified.");
+    }
+    if (decision === "approved") {
+      const checkoutCheck = isPayoutPostCheckoutEligible(p);
+      if (!checkoutCheck.eligible) {
+        throw new Error(checkoutCheck.reasonEn);
+      }
+      updatedItem = {
+        ...p,
+        status: "processing",
+        payoutRequestStatus: "approved",
+        approvedAt: nowIso,
+        approvedBy: actorEmail || "Admin Operations",
+        holdReason: undefined,
+        rejectionReason: undefined,
+      };
+    } else {
+      updatedItem = {
+        ...p,
+        status: "on_hold",
+        payoutRequestStatus: "rejected",
+        rejectionReason: reason?.trim() || "Declined by Admin Operations",
+        holdReason: reason?.trim() || "Payout request declined pending review",
+      };
+    }
+    return updatedItem;
+  });
+
+  if (updatedItem) {
+    writeStore(store);
+  }
+  return updatedItem;
+}
+
 export function updateStoredPayoutStatus(
   payoutId: string,
   newStatus: PayoutStatus,
@@ -353,18 +440,43 @@ export function updateStoredPayoutStatus(
   externalTxnRef?: string
 ): SharedHostPayoutRecord | undefined {
   const store = readStore();
+  const target = store.payouts.find((p) => p.id === payoutId);
+  if (!target) return undefined;
+
+  let verifiedTxnRef = target.sarieTxnId;
+  if (newStatus === "disbursed") {
+    const checkoutCheck = isPayoutPostCheckoutEligible(target);
+    if (!checkoutCheck.eligible) {
+      throw new Error(checkoutCheck.reasonEn);
+    }
+    if (target.payoutRequestStatus === "rejected") {
+      throw new Error("Declined payout requests cannot be settled without re-approval.");
+    }
+    const txnCheck = validateLegalTransactionNumber(externalTxnRef || target.sarieTxnId);
+    if (!txnCheck.valid) {
+      throw new Error(txnCheck.errorEn || "Legal Bank / SARIE Transaction Number is mandatory before settlement.");
+    }
+    verifiedTxnRef = txnCheck.cleaned;
+  }
+
   let updatedItem: SharedHostPayoutRecord | undefined;
+  const nowIso = new Date().toISOString();
 
   store.payouts = store.payouts.map((p) => {
     if (p.id === payoutId) {
       updatedItem = {
         ...p,
         status: newStatus,
-        disbursedAt: newStatus === "disbursed" ? new Date().toISOString() : p.disbursedAt,
-        sarieTxnId:
-          newStatus === "disbursed"
-            ? externalTxnRef?.trim() || p.sarieTxnId || `SARIE-${Date.now().toString().slice(-8)}`
-            : p.sarieTxnId,
+        disbursedAt: newStatus === "disbursed" ? nowIso : p.disbursedAt,
+        sarieTxnId: newStatus === "disbursed" ? verifiedTxnRef : p.sarieTxnId,
+        payoutRequestStatus:
+          newStatus === "disbursed" && p.payoutRequestStatus === "requested"
+            ? "approved"
+            : p.payoutRequestStatus,
+        approvedAt:
+          newStatus === "disbursed" && p.payoutRequestStatus === "requested" && !p.approvedAt
+            ? nowIso
+            : p.approvedAt,
         holdReason:
           newStatus === "on_hold"
             ? holdReason || p.holdReason || "Administrative hold pending audit"
@@ -383,19 +495,45 @@ export function updateStoredPayoutStatus(
 
 export function batchUpdateStoredPayoutStatus(
   payoutIds: string[],
-  newStatus: PayoutStatus
-): SharedHostPayoutRecord[] {
+  newStatus: PayoutStatus,
+  batchTxnRef?: string
+): { updated: SharedHostPayoutRecord[]; skippedEscrowCount: number } {
   const store = readStore();
   const updatedList: SharedHostPayoutRecord[] = [];
+  let skippedEscrowCount = 0;
+
+  let verifiedBatchTxn = "";
+  if (newStatus === "disbursed") {
+    const txnCheck = validateLegalTransactionNumber(batchTxnRef);
+    if (!txnCheck.valid) {
+      throw new Error(
+        txnCheck.errorEn || "Legal Batch / SARIE Transaction Number is mandatory for batch settlement."
+      );
+    }
+    verifiedBatchTxn = txnCheck.cleaned;
+  }
+
+  const nowIso = new Date().toISOString();
 
   store.payouts = store.payouts.map((p) => {
     if (payoutIds.includes(p.id)) {
+      if (newStatus === "disbursed") {
+        const checkoutCheck = isPayoutPostCheckoutEligible(p);
+        if (!checkoutCheck.eligible || p.payoutRequestStatus === "rejected") {
+          skippedEscrowCount++;
+          return p;
+        }
+      }
       const next: SharedHostPayoutRecord = {
         ...p,
         status: newStatus,
-        disbursedAt: newStatus === "disbursed" ? new Date().toISOString() : p.disbursedAt,
+        disbursedAt: newStatus === "disbursed" ? nowIso : p.disbursedAt,
         sarieTxnId:
-          newStatus === "disbursed" ? p.sarieTxnId || `SARIE-${Date.now().toString().slice(-8)}` : p.sarieTxnId,
+          newStatus === "disbursed" ? p.sarieTxnId || verifiedBatchTxn : p.sarieTxnId,
+        payoutRequestStatus:
+          newStatus === "disbursed" && p.payoutRequestStatus === "requested"
+            ? "approved"
+            : p.payoutRequestStatus,
       };
       updatedList.push(next);
       return next;
@@ -403,28 +541,56 @@ export function batchUpdateStoredPayoutStatus(
     return p;
   });
 
+  if (newStatus === "disbursed" && updatedList.length === 0 && skippedEscrowCount > 0) {
+    throw new Error(
+      `Escrow Lock Active: All ${skippedEscrowCount} selected payout(s) are waiting for guest check-out before disbursement.`
+    );
+  }
+
   if (updatedList.length > 0) {
     writeStore(store);
   }
-  return updatedList;
+  return { updated: updatedList, skippedEscrowCount };
 }
 
-export function processStoredSarieBatch() {
+export function processStoredSarieBatch(batchTxnRef?: string) {
+  const txnCheck = validateLegalTransactionNumber(batchTxnRef);
+  if (!txnCheck.valid) {
+    throw new Error(
+      txnCheck.errorEn || "Legal Batch / SARIE Transaction Number is mandatory before settling payouts."
+    );
+  }
+
   const store = readStore();
   const settledIds: string[] = [];
+  let skippedEscrowCount = 0;
+  const nowIso = new Date().toISOString();
 
   store.payouts = store.payouts.map((p) => {
     if (p.status === "pending" || p.status === "processing") {
+      const checkoutCheck = isPayoutPostCheckoutEligible(p);
+      if (!checkoutCheck.eligible || p.payoutRequestStatus === "rejected") {
+        skippedEscrowCount++;
+        return p;
+      }
       settledIds.push(p.id);
       return {
         ...p,
         status: "disbursed" as const,
-        disbursedAt: new Date().toISOString(),
-        sarieTxnId: p.sarieTxnId || `SARIE-SETTLE-${Math.floor(100000 + Math.random() * 900000)}`,
+        disbursedAt: nowIso,
+        sarieTxnId: p.sarieTxnId || txnCheck.cleaned,
+        payoutRequestStatus:
+          p.payoutRequestStatus === "requested" ? "approved" : p.payoutRequestStatus,
       };
     }
     return p;
   });
+
+  if (settledIds.length === 0 && skippedEscrowCount > 0) {
+    throw new Error(
+      `Escrow Lock Active: ${skippedEscrowCount} queued payout(s) cannot be settled until guests complete check-out.`
+    );
+  }
 
   if (settledIds.length > 0) {
     writeStore(store);
@@ -433,7 +599,9 @@ export function processStoredSarieBatch() {
   return {
     settledCount: settledIds.length,
     settledIds,
-    timestamp: new Date().toISOString(),
+    skippedEscrowCount,
+    transactionNumber: txnCheck.cleaned,
+    timestamp: nowIso,
   };
 }
 

@@ -24,7 +24,7 @@ export function PropertiesStatsStrip({ properties }: PropertiesStatsStripProps) 
   const activeNightlyCapacity = approvedList.reduce((sum, p) => sum + Number(p.base_price || 0), 0);
 
   return (
-    <div dir={dir} className="grid grid-cols-1 md:grid-cols-3 gap-space-lg mb-space-lg">
+    <div dir={dir} className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6 mb-space-lg">
       {/* Stat 1: Total Active Fleet */}
       <div className="bg-surface-container-lowest p-space-lg rounded-xl shadow-sm flex items-center justify-between relative overflow-hidden group">
         <div className="absolute -end-6 -bottom-6 w-28 h-28 bg-primary/5 rounded-full blur-xl group-hover:scale-125 transition-transform duration-500" />
@@ -86,7 +86,7 @@ export function PropertiesStatsStrip({ properties }: PropertiesStatsStripProps) 
       </div>
 
       {/* Stat 3: Maintenance & Offline Attention */}
-      <div className="bg-surface-container-lowest p-space-lg rounded-xl shadow-sm flex items-center justify-between relative overflow-hidden group">
+      <div className="md:col-span-2 xl:col-span-1 bg-surface-container-lowest p-space-lg rounded-xl shadow-sm flex items-center justify-between relative overflow-hidden group">
         <div className="absolute -end-6 -bottom-6 w-28 h-28 bg-status-terracotta/10 rounded-full blur-xl group-hover:scale-125 transition-transform duration-500" />
         <div className="flex flex-col gap-1 z-10">
           <div className="flex items-center gap-space-xs flex-wrap">

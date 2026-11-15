@@ -12,7 +12,6 @@ interface GuestEmailAuthStepProps {
   setEmail: (val: string) => void;
   password: string;
   setPassword: (val: string) => void;
-  onDevGuestFill: () => void;
   onSwitchToPhone: () => void;
   errorMsg: string | null;
   successMsg: string | null;
@@ -30,7 +29,6 @@ export default function GuestEmailAuthStep({
   setEmail,
   password,
   setPassword,
-  onDevGuestFill,
   onSwitchToPhone,
   errorMsg,
   successMsg,
@@ -118,18 +116,6 @@ export default function GuestEmailAuthStep({
             />
           </div>
         </div>
-
-        <button
-          type="button"
-          onClick={onDevGuestFill}
-          className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl border border-violet-200 dark:border-violet-800 bg-violet-50 dark:bg-violet-950/40 hover:bg-violet-100 dark:hover:bg-violet-900/40 text-xs font-bold text-violet-700 dark:text-violet-300 transition cursor-pointer"
-        >
-          <span>
-            {language === "ar"
-              ? "⚡ تجربة سريعة: تعبئة حساب تجريبي"
-              : "⚡ Quick Fill Dev Guest Credentials"}
-          </span>
-        </button>
 
         {errorMsg && (
           <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300 text-xs flex items-center gap-2 break-words">

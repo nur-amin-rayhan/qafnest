@@ -13,6 +13,7 @@ import {
   ArrowRight,
   Zap,
   ShieldAlert,
+  Lock,
 } from "lucide-react";
 import { useAdminAuth } from "@/context/AdminAuthContext";
 import {
@@ -30,6 +31,7 @@ interface Payout24hReminderBannerProps {
   nowTick?: number;
   compact?: boolean;
   onOpenFinancials?: () => void;
+  onInspectPayout?: (payoutId: string) => void;
   onDisburseNow?: (payoutId: string) => Promise<void>;
   onSendReminders?: (payoutIds?: string[]) => Promise<void>;
   sendingReminders?: boolean;
@@ -46,6 +48,7 @@ export function Payout24hReminderBanner({
   nowTick = Date.now(),
   compact = false,
   onOpenFinancials,
+  onInspectPayout,
   onDisburseNow,
   onSendReminders,
   sendingReminders = false,
@@ -144,6 +147,15 @@ export function Payout24hReminderBanner({
               {payouts.length > 0 && (
                 <span className="inline-flex items-center gap-1 rounded-full bg-surface-container px-2.5 py-0.5 text-[10px] font-bold text-on-surface-variant border border-surface-container-high">
                   {t(`SLA Compliance: ${reminders.slaComplianceRate}%`, `نسبة الالتزام بمهلة ٢٤ ساعة: ${reminders.slaComplianceRate}٪`)}
+                </span>
+              )}
+
+              {Boolean(reminders.escrowCount && reminders.escrowCount > 0) && (
+                <span className="inline-flex items-center gap-1 rounded-full bg-indigo-50 px-2.5 py-0.5 text-[10px] font-bold text-indigo-800 border border-indigo-200">
+                  <Lock size={10} />
+                  <span>
+                    {reminders.escrowCount} {t("In Escrow (Pre-Check-Out)", "محجوز (قبل المغادرة)")}
+                  </span>
                 </span>
               )}
             </div>
@@ -268,22 +280,22 @@ export function Payout24hReminderBanner({
               <span className="font-extrabold text-on-surface block">
                 {t("When Does the 24-Hour Clock Start?", "متى يبدأ عداد مهلة ٢٤ ساعة؟")}
               </span>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                 <button
                   type="button"
-                  onClick={() => onUpdatePolicy({ slaTrigger: "payment_confirmed" })}
+                  onClick={() => onUpdatePolicy({ slaTrigger: "check_out" })}
                   className={`p-3 rounded-xl border text-start transition cursor-pointer ${
-                    policy.slaTrigger === "payment_confirmed"
+                    policy.slaTrigger === "check_out"
                       ? "border-primary bg-primary/5 text-on-surface"
                       : "border-surface-container-high bg-surface-container-low text-on-surface-variant"
                   }`}
                 >
-                  <div className="font-bold flex items-center justify-between">
-                    <span>{t("Upon Guest Payment", "فور تأكيد دفع الضيف")}</span>
-                    {policy.slaTrigger === "payment_confirmed" && <CheckCircle2 size={13} className="text-primary" />}
+                  <div className="font-bold flex items-center justify-between gap-1">
+                    <span>{t("After Guest Check-Out", "بعد مغادرة الضيف")}</span>
+                    {policy.slaTrigger === "check_out" && <CheckCircle2 size={13} className="text-primary shrink-0" />}
                   </div>
                   <p className="text-[11px] text-outline mt-1 leading-snug">
-                    {t("24h deadline starts immediately when booking is paid.", "يبدأ العد التنازلي مباشرة لحظة سداد الحجز.")}
+                    {t("Full Escrow Lock: funds unlock only after guest check-out (Recommended).", "حماية كاملة: لا تصرف المستحقات إلا بعد تسجيل مغادرة الضيف.")}
                   </p>
                 </button>
 
@@ -296,12 +308,30 @@ export function Payout24hReminderBanner({
                       : "border-surface-container-high bg-surface-container-low text-on-surface-variant"
                   }`}
                 >
-                  <div className="font-bold flex items-center justify-between">
-                    <span>{t("After Guest Check-In", "بعد تسجيل دخول الضيف")}</span>
-                    {policy.slaTrigger === "check_in" && <CheckCircle2 size={13} className="text-primary" />}
+                  <div className="font-bold flex items-center justify-between gap-1">
+                    <span>{t("After Guest Check-In", "بعد دخول الضيف")}</span>
+                    {policy.slaTrigger === "check_in" && <CheckCircle2 size={13} className="text-primary shrink-0" />}
                   </div>
                   <p className="text-[11px] text-outline mt-1 leading-snug">
-                    {t("Escrow protection: 24h window starts after check-in.", "حماية الضمان: تبدأ ٢٤ ساعة بعد دخول الضيف للعقار.")}
+                    {t("24h SLA window starts when check-in begins.", "تبدأ ٢٤ ساعة بعد دخول الضيف للعقار.")}
+                  </p>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => onUpdatePolicy({ slaTrigger: "payment_confirmed" })}
+                  className={`p-3 rounded-xl border text-start transition cursor-pointer ${
+                    policy.slaTrigger === "payment_confirmed"
+                      ? "border-primary bg-primary/5 text-on-surface"
+                      : "border-surface-container-high bg-surface-container-low text-on-surface-variant"
+                  }`}
+                >
+                  <div className="font-bold flex items-center justify-between gap-1">
+                    <span>{t("Upon Payment", "عند الدفع")}</span>
+                    {policy.slaTrigger === "payment_confirmed" && <CheckCircle2 size={13} className="text-primary shrink-0" />}
+                  </div>
+                  <p className="text-[11px] text-outline mt-1 leading-snug">
+                    {t("24h deadline starts immediately when paid.", "يبدأ العد التنازلي فور تأكيد الدفع.")}
                   </p>
                 </button>
               </div>
@@ -354,7 +384,7 @@ export function Payout24hReminderBanner({
 
       {/* Priority 24-Hour Reminder Cards Queue */}
       {urgentQueue.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
           {urgentQueue.map(({ payout, sla }) => (
             <div
               key={payout.id}
@@ -373,14 +403,16 @@ export function Payout24hReminderBanner({
                 </div>
                 <span
                   className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-black shrink-0 ${
-                    sla.isOverdue
+                    sla.tier === "escrow"
+                      ? "bg-indigo-100 text-indigo-800 border border-indigo-200"
+                      : sla.isOverdue
                       ? "bg-rose-100 text-rose-700 border border-rose-200"
                       : sla.isUrgent
                       ? "bg-amber-100 text-amber-800 border border-amber-200"
                       : "bg-violet-100 text-primary border border-violet-200"
                   }`}
                 >
-                  <Clock size={10} />
+                  {sla.tier === "escrow" ? <Lock size={10} /> : <Clock size={10} />}
                   <span>{lang === "ar" ? sla.countdownLabelAr : sla.countdownLabel}</span>
                 </span>
               </div>
@@ -440,15 +472,29 @@ export function Payout24hReminderBanner({
                     </button>
                   )}
 
-                  {onDisburseNow && (
+                  {(onInspectPayout || onDisburseNow) && (
                     <button
                       type="button"
-                      onClick={() => handleQuickDisburse(payout.id)}
+                      onClick={() =>
+                        onInspectPayout
+                          ? onInspectPayout(payout.id)
+                          : handleQuickDisburse(payout.id)
+                      }
                       disabled={disbursingId === payout.id}
-                      className="inline-flex items-center gap-1 rounded-lg bg-status-emerald hover:bg-emerald-700 text-white px-2.5 py-1 text-[10px] font-bold transition cursor-pointer disabled:opacity-50"
+                      className={`inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-[10px] font-bold transition cursor-pointer disabled:opacity-50 ${
+                        sla.tier === "escrow"
+                          ? "bg-indigo-50 border border-indigo-200 text-indigo-800 hover:bg-indigo-100"
+                          : "bg-status-emerald hover:bg-emerald-700 text-white"
+                      }`}
                     >
-                      <CheckCircle2 size={11} />
-                      <span>{disbursingId === payout.id ? "..." : t("Disburse", "تم التحويل")}</span>
+                      {sla.tier === "escrow" ? <Lock size={10} /> : <CheckCircle2 size={11} />}
+                      <span>
+                        {disbursingId === payout.id
+                          ? "..."
+                          : sla.tier === "escrow"
+                          ? t("Escrow Details", "تفاصيل الضمان")
+                          : t("Review & Settle", "مراجعة وصرف")}
+                      </span>
                     </button>
                   )}
                 </div>

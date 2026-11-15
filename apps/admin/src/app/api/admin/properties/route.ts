@@ -7,24 +7,40 @@ import {
   stripBilingualFromSelect,
 } from "@qafnest/shared";
 import { createAdminDataClient, isAdminRequest } from "@/lib/adminApi";
+import { readPropertyDeletionRequests } from "@qafnest/shared/propertyDeletionStore";
+import { enrichDeletionRequestsWithLiveBookings } from "@/lib/propertyDeletionServer";
 
 const ADMIN_PROPERTY_SELECT =
   "id, title, title_ar, slug, city, city_name, district, district_ar, category, category_name, base_price, weekday_price, weekend_price, tourism_license_number, host_id, is_approved, status, created_at, updated_at, description, description_ar, specs, images, features, area_sqm, bedrooms_count, living_rooms_count, lat, lng, external_host_id, address, address_ar, street, street_ar, postal_code";
 
-function formatAdminPropertyRow(row: Record<string, unknown>, profile?: { full_name?: string; phone?: string } | null) {
+interface HostMetaFallback {
+  full_name?: string;
+  business_name?: string;
+  phone?: string;
+  email?: string;
+  city?: string;
+  address?: string;
+  is_verified?: boolean;
+}
+
+function formatAdminPropertyRow(row: Record<string, unknown>, profile?: HostMetaFallback | null) {
   const enriched = extractBilingualPropertyFields(row);
   const { admin_feedback, rejection_reason, reviewed_at, reviewed_by } = parseExternalHostMeta(
     enriched.external_host_id
   );
   const hostName = (enriched.host_name as string) || profile?.full_name || "";
   const hostPhone = (enriched.host_phone as string) || profile?.phone || "";
-  const hostEmail = (enriched.host_email as string) || "";
+  const hostEmail = (enriched.host_email as string) || profile?.email || "";
 
   return {
     ...enriched,
     host_name: hostName,
+    host_business_name: profile?.business_name || "",
     host_phone: hostPhone,
     host_email: hostEmail,
+    host_city: profile?.city || (enriched.city_name as string) || (enriched.city as string) || "",
+    host_address: profile?.address || (enriched.address as string) || (enriched.district as string) || "",
+    host_verified: Boolean(profile?.is_verified || enriched.is_approved || enriched.tourism_license_number),
     admin_feedback,
     rejection_reason,
     reviewed_at,
@@ -116,27 +132,68 @@ export async function GET(request: NextRequest) {
     )
   );
 
-  const profileMap = new Map<string, { full_name?: string; phone?: string }>();
+  const profileMap = new Map<string, HostMetaFallback>();
   if (hostIds.length > 0) {
     try {
-      const { data: profs } = await supabase
-        .from("profiles")
-        .select("id, full_name, phone")
-        .in("id", hostIds);
-      for (const prof of profs || []) {
-        if (prof && typeof prof.id === "string") {
-          profileMap.set(prof.id, prof);
-        }
+      const [{ data: profs }, authRes] = await Promise.all([
+        supabase.from("profiles").select("*").in("id", hostIds),
+        supabase.auth.admin.listUsers({ page: 1, perPage: 500 }).catch(() => ({ data: { users: [] } })),
+      ]);
+
+      const authById = new Map<string, Record<string, any>>();
+      for (const u of (authRes as { data?: { users?: Array<Record<string, any>> } })?.data?.users || []) {
+        authById.set(String(u.id), u);
+      }
+
+      const profById = new Map<string, Record<string, any>>();
+      for (const prof of (profs || []) as Array<Record<string, any>>) {
+        if (prof?.id) profById.set(String(prof.id), prof);
+      }
+
+      for (const hid of hostIds) {
+        const prof = profById.get(hid);
+        const authU = authById.get(hid);
+        const meta = (authU?.user_metadata || {}) as Record<string, unknown>;
+        profileMap.set(hid, {
+          full_name: String(prof?.full_name || meta.full_name || meta.name || "").trim() || undefined,
+          business_name: String(prof?.business_name || meta.business_name || meta.company || "").trim() || undefined,
+          phone: String(prof?.phone || authU?.phone || meta.phone || "").trim() || undefined,
+          email: String(prof?.email || authU?.email || meta.contact_email || "").trim() || undefined,
+          city: String(prof?.city || meta.city || "").trim() || undefined,
+          address: String(prof?.address || meta.address || "").trim() || undefined,
+          is_verified: Boolean(
+            prof?.is_verified ||
+              prof?.nafath_verified_at ||
+              meta.is_verified ||
+              authU?.email_confirmed_at ||
+              authU?.phone_confirmed_at
+          ),
+        });
       }
     } catch {}
   }
 
+  const deletionRequests = await enrichDeletionRequestsWithLiveBookings(
+    supabase,
+    readPropertyDeletionRequests()
+  );
+  const pendingDeletionMap = new Map(
+    deletionRequests
+      .filter((req) => req.status === "pending")
+      .map((req) => [req.propertyId, req])
+  );
+
   const properties = rows.map((p) => {
     const profile = typeof p.host_id === "string" ? profileMap.get(p.host_id) || null : null;
-    return formatAdminPropertyRow(p, profile);
+    const formatted = formatAdminPropertyRow(p, profile);
+    return {
+      ...formatted,
+      pending_deletion_request:
+        pendingDeletionMap.get(String(p.id || "")) || null,
+    };
   });
 
-  return NextResponse.json({ properties });
+  return NextResponse.json({ properties, deletionRequests });
 }
 
 export async function PATCH(request: NextRequest) {

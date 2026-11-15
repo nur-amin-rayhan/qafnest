@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import { Download, Search, RefreshCw, CheckCircle2, ShieldCheck, FileSpreadsheet, Wallet, Zap, Percent, Users } from "lucide-react";
 import { useAdminAuth } from "@/context/AdminAuthContext";
 import { AdminMetrics } from "./types";
@@ -11,6 +11,7 @@ import { InvoicesLedgerTable } from "./financials/InvoicesLedgerTable";
 import { ZatcaComplianceCard } from "./financials/ZatcaComplianceCard";
 import { PlatformFeeConfigCard } from "./financials/PlatformFeeConfigCard";
 import { Payout24hReminderBanner } from "./financials/Payout24hReminderBanner";
+import { BatchSettlementTxnModal } from "./financials/BatchSettlementTxnModal";
 import { useAdminFinancials } from "./financials/useAdminFinancials";
 
 interface FinancialsTabProps {
@@ -19,6 +20,8 @@ interface FinancialsTabProps {
 
 export function FinancialsTab({}: FinancialsTabProps) {
   const { lang, dir, t } = useAdminAuth();
+  const [showSarieBatchModal, setShowSarieBatchModal] = useState(false);
+  const [settlingBatch, setSettlingBatch] = useState(false);
 
   const {
     loading,
@@ -47,6 +50,7 @@ export function FinancialsTab({}: FinancialsTabProps) {
     handleUpdateStatus,
     handleBatchUpdateStatus,
     handleProcessSarieSettlement,
+    handleReviewPayoutRequest,
     handleSendReminders,
     handleUpdatePolicy,
     handleCheckSuppliers,
@@ -54,6 +58,15 @@ export function FinancialsTab({}: FinancialsTabProps) {
     handleExportTaxJournal,
     loadFinancials,
   } = useAdminFinancials();
+
+  const openPayoutDossierInUrl = (payoutId: string) => {
+    if (typeof window === "undefined") return;
+    const url = new URL(window.location.href);
+    url.searchParams.set("payoutId", payoutId);
+    window.history.replaceState(null, "", `${url.pathname}${url.search}`);
+    setActiveSection("payouts");
+    loadFinancials();
+  };
 
   return (
     <div dir={dir} className="bg-surface-container-lowest p-4 sm:p-6 rounded-2xl shadow-sm space-y-6 overflow-x-hidden">
@@ -150,9 +163,9 @@ export function FinancialsTab({}: FinancialsTabProps) {
             <div className="flex flex-wrap items-center gap-2">
               <button
                 type="button"
-                onClick={handleProcessSarieSettlement}
+                onClick={() => setShowSarieBatchModal(true)}
                 className="inline-flex items-center gap-1.5 rounded-xl bg-status-emerald text-white hover:bg-emerald-700 px-3.5 py-2 text-xs font-bold transition cursor-pointer shadow-xs shrink-0"
-                title={t("Process SAMA SARIE Settlement for all pending payouts", "صرف جميع دفعات سريع المعلقة")}
+                title={t("Process SAMA SARIE Settlement with Legal Bank Txn #", "صرف دفعات سريع المستحقة بالرقم المرجعي")}
               >
                 <Zap size={14} />
                 <span>{t("SAMA Settle All", "صرف دفعات سريع")}</span>
@@ -191,7 +204,7 @@ export function FinancialsTab({}: FinancialsTabProps) {
           reminders={reminders}
           policy={policy}
           nowTick={nowTick}
-          onDisburseNow={async (id) => handleUpdateStatus(id, "disbursed")}
+          onDisburseNow={async (id) => openPayoutDossierInUrl(id)}
           onSendReminders={handleSendReminders}
           sendingReminders={sendingReminders}
           onUpdatePolicy={handleUpdatePolicy}
@@ -215,6 +228,7 @@ export function FinancialsTab({}: FinancialsTabProps) {
           nowTick={nowTick}
           onUpdateStatus={handleUpdateStatus}
           onBatchUpdateStatus={handleBatchUpdateStatus}
+          onReviewRequest={handleReviewPayoutRequest}
           onSendReminder={handleSendReminders}
         />
       ) : (
@@ -226,7 +240,9 @@ export function FinancialsTab({}: FinancialsTabProps) {
               <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 scrollbar-none">
                 {[
                   { id: "all", labelEn: "All Payouts", labelAr: "كل المدفوعات" },
+                  { id: "host_requested", labelEn: "Host Requests", labelAr: "طلبات المضيفين" },
                   { id: "sla_urgent", labelEn: "24h Urgent / Overdue", labelAr: "عاجلة خلال ٢٤ ساعة" },
+                  { id: "escrow", labelEn: "In Escrow (Pre-Check-Out)", labelAr: "في الضمان (قبل المغادرة)" },
                   { id: "pending", labelEn: "Pending", labelAr: "قيد الانتظار" },
                   { id: "processing", labelEn: "Processing", labelAr: "قيد المعالجة" },
                   { id: "disbursed", labelEn: "Disbursed", labelAr: "تم الصرف" },
@@ -294,6 +310,7 @@ export function FinancialsTab({}: FinancialsTabProps) {
                 nowTick={nowTick}
                 onUpdateStatus={handleUpdateStatus}
                 onBatchUpdateStatus={handleBatchUpdateStatus}
+                onReviewRequest={handleReviewPayoutRequest}
                 onSendReminder={handleSendReminders}
               />
             ) : (
@@ -317,6 +334,25 @@ export function FinancialsTab({}: FinancialsTabProps) {
         </div>
         <span className="font-mono text-[11px] text-outline">CR 1010648921 · VAT 310123456700003</span>
       </div>
+
+      <BatchSettlementTxnModal
+        isOpen={showSarieBatchModal}
+        titleEn="Settle All Post-Checkout Eligible SARIE Payouts"
+        titleAr="تسوية كافة دفعات سريع المؤهلة بعد المغادرة"
+        subtitleEn="Enter the Legal Bank / SARIE Batch Transaction Number issued by Finance. Pre-checkout bookings remain safely locked in escrow."
+        subtitleAr="أدخل رقم العملية البنكية الرسمي الصادر من قسم المالية. ستبقى الحجوزات التي لم يغادر ضيوفها مقفولة في الضمان."
+        submitting={settlingBatch}
+        onClose={() => setShowSarieBatchModal(false)}
+        onConfirm={async (legalTxnId) => {
+          setSettlingBatch(true);
+          try {
+            await handleProcessSarieSettlement(legalTxnId);
+            setShowSarieBatchModal(false);
+          } finally {
+            setSettlingBatch(false);
+          }
+        }}
+      />
     </div>
   );
 }

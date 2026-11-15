@@ -18,6 +18,7 @@ export interface HostFinancialsState {
   totalPaidOut: string;
   upcomingPayout: string;
   availableInstantBalance: string;
+  escrowedBalance?: string;
 }
 
 const DEFAULT_KPIS: HostFinancialsState = {
@@ -28,6 +29,7 @@ const DEFAULT_KPIS: HostFinancialsState = {
   totalPaidOut: "0.00",
   upcomingPayout: "0.00",
   availableInstantBalance: "0.00",
+  escrowedBalance: "0.00",
 };
 
 const DEFAULT_IBAN: HostPayoutIban = {

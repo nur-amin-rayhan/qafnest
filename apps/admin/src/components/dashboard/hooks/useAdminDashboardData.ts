@@ -11,6 +11,7 @@ import type {
   PropertyItem,
   BookingItem,
   AdminMetrics,
+  AdminPropertyDeletionRequest,
 } from "@/components/dashboard/types";
 import type {
   PayoutReminderSummary,
@@ -58,6 +59,7 @@ export function useAdminDashboardData() {
   const [bookings, setBookings] = useState<BookingItem[]>(INITIAL_MOCK_BOOKINGS);
   const [payoutReminders, setPayoutReminders] = useState<PayoutReminderSummary | null>(null);
   const [urgentPayoutQueue, setUrgentPayoutQueue] = useState<SharedHostPayoutRecord[]>([]);
+  const [deletionRequests, setDeletionRequests] = useState<AdminPropertyDeletionRequest[]>([]);
 
   const loadLiveAdminData = useCallback(async () => {
     setLoading(true);
@@ -79,6 +81,9 @@ export function useAdminDashboardData() {
         if (Array.isArray(metData.urgentPayoutQueue)) {
           setUrgentPayoutQueue(metData.urgentPayoutQueue);
         }
+        if (Array.isArray(metData.deletionRequests)) {
+          setDeletionRequests(metData.deletionRequests);
+        }
         const liveBookings = metData.bookings || metData.recentBookings;
         if (Array.isArray(liveBookings)) {
           setBookings(liveBookings);
@@ -89,6 +94,9 @@ export function useAdminDashboardData() {
         const propData = await resProps.json();
         if (Array.isArray(propData.properties)) {
           setProperties(propData.properties);
+        }
+        if (Array.isArray(propData.deletionRequests)) {
+          setDeletionRequests(propData.deletionRequests);
         }
       }
     } catch (e) {
@@ -289,6 +297,47 @@ export function useAdminDashboardData() {
     }
   };
 
+  const reviewDeletionRequest = useCallback(
+    async (params: {
+      requestId: string;
+      action: "approve" | "reject";
+      adminNotes?: string;
+    }): Promise<{ ok: boolean; error?: string }> => {
+      try {
+        const res = await fetch(
+          adminPath("/api/admin/properties/deletion-requests"),
+          {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(params),
+          }
+        );
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          const msg =
+            data.message || data.error || "Failed to review deletion request.";
+          triggerToast(msg);
+          return { ok: false, error: msg };
+        }
+        triggerToast(
+          params.action === "approve"
+            ? "Property approved for removal and auto-deleted cleanly."
+            : "Property deletion request declined and host notified."
+        );
+        await loadLiveAdminData();
+        return { ok: true };
+      } catch (err: unknown) {
+        const msg =
+          err instanceof Error
+            ? err.message
+            : "Error reviewing property deletion request.";
+        triggerToast(msg);
+        return { ok: false, error: msg };
+      }
+    },
+    [loadLiveAdminData]
+  );
+
   return {
     loading,
     errorMsg,
@@ -315,6 +364,8 @@ export function useAdminDashboardData() {
     bookings,
     payoutReminders,
     urgentPayoutQueue,
+    deletionRequests,
+    reviewDeletionRequest,
     quickDisbursePayout,
     sendOverviewPayoutReminders,
     loadLiveAdminData,

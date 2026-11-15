@@ -16,6 +16,7 @@ interface DashboardOverviewTabProps {
   bookings: BookingItem[];
   payoutReminders?: PayoutReminderSummary | null;
   urgentPayoutQueue?: SharedHostPayoutRecord[];
+  onInspectPayout?: (payoutId: string) => void;
   onQuickDisbursePayout?: (payoutId: string) => Promise<void>;
   onSendPayoutReminders?: (payoutIds?: string[]) => Promise<void>;
   updatePropertyStatus: (
@@ -35,6 +36,7 @@ export function DashboardOverviewTab({
   bookings,
   payoutReminders,
   urgentPayoutQueue = [],
+  onInspectPayout,
   onQuickDisbursePayout,
   onSendPayoutReminders,
   updatePropertyStatus,
@@ -57,7 +59,8 @@ export function DashboardOverviewTab({
           payouts={urgentPayoutQueue}
           reminders={payoutReminders}
           onOpenFinancials={() => setActiveTab("financials-and-payouts")}
-          onDisburseNow={onQuickDisbursePayout}
+          onInspectPayout={onInspectPayout}
+          onDisburseNow={onInspectPayout ? undefined : onQuickDisbursePayout}
           onSendReminders={onSendPayoutReminders}
         />
       )}
@@ -107,7 +110,7 @@ export function DashboardOverviewTab({
       <OverviewAnalyticalCharts metrics={metrics} bookings={bookings} />
 
       {/* Split Operational Section: Live Bookings & Approval Queue */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-space-lg">
+      <div className="grid grid-cols-1 xl:grid-cols-12 gap-space-lg">
         {/* Left: Recent Bookings */}
         <OverviewRecentBookings
           bookings={bookings}

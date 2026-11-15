@@ -50,12 +50,6 @@ export async function executeHostEmailAuth({
   effectiveLang: "ar" | "en";
   setHostUser: (user: User, profile?: HostProfile | null) => void;
 }): Promise<{ success: boolean; message: string; shouldFinish: boolean }> {
-  const normalizedEmail = email.trim().toLowerCase();
-  const isDevHost =
-    normalizedEmail === "host.dev@qafnest.com" ||
-    (Boolean(process.env.NEXT_PUBLIC_DEV_HOST_EMAIL) &&
-      normalizedEmail === process.env.NEXT_PUBLIC_DEV_HOST_EMAIL?.toLowerCase());
-
   if (isEmailSignIn) {
     try {
       const { data, error } = await supabase.auth.signInWithPassword({ email, password });
@@ -65,10 +59,6 @@ export async function executeHostEmailAuth({
       } else {
         setHostSessionCookie(true);
       }
-      if (isDevHost && typeof document !== "undefined") {
-        document.cookie = "qafnest_host_dev=1; path=/; max-age=86400; SameSite=Lax";
-        document.cookie = "qafnest_has_host_session=dev_host_token; path=/; max-age=86400; SameSite=Lax";
-      }
       if (data.user) setHostUser(data.user);
       return {
         success: true,
@@ -77,38 +67,31 @@ export async function executeHostEmailAuth({
         shouldFinish: true,
       };
     } catch (err) {
-      if (isDevHost) {
-        const devHostId = process.env.NEXT_PUBLIC_DEV_HOST_ID || "00000000-0000-0000-0000-000000000002";
-        const devHostName = process.env.NEXT_PUBLIC_DEV_HOST_NAME || "Dev Host Partner";
-        const devHostPhone = process.env.NEXT_PUBLIC_DEV_HOST_PHONE || "";
-        const devUser: User = {
-          id: devHostId,
-          email: "host.dev@qafnest.com",
-          app_metadata: { provider: "email", role: "host" },
-          user_metadata: { full_name: devHostName, role: "host" },
-          aud: "authenticated",
-          created_at: new Date().toISOString(),
-        } as User;
-        setHostSessionCookie("dev_host_token");
-        if (typeof document !== "undefined") {
-          document.cookie = "qafnest_host_dev=1; path=/; max-age=86400; SameSite=Lax";
-          document.cookie = "qafnest_has_host_session=dev_host_token; path=/; max-age=86400; SameSite=Lax";
+      if (process.env.NODE_ENV !== "production") {
+        const res = await fetch("/api/host/auth/dev-login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, password }),
+        }).catch(() => null);
+        if (res?.ok) {
+          const devData = (await res.json()) as {
+            success?: boolean;
+            user?: User;
+            profile?: HostProfile | null;
+          };
+          if (devData?.success && devData.user) {
+            setHostSessionCookie("dev_host_token");
+            setHostUser(devData.user, devData.profile ?? null);
+            return {
+              success: true,
+              message:
+                effectiveLang === "ar"
+                  ? "مرحباً بعودتك! تم الدخول بنجاح بحساب مضيف التطوير."
+                  : "Welcome back! Signed in as Dev Host Partner.",
+              shouldFinish: true,
+            };
+          }
         }
-        setHostUser(devUser, {
-          id: devHostId,
-          full_name: devHostName,
-          phone: devHostPhone,
-          avatar_url: null,
-          role: "host",
-        });
-        return {
-          success: true,
-          message:
-            effectiveLang === "ar"
-              ? "مرحباً بعودتك! تم الدخول بنجاح بحساب مضيف التطوير."
-              : "Welcome back! Signed in as Dev Host Partner.",
-          shouldFinish: true,
-        };
       }
       throw err;
     }

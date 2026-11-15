@@ -1,29 +1,29 @@
 {
   "configs": {
-    "15aa3183-888f-464a-9b85-612c6f25441f": {
-      "propertyId": "15aa3183-888f-464a-9b85-612c6f25441f",
-      "slug": "abu-bodar-villa-72708f0b",
+    "6749e740-8753-4514-bd4c-5eb3815f3cb8": {
+      "propertyId": "6749e740-8753-4514-bd4c-5eb3815f3cb8",
+      "slug": "rayhan-chalet-dc66af87",
       "enableStandard4pmTo12pm": true,
       "enableTwelveHour12amTo12pm": true,
-      "twelveHourPrice": 100,
+      "twelveHourPrice": null,
       "hostBlockedDates": [],
       "dateSlotOverrides": {},
       "updatedBy": "host",
-      "updatedAt": "2026-11-11T17:50:48.132Z"
+      "updatedAt": "2026-11-15T15:57:45.288Z"
     },
-    "abu-bodar-villa-72708f0b": {
-      "propertyId": "15aa3183-888f-464a-9b85-612c6f25441f",
-      "slug": "abu-bodar-villa-72708f0b",
+    "rayhan-chalet-dc66af87": {
+      "propertyId": "6749e740-8753-4514-bd4c-5eb3815f3cb8",
+      "slug": "rayhan-chalet-dc66af87",
       "enableStandard4pmTo12pm": true,
       "enableTwelveHour12amTo12pm": true,
-      "twelveHourPrice": 100,
+      "twelveHourPrice": null,
       "hostBlockedDates": [],
       "dateSlotOverrides": {},
       "updatedBy": "host",
-      "updatedAt": "2026-11-11T17:50:48.132Z"
+      "updatedAt": "2026-11-15T15:57:45.288Z"
     }
   },
   "slugToPropertyId": {
-    "abu-bodar-villa-72708f0b": "15aa3183-888f-464a-9b85-612c6f25441f"
+    "rayhan-chalet-dc66af87": "6749e740-8753-4514-bd4c-5eb3815f3cb8"
   }
 }

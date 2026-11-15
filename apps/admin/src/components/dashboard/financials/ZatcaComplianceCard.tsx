@@ -158,7 +158,7 @@ export function ZatcaComplianceCard() {
       )}
 
       {/* 4 Cryptographic Metrics */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 text-xs">
         {/* Metric 1: CSID Certificate */}
         <div className="p-3 bg-surface-container-low rounded-xl border border-surface-container space-y-1">
           <div className="flex items-center gap-1.5 text-outline text-[11px] font-bold">

@@ -1,15 +1,14 @@
 "use client";
 
 import React from "react";
-import { MAIN_FACILITIES, WizardDraft } from "./types";
+import { StepperRow } from "./StepperRow";
+import { MAIN_FACILITIES, type WizardArrayField, type WizardDraft } from "./types";
 
 interface StepDetailsPricingProps {
   draft: WizardDraft;
   updateDraft: <K extends keyof WizardDraft>(key: K, val: WizardDraft[K]) => void;
-  toggleItem: (
-    key: "mainFacilities" | "bathroomAmenities" | "propertyAmenities" | "propertyFeatures",
-    item: string
-  ) => void;
+  updateBedroomsCount: (nextCount: number) => void;
+  toggleItem: (key: WizardArrayField, item: string) => void;
   lang: "ar" | "en";
   t: (en: string, ar: string) => string;
 }
@@ -17,10 +16,52 @@ interface StepDetailsPricingProps {
 export function StepDetailsPricing({
   draft,
   updateDraft,
+  updateBedroomsCount,
   toggleItem,
   lang,
   t,
 }: StepDetailsPricingProps) {
+  const facilityCounters: Array<{
+    facilityId: string;
+    label: string;
+    value: number;
+    onChange: (next: number) => void;
+  }> = [
+    {
+      facilityId: "غرفة نوم",
+      label: t("Number of Bedrooms", "عدد غرف النوم"),
+      value: draft.bedroomsCount,
+      onChange: updateBedroomsCount,
+    },
+    {
+      facilityId: "مجلس",
+      label: t("Number of Majlis / Living Rooms", "عدد المجالس"),
+      value: draft.mainMajlisCount,
+      onChange: (v) => updateDraft("mainMajlisCount", v),
+    },
+    {
+      facilityId: "مسبح",
+      label: t("Number of Swimming Pools", "عدد المسابح"),
+      value: draft.poolsCount,
+      onChange: (v) => updateDraft("poolsCount", v),
+    },
+    {
+      facilityId: "مطبخ",
+      label: t("Number of Kitchens", "عدد المطابخ"),
+      value: draft.kitchensCount,
+      onChange: (v) => updateDraft("kitchensCount", v),
+    },
+    {
+      facilityId: "دورة مياه",
+      label: t("Number of Bathrooms", "عدد دورات المياه"),
+      value: draft.bathroomsCount,
+      onChange: (v) => updateDraft("bathroomsCount", v),
+    },
+  ];
+
+  const selectedCounters = facilityCounters.filter((item) =>
+    draft.mainFacilities.includes(item.facilityId)
+  );
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-black text-slate-900">
@@ -51,6 +92,20 @@ export function StepDetailsPricing({
             {t("Square Meters", "متر مربع")}
           </span>
         </div>
+      </div>
+
+      <div className="rounded-2xl border border-slate-200/80 bg-slate-50/70 px-4 py-2">
+        <StepperRow
+          label={t("Maximum Guest Capacity", "أقصى سعة للضيوف")}
+          value={draft.guestCapacity}
+          min={1}
+          max={100}
+          onChange={(v) => updateDraft("guestCapacity", Math.max(1, v))}
+          helperText={t(
+            `Displayed on your listing as "Up to ${draft.guestCapacity} guests".`,
+            `تظهر في صفحة العقار كـ "حتى ${draft.guestCapacity} ضيوف".`
+          )}
+        />
       </div>
 
       <hr className="border-slate-100" />
@@ -152,6 +207,33 @@ export function StepDetailsPricing({
             );
           })}
         </div>
+
+        {selectedCounters.length > 0 && (
+          <div className="mt-4 rounded-2xl border border-violet-200/80 bg-violet-50/50 p-4 space-y-2">
+            <div>
+              <h3 className="text-xs font-black text-[#4F2396]">
+                {t("Specify Facility Counts", "حدد أعداد المرافق المختارة")}
+              </h3>
+              <p className="text-[11px] font-semibold text-slate-500 mt-0.5">
+                {t(
+                  "Detailed options for each selected facility will open in the next steps.",
+                  "ستظهر تفاصيل ومزايا كل مرفق قمت باختياره في الخطوات التالية."
+                )}
+              </p>
+            </div>
+            <div className="divide-y divide-violet-200/50">
+              {selectedCounters.map((item) => (
+                <StepperRow
+                  key={item.facilityId}
+                  label={item.label}
+                  value={item.value}
+                  min={0}
+                  onChange={item.onChange}
+                />
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
