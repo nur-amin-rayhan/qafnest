@@ -1,5 +1,3 @@
-import fs from "fs";
-import path from "path";
 import crypto from "crypto";
 import {
   ZatcaConfig,
@@ -12,26 +10,12 @@ import {
   generateZatcaCsrAndKeyPair,
   buildAndSignZatcaPhase2Invoice,
 } from "./zatcaCrypto";
+import { readSharedJsonFile, writeSharedJsonFile } from "./serverJsonStore";
 
 export * from "./zatcaConfig";
 
-function findMonorepoRoot(): string {
-  let curr = process.cwd();
-  for (let i = 0; i < 6; i++) {
-    if (fs.existsSync(path.join(curr, "packages", "shared"))) {
-      return curr;
-    }
-    const parent = path.dirname(curr);
-    if (parent === curr) break;
-    curr = parent;
-  }
-  return process.cwd();
-}
-
-function getDataFilePath(filename: string): string {
-  const root = findMonorepoRoot();
-  return path.join(root, "packages", "shared", "data", filename);
-}
+const ZATCA_CONFIG_FILE = "zatca-config.json";
+const ZATCA_INVOICES_FILE = "zatca-invoices.json";
 
 function normalizeGatewayUrl(url: string | undefined, env: ZatcaConfig["environment"]): string {
   if (!url) return ZATCA_ENVIRONMENT_URLS[env];
@@ -40,41 +24,27 @@ function normalizeGatewayUrl(url: string | undefined, env: ZatcaConfig["environm
 }
 
 export function getServerZatcaConfig(): ZatcaConfig {
-  try {
-    const filePath = getDataFilePath("zatca-config.json");
-    if (!fs.existsSync(filePath)) {
-      writeServerZatcaConfig(DEFAULT_ZATCA_CONFIG);
+  return readSharedJsonFile<ZatcaConfig>(
+    ZATCA_CONFIG_FILE,
+    () => DEFAULT_ZATCA_CONFIG,
+    (parsed) => {
+      const candidate = parsed as Partial<ZatcaConfig> | null;
+      if (candidate && typeof candidate.vatNumber === "string") {
+        const merged: ZatcaConfig = { ...DEFAULT_ZATCA_CONFIG, ...candidate };
+        merged.portalUrl = normalizeGatewayUrl(merged.portalUrl, merged.environment);
+        if (merged.csidToken === "QAFNEST_ZATCA_SANDBOX_CSID_TOKEN_2026") {
+          merged.csidToken = "";
+          merged.csidSecret = "";
+        }
+        return merged;
+      }
       return DEFAULT_ZATCA_CONFIG;
     }
-    const content = fs.readFileSync(filePath, "utf-8");
-    const parsed = JSON.parse(content);
-    if (parsed && typeof parsed.vatNumber === "string") {
-      const merged: ZatcaConfig = { ...DEFAULT_ZATCA_CONFIG, ...parsed };
-      merged.portalUrl = normalizeGatewayUrl(merged.portalUrl, merged.environment);
-      if (merged.csidToken === "QAFNEST_ZATCA_SANDBOX_CSID_TOKEN_2026") {
-        merged.csidToken = "";
-        merged.csidSecret = "";
-      }
-      return merged;
-    }
-    return DEFAULT_ZATCA_CONFIG;
-  } catch (err) {
-    console.error("[zatcaStore] read error:", err);
-    return DEFAULT_ZATCA_CONFIG;
-  }
+  );
 }
 
 export function writeServerZatcaConfig(config: ZatcaConfig): void {
-  try {
-    const filePath = getDataFilePath("zatca-config.json");
-    const dir = path.dirname(filePath);
-    if (!fs.existsSync(dir)) {
-      fs.mkdirSync(dir, { recursive: true });
-    }
-    fs.writeFileSync(filePath, JSON.stringify(config, null, 2), "utf-8");
-  } catch (err) {
-    console.error("[zatcaStore] write error:", err);
-  }
+  writeSharedJsonFile(ZATCA_CONFIG_FILE, config);
 }
 
 export function updateServerZatcaConfig(updates: Partial<ZatcaConfig>): ZatcaConfig {
@@ -101,17 +71,12 @@ export function updateServerZatcaConfig(updates: Partial<ZatcaConfig>): ZatcaCon
 // --- Persistent Invoice Audit Ledger ---
 
 export function getZatcaInvoiceRecords(limit = 100): ZatcaInvoiceAuditRecord[] {
-  try {
-    const filePath = getDataFilePath("zatca-invoices.json");
-    if (!fs.existsSync(filePath)) return [];
-    const content = fs.readFileSync(filePath, "utf-8");
-    const records = JSON.parse(content);
-    if (!Array.isArray(records)) return [];
-    return records.slice(0, limit);
-  } catch (err) {
-    console.warn("[zatcaStore] invoice log read error:", err);
-    return [];
-  }
+  const records = readSharedJsonFile<ZatcaInvoiceAuditRecord[]>(
+    ZATCA_INVOICES_FILE,
+    () => [],
+    (parsed) => (Array.isArray(parsed) ? (parsed as ZatcaInvoiceAuditRecord[]) : [])
+  );
+  return records.slice(0, limit);
 }
 
 export function findZatcaInvoiceRecord(lookup: {
@@ -131,20 +96,11 @@ export function findZatcaInvoiceRecord(lookup: {
 }
 
 function appendZatcaInvoiceRecord(record: ZatcaInvoiceAuditRecord): void {
-  try {
-    const filePath = getDataFilePath("zatca-invoices.json");
-    const dir = path.dirname(filePath);
-    if (!fs.existsSync(dir)) {
-      fs.mkdirSync(dir, { recursive: true });
-    }
-    const existing = getZatcaInvoiceRecords(500).filter(
-      (r) => r.invoiceNumber !== record.invoiceNumber && r.uuid !== record.uuid
-    );
-    const updated = [record, ...existing].slice(0, 250);
-    fs.writeFileSync(filePath, JSON.stringify(updated, null, 2), "utf-8");
-  } catch (err) {
-    console.error("[zatcaStore] invoice log write error:", err);
-  }
+  const existing = getZatcaInvoiceRecords(500).filter(
+    (r) => r.invoiceNumber !== record.invoiceNumber && r.uuid !== record.uuid
+  );
+  const updated = [record, ...existing].slice(0, 250);
+  writeSharedJsonFile(ZATCA_INVOICES_FILE, updated);
 }
 
 /**

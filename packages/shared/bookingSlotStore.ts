@@ -6,6 +6,14 @@ import {
   type DateSlotOverride,
   type PropertyBookingSlotConfig,
 } from "./bookingSlotConfig";
+import {
+  getTmpDataDir,
+  getWritableLockDir,
+  isUnwritableFsError,
+  markReadOnlyFsFallback,
+  readSharedJsonFile,
+  writeSharedJsonFile,
+} from "./serverJsonStore";
 
 interface StoredSlotConfigDocument {
   configs: Record<string, PropertyBookingSlotConfig>;
@@ -13,59 +21,29 @@ interface StoredSlotConfigDocument {
 }
 
 const CUSTOM_DAY_SLOT_CONFIG_KEY = "__slotConfig";
+const SLOT_CONFIGS_FILE = "booking-slot-configs.json";
 const inMemoryQueues = new Map<string, Promise<unknown>>();
-
-function findMonorepoRoot(): string {
-  let curr = process.cwd();
-  for (let i = 0; i < 6; i++) {
-    if (fs.existsSync(path.join(curr, "packages", "shared"))) {
-      return curr;
-    }
-    const parent = path.dirname(curr);
-    if (parent === curr) break;
-    curr = parent;
-  }
-  return process.cwd();
-}
-
-function getDataDir(): string {
-  return path.join(findMonorepoRoot(), "packages", "shared", "data");
-}
-
-function getStoreFilePath(): string {
-  return path.join(getDataDir(), "booking-slot-configs.json");
-}
+let warnedLockFallback = false;
 
 function readStoreDocument(): StoredSlotConfigDocument {
-  try {
-    const filePath = getStoreFilePath();
-    if (!fs.existsSync(filePath)) {
-      return { configs: {}, slugToPropertyId: {} };
+  return readSharedJsonFile<StoredSlotConfigDocument>(
+    SLOT_CONFIGS_FILE,
+    () => ({ configs: {}, slugToPropertyId: {} }),
+    (parsed) => {
+      const candidate = parsed as Partial<StoredSlotConfigDocument>;
+      return {
+        configs: candidate?.configs && typeof candidate.configs === "object" ? candidate.configs : {},
+        slugToPropertyId:
+          candidate?.slugToPropertyId && typeof candidate.slugToPropertyId === "object"
+            ? candidate.slugToPropertyId
+            : {},
+      };
     }
-    const raw = fs.readFileSync(filePath, "utf-8");
-    const parsed = JSON.parse(raw) as Partial<StoredSlotConfigDocument>;
-    return {
-      configs: parsed.configs && typeof parsed.configs === "object" ? parsed.configs : {},
-      slugToPropertyId:
-        parsed.slugToPropertyId && typeof parsed.slugToPropertyId === "object"
-          ? parsed.slugToPropertyId
-          : {},
-    };
-  } catch (err) {
-    console.warn("[bookingSlotStore] Read warning:", err);
-    return { configs: {}, slugToPropertyId: {} };
-  }
+  );
 }
 
 function writeStoreDocument(doc: StoredSlotConfigDocument): void {
-  const dir = getDataDir();
-  if (!fs.existsSync(dir)) {
-    fs.mkdirSync(dir, { recursive: true });
-  }
-  const filePath = getStoreFilePath();
-  const tmpPath = `${filePath}.${process.pid}.${Date.now()}.tmp`;
-  fs.writeFileSync(tmpPath, JSON.stringify(doc, null, 2), "utf-8");
-  fs.renameSync(tmpPath, filePath);
+  writeSharedJsonFile(SLOT_CONFIGS_FILE, doc);
 }
 
 export function extractSlotConfigFromCustomDayPricing(
@@ -241,18 +219,24 @@ async function runWithInProcessMutex<T>(key: string, fn: () => Promise<T>): Prom
   }
 }
 
-function getLockFilePath(key: string): string {
+function getLockFilePath(key: string, dirOverride?: string): string {
   const safeKey = key.replace(/[^a-zA-Z0-9_-]/g, "_").slice(0, 96);
-  return path.join(getDataDir(), ".locks", `${safeKey}.lock`);
+  return path.join(dirOverride || getWritableLockDir(), `${safeKey}.lock`);
 }
 
-function tryAcquireFileLock(lockPath: string): number | null {
+type FileLockAttempt =
+  | { status: "acquired"; fd: number; lockPath: string }
+  | { status: "busy" }
+  | { status: "unavailable" };
+
+function openExclusiveLockFile(lockPath: string): FileLockAttempt {
   try {
     const dir = path.dirname(lockPath);
     if (!fs.existsSync(dir)) {
       fs.mkdirSync(dir, { recursive: true });
     }
-    return fs.openSync(lockPath, "wx");
+    const fd = fs.openSync(lockPath, "wx");
+    return { status: "acquired", fd, lockPath };
   } catch (err: unknown) {
     const code = (err as NodeJS.ErrnoException)?.code;
     if (code === "EEXIST") {
@@ -260,20 +244,33 @@ function tryAcquireFileLock(lockPath: string): number | null {
         const stat = fs.statSync(lockPath);
         if (Date.now() - stat.mtimeMs > 15_000) {
           fs.unlinkSync(lockPath);
-          return fs.openSync(lockPath, "wx");
+          const fd = fs.openSync(lockPath, "wx");
+          return { status: "acquired", fd, lockPath };
         }
       } catch {
         // Retry on next backoff tick
       }
-      return null;
+      return { status: "busy" };
     }
-    return null;
+    if (isUnwritableFsError(err)) {
+      markReadOnlyFsFallback();
+      const tmpLockPath = getLockFilePath(path.basename(lockPath, ".lock"), path.join(getTmpDataDir(), ".locks"));
+      if (tmpLockPath !== lockPath) {
+        return openExclusiveLockFile(tmpLockPath);
+      }
+    }
+    if (!warnedLockFallback) {
+      warnedLockFallback = true;
+      console.warn("[bookingSlotStore] Lockfile unavailable, falling back to in-process mutex:", code || err);
+    }
+    return { status: "unavailable" };
   }
 }
 
 /**
  * Prevents simultaneous checkout or admin/host mutations on the same property from creating
- * overlapping bookings or overwriting active slots. Serializes via in-process mutex + atomic lockfile.
+ * overlapping bookings or overwriting active slots. Serializes via in-process mutex + atomic lockfile
+ * (falling back cleanly to in-process mutex when running on a read-only filesystem).
  */
 export async function acquirePropertyBookingLock<T>(
   propertyKeys: string | Array<string | null | undefined>,
@@ -286,29 +283,33 @@ export async function acquirePropertyBookingLock<T>(
   return runWithInProcessMutex(primaryKey, async () => {
     const lockPath = getLockFilePath(primaryKey);
     const deadline = Date.now() + timeoutMs;
-    let fd: number | null = null;
+    let attempt: FileLockAttempt = { status: "busy" };
 
-    while (fd === null && Date.now() < deadline) {
-      fd = tryAcquireFileLock(lockPath);
-      if (fd !== null) break;
+    while (Date.now() < deadline) {
+      attempt = openExclusiveLockFile(lockPath);
+      if (attempt.status === "acquired" || attempt.status === "unavailable") break;
       await new Promise((r) => setTimeout(r, 25 + Math.floor(Math.random() * 25)));
     }
 
-    if (fd === null) {
+    if (attempt.status === "unavailable") {
+      return await fn();
+    }
+
+    if (attempt.status !== "acquired") {
       throw new Error("Property reservation lock timeout — concurrent booking in progress.");
     }
 
     try {
-      fs.writeSync(fd, `${process.pid}:${Date.now()}`);
+      fs.writeSync(attempt.fd, `${process.pid}:${Date.now()}`);
       return await fn();
     } finally {
       try {
-        fs.closeSync(fd);
+        fs.closeSync(attempt.fd);
       } catch {
         // ignore close errors
       }
       try {
-        fs.unlinkSync(lockPath);
+        fs.unlinkSync(attempt.lockPath);
       } catch {
         // ignore unlink errors
       }

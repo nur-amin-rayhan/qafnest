@@ -1,5 +1,4 @@
-import fs from "fs";
-import path from "path";
+import { readSharedJsonFile, writeSharedJsonFile } from "./serverJsonStore";
 
 export type UserActivityRole = "guest" | "host" | "admin" | "system";
 
@@ -45,49 +44,25 @@ export interface UserGovernanceStoreDoc {
   events: StoredUserActivityEvent[];
 }
 
-function findMonorepoRoot(): string {
-  let curr = process.cwd();
-  for (let i = 0; i < 6; i++) {
-    if (fs.existsSync(path.join(curr, "packages", "shared"))) {
-      return curr;
-    }
-    const parent = path.dirname(curr);
-    if (parent === curr) break;
-    curr = parent;
-  }
-  return process.cwd();
-}
-
-function getStorePath(): string {
-  return path.join(findMonorepoRoot(), "packages", "shared", "data", "user-governance-activity.json");
-}
+const USER_GOVERNANCE_FILE = "user-governance-activity.json";
 
 export function readUserGovernanceStore(): UserGovernanceStoreDoc {
-  try {
-    const filePath = getStorePath();
-    if (!fs.existsSync(filePath)) {
-      return { overrides: {}, events: [] };
+  return readSharedJsonFile<UserGovernanceStoreDoc>(
+    USER_GOVERNANCE_FILE,
+    () => ({ overrides: {}, events: [] }),
+    (parsed) => {
+      const candidate = (parsed || {}) as Partial<UserGovernanceStoreDoc>;
+      return {
+        overrides:
+          candidate.overrides && typeof candidate.overrides === "object" ? candidate.overrides : {},
+        events: Array.isArray(candidate.events) ? candidate.events : [],
+      };
     }
-    const parsed = JSON.parse(fs.readFileSync(filePath, "utf-8")) as Partial<UserGovernanceStoreDoc>;
-    return {
-      overrides: parsed.overrides && typeof parsed.overrides === "object" ? parsed.overrides : {},
-      events: Array.isArray(parsed.events) ? parsed.events : [],
-    };
-  } catch (err) {
-    console.warn("[userActivityStore] read warning:", err);
-    return { overrides: {}, events: [] };
-  }
+  );
 }
 
 function writeUserGovernanceStore(doc: UserGovernanceStoreDoc): void {
-  const filePath = getStorePath();
-  const dir = path.dirname(filePath);
-  if (!fs.existsSync(dir)) {
-    fs.mkdirSync(dir, { recursive: true });
-  }
-  const tmpPath = `${filePath}.${process.pid}.${Date.now()}.tmp`;
-  fs.writeFileSync(tmpPath, JSON.stringify(doc, null, 2), "utf-8");
-  fs.renameSync(tmpPath, filePath);
+  writeSharedJsonFile(USER_GOVERNANCE_FILE, doc);
 }
 
 export function recordUserActivity(

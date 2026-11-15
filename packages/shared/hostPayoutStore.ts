@@ -4,14 +4,13 @@
  * across Admin Operations Hub (:3003) and Host Business Portal (:3001).
  */
 
-import fs from "fs";
-import path from "path";
 import {
   DEFAULT_HOST_PAYOUT_POLICY,
   type HostPayoutPolicy,
   type PayoutStatus,
   type SharedHostPayoutRecord,
 } from "./hostPayoutConfig";
+import { readSharedJsonFile, writeSharedJsonFile } from "./serverJsonStore";
 import { type PlatformFeeConfig } from "./platformFee";
 import { resolveBookingSettlement } from "./bookingFinancialsStore";
 import { findZatcaInvoiceRecord } from "./zatcaStore";
@@ -37,66 +36,33 @@ export interface HostPayoutStoreData {
   hostIbans: Record<string, StoredHostBankInfo>;
 }
 
-function findMonorepoRoot(): string {
-  let curr = process.cwd();
-  for (let i = 0; i < 6; i++) {
-    if (fs.existsSync(path.join(curr, "packages", "shared"))) {
-      return curr;
-    }
-    const parent = path.dirname(curr);
-    if (parent === curr) break;
-    curr = parent;
-  }
-  return process.cwd();
-}
-
-function getPayoutStorePath(): string {
-  return path.join(findMonorepoRoot(), "packages", "shared", "data", "host-payouts.json");
-}
+const PAYOUT_STORE_FILE = "host-payouts.json";
 
 function buildInitialBaselinePayouts(): SharedHostPayoutRecord[] {
   return [];
 }
 
 function readStore(): HostPayoutStoreData {
-  const filePath = getPayoutStorePath();
-  try {
-    if (!fs.existsSync(filePath)) {
-      const initial: HostPayoutStoreData = {
-        policy: { ...DEFAULT_HOST_PAYOUT_POLICY, updatedAt: new Date().toISOString() },
-        payouts: buildInitialBaselinePayouts(),
-        hostIbans: {},
-      };
-      writeStore(initial);
-      return initial;
-    }
-    const parsed = JSON.parse(fs.readFileSync(filePath, "utf-8")) as Partial<HostPayoutStoreData>;
-    return {
-      policy: { ...DEFAULT_HOST_PAYOUT_POLICY, ...(parsed.policy || {}) },
-      payouts: Array.isArray(parsed.payouts) ? parsed.payouts : buildInitialBaselinePayouts(),
-      hostIbans: parsed.hostIbans && typeof parsed.hostIbans === "object" ? parsed.hostIbans : {},
-    };
-  } catch (err) {
-    console.warn("[hostPayoutStore] read error:", err);
-    return {
-      policy: { ...DEFAULT_HOST_PAYOUT_POLICY },
+  return readSharedJsonFile<HostPayoutStoreData>(
+    PAYOUT_STORE_FILE,
+    () => ({
+      policy: { ...DEFAULT_HOST_PAYOUT_POLICY, updatedAt: new Date().toISOString() },
       payouts: buildInitialBaselinePayouts(),
       hostIbans: {},
-    };
-  }
+    }),
+    (parsed) => {
+      const candidate = (parsed || {}) as Partial<HostPayoutStoreData>;
+      return {
+        policy: { ...DEFAULT_HOST_PAYOUT_POLICY, ...(candidate.policy || {}) },
+        payouts: Array.isArray(candidate.payouts) ? candidate.payouts : buildInitialBaselinePayouts(),
+        hostIbans: candidate.hostIbans && typeof candidate.hostIbans === "object" ? candidate.hostIbans : {},
+      };
+    }
+  );
 }
 
 function writeStore(data: HostPayoutStoreData): void {
-  try {
-    const filePath = getPayoutStorePath();
-    const dir = path.dirname(filePath);
-    if (!fs.existsSync(dir)) {
-      fs.mkdirSync(dir, { recursive: true });
-    }
-    fs.writeFileSync(filePath, JSON.stringify(data, null, 2), "utf-8");
-  } catch (err) {
-    console.error("[hostPayoutStore] write error:", err);
-  }
+  writeSharedJsonFile(PAYOUT_STORE_FILE, data);
 }
 
 export function getHostPayoutPolicy(): HostPayoutPolicy {

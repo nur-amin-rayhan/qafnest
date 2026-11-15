@@ -1,5 +1,4 @@
-import fs from "fs";
-import path from "path";
+import { readRootJsonFile, writeRootJsonFile } from "@qafnest/shared/serverJsonStore";
 
 export interface StoredCoupon {
   id: string;
@@ -24,40 +23,26 @@ export interface PromotionState {
   coupons: StoredCoupon[];
 }
 
-function getStoreFilePath(): string {
-  const candidates = [
-    path.resolve(process.cwd(), ".qafnest-promotions.json"),
-    path.resolve(process.cwd(), "..", "..", ".qafnest-promotions.json"),
-    path.resolve("d:/qafnest-next/.qafnest-promotions.json"),
-  ];
-  for (const c of candidates) {
-    if (fs.existsSync(c)) return c;
-  }
-  return candidates[candidates.length - 1];
-}
+const PROMOTIONS_STORE_FILE = ".qafnest-promotions.json";
 
 export function getPromotionState(): PromotionState {
-  try {
-    const filePath = getStoreFilePath();
-    if (fs.existsSync(filePath)) {
-      const raw = fs.readFileSync(filePath, "utf-8");
-      return JSON.parse(raw);
+  return readRootJsonFile<PromotionState>(
+    PROMOTIONS_STORE_FILE,
+    () => ({
+      promotionsEnabled: true,
+      coupons: [],
+    }),
+    (parsed) => {
+      const candidate = parsed as Partial<PromotionState> | null;
+      return {
+        promotionsEnabled: candidate?.promotionsEnabled !== false,
+        coupons: Array.isArray(candidate?.coupons) ? candidate.coupons : [],
+      };
     }
-  } catch (err) {
-    console.warn("Notice: Error reading local promotion store:", err);
-  }
-  return {
-    promotionsEnabled: true,
-    coupons: [],
-  };
+  );
 }
 
 export function savePromotionState(state: PromotionState): void {
-  try {
-    const filePath = getStoreFilePath();
-    fs.writeFileSync(filePath, JSON.stringify(state, null, 2), "utf-8");
-  } catch (err) {
-    console.warn("Notice: Error saving local promotion store:", err);
-  }
+  writeRootJsonFile(PROMOTIONS_STORE_FILE, state);
 }
 

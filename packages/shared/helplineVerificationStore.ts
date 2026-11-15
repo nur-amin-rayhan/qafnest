@@ -1,6 +1,5 @@
-import * as fs from "fs";
-import * as path from "path";
 import * as crypto from "crypto";
+import { readSharedJsonFile, writeSharedJsonFile } from "./serverJsonStore";
 
 export interface HelplineVerificationSession {
   token: string;
@@ -40,69 +39,37 @@ export interface BankTransferClaim {
   adminNotes?: string;
 }
 
-function findMonorepoRoot(): string {
-  let curr = process.cwd();
-  for (let i = 0; i < 6; i++) {
-    if (fs.existsSync(path.join(curr, "packages", "shared"))) {
-      return curr;
-    }
-    const parent = path.dirname(curr);
-    if (parent === curr) break;
-    curr = parent;
-  }
-  return process.cwd();
-}
-
-const VERIFICATIONS_FILE_PATH = path.join(findMonorepoRoot(), "packages", "shared", "data", "helpline-verifications.json");
-const TRANSFER_CLAIMS_FILE_PATH = path.join(findMonorepoRoot(), "packages", "shared", "data", "helpline-transfer-claims.json");
-
-function ensureDirectoryExists(filePath: string) {
-  const dir = path.dirname(filePath);
-  if (!fs.existsSync(dir)) {
-    fs.mkdirSync(dir, { recursive: true });
-  }
-}
+const VERIFICATIONS_FILE_NAME = "helpline-verifications.json";
+const TRANSFER_CLAIMS_FILE_NAME = "helpline-transfer-claims.json";
 
 function loadVerifications(): Record<string, HelplineVerificationSession> {
-  try {
-    if (fs.existsSync(VERIFICATIONS_FILE_PATH)) {
-      const data = fs.readFileSync(VERIFICATIONS_FILE_PATH, "utf-8");
-      return JSON.parse(data);
-    }
-  } catch (err) {
-    console.error("Failed to load helpline verifications:", err);
-  }
-  return {};
+  return readSharedJsonFile<Record<string, HelplineVerificationSession>>(
+    VERIFICATIONS_FILE_NAME,
+    () => ({}),
+    (parsed) =>
+      parsed && typeof parsed === "object" && !Array.isArray(parsed)
+        ? (parsed as Record<string, HelplineVerificationSession>)
+        : {}
+  );
 }
 
 function saveVerifications(records: Record<string, HelplineVerificationSession>) {
-  try {
-    ensureDirectoryExists(VERIFICATIONS_FILE_PATH);
-    fs.writeFileSync(VERIFICATIONS_FILE_PATH, JSON.stringify(records, null, 2), "utf-8");
-  } catch (err) {
-    console.error("Failed to save helpline verifications:", err);
-  }
+  writeSharedJsonFile(VERIFICATIONS_FILE_NAME, records);
 }
 
 function loadTransferClaims(): Record<string, BankTransferClaim> {
-  try {
-    if (fs.existsSync(TRANSFER_CLAIMS_FILE_PATH)) {
-      const data = fs.readFileSync(TRANSFER_CLAIMS_FILE_PATH, "utf-8");
-      return JSON.parse(data);
-    }
-  } catch (err) {
-    console.error("Failed to load transfer claims:", err);
-  }
-  return {};
+  return readSharedJsonFile<Record<string, BankTransferClaim>>(
+    TRANSFER_CLAIMS_FILE_NAME,
+    () => ({}),
+    (parsed) =>
+      parsed && typeof parsed === "object" && !Array.isArray(parsed)
+        ? (parsed as Record<string, BankTransferClaim>)
+        : {}
+  );
 }
 
 function saveTransferClaims(records: Record<string, BankTransferClaim>) {
-  try {
-    ensureDirectoryExists(TRANSFER_CLAIMS_FILE_PATH);
-    fs.writeFileSync(TRANSFER_CLAIMS_FILE_PATH, JSON.stringify(records, null, 2), "utf-8");
-  } catch (err) {
-    console.error("Failed to save transfer claims:", err);
-  }
+  writeSharedJsonFile(TRANSFER_CLAIMS_FILE_NAME, records);
 }
 
 function hashOtp(code: string): string {

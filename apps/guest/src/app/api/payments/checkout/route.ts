@@ -44,6 +44,33 @@ const paymentMethods = ["card", "apple", "google", "stcpay", "samsung", "tabby",
 type PaymentMethod = (typeof paymentMethods)[number];
 
 export async function POST(request: Request) {
+  try {
+    return await executeCheckoutPost(request);
+  } catch (err) {
+    console.error("[payments/checkout] Unhandled checkout error:", err);
+    const rawMessage = err instanceof Error ? err.message : String(err || "Unknown error");
+    if (/lock timeout/i.test(rawMessage)) {
+      return NextResponse.json(
+        {
+          code: "checkout_busy",
+          message: "Another checkout for this property is finishing. Please try again in a few seconds.",
+          messageAr: "توجد عملية دفع أخرى جارية لهذه الوحدة حالياً. يرجى المحاولة بعد ثوانٍ.",
+        },
+        { status: 409 }
+      );
+    }
+    return NextResponse.json(
+      {
+        code: "checkout_internal_error",
+        message: "Unable to initialize payment checkout right now. Please try again.",
+        messageAr: "تعذر تهيئة عملية الدفع حالياً. يرجى المحاولة مرة أخرى.",
+      },
+      { status: 500 }
+    );
+  }
+}
+
+async function executeCheckoutPost(request: Request) {
   let body: Record<string, unknown>;
   try {
     const payload: unknown = await request.json();

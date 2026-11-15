@@ -1,5 +1,3 @@
-import fs from "fs";
-import path from "path";
 import {
   calculateBookingSettlement,
   getEffectiveGuestFeeConfig,
@@ -8,6 +6,7 @@ import {
   type GuestFeeMode,
   type PlatformFeeConfig,
 } from "./platformFee";
+import { readSharedJsonFile, writeSharedJsonFile } from "./serverJsonStore";
 
 export interface BookingFinancialSnapshot {
   bookingRef: string;
@@ -37,45 +36,24 @@ interface SnapshotStoreDoc {
   snapshots: Record<string, BookingFinancialSnapshot>;
 }
 
-function findMonorepoRoot(): string {
-  let curr = process.cwd();
-  for (let i = 0; i < 6; i++) {
-    if (fs.existsSync(path.join(curr, "packages", "shared"))) {
-      return curr;
-    }
-    const parent = path.dirname(curr);
-    if (parent === curr) break;
-    curr = parent;
-  }
-  return process.cwd();
-}
-
-function getStorePath(): string {
-  return path.join(findMonorepoRoot(), "packages", "shared", "data", "booking-financials.json");
-}
+const FINANCIALS_STORE_FILE = "booking-financials.json";
 
 function readDoc(): SnapshotStoreDoc {
-  try {
-    const filePath = getStorePath();
-    if (!fs.existsSync(filePath)) return { snapshots: {} };
-    const parsed = JSON.parse(fs.readFileSync(filePath, "utf-8"));
-    return {
-      snapshots: parsed?.snapshots && typeof parsed.snapshots === "object" ? parsed.snapshots : {},
-    };
-  } catch {
-    return { snapshots: {} };
-  }
+  return readSharedJsonFile<SnapshotStoreDoc>(
+    FINANCIALS_STORE_FILE,
+    () => ({ snapshots: {} }),
+    (parsed) => {
+      const candidate = parsed as Partial<SnapshotStoreDoc>;
+      return {
+        snapshots:
+          candidate?.snapshots && typeof candidate.snapshots === "object" ? candidate.snapshots : {},
+      };
+    }
+  );
 }
 
 function writeDoc(doc: SnapshotStoreDoc): void {
-  const filePath = getStorePath();
-  const dir = path.dirname(filePath);
-  if (!fs.existsSync(dir)) {
-    fs.mkdirSync(dir, { recursive: true });
-  }
-  const tmpPath = `${filePath}.${process.pid}.${Date.now()}.tmp`;
-  fs.writeFileSync(tmpPath, JSON.stringify(doc, null, 2), "utf-8");
-  fs.renameSync(tmpPath, filePath);
+  writeSharedJsonFile(FINANCIALS_STORE_FILE, doc);
 }
 
 export function saveBookingFinancialSnapshot(snapshot: BookingFinancialSnapshot): BookingFinancialSnapshot {

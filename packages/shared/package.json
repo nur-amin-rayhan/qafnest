@@ -32,7 +32,8 @@
     "./blogStore": "./blogStore.ts",
     "./saudiCities": "./saudiCities.ts",
     "./propertyBilingual": "./propertyBilingual.ts",
-    "./locationShare": "./locationShare.ts"
+    "./locationShare": "./locationShare.ts",
+    "./serverJsonStore": "./serverJsonStore.ts"
   },
   "dependencies": {
     "nodemailer": "^10.5.0"

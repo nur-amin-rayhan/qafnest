@@ -1,8 +1,7 @@
-import fs from "fs";
-import path from "path";
 import crypto from "crypto";
 import { getServiceRoleClient } from "@/lib/supabase/service";
 import { detectCardBrand, type CardBrand } from "@/lib/services/cardBrand";
+import { readRootJsonFile, writeRootJsonFile } from "@qafnest/shared/serverJsonStore";
 
 export { detectCardBrand, type CardBrand };
 
@@ -99,39 +98,9 @@ const DEFAULT_LOYALTY_SETTINGS: LoyaltySettings = {
 
 const DEFAULT_OFFERS: LoyaltyOffer[] = [];
 
-function getStoreFilePath(): string {
-  const candidates = [
-    path.resolve(process.cwd(), ".qafnest-wallets.json"),
-    path.resolve(process.cwd(), "..", "..", ".qafnest-wallets.json"),
-    path.resolve("d:/qafnest-next/.qafnest-wallets.json"),
-  ];
-  for (const c of candidates) {
-    if (fs.existsSync(c)) return c;
-  }
-  return candidates[candidates.length - 1];
-}
+const WALLET_STORE_FILE = ".qafnest-wallets.json";
 
-function loadStore(): WalletStoreState {
-  try {
-    const filePath = getStoreFilePath();
-    if (fs.existsSync(filePath)) {
-      const raw = fs.readFileSync(filePath, "utf-8");
-      const parsed = JSON.parse(raw);
-      if (parsed && typeof parsed.wallets === "object") {
-        return {
-          wallets: parsed.wallets || {},
-          activeOffers: Array.isArray(parsed.activeOffers) ? parsed.activeOffers : [],
-          loyaltySettings: parsed.loyaltySettings || DEFAULT_LOYALTY_SETTINGS,
-          pendingSplits:
-            parsed.pendingSplits && typeof parsed.pendingSplits === "object"
-              ? parsed.pendingSplits
-              : {},
-        };
-      }
-    }
-  } catch (err) {
-    console.warn("Notice: Error reading wallet store:", err);
-  }
+function defaultWalletStoreState(): WalletStoreState {
   return {
     wallets: {},
     activeOffers: DEFAULT_OFFERS,
@@ -140,13 +109,30 @@ function loadStore(): WalletStoreState {
   };
 }
 
+function loadStore(): WalletStoreState {
+  return readRootJsonFile<WalletStoreState>(
+    WALLET_STORE_FILE,
+    defaultWalletStoreState,
+    (parsed) => {
+      const candidate = parsed as Partial<WalletStoreState> | null;
+      if (candidate && typeof candidate.wallets === "object" && candidate.wallets !== null) {
+        return {
+          wallets: candidate.wallets || {},
+          activeOffers: Array.isArray(candidate.activeOffers) ? candidate.activeOffers : [],
+          loyaltySettings: candidate.loyaltySettings || DEFAULT_LOYALTY_SETTINGS,
+          pendingSplits:
+            candidate.pendingSplits && typeof candidate.pendingSplits === "object"
+              ? candidate.pendingSplits
+              : {},
+        };
+      }
+      return defaultWalletStoreState();
+    }
+  );
+}
+
 function saveStore(state: WalletStoreState): void {
-  try {
-    const filePath = getStoreFilePath();
-    fs.writeFileSync(filePath, JSON.stringify(state, null, 2), "utf-8");
-  } catch (err) {
-    console.warn("Notice: Error saving wallet store:", err);
-  }
+  writeRootJsonFile(WALLET_STORE_FILE, state);
 }
 
 export function determineTier(points: number): "Bronze" | "Silver" | "Gold" | "Platinum" {

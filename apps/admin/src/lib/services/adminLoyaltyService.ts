@@ -1,5 +1,4 @@
-import fs from "fs";
-import path from "path";
+import { readRootJsonFile, writeRootJsonFile } from "@qafnest/shared/serverJsonStore";
 
 export interface LoyaltySettings {
   loyaltyEnabled: boolean;
@@ -39,35 +38,9 @@ const DEFAULT_LOYALTY_SETTINGS: LoyaltySettings = {
 
 const DEFAULT_OFFERS: LoyaltyOffer[] = [];
 
-function getStoreFilePath(): string {
-  const candidates = [
-    path.resolve(process.cwd(), ".qafnest-wallets.json"),
-    path.resolve(process.cwd(), "..", "..", ".qafnest-wallets.json"),
-    path.resolve("d:/qafnest-next/.qafnest-wallets.json"),
-  ];
-  for (const c of candidates) {
-    if (fs.existsSync(c)) return c;
-  }
-  return candidates[candidates.length - 1];
-}
+const WALLET_STORE_FILE = ".qafnest-wallets.json";
 
-function loadStore(): LoyaltyStoreState {
-  try {
-    const filePath = getStoreFilePath();
-    if (fs.existsSync(filePath)) {
-      const raw = fs.readFileSync(filePath, "utf-8");
-      const parsed = JSON.parse(raw);
-      if (parsed && typeof parsed.wallets === "object") {
-        return {
-          wallets: parsed.wallets || {},
-          activeOffers: Array.isArray(parsed.activeOffers) ? parsed.activeOffers : [],
-          loyaltySettings: parsed.loyaltySettings || DEFAULT_LOYALTY_SETTINGS,
-        };
-      }
-    }
-  } catch (err) {
-    console.warn("Notice: Error reading wallet store in admin:", err);
-  }
+function defaultLoyaltyStoreState(): LoyaltyStoreState {
   return {
     wallets: {},
     activeOffers: DEFAULT_OFFERS,
@@ -75,13 +48,26 @@ function loadStore(): LoyaltyStoreState {
   };
 }
 
+function loadStore(): LoyaltyStoreState {
+  return readRootJsonFile<LoyaltyStoreState>(
+    WALLET_STORE_FILE,
+    defaultLoyaltyStoreState,
+    (parsed) => {
+      const candidate = parsed as Partial<LoyaltyStoreState> | null;
+      if (candidate && typeof candidate.wallets === "object" && candidate.wallets !== null) {
+        return {
+          wallets: candidate.wallets || {},
+          activeOffers: Array.isArray(candidate.activeOffers) ? candidate.activeOffers : [],
+          loyaltySettings: candidate.loyaltySettings || DEFAULT_LOYALTY_SETTINGS,
+        };
+      }
+      return defaultLoyaltyStoreState();
+    }
+  );
+}
+
 function saveStore(state: LoyaltyStoreState): void {
-  try {
-    const filePath = getStoreFilePath();
-    fs.writeFileSync(filePath, JSON.stringify(state, null, 2), "utf-8");
-  } catch (err) {
-    console.warn("Notice: Error saving wallet store in admin:", err);
-  }
+  writeRootJsonFile(WALLET_STORE_FILE, state);
 }
 
 export function getAdminLoyaltyConfig() {

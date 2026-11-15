@@ -1,17 +1,10 @@
-import fs from "fs";
 import path from "path";
 import { BlogSeoConfig, SharedBlogPost } from "./blogTypes";
+import { readSharedJsonFile, writeSharedJsonFile } from "./serverJsonStore";
 
 export type { BlogSeoConfig, SharedBlogPost };
 
-const DATA_DIR = path.resolve(__dirname, "./data");
-const BLOGS_FILE = path.join(DATA_DIR, "cms-blogs.json");
-
-function ensureDirectoryExists() {
-  if (!fs.existsSync(DATA_DIR)) {
-    fs.mkdirSync(DATA_DIR, { recursive: true });
-  }
-}
+const BLOGS_FILE_NAME = "cms-blogs.json";
 
 export const INITIAL_SHARED_BLOGS: SharedBlogPost[] = [
   {
@@ -166,19 +159,17 @@ export const INITIAL_SHARED_BLOGS: SharedBlogPost[] = [
 ];
 
 export function getAllBlogs(): SharedBlogPost[] {
-  ensureDirectoryExists();
-  try {
-    if (fs.existsSync(BLOGS_FILE)) {
-      const raw = fs.readFileSync(BLOGS_FILE, "utf-8");
-      const list = JSON.parse(raw) as SharedBlogPost[];
-      if (Array.isArray(list) && list.length > 0) {
-        return list;
+  return readSharedJsonFile<SharedBlogPost[]>(
+    BLOGS_FILE_NAME,
+    () => INITIAL_SHARED_BLOGS,
+    (parsed) => {
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return parsed as SharedBlogPost[];
       }
-    }
-  } catch (err) {
-    console.warn("Failed reading cms-blogs.json, falling back to defaults", err);
-  }
-  return INITIAL_SHARED_BLOGS;
+      return INITIAL_SHARED_BLOGS;
+    },
+    [path.resolve(__dirname, "./data")]
+  );
 }
 
 export function getBlogBySlug(slug: string): SharedBlogPost | null {
@@ -192,42 +183,27 @@ export function getBlogById(id: string): SharedBlogPost | null {
 }
 
 export function saveBlog(post: SharedBlogPost): boolean {
-  ensureDirectoryExists();
-  try {
-    const blogs = getAllBlogs();
-    const existingIndex = blogs.findIndex((b) => b.id === post.id);
-    const now = new Date().toISOString();
-    
-    if (existingIndex >= 0) {
-      blogs[existingIndex] = {
-        ...post,
-        updatedAt: now,
-      };
-    } else {
-      blogs.unshift({
-        ...post,
-        createdAt: post.createdAt || now,
-        updatedAt: now,
-      });
-    }
+  const blogs = [...getAllBlogs()];
+  const existingIndex = blogs.findIndex((b) => b.id === post.id);
+  const now = new Date().toISOString();
 
-    fs.writeFileSync(BLOGS_FILE, JSON.stringify(blogs, null, 2), "utf-8");
-    return true;
-  } catch (err) {
-    console.error("Failed writing cms-blogs.json:", err);
-    return false;
+  if (existingIndex >= 0) {
+    blogs[existingIndex] = {
+      ...post,
+      updatedAt: now,
+    };
+  } else {
+    blogs.unshift({
+      ...post,
+      createdAt: post.createdAt || now,
+      updatedAt: now,
+    });
   }
+
+  return writeSharedJsonFile(BLOGS_FILE_NAME, blogs);
 }
 
 export function deleteBlog(id: string): boolean {
-  ensureDirectoryExists();
-  try {
-    const blogs = getAllBlogs();
-    const filtered = blogs.filter((b) => b.id !== id);
-    fs.writeFileSync(BLOGS_FILE, JSON.stringify(filtered, null, 2), "utf-8");
-    return true;
-  } catch (err) {
-    console.error("Failed deleting blog:", err);
-    return false;
-  }
+  const filtered = getAllBlogs().filter((b) => b.id !== id);
+  return writeSharedJsonFile(BLOGS_FILE_NAME, filtered);
 }

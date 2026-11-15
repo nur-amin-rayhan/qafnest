@@ -237,10 +237,12 @@ export function useReservationCheckout({
           samsungPayToken,
         }),
       });
-      const result = (await response.json()) as {
+      const rawBody = await response.text();
+      let result: {
         success?: boolean;
         code?: string;
         message?: string;
+        messageAr?: string;
         provider?: string;
         redirectUrl?: string;
         bookingId?: string;
@@ -252,7 +254,17 @@ export function useReservationCheckout({
         nights?: number;
         guests?: number;
         property?: ConfirmedBooking["property"];
-      };
+      } = {};
+      if (rawBody) {
+        try {
+          const parsed = JSON.parse(rawBody);
+          if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+            result = parsed as typeof result;
+          }
+        } catch {
+          // Non-JSON response (e.g., upstream 500/502 page): handled cleanly below via !response.ok
+        }
+      }
 
       if (!response.ok) {
         if (
@@ -286,8 +298,17 @@ export function useReservationCheckout({
           providerNameMap[effectiveCheckoutMethod || ""] ||
           "Card & Wallets";
 
-        let msgEn = result.message || `${providerName} checkout is unavailable. No charge or booking was made.`;
-        let msgAr = ((result as Record<string, unknown>).messageAr as string) || result.message || `الدفع عبر ${providerName} غير متاح حالياً. لم يتم الخصم.`;
+        let msgEn =
+          result.message ||
+          (response.status >= 500
+            ? `${providerName} checkout encountered a server error (HTTP ${response.status}). No charge or booking was made. Please try again.`
+            : `${providerName} checkout is unavailable. No charge or booking was made.`);
+        let msgAr =
+          result.messageAr ||
+          result.message ||
+          (response.status >= 500
+            ? `حدث خطأ في خادم الدفع (${response.status}) ولم يتم الخصم أو إنشاء الحجز. يرجى المحاولة مرة أخرى.`
+            : `الدفع عبر ${providerName} غير متاح حالياً. لم يتم الخصم.`);
 
         if (isCouponError) {
           msgEn = result.message || "Coupon code is invalid or no longer eligible.";

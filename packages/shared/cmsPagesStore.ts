@@ -1,4 +1,3 @@
-import fs from "fs";
 import path from "path";
 import { QAFNEST_SUPPORT_CONTACT } from "./index";
 import {
@@ -7,17 +6,11 @@ import {
   CmsContactInfo,
   CmsPageRecord,
 } from "./cmsTypes";
+import { readSharedJsonFile, writeSharedJsonFile } from "./serverJsonStore";
 
 export type { CmsPageSection, CmsFaqItem, CmsContactInfo, CmsPageRecord };
 
-const DATA_DIR = path.resolve(__dirname, "./data");
-const PAGES_FILE = path.join(DATA_DIR, "cms-pages.json");
-
-function ensureDirectoryExists() {
-  if (!fs.existsSync(DATA_DIR)) {
-    fs.mkdirSync(DATA_DIR, { recursive: true });
-  }
-}
+const PAGES_FILE_NAME = "cms-pages.json";
 
 export const DEFAULT_CMS_PAGES: Record<string, CmsPageRecord> = {
   terms: {
@@ -213,17 +206,17 @@ export const DEFAULT_CMS_PAGES: Record<string, CmsPageRecord> = {
 };
 
 export function getAllCmsPages(): Record<string, CmsPageRecord> {
-  ensureDirectoryExists();
-  try {
-    if (fs.existsSync(PAGES_FILE)) {
-      const raw = fs.readFileSync(PAGES_FILE, "utf-8");
-      const parsed = JSON.parse(raw) as Record<string, CmsPageRecord>;
-      return { ...DEFAULT_CMS_PAGES, ...parsed };
-    }
-  } catch (err) {
-    console.warn("Failed reading cms-pages.json, falling back to defaults", err);
-  }
-  return DEFAULT_CMS_PAGES;
+  return readSharedJsonFile<Record<string, CmsPageRecord>>(
+    PAGES_FILE_NAME,
+    () => DEFAULT_CMS_PAGES,
+    (parsed) => {
+      if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+        return { ...DEFAULT_CMS_PAGES, ...(parsed as Record<string, CmsPageRecord>) };
+      }
+      return DEFAULT_CMS_PAGES;
+    },
+    [path.resolve(__dirname, "./data")]
+  );
 }
 
 export function getCmsPage(id: string): CmsPageRecord | null {
@@ -232,17 +225,10 @@ export function getCmsPage(id: string): CmsPageRecord | null {
 }
 
 export function saveCmsPage(page: CmsPageRecord): boolean {
-  ensureDirectoryExists();
-  try {
-    const pages = getAllCmsPages();
-    pages[page.id] = {
-      ...page,
-      lastUpdated: new Date().toISOString().split("T")[0],
-    };
-    fs.writeFileSync(PAGES_FILE, JSON.stringify(pages, null, 2), "utf-8");
-    return true;
-  } catch (err) {
-    console.error("Failed saving cms page:", err);
-    return false;
-  }
+  const pages = { ...getAllCmsPages() };
+  pages[page.id] = {
+    ...page,
+    lastUpdated: new Date().toISOString().split("T")[0],
+  };
+  return writeSharedJsonFile(PAGES_FILE_NAME, pages);
 }

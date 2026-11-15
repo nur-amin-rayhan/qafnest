@@ -1,5 +1,4 @@
-import * as fs from "fs";
-import * as path from "path";
+import { readSharedJsonFile, writeSharedJsonFile } from "./serverJsonStore";
 
 export interface RefundTimelineStep {
   step: "requested" | "approved" | "processing" | "disbursed" | "rejected";
@@ -41,47 +40,21 @@ export interface CancellationPolicyQuote {
   summaryAr: string;
 }
 
-function findMonorepoRoot(): string {
-  let curr = process.cwd();
-  for (let i = 0; i < 6; i++) {
-    if (fs.existsSync(path.join(curr, "packages", "shared"))) {
-      return curr;
-    }
-    const parent = path.dirname(curr);
-    if (parent === curr) break;
-    curr = parent;
-  }
-  return process.cwd();
-}
-
-const REFUNDS_FILE_PATH = path.join(findMonorepoRoot(), "packages", "shared", "data", "booking-refunds.json");
-
-function ensureDirectoryExists(filePath: string) {
-  const dir = path.dirname(filePath);
-  if (!fs.existsSync(dir)) {
-    fs.mkdirSync(dir, { recursive: true });
-  }
-}
+const REFUNDS_FILE_NAME = "booking-refunds.json";
 
 function loadRefunds(): Record<string, BookingRefundRecord> {
-  try {
-    if (fs.existsSync(REFUNDS_FILE_PATH)) {
-      const data = fs.readFileSync(REFUNDS_FILE_PATH, "utf-8");
-      return JSON.parse(data);
-    }
-  } catch (err) {
-    console.error("Failed to load booking refunds:", err);
-  }
-  return {};
+  return readSharedJsonFile<Record<string, BookingRefundRecord>>(
+    REFUNDS_FILE_NAME,
+    () => ({}),
+    (parsed) =>
+      parsed && typeof parsed === "object" && !Array.isArray(parsed)
+        ? (parsed as Record<string, BookingRefundRecord>)
+        : {}
+  );
 }
 
 function saveRefunds(records: Record<string, BookingRefundRecord>) {
-  try {
-    ensureDirectoryExists(REFUNDS_FILE_PATH);
-    fs.writeFileSync(REFUNDS_FILE_PATH, JSON.stringify(records, null, 2), "utf-8");
-  } catch (err) {
-    console.error("Failed to save booking refunds:", err);
-  }
+  writeSharedJsonFile(REFUNDS_FILE_NAME, records);
 }
 
 /**

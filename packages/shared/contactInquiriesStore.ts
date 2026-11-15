@@ -1,7 +1,6 @@
 import crypto from "crypto";
-import fs from "fs";
-import path from "path";
 import nodemailer from "nodemailer";
+import { readSharedJsonFile, writeSharedJsonFile } from "./serverJsonStore";
 
 export type ContactInquiryStatus = "new" | "in_progress" | "resolved";
 export type ContactInquiryDeliveryStatus = "sent" | "stored_only" | "failed";
@@ -68,29 +67,7 @@ const SUBJECT_LABELS: Record<string, string> = {
   account_support: "Guest Account Direct Support",
 };
 
-function findMonorepoRoot(): string {
-  let curr = process.cwd();
-  for (let i = 0; i < 6; i++) {
-    if (fs.existsSync(path.join(curr, "packages", "shared"))) {
-      return curr;
-    }
-    const parent = path.dirname(curr);
-    if (parent === curr) break;
-    curr = parent;
-  }
-  return process.cwd();
-}
-
-function getStorePath(): string {
-  return path.join(findMonorepoRoot(), "packages", "shared", "data", "contact-inquiries.json");
-}
-
-function ensureStoreDirectory(): void {
-  const dir = path.dirname(getStorePath());
-  if (!fs.existsSync(dir)) {
-    fs.mkdirSync(dir, { recursive: true });
-  }
-}
+const CONTACT_STORE_FILE = "contact-inquiries.json";
 
 function isValidEmail(email: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
@@ -102,40 +79,31 @@ function normalizeEmailOrDefault(email: string | undefined, fallback: string): s
 }
 
 function readDoc(): ContactStoreDoc {
-  ensureStoreDirectory();
-  try {
-    const filePath = getStorePath();
-    if (!fs.existsSync(filePath)) {
-      return {
-        settings: { ...DEFAULT_CONTACT_FORM_SETTINGS },
-        inquiries: [],
-      };
-    }
-    const raw = fs.readFileSync(filePath, "utf-8");
-    const parsed = JSON.parse(raw) as Partial<ContactStoreDoc>;
-    return {
-      settings: {
-        ...DEFAULT_CONTACT_FORM_SETTINGS,
-        ...(parsed.settings || {}),
-        recipientEmail: normalizeEmailOrDefault(
-          parsed.settings?.recipientEmail,
-          DEFAULT_CONTACT_FORM_SETTINGS.recipientEmail
-        ),
-      },
-      inquiries: Array.isArray(parsed.inquiries) ? parsed.inquiries : [],
-    };
-  } catch (err) {
-    console.warn("[contactInquiriesStore] Failed reading store, using defaults:", err);
-    return {
+  return readSharedJsonFile<ContactStoreDoc>(
+    CONTACT_STORE_FILE,
+    () => ({
       settings: { ...DEFAULT_CONTACT_FORM_SETTINGS },
       inquiries: [],
-    };
-  }
+    }),
+    (parsed) => {
+      const doc = (parsed || {}) as Partial<ContactStoreDoc>;
+      return {
+        settings: {
+          ...DEFAULT_CONTACT_FORM_SETTINGS,
+          ...(doc.settings || {}),
+          recipientEmail: normalizeEmailOrDefault(
+            doc.settings?.recipientEmail,
+            DEFAULT_CONTACT_FORM_SETTINGS.recipientEmail
+          ),
+        },
+        inquiries: Array.isArray(doc.inquiries) ? doc.inquiries : [],
+      };
+    }
+  );
 }
 
 function writeDoc(doc: ContactStoreDoc): void {
-  ensureStoreDirectory();
-  fs.writeFileSync(getStorePath(), JSON.stringify(doc, null, 2), "utf-8");
+  writeSharedJsonFile(CONTACT_STORE_FILE, doc);
 }
 
 function escapeHtml(value: string): string {

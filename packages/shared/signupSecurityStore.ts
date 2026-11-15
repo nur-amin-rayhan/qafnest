@@ -1,6 +1,5 @@
-import fs from "fs";
-import path from "path";
 import crypto from "crypto";
+import { readSharedJsonFile, writeSharedJsonFile } from "./serverJsonStore";
 
 export interface SignupDeviceRecord {
   id: string;
@@ -61,64 +60,37 @@ const DEFAULT_POLICY: SignupSecurityPolicy = {
   welcomeBonusEnabled: true,
 };
 
-function findMonorepoRoot(): string {
-  let curr = process.cwd();
-  for (let i = 0; i < 6; i++) {
-    if (fs.existsSync(path.join(curr, "packages", "shared"))) {
-      return curr;
-    }
-    const parent = path.dirname(curr);
-    if (parent === curr) break;
-    curr = parent;
-  }
-  return process.cwd();
-}
+const SIGNUP_SECURITY_FILE = "signup-security.json";
 
-function getStorePath(): string {
-  return path.join(findMonorepoRoot(), "packages", "shared", "data", "signup-security.json");
+function defaultSignupSecurityDoc(): SignupSecurityStoreDoc {
+  return {
+    policy: { ...DEFAULT_POLICY },
+    registrations: [],
+    blockedIps: [],
+    blockedDevices: [],
+    alerts: [],
+  };
 }
 
 function readDoc(): SignupSecurityStoreDoc {
-  try {
-    const filePath = getStorePath();
-    if (!fs.existsSync(filePath)) {
+  return readSharedJsonFile<SignupSecurityStoreDoc>(
+    SIGNUP_SECURITY_FILE,
+    defaultSignupSecurityDoc,
+    (parsed) => {
+      const candidate = (parsed || {}) as Partial<SignupSecurityStoreDoc>;
       return {
-        policy: { ...DEFAULT_POLICY },
-        registrations: [],
-        blockedIps: [],
-        blockedDevices: [],
-        alerts: [],
+        policy: { ...DEFAULT_POLICY, ...(candidate.policy || {}) },
+        registrations: Array.isArray(candidate.registrations) ? candidate.registrations : [],
+        blockedIps: Array.isArray(candidate.blockedIps) ? candidate.blockedIps : [],
+        blockedDevices: Array.isArray(candidate.blockedDevices) ? candidate.blockedDevices : [],
+        alerts: Array.isArray(candidate.alerts) ? candidate.alerts : [],
       };
     }
-    const parsed = JSON.parse(fs.readFileSync(filePath, "utf-8")) as Partial<SignupSecurityStoreDoc>;
-    return {
-      policy: { ...DEFAULT_POLICY, ...(parsed.policy || {}) },
-      registrations: Array.isArray(parsed.registrations) ? parsed.registrations : [],
-      blockedIps: Array.isArray(parsed.blockedIps) ? parsed.blockedIps : [],
-      blockedDevices: Array.isArray(parsed.blockedDevices) ? parsed.blockedDevices : [],
-      alerts: Array.isArray(parsed.alerts) ? parsed.alerts : [],
-    };
-  } catch (err) {
-    console.warn("[signupSecurityStore] read warning:", err);
-    return {
-      policy: { ...DEFAULT_POLICY },
-      registrations: [],
-      blockedIps: [],
-      blockedDevices: [],
-      alerts: [],
-    };
-  }
+  );
 }
 
 function writeDoc(doc: SignupSecurityStoreDoc): void {
-  const filePath = getStorePath();
-  const dir = path.dirname(filePath);
-  if (!fs.existsSync(dir)) {
-    fs.mkdirSync(dir, { recursive: true });
-  }
-  const tmpPath = `${filePath}.${process.pid}.${Date.now()}.tmp`;
-  fs.writeFileSync(tmpPath, JSON.stringify(doc, null, 2), "utf-8");
-  fs.renameSync(tmpPath, filePath);
+  writeSharedJsonFile(SIGNUP_SECURITY_FILE, doc);
 }
 
 export function extractClientIp(request: Request): string {
