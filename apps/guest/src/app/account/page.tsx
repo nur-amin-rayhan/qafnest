@@ -9,6 +9,7 @@ import AuthModal from "@/components/modals/AuthModal";
 import { useAuth } from "@/context/AuthContext";
 import { useApp } from "@/context/AppContext";
 import { createClient } from "@/lib/supabase/client";
+import { getGuestAuthorizationHeaders } from "@/lib/auth/clientAuthHeaders";
 
 import type { TabId } from "./components/types";
 import { FAQ_ITEMS } from "./components/types";
@@ -59,7 +60,8 @@ function GuestAccountPageContent() {
 
   const fetchWalletData = useCallback(async () => {
     try {
-      const res = await fetch(`/api/wallet?t=${Date.now()}`, { cache: "no-store" });
+      const headers = await getGuestAuthorizationHeaders(session);
+      const res = await fetch(`/api/wallet?t=${Date.now()}`, { headers, cache: "no-store" });
       if (res.ok) {
         const data = await res.json();
         if (data.wallet) {
@@ -75,7 +77,7 @@ function GuestAccountPageContent() {
     } catch (err) {
       console.warn("Could not fetch wallet data:", err);
     }
-  }, []);
+  }, [session]);
 
   useEffect(() => {
     fetchWalletData();

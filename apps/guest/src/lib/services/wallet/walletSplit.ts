@@ -1,10 +1,16 @@
-import { loadWalletStore, saveWalletStore } from "./walletStore";
+import {
+  deleteCloudPendingSplit,
+  loadCloudPendingSplit,
+  loadWalletStore,
+  saveCloudPendingSplit,
+  saveWalletStore,
+} from "./walletStore";
 import { deductWalletForBooking } from "./walletOperations";
 import type { PendingWalletSplit } from "./walletTypes";
 
-export function registerPendingWalletSplit(
+export async function registerPendingWalletSplit(
   split: Omit<PendingWalletSplit, "settled" | "createdAt">
-): PendingWalletSplit {
+): Promise<PendingWalletSplit> {
   const store = loadWalletStore();
   const splits = store.pendingSplits || {};
   const record: PendingWalletSplit = {
@@ -19,27 +25,40 @@ export function registerPendingWalletSplit(
   splits[split.bookingRef] = record;
   store.pendingSplits = splits;
   saveWalletStore(store);
+  await saveCloudPendingSplit(record);
   return record;
 }
 
-export function getPendingWalletSplit(bookingRef: string): PendingWalletSplit | null {
+export async function getPendingWalletSplit(bookingRef: string): Promise<PendingWalletSplit | null> {
   if (!bookingRef) return null;
-  return loadWalletStore().pendingSplits?.[bookingRef] || null;
+  const local = loadWalletStore().pendingSplits?.[bookingRef];
+  if (local) return local;
+  const cloud = await loadCloudPendingSplit(bookingRef);
+  if (cloud) {
+    const store = loadWalletStore();
+    store.pendingSplits = { ...(store.pendingSplits || {}), [bookingRef]: cloud };
+    saveWalletStore(store);
+  }
+  return cloud;
 }
 
-export function clearPendingWalletSplit(bookingRef: string): void {
+export async function clearPendingWalletSplit(bookingRef: string): Promise<void> {
   if (!bookingRef) return;
   const store = loadWalletStore();
-  if (store.pendingSplits?.[bookingRef] && !store.pendingSplits[bookingRef].settled) {
-    delete store.pendingSplits[bookingRef];
-    saveWalletStore(store);
+  const current = store.pendingSplits?.[bookingRef] || (await loadCloudPendingSplit(bookingRef));
+  if (current && !current.settled) {
+    if (store.pendingSplits?.[bookingRef]) {
+      delete store.pendingSplits[bookingRef];
+      saveWalletStore(store);
+    }
+    await deleteCloudPendingSplit(bookingRef);
   }
 }
 
 export async function settlePendingWalletSplit(
   bookingRef: string
 ): Promise<{ settled: boolean; walletAmount: number; welcomeBonusUsed: number; error?: string }> {
-  const split = getPendingWalletSplit(bookingRef);
+  const split = await getPendingWalletSplit(bookingRef);
   if (!split) {
     return { settled: false, walletAmount: 0, welcomeBonusUsed: 0, error: "split_not_found" };
   }
@@ -57,12 +76,15 @@ export async function settlePendingWalletSplit(
     return { settled: false, walletAmount: 0, welcomeBonusUsed: 0, error: deduct.error || "wallet_deduction_failed" };
   }
 
+  const settledSplit: PendingWalletSplit = {
+    ...split,
+    settled: true,
+    welcomeBonusAmount: deduct.welcomeBonusUsed,
+  };
   const freshStore = loadWalletStore();
-  if (freshStore.pendingSplits?.[bookingRef]) {
-    freshStore.pendingSplits[bookingRef].settled = true;
-    freshStore.pendingSplits[bookingRef].welcomeBonusAmount = deduct.welcomeBonusUsed;
-    saveWalletStore(freshStore);
-  }
+  freshStore.pendingSplits = { ...(freshStore.pendingSplits || {}), [bookingRef]: settledSplit };
+  saveWalletStore(freshStore);
+  await saveCloudPendingSplit(settledSplit);
 
   return { settled: true, walletAmount: split.walletAmount, welcomeBonusUsed: deduct.welcomeBonusUsed };
 }
@@ -77,7 +99,7 @@ export async function verifyAndSettleBookingPaymentAmount(params: {
   | { ok: true; totalConfirmedAmount: number; effectiveGatewayLabel: string; isSplit: boolean }
   | { ok: false; code: "amount_mismatch" | "wallet_split_failed"; message: string }
 > {
-  const split = getPendingWalletSplit(params.bookingRef);
+  const split = await getPendingWalletSplit(params.bookingRef);
   if (!split) {
     if (Math.abs(params.expectedBookingTotal - params.gatewayPaidAmount) > 0.05) {
       return {

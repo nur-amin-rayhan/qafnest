@@ -93,31 +93,40 @@ export function SavedCardsSelector({
               </button>
 
               {isSelected && (
-                <div className="mt-2.5 pt-2.5 border-t border-violet-100 dark:border-white/10 flex flex-wrap items-center justify-between gap-3">
-                  <div className="flex items-center gap-2 text-xs">
-                    <LockKeyhole className="h-3.5 w-3.5 text-violet-600 dark:text-violet-400 shrink-0" />
-                    <span className="font-bold text-gray-800 dark:text-gray-200 text-[11px]">
-                      {label("Enter 3-digit CVV / CVC:", "أدخل رمز الأمان (CVV):")}
-                    </span>
+                c.supportsDirectCharge ? (
+                  <div className="mt-2.5 pt-2.5 border-t border-violet-100 dark:border-white/10 flex flex-wrap items-center justify-between gap-3">
+                    <div className="flex items-center gap-2 text-xs">
+                      <LockKeyhole className="h-3.5 w-3.5 text-violet-600 dark:text-violet-400 shrink-0" />
+                      <span className="font-bold text-gray-800 dark:text-gray-200 text-[11px]">
+                        {label("Enter 3-digit CVV / CVC:", "أدخل رمز الأمان (CVV):")}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="password"
+                        inputMode="numeric"
+                        maxLength={4}
+                        placeholder="•••"
+                        value={cardCvv || ""}
+                        onChange={(e) => {
+                          setCardCvv?.(e.target.value.replace(/\D/g, "").slice(0, 4));
+                          setPaymentMessage(null);
+                        }}
+                        className="w-16 px-2.5 py-1 text-center font-mono text-xs font-black tracking-widest rounded-lg border border-violet-300 dark:border-violet-500/40 bg-violet-50/50 dark:bg-black/50 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-violet-500"
+                      />
+                      <span className="text-[10px] text-gray-400 font-semibold">
+                        {label("Required for payment", "مطلوب للدفع")}
+                      </span>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="password"
-                      inputMode="numeric"
-                      maxLength={4}
-                      placeholder="•••"
-                      value={cardCvv || ""}
-                      onChange={(e) => {
-                        setCardCvv?.(e.target.value.replace(/\D/g, "").slice(0, 4));
-                        setPaymentMessage(null);
-                      }}
-                      className="w-16 px-2.5 py-1 text-center font-mono text-xs font-black tracking-widest rounded-lg border border-violet-300 dark:border-violet-500/40 bg-violet-50/50 dark:bg-black/50 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-violet-500"
-                    />
-                    <span className="text-[10px] text-gray-400 font-semibold">
-                      {label("Required for payment", "مطلوب للدفع")}
-                    </span>
-                  </div>
-                </div>
+                ) : (
+                  <p className="mt-2 pt-2 border-t border-violet-100 dark:border-white/10 text-[11px] font-medium text-violet-700 dark:text-violet-300">
+                    {label(
+                      "Saved from your previous MyFatoorah checkout. Click Pay to continue securely with this card brand.",
+                      "بطاقة محفوظة من معاملتك السابقة. اضغط على الدفع للمتابعة عبر بوابة ماي فاتورة الآمنة."
+                    )}
+                  </p>
+                )
               )}
             </div>
           );

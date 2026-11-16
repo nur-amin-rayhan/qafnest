@@ -16,6 +16,7 @@ export {
   encryptCardNumber,
   getUserSavedCards,
   saveUserCard,
+  toPublicSavedCard,
 } from "./wallet/walletCards";
 export {
   clearPendingWalletSplit,

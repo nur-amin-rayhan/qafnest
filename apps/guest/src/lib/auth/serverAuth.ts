@@ -195,8 +195,20 @@ export async function verifyGuestSession(request: Request): Promise<VerifiedGues
     }
   } catch {}
 
+  const cookieHeader = request.headers.get("cookie") || "";
+  const sessionCookieMatch = cookieHeader.match(/(?:^|;\s*)qafnest_has_session=([^;]+)/);
+  if (sessionCookieMatch?.[1]) {
+    let cookieToken = sessionCookieMatch[1].trim();
+    try {
+      cookieToken = decodeURIComponent(cookieToken);
+    } catch {}
+    if (cookieToken.split(".").length === 3) {
+      const fbCookieUser = await verifyFirebaseIdToken(cookieToken);
+      if (fbCookieUser) return fbCookieUser;
+    }
+  }
+
   if (process.env.NODE_ENV !== "production") {
-    const cookieHeader = request.headers.get("cookie") || "";
     if (cookieHeader.includes("qafnest_has_session=dev_guest_token")) {
       const devGuestId = process.env.NEXT_PUBLIC_DEV_GUEST_ID || "00000000-0000-0000-0000-000000000001";
       return {

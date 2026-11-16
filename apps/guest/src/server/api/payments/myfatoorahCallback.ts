@@ -100,8 +100,21 @@ async function handleCallback(request: NextRequest) {
             });
           }
 
-          // 2. IDEMPOTENCY GUARD (SEC-02): If already confirmed (e.g. by concurrent webhook), return safely without re-updating
+          // 2. IDEMPOTENCY GUARD (SEC-02): If already confirmed (e.g. by concurrent webhook), ensure card auto-save ran and return safely
           if (existingBooking.status === "confirmed" && existingBooking.payment_status === "success") {
+            try {
+              const guestIdentifier = existingBooking.guest_id || (existingBooking as { auth_subject?: string }).auth_subject;
+              if (guestIdentifier) {
+                const primaryTx = (invoiceData.InvoiceTransactions?.[0] || {}) as Record<string, unknown>;
+                await autoSaveCardFromInvoiceTransaction({
+                  userId: String(guestIdentifier),
+                  customerName: invoiceData.CustomerName,
+                  gatewayName,
+                  primaryTx,
+                });
+              }
+            } catch {}
+
             return buildSafeCallbackRedirect(canonicalOrigin, rawPropertyId, {
               confirmed: "true",
               bookingRef,

@@ -122,8 +122,21 @@ export async function POST(request: NextRequest) {
 
     // 4. Process State Transition
     if (isPaid && invoiceData) {
-      // IDEMPOTENCY GUARD (SEC-02): If already confirmed by callback, return immediately without re-processing
+      // IDEMPOTENCY GUARD (SEC-02): If already confirmed by callback, ensure card auto-save ran and return immediately
       if (existingBooking.status === "confirmed" && existingBooking.payment_status === "success") {
+        try {
+          const guestIdentifier = existingBooking.guest_id || (existingBooking as { auth_subject?: string }).auth_subject;
+          if (guestIdentifier) {
+            const gatewayName = invoiceData.InvoiceTransactions?.[0]?.PaymentGateway || "MyFatoorah";
+            const primaryTx = (invoiceData.InvoiceTransactions?.[0] || {}) as Record<string, unknown>;
+            await autoSaveCardFromInvoiceTransaction({
+              userId: String(guestIdentifier),
+              customerName: invoiceData.CustomerName,
+              gatewayName,
+              primaryTx,
+            });
+          }
+        } catch {}
         return NextResponse.json({ success: true, message: "Booking already confirmed." });
       }
 
@@ -181,7 +194,7 @@ export async function POST(request: NextRequest) {
       });
       if (!paymentVerification.ok) {
         console.error(`[SECURITY ALERT] Webhook ${paymentVerification.message} (booking ${bookingRef})`);
-        clearPendingWalletSplit(targetRef);
+        await clearPendingWalletSplit(targetRef);
         return NextResponse.json(
           { code: paymentVerification.code, message: paymentVerification.message },
           { status: 422 }

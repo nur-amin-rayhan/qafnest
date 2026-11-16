@@ -14,12 +14,9 @@ import { cancelInitiatedBooking } from "@/lib/services/bookingReconciliation";
 import { maskPii } from "@/lib/services/piiSanitizer";
 import {
   decryptCardNumber,
-  awardLoyaltyPoints,
-  settlePendingWalletSplit,
   clearPendingWalletSplit,
   SavedCard,
 } from "@/lib/services/walletService";
-import { dispatchBookingZatcaInvoice } from "@/lib/services/zatcaReportingHelper";
 import { normalizeAppLocale, type AppLocale } from "@/lib/services/requestLocale";
 
 export interface CheckoutGatewayParams {
@@ -76,7 +73,6 @@ export async function processGatewayPayment({
   samsungPayToken,
   gatewayAmount,
   walletApplied = 0,
-  effectiveUserId,
   locale,
 }: CheckoutGatewayParams): Promise<NextResponse> {
   const chargeAmount =
@@ -121,11 +117,15 @@ export async function processGatewayPayment({
     locale: resolvedLocale,
   });
 
-  // 1. Saved Card Fast Checkout with CVV
-  if (selectedMethod === "card" && savedCard && cardCvv) {
+  // 1. Saved Card Checkout (DirectPayment when tokenized/direct-enabled, else pre-selected MyFatoorah gateway)
+  if (selectedMethod === "card" && savedCard) {
+    const gatewayToken = savedCard.gatewayToken ? decryptCardNumber(savedCard.gatewayToken) : "";
     const fullCardNumber = savedCard.cardToken ? decryptCardNumber(savedCard.cardToken) : "";
+    const canTryDirectCharge = Boolean(
+      savedCard.supportsDirectCharge && cardCvv && (gatewayToken || fullCardNumber)
+    );
 
-    if (fullCardNumber) {
+    if (canTryDirectCharge) {
       try {
         const config = getMyFatoorahConfig();
         const mfResponse = await executeMyFatoorahPayment({
@@ -148,169 +148,47 @@ export async function processGatewayPayment({
           const pgId = u.searchParams.get("paymentGatewayId");
           if (invKey && pgId) {
             const directEndpoint = `${config.baseUrl}/DirectPayment/${invKey}/${pgId}`;
+            const directPayload = gatewayToken
+              ? {
+                  PaymentType: "token",
+                  Token: gatewayToken,
+                  SecurityCode: cardCvv,
+                  Bypass3DS: false,
+                }
+              : {
+                  PaymentType: "card",
+                  Bypass3DS: false,
+                  SaveToken: false,
+                  Card: {
+                    Number: fullCardNumber,
+                    ExpiryMonth: savedCard.expiryMonth,
+                    ExpiryYear: savedCard.expiryYear,
+                    SecurityCode: cardCvv,
+                    HolderName: savedCard.cardholderName,
+                  },
+                };
             const directRes = await fetch(directEndpoint, {
               method: "POST",
               headers: {
                 "Content-Type": "application/json",
                 Authorization: `Bearer ${config.apiKey}`,
               },
-              body: JSON.stringify({
-                PaymentType: "card",
-                Bypass3DS: false,
-                SaveToken: false,
-                Card: {
-                  Number: fullCardNumber,
-                  ExpiryMonth: savedCard.expiryMonth,
-                  ExpiryYear: savedCard.expiryYear,
-                  SecurityCode: cardCvv,
-                  HolderName: savedCard.cardholderName,
-                },
-              }),
+              body: JSON.stringify(directPayload),
             });
             const directData = (await directRes.json()) as { IsSuccess?: boolean; Data?: { PaymentURL?: string } };
             if (directData.IsSuccess && directData.Data?.PaymentURL) {
-              return NextResponse.json({
-                success: true,
-                redirectUrl: directData.Data.PaymentURL,
-                bookingId,
-                bookingRef,
-                amount: totalPrice,
-                pricing,
-                method: "card",
-              });
+              return buildGatewayRedirectResponse(directData.Data.PaymentURL, mfResponse.Data.InvoiceId);
             }
           }
         }
       } catch (directErr) {
-        console.warn("Notice: DirectPayment error or gateway restrictions:", directErr);
+        console.warn("Notice: DirectPayment unavailable, falling back to MyFatoorah hosted gateway:", directErr);
       }
     }
-
-    // Direct completion for saved card + CVV:
-    // Lock PIN is set by the Host in their host portal, not auto-generated
-    if (walletApplied > 0) {
-      const splitSettle = await settlePendingWalletSplit(bookingRef);
-      if (!splitSettle.settled) {
-        clearPendingWalletSplit(bookingRef);
-        await cancelInitiatedBooking(dbClient, bookingRef);
-        return NextResponse.json(
-          {
-            code: "wallet_deduction_failed",
-            message: splitSettle.error || "Could not settle wallet portion of split payment.",
-          },
-          { status: 400 }
-        );
-      }
-    }
-
-    const savedCardMethodLabel =
-      walletApplied > 0
-        ? `wallet+card_${savedCard.brand}_${savedCard.last4}`
-        : `card_${savedCard.brand}_${savedCard.last4}`;
-
-    try {
-      await dbClient
-        .from("bookings")
-        .update({
-          status: "confirmed",
-          payment_status: "success",
-          payment_method: savedCardMethodLabel,
-          smart_lock_pin: null,
-        })
-        .eq("booking_reference", bookingRef);
-    } catch {}
-
-    // Mirror callback confirmation side effects for saved-card direct settlements
-    try {
-      const { data: bookingRow } = await dbClient
-        .from("bookings")
-        .select("id, property_id, check_in, check_out, total_price")
-        .eq("booking_reference", bookingRef)
-        .maybeSingle();
-
-      if (bookingRow?.property_id) {
-        try {
-          const { data: propData } = await dbClient
-            .from("properties")
-            .select("host_id, title")
-            .eq("id", bookingRow.property_id)
-            .maybeSingle();
-
-          if (propData?.host_id) {
-            await dbClient.from("host_notifications").insert({
-              host_id: propData.host_id,
-              property_id: bookingRow.property_id,
-              booking_id: bookingRow.id,
-              event_type: "booking_confirmed",
-              title: "حجز جديد مؤكد! 🎉",
-              body: `تم تأكيد حجز جديد لـ ${propData.title || propTitle} بقيمة ${bookingRow.total_price ?? totalPrice} ر.س للفترة من ${checkIn} إلى ${checkOut}.`,
-              is_read: false,
-            });
-          }
-        } catch {}
-
-        if (checkIn && checkOut) {
-          const startMs = Date.parse(`${checkIn}T00:00:00.000Z`);
-          const endMs = Date.parse(`${checkOut}T00:00:00.000Z`);
-          const numNights = Math.round((endMs - startMs) / 86_400_000);
-          if (numNights > 0) {
-            const rowsToUpsert = [];
-            for (let i = 0; i < numNights; i++) {
-              rowsToUpsert.push({
-                property_id: bookingRow.property_id,
-                date: new Date(startMs + i * 86_400_000).toISOString().slice(0, 10),
-                is_available: false,
-                updated_at: new Date().toISOString(),
-              });
-            }
-            if (rowsToUpsert.length > 0) {
-              await dbClient
-                .from("property_availability")
-                .upsert(rowsToUpsert, { onConflict: "property_id,date" });
-            }
-          }
-        }
-      }
-    } catch (syncErr) {
-      console.warn("Notice: Could not sync saved-card side effects:", syncErr);
-    }
-
-    await dispatchBookingZatcaInvoice({
-      bookingId,
-      bookingRef,
-      totalWithVat: totalPrice,
-      buyerName: guestName || "Valued Guest",
-      propertyTitle: propTitle || "Vacation Rental Accommodation",
-      paymentMethod: savedCardMethodLabel,
-    }).catch((zatcaErr) => {
-      console.warn("Notice: Could not dispatch ZATCA invoice for saved-card booking:", zatcaErr);
-    });
-
-    if (effectiveUserId) {
-      await awardLoyaltyPoints({
-        userId: effectiveUserId,
-        amountSpent: totalPrice,
-        bookingRef,
-        isWalletPayment: false,
-      }).catch(() => {});
-    }
-
-    return NextResponse.json({
-      success: true,
-      confirmed: true,
-      bookingId,
-      bookingRef,
-      amount: totalPrice,
-      pricing,
-      paymentMethod: `card (${savedCard.brand.toUpperCase()} •••• ${savedCard.last4})`,
-      smartLockPin: null,
-      redirectUrl: `/${resolvedLocale}/property/${rawPropertyId}/reserve?confirmed=true&bookingRef=${bookingRef}&paidVia=saved_card&brand=${savedCard.brand}&last4=${savedCard.last4}`,
-      message: "Payment processed successfully using saved card!",
-    });
   }
 
   const revertInitiated = async () => {
-    clearPendingWalletSplit(bookingRef);
+    await clearPendingWalletSplit(bookingRef);
     await cancelInitiatedBooking(dbClient, bookingRef);
   };
 
@@ -398,7 +276,8 @@ export async function processGatewayPayment({
     stcpay: "stcpay",
   };
   const targetHostedMethod: MyFatoorahHostedMethod =
-    hostedMethodMap[selectedMethod] ?? (cardType === "mada" ? "mada" : "card");
+    hostedMethodMap[selectedMethod] ??
+    (savedCard?.brand === "mada" || cardType === "mada" ? "mada" : "card");
 
   const mfPaymentMethodId = await resolveMyFatoorahPaymentMethodId(
     targetHostedMethod,

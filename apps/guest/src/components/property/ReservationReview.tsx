@@ -74,6 +74,7 @@ export default function ReservationReview({ property }: ReservationReviewProps) 
     remainingAmount,
     selectedCardId,
     setSelectedCardId,
+    setSelectedCardRequiresCvv,
     cardCvv,
     setCardCvv,
     paymentMessage,
@@ -196,6 +197,7 @@ export default function ReservationReview({ property }: ReservationReviewProps) 
               label={label}
               selectedCardId={selectedCardId}
               setSelectedCardId={setSelectedCardId}
+              setSelectedCardRequiresCvv={setSelectedCardRequiresCvv}
               cardCvv={cardCvv}
               setCardCvv={setCardCvv}
             />

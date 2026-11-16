@@ -4,6 +4,7 @@ import {
   getUserSavedCards,
   saveUserCard,
   deleteUserCard,
+  toPublicSavedCard,
 } from "@/lib/services/walletService";
 
 export async function GET(request: Request) {
@@ -12,8 +13,15 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const cards = await getUserSavedCards(authUser.id);
-  return NextResponse.json({ success: true, cards });
+  const cards = (await getUserSavedCards(authUser.id)).map(toPublicSavedCard);
+  return NextResponse.json(
+    { success: true, cards },
+    {
+      headers: {
+        "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+      },
+    }
+  );
 }
 
 export async function POST(request: Request) {
@@ -52,7 +60,7 @@ export async function POST(request: Request) {
 
   return NextResponse.json({
     success: true,
-    card: newCard,
+    card: toPublicSavedCard(newCard),
     message: "Card saved successfully for fast 1-click checkout!",
   });
 }

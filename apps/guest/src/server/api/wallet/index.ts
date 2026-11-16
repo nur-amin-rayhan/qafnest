@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 import { verifyGuestSession } from "@/lib/auth/serverAuth";
-import { getUserWallet, getActiveLoyaltyOffers } from "@/lib/services/walletService";
+import {
+  getUserWallet,
+  getActiveLoyaltyOffers,
+  toPublicSavedCard,
+} from "@/lib/services/walletService";
 
 
 export async function GET(request: Request) {
@@ -11,12 +15,16 @@ export async function GET(request: Request) {
 
   const userId = authUser.id;
   const wallet = await getUserWallet(userId);
+  const safeWallet = {
+    ...wallet,
+    savedCards: (wallet.savedCards || []).map(toPublicSavedCard),
+  };
   const offers = getActiveLoyaltyOffers();
 
   return NextResponse.json(
     {
       success: true,
-      wallet,
+      wallet: safeWallet,
       offers,
     },
     {

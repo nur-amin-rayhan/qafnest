@@ -63,6 +63,7 @@ export function useReservationCheckout({
   const [paymentBusy, setPaymentBusy] = useState(false);
   const [paymentMessage, setPaymentMessage] = useState<string | null>(null);
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
+  const [selectedCardRequiresCvv, setSelectedCardRequiresCvv] = useState<boolean>(false);
   const [cardCvv, setCardCvv] = useState<string>("");
 
   const effectiveTotal = totalAmount || pricing?.total || property.basePrice;
@@ -137,7 +138,7 @@ export function useReservationCheckout({
     }
 
     const isUsingSavedCard = effectiveCheckoutMethod === "card" && Boolean(selectedCardId && selectedCardId !== "new");
-    if (isUsingSavedCard) {
+    if (isUsingSavedCard && selectedCardRequiresCvv) {
       const cleanCvv = cardCvv.trim();
       if (!cleanCvv || cleanCvv.length < 3) {
         setPaymentMessage(
@@ -386,6 +387,8 @@ export function useReservationCheckout({
     handlePay,
     selectedCardId,
     setSelectedCardId,
+    selectedCardRequiresCvv,
+    setSelectedCardRequiresCvv,
     cardCvv,
     setCardCvv,
   };

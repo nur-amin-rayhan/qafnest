@@ -13,6 +13,8 @@ import {
   Check,
 } from "lucide-react";
 import type { SavedCard } from "@/lib/services/walletService";
+import { useAuth } from "@/context/AuthContext";
+import { getGuestAuthorizationHeaders } from "@/lib/auth/clientAuthHeaders";
 import {
   detectCardBrand,
   detectCardBrandOrNull,
@@ -26,6 +28,7 @@ interface PaymentMethodsTabProps {
 }
 
 export default function PaymentMethodsTab({ t }: PaymentMethodsTabProps) {
+  const { user, session } = useAuth();
   const [savedCards, setSavedCards] = useState<SavedCard[]>([]);
   const [loadingCards, setLoadingCards] = useState(true);
   const [addCardModalOpen, setAddCardModalOpen] = useState(false);
@@ -44,7 +47,8 @@ export default function PaymentMethodsTab({ t }: PaymentMethodsTabProps) {
   const fetchCards = useCallback(async () => {
     try {
       setLoadingCards(true);
-      const res = await fetch("/api/wallet/cards");
+      const headers = await getGuestAuthorizationHeaders(session);
+      const res = await fetch("/api/wallet/cards", { headers, cache: "no-store" });
       if (res.ok) {
         const data = await res.json();
         if (Array.isArray(data.cards)) {
@@ -56,7 +60,7 @@ export default function PaymentMethodsTab({ t }: PaymentMethodsTabProps) {
     } finally {
       setLoadingCards(false);
     }
-  }, []);
+  }, [session]);
 
   useEffect(() => {
     fetchCards();
@@ -68,7 +72,7 @@ export default function PaymentMethodsTab({ t }: PaymentMethodsTabProps) {
         }
       })
       .catch(() => {});
-  }, [fetchCards]);
+  }, [fetchCards, user?.id]);
 
   const handleFormatCardNumber = (val: string) => {
     setCardNumber(formatCardNumberInput(val));
@@ -112,9 +116,10 @@ export default function PaymentMethodsTab({ t }: PaymentMethodsTabProps) {
 
     setIsSaving(true);
     try {
+      const authHeaders = await getGuestAuthorizationHeaders(session);
       const res = await fetch("/api/wallet/cards", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...authHeaders },
         body: JSON.stringify({
           cardholderName,
           cardNumber: cleanNum,
@@ -147,8 +152,10 @@ export default function PaymentMethodsTab({ t }: PaymentMethodsTabProps) {
 
   const handleDeleteCard = async (cardId: string) => {
     try {
+      const headers = await getGuestAuthorizationHeaders(session);
       const res = await fetch(`/api/wallet/cards?cardId=${encodeURIComponent(cardId)}`, {
         method: "DELETE",
+        headers,
       });
       if (res.ok) {
         setSavedCards((prev) => prev.filter((c) => c.id !== cardId));

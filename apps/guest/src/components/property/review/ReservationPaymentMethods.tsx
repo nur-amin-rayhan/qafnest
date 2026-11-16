@@ -5,6 +5,8 @@ import { AnimatePresence, motion } from "framer-motion";
 import { Check, ChevronRight, Gift, LockKeyhole, Wallet } from "lucide-react";
 import { OfficialPaymentIcon } from "@/components/common/OfficialPaymentIcon";
 import type { SavedCard } from "@/lib/services/walletService";
+import { useAuth } from "@/context/AuthContext";
+import { getGuestAuthorizationHeaders } from "@/lib/auth/clientAuthHeaders";
 import type { GatewayCapabilitiesResponse, PaymentMethod } from "./types";
 import {
   GooglePayBrandMark,
@@ -42,6 +44,7 @@ interface ReservationPaymentMethodsProps {
   label: (en: string, ar: string) => string;
   selectedCardId?: string | null;
   setSelectedCardId?: (id: string | null) => void;
+  setSelectedCardRequiresCvv?: (required: boolean) => void;
   cardCvv?: string;
   setCardCvv?: (cvv: string) => void;
 }
@@ -61,9 +64,11 @@ export default function ReservationPaymentMethods({
   label,
   selectedCardId,
   setSelectedCardId,
+  setSelectedCardRequiresCvv,
   cardCvv,
   setCardCvv,
 }: ReservationPaymentMethodsProps) {
+  const { session } = useAuth();
   const [splitMethodsOpen, setSplitMethodsOpen] = useState(false);
   const [savedCards, setSavedCards] = useState<SavedCard[]>([]);
   const hasInitializedRef = React.useRef(false);
@@ -80,9 +85,11 @@ export default function ReservationPaymentMethods({
 
   useEffect(() => {
     let isMounted = true;
-    fetch("/api/wallet/cards")
-      .then((r) => (r.ok ? r.json() : null))
-      .then((d) => {
+    (async () => {
+      try {
+        const headers = await getGuestAuthorizationHeaders(session);
+        const r = await fetch("/api/wallet/cards", { headers, cache: "no-store" });
+        const d = r.ok ? await r.json() : null;
         if (!isMounted || !Array.isArray(d?.cards) || d.cards.length === 0) return;
         setSavedCards(d.cards);
         if (!hasInitializedRef.current && setSelectedCardId) {
@@ -90,12 +97,17 @@ export default function ReservationPaymentMethods({
           const def = d.cards.find((c: SavedCard) => c.isDefault) || d.cards[0];
           setSelectedCardId(def.id);
         }
-      })
-      .catch(() => {});
+      } catch {}
+    })();
     return () => {
       isMounted = false;
     };
-  }, [user, setSelectedCardId]);
+  }, [user, session, phoneVerified, setSelectedCardId]);
+
+  useEffect(() => {
+    const active = savedCards.find((c) => c.id === selectedCardId);
+    setSelectedCardRequiresCvv?.(Boolean(active?.supportsDirectCharge));
+  }, [savedCards, selectedCardId, setSelectedCardRequiresCvv]);
 
   const selectMethod = (next: PaymentMethod) => {
     setPaymentMethod(next);

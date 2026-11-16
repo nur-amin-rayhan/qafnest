@@ -211,7 +211,7 @@ async function executeCheckoutPost(request: Request) {
     if (!savedCard) {
       return NextResponse.json({ code: "card_not_found", message: "Selected saved card could not be found." }, { status: 404 });
     }
-    if (!cardCvv || cardCvv.length < 3) {
+    if (savedCard.supportsDirectCharge && (!cardCvv || cardCvv.length < 3)) {
       return NextResponse.json(
         { code: "cvv_required", message: "Card CVV security code is required for saved card payments." },
         { status: 400 }
@@ -421,7 +421,7 @@ async function executeCheckoutPost(request: Request) {
       });
 
       if (walletApplied > 0 && gatewayAmount > 0) {
-        registerPendingWalletSplit({
+        await registerPendingWalletSplit({
           bookingRef,
           userId: effectiveUserId,
           walletAmount: walletApplied,

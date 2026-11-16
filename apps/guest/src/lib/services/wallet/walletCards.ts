@@ -1,6 +1,6 @@
 import crypto from "crypto";
 import { detectCardBrand, type CardBrand } from "@/lib/services/cardBrand";
-import { loadWalletStore, saveWalletStore } from "./walletStore";
+import { commitUserWallet } from "./walletStore";
 import { getUserWallet } from "./walletOperations";
 import type { SavedCard } from "./walletTypes";
 
@@ -28,9 +28,35 @@ export function decryptCardNumber(token: string): string {
   }
 }
 
+export function toPublicSavedCard(card: SavedCard): SavedCard {
+  const publicCard: SavedCard = {
+    id: card.id,
+    userId: card.userId,
+    cardholderName: card.cardholderName,
+    brand: card.brand,
+    last4: card.last4,
+    expiryMonth: card.expiryMonth,
+    expiryYear: card.expiryYear,
+    isDefault: card.isDefault,
+    createdAt: card.createdAt,
+    maskedPan: card.maskedPan,
+    supportsDirectCharge: Boolean(card.supportsDirectCharge ?? (card.gatewayToken || card.cardToken)),
+  };
+  return publicCard;
+}
+
 export async function getUserSavedCards(userId: string): Promise<SavedCard[]> {
   const wallet = await getUserWallet(userId);
   return wallet.savedCards || [];
+}
+
+function resolveCardBrandFromMetadata(rawBrand: string, rawGateway: string, rawNumber: string): CardBrand {
+  const combined = `${rawBrand} ${rawGateway}`.toLowerCase();
+  if (combined.includes("amex") || combined.includes("american express")) return "amex";
+  if (combined.includes("mada") || combined.includes("مدى")) return "mada";
+  if (combined.includes("master")) return "mastercard";
+  if (combined.includes("visa")) return "visa";
+  return detectCardBrand(rawNumber);
 }
 
 export async function saveUserCard(
@@ -42,39 +68,49 @@ export async function saveUserCard(
     expiryYear: string;
     brand?: CardBrand;
     isDefault?: boolean;
+    gatewayToken?: string;
+    panHash?: string;
+    maskedPan?: string;
   }
 ): Promise<SavedCard> {
-  const store = loadWalletStore();
   const wallet = await getUserWallet(userId);
-  const cards = wallet.savedCards || [];
+  const cards = [...(wallet.savedCards || [])];
 
-  const cleanNumber = cardInput.cardNumber.replace(/\D/g, "");
+  const rawNumber = String(cardInput.cardNumber || "");
+  const isMasked = /[x*]/i.test(rawNumber);
+  const cleanNumber = rawNumber.replace(/\D/g, "");
   const last4 = cleanNumber.slice(-4) || "0000";
   const brand = cardInput.brand || detectCardBrand(cleanNumber);
   const shouldBeDefault = cardInput.isDefault || cards.length === 0;
   if (shouldBeDefault) cards.forEach((c) => (c.isDefault = false));
 
+  const hasFullPan = !isMasked && cleanNumber.length >= 15;
+  const cleanGatewayToken = cardInput.gatewayToken?.trim() || "";
+
   const newCard: SavedCard = {
     id: `card-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
     userId,
-    cardholderName: cardInput.cardholderName.trim(),
+    cardholderName: cardInput.cardholderName.trim() || "Guest Cardholder",
     brand,
     last4,
-    expiryMonth: cardInput.expiryMonth.padStart(2, "0"),
-    expiryYear: cardInput.expiryYear.slice(-2),
+    expiryMonth: cardInput.expiryMonth.replace(/\D/g, "").slice(-2).padStart(2, "0") || "12",
+    expiryYear: cardInput.expiryYear.replace(/\D/g, "").slice(-2) || "29",
     isDefault: shouldBeDefault,
     createdAt: new Date().toISOString(),
-    cardToken: cleanNumber ? encryptCardNumber(cleanNumber) : undefined,
+    cardToken: hasFullPan ? encryptCardNumber(cleanNumber) : undefined,
+    gatewayToken: cleanGatewayToken ? encryptCardNumber(cleanGatewayToken) : undefined,
+    panHash: cardInput.panHash?.trim() || undefined,
+    maskedPan: cardInput.maskedPan?.trim() || (isMasked ? rawNumber.trim() : undefined),
+    supportsDirectCharge: Boolean(hasFullPan || cleanGatewayToken),
   };
 
   cards.push(newCard);
   wallet.savedCards = cards;
-  store.wallets[userId] = wallet;
-  saveWalletStore(store);
+  await commitUserWallet(wallet);
   return newCard;
 }
 
-/** Auto-saves tokenized card from MyFatoorah transaction unless settled via digital wallet. */
+/** Auto-saves tokenized/display card metadata from MyFatoorah transaction unless settled via digital wallet. */
 export async function autoSaveCardFromInvoiceTransaction(params: {
   userId: string;
   customerName?: string;
@@ -82,43 +118,86 @@ export async function autoSaveCardFromInvoiceTransaction(params: {
   primaryTx?: Record<string, unknown>;
 }): Promise<void> {
   const tx = params.primaryTx || {};
+  const cardObj =
+    tx.Card && typeof tx.Card === "object" ? (tx.Card as Record<string, unknown>) : undefined;
   const gw = String(tx.PaymentGateway || tx.CardType || params.gatewayName || "").toLowerCase();
   if (/apple|google|stc|samsung/.test(gw)) return;
 
-  const cleanDigits = String(tx.CardNumber || "").replace(/\D/g, "");
+  const rawCardNumber = String(cardObj?.Number || tx.CardNumber || "").trim();
+  const cleanDigits = rawCardNumber.replace(/\D/g, "");
   if (cleanDigits.length < 4) return;
 
   const last4 = cleanDigits.slice(-4);
-  const brand: CardBrand = gw.includes("amex")
-    ? "amex"
-    : gw.includes("visa")
-    ? "visa"
-    : gw.includes("master")
-    ? "mastercard"
-    : "mada";
+  const brand = resolveCardBrandFromMetadata(
+    String(cardObj?.Brand || ""),
+    gw,
+    cleanDigits
+  );
+  const expiryMonth =
+    String(cardObj?.ExpiryMonth || "").replace(/\D/g, "").slice(-2).padStart(2, "0") || "12";
+  const expiryYear =
+    String(cardObj?.ExpiryYear || "").replace(/\D/g, "").slice(-2) || "29";
+  const cardholderName =
+    String(cardObj?.NameOnCard || "").trim() ||
+    String(params.customerName || "").trim() ||
+    "Guest Cardholder";
+  const panHash =
+    typeof cardObj?.PanHash === "string" && cardObj.PanHash.trim()
+      ? cardObj.PanHash.trim()
+      : undefined;
+  const gatewayToken =
+    typeof cardObj?.Token === "string" && cardObj.Token.trim()
+      ? cardObj.Token.trim()
+      : typeof tx.Token === "string" && tx.Token.trim()
+      ? tx.Token.trim()
+      : undefined;
 
-  const currentCards = await getUserSavedCards(params.userId);
-  if (currentCards.some((c) => c.last4 === last4 && c.brand === brand)) return;
+  const wallet = await getUserWallet(params.userId);
+  const currentCards = [...(wallet.savedCards || [])];
+  const existing = currentCards.find(
+    (c) => (panHash && c.panHash === panHash) || (c.last4 === last4 && c.brand === brand)
+  );
 
-  const fallbackBin: Record<CardBrand, string> = {
-    amex: `34000000000${last4}`,
-    visa: `411111111111${last4}`,
-    mastercard: `555555555555${last4}`,
-    mada: `588845000000${last4}`,
-  };
+  if (existing) {
+    let changed = false;
+    if (panHash && !existing.panHash) {
+      existing.panHash = panHash;
+      changed = true;
+    }
+    if (cardObj?.ExpiryMonth && existing.expiryMonth !== expiryMonth) {
+      existing.expiryMonth = expiryMonth;
+      changed = true;
+    }
+    if (cardObj?.ExpiryYear && existing.expiryYear !== expiryYear) {
+      existing.expiryYear = expiryYear;
+      changed = true;
+    }
+    if (gatewayToken && !existing.gatewayToken) {
+      existing.gatewayToken = encryptCardNumber(gatewayToken);
+      existing.supportsDirectCharge = true;
+      changed = true;
+    }
+    if (changed) {
+      wallet.savedCards = currentCards;
+      await commitUserWallet(wallet);
+    }
+    return;
+  }
 
   await saveUserCard(params.userId, {
-    cardholderName: params.customerName || "Guest Cardholder",
-    cardNumber: cleanDigits.length >= 12 ? cleanDigits : fallbackBin[brand],
-    expiryMonth: "12",
-    expiryYear: "29",
+    cardholderName,
+    cardNumber: rawCardNumber,
+    expiryMonth,
+    expiryYear,
     brand,
     isDefault: currentCards.length === 0,
+    gatewayToken,
+    panHash,
+    maskedPan: rawCardNumber,
   });
 }
 
 export async function deleteUserCard(userId: string, cardId: string): Promise<boolean> {
-  const store = loadWalletStore();
   const wallet = await getUserWallet(userId);
   if (!wallet.savedCards) return false;
 
@@ -128,7 +207,9 @@ export async function deleteUserCard(userId: string, cardId: string): Promise<bo
     wallet.savedCards[0].isDefault = true;
   }
 
-  store.wallets[userId] = wallet;
-  saveWalletStore(store);
-  return wallet.savedCards.length < initialLen;
+  const removed = wallet.savedCards.length < initialLen;
+  if (removed) {
+    await commitUserWallet(wallet);
+  }
+  return removed;
 }

@@ -39,6 +39,10 @@ export interface SavedCard {
   isDefault: boolean;
   createdAt: string;
   cardToken?: string;
+  gatewayToken?: string;
+  panHash?: string;
+  maskedPan?: string;
+  supportsDirectCharge?: boolean;
 }
 
 export interface LoyaltySettings {

@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { getGuestAuthorizationHeaders } from "@/lib/auth/clientAuthHeaders";
 import { useApp } from "@/context/AppContext";
 import { useAuth } from "@/context/AuthContext";
 import type { Property } from "@/data/properties";
@@ -41,7 +42,7 @@ export function useReservationReview(property: Property) {
     guestsCount,
     setGuestsCount,
   } = useApp();
-  const { user, profile, refreshProfile } = useAuth();
+  const { user, session, profile, refreshProfile } = useAuth();
 
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [pricing, setPricing] = useState<PricingBreakdown | null>(null);
@@ -59,21 +60,22 @@ export function useReservationReview(property: Property) {
   }, [property?.id]);
 
   useEffect(() => {
-    const loadWallet = () => {
-      fetch(`/api/wallet?t=${Date.now()}`, { cache: "no-store" })
-        .then((r) => (r.ok ? r.json() : null))
-        .then((data) => {
-          if (data?.wallet) {
-            setWalletBalance(Number(data.wallet.balance) || 0);
-            setLoyaltyPoints(Number(data.wallet.loyaltyPoints) || 0);
-          }
-        })
-        .catch(() => {});
+    const loadWallet = async () => {
+      try {
+        const headers = await getGuestAuthorizationHeaders(session);
+        const r = await fetch(`/api/wallet?t=${Date.now()}`, { headers, cache: "no-store" });
+        const data = r.ok ? await r.json() : null;
+        if (data?.wallet) {
+          setWalletBalance(Number(data.wallet.balance) || 0);
+          setLoyaltyPoints(Number(data.wallet.loyaltyPoints) || 0);
+        }
+      } catch {}
     };
-    loadWallet();
-    window.addEventListener("qafnest:wallet-updated", loadWallet);
-    return () => window.removeEventListener("qafnest:wallet-updated", loadWallet);
-  }, [user]);
+    void loadWallet();
+    const onWalletUpdated = () => void loadWallet();
+    window.addEventListener("qafnest:wallet-updated", onWalletUpdated);
+    return () => window.removeEventListener("qafnest:wallet-updated", onWalletUpdated);
+  }, [user, session]);
 
   useEffect(() => {
     fetch("/api/payments/methods")
@@ -252,6 +254,7 @@ export function useReservationReview(property: Property) {
     handlePay,
     selectedCardId,
     setSelectedCardId,
+    setSelectedCardRequiresCvv,
     cardCvv,
     setCardCvv,
   } = useReservationCheckout({
@@ -342,6 +345,7 @@ export function useReservationReview(property: Property) {
     remainingAmount,
     selectedCardId,
     setSelectedCardId,
+    setSelectedCardRequiresCvv,
     cardCvv,
     setCardCvv,
     paymentMessage,

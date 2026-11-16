@@ -1,9 +1,11 @@
 import { getServiceRoleClient } from "@/lib/supabase/service";
 import {
+  commitUserWallet,
   determineTier,
+  isSupabaseUuid,
+  loadCloudUserWallet,
   loadWalletStore,
   saveWalletStore,
-  syncWalletUserMetadata,
 } from "./walletStore";
 import {
   DEFAULT_LOYALTY_SETTINGS,
@@ -22,27 +24,40 @@ const METHOD_LABELS_AR: Record<string, string> = {
   card: "البطاقة",
 };
 
-/** Retrieves the user wallet data with reconciliation against Supabase user_metadata. */
+/** Retrieves the user wallet data reconciled across cloud private storage and Supabase user_metadata. */
 export async function getUserWallet(userId: string): Promise<UserWalletData> {
   const store = loadWalletStore();
-  let userWallet = store.wallets[userId];
+  const localWallet = store.wallets[userId];
 
   let metadataBalance: number | undefined;
   let metadataPoints: number | undefined;
   let metadataWelcomeCredited: boolean | undefined;
   let metadataWelcomeBalance: number | undefined;
 
-  try {
-    const admin = getServiceRoleClient();
-    const { data: userRes } = await admin.auth.admin.getUserById(userId);
-    const meta = userRes?.user?.user_metadata;
-    if (meta) {
-      if (typeof meta.wallet_balance === "number") metadataBalance = meta.wallet_balance;
-      if (typeof meta.loyalty_points === "number") metadataPoints = meta.loyalty_points;
-      if (typeof meta.welcome_bonus_credited === "boolean") metadataWelcomeCredited = meta.welcome_bonus_credited;
-      if (typeof meta.welcome_bonus_balance === "number") metadataWelcomeBalance = meta.welcome_bonus_balance;
-    }
-  } catch {}
+  const [cloudWallet, supabaseMeta] = await Promise.all([
+    loadCloudUserWallet(userId),
+    isSupabaseUuid(userId)
+      ? (async () => {
+          try {
+            const admin = getServiceRoleClient();
+            const { data: userRes } = await admin.auth.admin.getUserById(userId);
+            return userRes?.user?.user_metadata || null;
+          } catch {
+            return null;
+          }
+        })()
+      : Promise.resolve(null),
+  ]);
+
+  if (supabaseMeta) {
+    if (typeof supabaseMeta.wallet_balance === "number") metadataBalance = supabaseMeta.wallet_balance;
+    if (typeof supabaseMeta.loyalty_points === "number") metadataPoints = supabaseMeta.loyalty_points;
+    if (typeof supabaseMeta.welcome_bonus_credited === "boolean") metadataWelcomeCredited = supabaseMeta.welcome_bonus_credited;
+    if (typeof supabaseMeta.welcome_bonus_balance === "number") metadataWelcomeBalance = supabaseMeta.welcome_bonus_balance;
+  }
+
+  let userWallet = cloudWallet || localWallet;
+  let dirty = Boolean(cloudWallet);
 
   if (!userWallet) {
     const balance = metadataBalance ?? 0;
@@ -57,13 +72,11 @@ export async function getUserWallet(userId: string): Promise<UserWalletData> {
       welcomeBonusBalance: metadataWelcomeBalance ?? 0,
     };
     if (balance > 0 || points > 0 || metadataWelcomeCredited) {
-      store.wallets[userId] = userWallet;
-      saveWalletStore(store);
+      await commitUserWallet(userWallet);
     }
     return userWallet;
   }
 
-  let dirty = false;
   if (metadataBalance !== undefined && metadataBalance !== userWallet.balance) {
     userWallet.balance = metadataBalance;
     dirty = true;
@@ -81,9 +94,13 @@ export async function getUserWallet(userId: string): Promise<UserWalletData> {
     userWallet.loyaltyTier = determineTier(metadataPoints);
     dirty = true;
   }
+
   if (dirty) {
     store.wallets[userId] = userWallet;
     saveWalletStore(store);
+    if (!cloudWallet) {
+      await commitUserWallet(userWallet);
+    }
   }
   return userWallet;
 }
@@ -127,9 +144,7 @@ export async function topUpWallet({
     createdAt: new Date().toISOString(),
   });
 
-  store.wallets[userId] = wallet;
-  saveWalletStore(store);
-  await syncWalletUserMetadata(userId, {
+  await commitUserWallet(wallet, {
     wallet_balance: newBalance,
     loyalty_points: newPoints,
     loyalty_tier: wallet.loyaltyTier,
@@ -148,7 +163,6 @@ export async function awardWelcomeBonus({
   deviceId?: string;
   ip?: string;
 }): Promise<{ awarded: boolean; alreadyCredited: boolean; amountCredited: number; wallet: UserWalletData }> {
-  const store = loadWalletStore();
   const wallet = await getUserWallet(userId);
   const cleanAmount = Math.round(Math.max(0, amount) * 100) / 100;
 
@@ -179,9 +193,7 @@ export async function awardWelcomeBonus({
     createdAt: nowIso,
   });
 
-  store.wallets[userId] = wallet;
-  saveWalletStore(store);
-  await syncWalletUserMetadata(userId, {
+  await commitUserWallet(wallet, {
     wallet_balance: newBalance,
     welcome_bonus_credited: true,
     welcome_bonus_balance: newWelcomeBalance,
@@ -204,7 +216,6 @@ export async function deductWalletForBooking({
   bookingRef: string;
   propertyTitle: string;
 }): Promise<{ success: boolean; newBalance: number; welcomeBonusUsed: number; error?: string }> {
-  const store = loadWalletStore();
   const wallet = await getUserWallet(userId);
   const roundedAmount = Math.round(amount * 100) / 100;
 
@@ -237,9 +248,7 @@ export async function deductWalletForBooking({
     createdAt: new Date().toISOString(),
   });
 
-  store.wallets[userId] = wallet;
-  saveWalletStore(store);
-  await syncWalletUserMetadata(userId, {
+  await commitUserWallet(wallet, {
     wallet_balance: newBalance,
     welcome_bonus_balance: remainingWelcome,
   });
@@ -283,7 +292,6 @@ export async function awardLoyaltyPoints({
   bookingRef: string;
   isWalletPayment?: boolean;
 }): Promise<UserWalletData> {
-  const store = loadWalletStore();
   const wallet = await getUserWallet(userId);
   const { points, multiplier } = calculateEarnableLoyaltyPoints(amountSpent, isWalletPayment);
   if (points <= 0) return wallet;
@@ -307,9 +315,7 @@ export async function awardLoyaltyPoints({
   wallet.loyaltyTier = determineTier(newPoints);
   wallet.transactions.unshift(newTx);
 
-  store.wallets[userId] = wallet;
-  saveWalletStore(store);
-  await syncWalletUserMetadata(userId, { loyalty_points: newPoints, loyalty_tier: wallet.loyaltyTier });
+  await commitUserWallet(wallet, { loyalty_points: newPoints, loyalty_tier: wallet.loyaltyTier });
   return wallet;
 }
 
@@ -324,7 +330,6 @@ export async function redeemPointsForCredit({
     return { success: false, wallet: await getUserWallet(userId), message: "Minimum redemption is 100 points (10 SAR)" };
   }
 
-  const store = loadWalletStore();
   const wallet = await getUserWallet(userId);
   if (wallet.loyaltyPoints < pointsToRedeem) {
     return {
@@ -356,9 +361,7 @@ export async function redeemPointsForCredit({
     createdAt: new Date().toISOString(),
   });
 
-  store.wallets[userId] = wallet;
-  saveWalletStore(store);
-  await syncWalletUserMetadata(userId, {
+  await commitUserWallet(wallet, {
     wallet_balance: newBalance,
     loyalty_points: newPoints,
     loyalty_tier: wallet.loyaltyTier,

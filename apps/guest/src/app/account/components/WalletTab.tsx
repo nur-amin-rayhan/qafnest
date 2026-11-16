@@ -12,6 +12,7 @@ import {
   Zap,
 } from "lucide-react";
 import type { LoyaltyOffer, WalletTransaction } from "@/lib/services/walletService";
+import { getGuestAuthorizationHeaders } from "@/lib/auth/clientAuthHeaders";
 import { WalletTransactionReceiptModal } from "./WalletTransactionReceiptModal";
 import { WalletRedeemModal, WalletTopUpModal, type TopUpMethod } from "./wallet/WalletModals";
 import { WalletTransactionsSection, type WalletFilterTab } from "./wallet/WalletTransactionsSection";
@@ -60,9 +61,10 @@ export default function WalletTab({
     setActionErrorMsg(null);
     setActionSuccessMsg(null);
     try {
+      const authHeaders = await getGuestAuthorizationHeaders();
       const res = await fetch("/api/wallet/topup", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...authHeaders },
         body: JSON.stringify({ amount: effectiveAmount, method: topUpMethod, locale: language, instant: false }),
       });
       const data = await res.json();
@@ -93,9 +95,10 @@ export default function WalletTab({
     setActionErrorMsg(null);
     try {
       const pointsToRedeem = Math.floor(loyaltyPoints / 100) * 100;
+      const authHeaders = await getGuestAuthorizationHeaders();
       const res = await fetch("/api/wallet/redeem", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...authHeaders },
         body: JSON.stringify({ points: pointsToRedeem }),
       });
       const data = await res.json();
