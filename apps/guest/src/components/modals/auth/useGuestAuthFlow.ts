@@ -5,7 +5,7 @@ import type { ConfirmationResult, RecaptchaVerifier } from "firebase/auth";
 import { createClient } from "@/lib/supabase/client";
 import { getFirebaseErrorMessage, isFirebaseConfigured } from "@/lib/firebase/client";
 import { checkSignupGuard, claimWelcomeBonus } from "@/lib/auth/deviceFingerprint";
-import { normalizePhoneInput } from "@/lib/services/phone";
+import { normalizePhoneInput } from "@qafnest/shared/phone";
 import {
   OTP_LENGTH,
   EMPTY_OTP,

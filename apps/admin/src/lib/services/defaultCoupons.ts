@@ -1,4 +1,4 @@
-import { StoredCoupon } from "@/lib/promotionStore";
+import { StoredCoupon } from "@qafnest/shared/promotionStore";
 
 export interface AdminCouponRecord extends StoredCoupon {
   starts_at?: string;

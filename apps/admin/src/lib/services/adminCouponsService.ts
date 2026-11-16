@@ -1,5 +1,5 @@
 import { createAdminDataClient } from "@/lib/adminApi";
-import { getPromotionState, savePromotionState } from "@/lib/promotionStore";
+import { getPromotionState, savePromotionState } from "@qafnest/shared/promotionStore";
 import { INITIAL_DEFAULT_COUPONS, AdminCouponRecord } from "./defaultCoupons";
 
 export type { AdminCouponRecord };

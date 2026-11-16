@@ -1,12 +1,31 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import Image from "next/image";
+import React, { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Wallet, LockKeyhole, ChevronRight, Gift, CreditCard, Check } from "lucide-react";
+import { Check, ChevronRight, Gift, LockKeyhole, Wallet } from "lucide-react";
 import { OfficialPaymentIcon } from "@/components/common/OfficialPaymentIcon";
-import type { GatewayCapabilitiesResponse, PaymentMethod } from "./types";
 import type { SavedCard } from "@/lib/services/walletService";
+import type { GatewayCapabilitiesResponse, PaymentMethod } from "./types";
+import {
+  GooglePayBrandMark,
+  PaymentBrandLabel,
+  PaymentRow,
+  SamsungPayBrandMark,
+  StcPayBrandMark,
+  TabbyBrandMark,
+  TamaraBrandMark,
+} from "./PaymentBrandMarks";
+import { SavedCardsSelector } from "./SavedCardsSelector";
+
+export {
+  GooglePayBrandMark,
+  PaymentBrandLabel,
+  PaymentRow,
+  SamsungPayBrandMark,
+  StcPayBrandMark,
+  TabbyBrandMark,
+  TamaraBrandMark,
+};
 
 interface ReservationPaymentMethodsProps {
   phoneVerified: boolean;
@@ -25,106 +44,6 @@ interface ReservationPaymentMethodsProps {
   setSelectedCardId?: (id: string | null) => void;
   cardCvv?: string;
   setCardCvv?: (cvv: string) => void;
-}
-
-export function PaymentRow({
-  selected,
-  disabled,
-  onSelect,
-  title,
-  description,
-  marks,
-}: {
-  selected: boolean;
-  disabled: boolean;
-  onSelect: () => void;
-  title: string;
-  description: string;
-  marks: React.ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      role="radio"
-      aria-checked={selected}
-      aria-label={`${title}. ${description}`}
-      disabled={disabled}
-      onClick={onSelect}
-      className={`flex w-full items-center gap-3 py-4 text-start transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-violet-500 disabled:cursor-not-allowed cursor-pointer ${
-        selected ? "text-gray-950 dark:text-white" : "text-gray-800 dark:text-gray-200"
-      }`}
-    >
-      <span
-        className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border transition-colors ${
-          selected
-            ? "border-violet-700 dark:border-violet-300"
-            : "border-gray-400 dark:border-gray-500"
-        }`}
-        aria-hidden="true"
-      >
-        <span
-          className={`h-2.5 w-2.5 rounded-full bg-violet-700 transition-transform dark:bg-violet-300 ${
-            selected ? "scale-100" : "scale-0"
-          }`}
-        />
-      </span>
-      <span className="min-w-0 flex-1">
-        <span className="block text-sm font-bold">{title}</span>
-        <span className="mt-0.5 block text-xs leading-5 text-gray-500 dark:text-gray-400">
-          {description}
-        </span>
-      </span>
-      <span className="ms-3 flex shrink-0 items-center justify-end">{marks}</span>
-    </button>
-  );
-}
-
-export function PaymentBrandLabel({ children }: { children: React.ReactNode }) {
-  return (
-    <span className="text-xs font-semibold text-gray-600 dark:text-gray-300">
-      {children}
-    </span>
-  );
-}
-
-export function GooglePayBrandMark() {
-  return <OfficialPaymentIcon name="google" heightClass="h-7" />;
-}
-
-export function StcPayBrandMark() {
-  return <OfficialPaymentIcon name="stcpay" heightClass="h-7" />;
-}
-
-export function SamsungPayBrandMark({ requiresSetup }: { requiresSetup?: boolean }) {
-  return (
-    <span className="inline-flex items-center gap-1.5">
-      {requiresSetup && (
-        <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-800 dark:bg-amber-500/20 dark:text-amber-300">
-          Setup pending
-        </span>
-      )}
-      <span className="inline-flex items-center rounded-lg bg-[#1428A0] px-2.5 py-1 text-[11px] font-black tracking-tight text-white">
-        Samsung Pay
-      </span>
-    </span>
-  );
-}
-
-export function TabbyBrandMark() {
-  return <OfficialPaymentIcon name="tabby" heightClass="h-7" />;
-}
-
-export function TamaraBrandMark() {
-  return (
-    <Image
-      src="https://cdn.tamara.co/assets/png/tamara-logo-badge-en.png"
-      alt="Tamara"
-      width={64}
-      height={28}
-      unoptimized
-      className="h-7 w-16 object-contain"
-    />
-  );
 }
 
 export default function ReservationPaymentMethods({
@@ -156,9 +75,7 @@ export default function ReservationPaymentMethods({
   const samsungAvailable = Boolean(methods?.samsung?.available);
 
   useEffect(() => {
-    if (paymentMethod === "samsung" && !samsungAvailable) {
-      setPaymentMethod(null);
-    }
+    if (paymentMethod === "samsung" && !samsungAvailable) setPaymentMethod(null);
   }, [paymentMethod, samsungAvailable, setPaymentMethod]);
 
   useEffect(() => {
@@ -166,14 +83,12 @@ export default function ReservationPaymentMethods({
     fetch("/api/wallet/cards")
       .then((r) => (r.ok ? r.json() : null))
       .then((d) => {
-        if (!isMounted) return;
-        if (Array.isArray(d?.cards) && d.cards.length > 0) {
-          setSavedCards(d.cards);
-          if (!hasInitializedRef.current && setSelectedCardId) {
-            hasInitializedRef.current = true;
-            const def = d.cards.find((c: SavedCard) => c.isDefault) || d.cards[0];
-            setSelectedCardId(def.id);
-          }
+        if (!isMounted || !Array.isArray(d?.cards) || d.cards.length === 0) return;
+        setSavedCards(d.cards);
+        if (!hasInitializedRef.current && setSelectedCardId) {
+          hasInitializedRef.current = true;
+          const def = d.cards.find((c: SavedCard) => c.isDefault) || d.cards[0];
+          setSelectedCardId(def.id);
         }
       })
       .catch(() => {});
@@ -181,6 +96,11 @@ export default function ReservationPaymentMethods({
       isMounted = false;
     };
   }, [user, setSelectedCardId]);
+
+  const selectMethod = (next: PaymentMethod) => {
+    setPaymentMethod(next);
+    setPaymentMessage(null);
+  };
 
   return (
     <section
@@ -193,10 +113,7 @@ export default function ReservationPaymentMethods({
             {label("Payment Methods", "طرق الدفع")}
           </h2>
           <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-            {label(
-              "Choose how you want to pay. Your selection stays on this page.",
-              "اختر طريقة الدفع، وسيبقى اختيارك في هذه الصفحة."
-            )}
+            {label("Choose how you want to pay. Your selection stays on this page.", "اختر طريقة الدفع، وسيبقى اختيارك في هذه الصفحة.")}
           </p>
         </div>
         <Wallet className="h-5 w-5 shrink-0 text-violet-600 dark:text-violet-300" />
@@ -212,14 +129,8 @@ export default function ReservationPaymentMethods({
           </h3>
           <p className="mt-1 text-xs text-gray-500 dark:text-gray-400 max-w-sm mx-auto">
             {user
-              ? label(
-                  "Please verify your mobile number above to unlock payment options and complete booking.",
-                  "يرجى التحقق من رقم جوالك في القسم أعلاه لفتح خيارات الدفع وإتمام الحجز."
-                )
-              : label(
-                  "Please sign in or enter your mobile number above to unlock payment options.",
-                  "يرجى تسجيل الدخول أو إدخال رقم جوالك في القسم أعلاه لفتح خيارات الدفع واختيارها."
-                )}
+              ? label("Please verify your mobile number above to unlock payment options and complete booking.", "يرجى التحقق من رقم جوالك في القسم أعلاه لفتح خيارات الدفع وإتمام الحجز.")
+              : label("Please sign in or enter your mobile number above to unlock payment options.", "يرجى تسجيل الدخول أو إدخال رقم جوالك في القسم أعلاه لفتح خيارات الدفع واختيارها.")}
           </p>
         </div>
       ) : (
@@ -229,7 +140,6 @@ export default function ReservationPaymentMethods({
             aria-label={label("Payment method", "طريقة الدفع")}
             className="mt-4 divide-y divide-gray-200 border-y border-gray-200 dark:divide-white/10 dark:border-white/10"
           >
-            {/* 1. QafNest Digital Wallet Option (Full or Split Payment) */}
             {totalAmount > 0 && walletBalance > 0 && walletBalance < totalAmount ? (
               <div className="py-3.5">
                 <button
@@ -238,8 +148,7 @@ export default function ReservationPaymentMethods({
                   aria-checked={useWalletCredit}
                   onClick={() => {
                     if (setUseWalletCredit) {
-                      const next = !useWalletCredit;
-                      setUseWalletCredit(next);
+                      setUseWalletCredit(!useWalletCredit);
                       if (paymentMethod === "wallet") setPaymentMethod(null);
                       setPaymentMessage(null);
                     }
@@ -258,10 +167,7 @@ export default function ReservationPaymentMethods({
                   </span>
                   <span className="min-w-0 flex-1">
                     <span className="block text-sm font-bold text-gray-950 dark:text-white">
-                      {label(
-                        "Use QafNest Wallet Balance (Split Pay)",
-                        "استخدام رصيد محفظة قاف نست (دفع جزئي)"
-                      )}
+                      {label("Use QafNest Wallet Balance (Split Pay)", "استخدام رصيد محفظة قاف نست (دفع جزئي)")}
                     </span>
                     <span className="mt-0.5 block text-xs leading-5 text-gray-500 dark:text-gray-400">
                       {label(
@@ -281,10 +187,7 @@ export default function ReservationPaymentMethods({
                 {useWalletCredit && (
                   <div className="mt-2.5 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-violet-200 bg-violet-50/70 px-3.5 py-2.5 text-xs dark:border-violet-500/25 dark:bg-violet-950/30">
                     <span className="font-semibold text-violet-900 dark:text-violet-200">
-                      {label(
-                        `Wallet: -${walletBalance.toFixed(2)} SAR · Remaining due:`,
-                        `من المحفظة: -${walletBalance.toFixed(2)} ر.س · المبلغ المتبقي:`
-                      )}
+                      {label(`Wallet: -${walletBalance.toFixed(2)} SAR · Remaining due:`, `من المحفظة: -${walletBalance.toFixed(2)} ر.س · المبلغ المتبقي:`)}
                     </span>
                     <span className="font-mono font-black text-violet-700 dark:text-violet-300">
                       {(totalAmount - walletBalance).toFixed(2)} SAR
@@ -297,21 +200,14 @@ export default function ReservationPaymentMethods({
                 selected={paymentMethod === "wallet"}
                 disabled={walletBalance <= 0 && totalAmount > 0}
                 onSelect={() => {
-                  if (setUseWalletCredit) setUseWalletCredit(false);
-                  setPaymentMethod("wallet");
-                  setPaymentMessage(null);
+                  setUseWalletCredit?.(false);
+                  selectMethod("wallet");
                 }}
                 title={label("QafNest Digital Wallet", "محفظة قاف نست الرقمية")}
                 description={
                   totalAmount > 0 && walletBalance >= totalAmount
-                    ? label(
-                        `Available balance: ${walletBalance.toFixed(2)} SAR · Instant booking with 1.5X Points`,
-                        `الرصيد المتاح: ${walletBalance.toFixed(2)} ر.س · خصم فوري ومضاعفة نقاط المكافآت ١.٥X`
-                      )
-                    : label(
-                        `Available balance: ${walletBalance.toFixed(2)} SAR`,
-                        `الرصيد المتاح: ${walletBalance.toFixed(2)} ر.س`
-                      )
+                    ? label(`Available balance: ${walletBalance.toFixed(2)} SAR · Instant booking with 1.5X Points`, `الرصيد المتاح: ${walletBalance.toFixed(2)} ر.س · خصم فوري ومضاعفة نقاط المكافآت ١.٥X`)
+                    : label(`Available balance: ${walletBalance.toFixed(2)} SAR`, `الرصيد المتاح: ${walletBalance.toFixed(2)} ر.س`)
                 }
                 marks={
                   <span
@@ -328,89 +224,57 @@ export default function ReservationPaymentMethods({
               />
             )}
 
-            {/* 2. Apple Pay Option */}
             {appleAvailable && (
               <PaymentRow
                 selected={paymentMethod === "apple"}
                 disabled={false}
-                onSelect={() => {
-                  setPaymentMethod("apple");
-                  setPaymentMessage(null);
-                }}
+                onSelect={() => selectMethod("apple")}
                 title="Apple Pay"
                 description={label("Pay securely with Apple Pay", "ادفع بأمان عبر Apple Pay")}
                 marks={<OfficialPaymentIcon name="apple" heightClass="h-7" />}
               />
             )}
 
-            {/* 3. Google Pay Option */}
             {googleAvailable && (
               <PaymentRow
                 selected={paymentMethod === "google"}
                 disabled={false}
-                onSelect={() => {
-                  setPaymentMethod("google");
-                  setPaymentMessage(null);
-                }}
+                onSelect={() => selectMethod("google")}
                 title="Google Pay"
-                description={label(
-                  "Express checkout with Google Pay via MyFatoorah",
-                  "دفع سريع وآمن عبر Google Pay"
-                )}
+                description={label("Express checkout with Google Pay via MyFatoorah", "دفع سريع وآمن عبر Google Pay")}
                 marks={<GooglePayBrandMark />}
               />
             )}
 
-            {/* 4. STC Pay Option */}
             {stcpayAvailable && (
               <PaymentRow
                 selected={paymentMethod === "stcpay"}
                 disabled={false}
-                onSelect={() => {
-                  setPaymentMethod("stcpay");
-                  setPaymentMessage(null);
-                }}
+                onSelect={() => selectMethod("stcpay")}
                 title="STC Pay"
-                description={label(
-                  "Pay instantly with your STC Pay mobile wallet (SAR)",
-                  "ادفع فوراً عبر محفظة STC Pay برقم الجوال"
-                )}
+                description={label("Pay instantly with your STC Pay mobile wallet (SAR)", "ادفع فوراً عبر محفظة STC Pay برقم الجوال")}
                 marks={<StcPayBrandMark />}
               />
             )}
 
-            {/* 5. Samsung Pay Option (shown only when activated in MyFatoorah + Samsung Pay Portal) */}
             {samsungAvailable && (
               <PaymentRow
                 selected={paymentMethod === "samsung"}
                 disabled={false}
-                onSelect={() => {
-                  setPaymentMethod("samsung");
-                  setPaymentMessage(null);
-                }}
+                onSelect={() => selectMethod("samsung")}
                 title="Samsung Pay"
-                description={label(
-                  "Pay via Samsung Wallet (QR scan on desktop · biometric on Galaxy)",
-                  "الدفع عبر Samsung Wallet (مسح QR على الكمبيوتر أو البصمة على جوال سامسونج)"
-                )}
+                description={label("Pay via Samsung Wallet (QR scan on desktop · biometric on Galaxy)", "الدفع عبر Samsung Wallet (مسح QR على الكمبيوتر أو البصمة على جوال سامسونج)")}
                 marks={<SamsungPayBrandMark />}
               />
             )}
 
-            {/* 6. Card Option */}
             {cardAvailable && (
               <PaymentRow
                 selected={paymentMethod === "card"}
                 disabled={false}
-                onSelect={() => {
-                  setPaymentMethod("card");
-                  setPaymentMessage(null);
-                }}
+                onSelect={() => selectMethod("card")}
                 title={label("Credit or debit card", "بطاقة مدى أو ائتمان")}
-                description={label(
-                  "Card gateway · Mada, Visa and Mastercard",
-                  "بوابة البطاقات · مدى وVisa وMastercard"
-                )}
+                description={label("Card gateway · Mada, Visa and Mastercard", "بوابة البطاقات · مدى وVisa وMastercard")}
                 marks={
                   <span className="inline-flex items-center gap-1.5">
                     <OfficialPaymentIcon name="mada" heightClass="h-6" />
@@ -421,160 +285,19 @@ export default function ReservationPaymentMethods({
               />
             )}
 
-            {paymentMethod === "card" && savedCards.length > 0 && (
-              <div className="my-3 rounded-2xl border border-violet-100 bg-violet-50/50 p-4 dark:border-white/10 dark:bg-white/[0.03]">
-                <div className="flex items-center justify-between mb-2.5">
-                  <span className="text-xs font-bold text-gray-800 dark:text-gray-200 flex items-center gap-2">
-                    <CreditCard className="h-4 w-4 text-violet-600 dark:text-violet-400" />
-                    {label("Saved Cards (1-Click Checkout)", "البطاقات المحفوظة (دفع فوري بنقرة واحدة)")}
-                  </span>
-                  <a
-                    href="/account?tab=payments"
-                    className="text-[11px] font-semibold text-violet-700 hover:underline dark:text-violet-400"
-                  >
-                    {label("+ Manage cards", "+ إدارة البطاقات")}
-                  </a>
-                </div>
-                <div className="space-y-2.5">
-                  {savedCards.map((c) => {
-                    const isSelected = selectedCardId === c.id;
-                    return (
-                      <div
-                        key={c.id}
-                        className={`rounded-xl border transition-all ${
-                          isSelected
-                            ? "border-violet-600 bg-white p-2.5 shadow-sm dark:border-violet-400 dark:bg-violet-950/30"
-                            : "border-gray-200 bg-white/60 p-2.5 hover:bg-white dark:border-white/10 dark:bg-transparent"
-                        }`}
-                      >
-                        <button
-                          type="button"
-                          onClick={() => {
-                            if (setSelectedCardId) setSelectedCardId(c.id);
-                          }}
-                          className="flex w-full items-center justify-between text-xs cursor-pointer"
-                        >
-                          <div className="flex items-center gap-2.5">
-                            <span
-                              className={`flex h-4 w-4 items-center justify-center rounded-full border ${
-                                isSelected
-                                  ? "border-violet-600 bg-violet-600 text-white dark:border-violet-400 dark:bg-violet-400"
-                                  : "border-gray-300 dark:border-gray-600"
-                              }`}
-                            >
-                              {isSelected && <Check className="h-2.5 w-2.5" />}
-                            </span>
-                            <OfficialPaymentIcon name={c.brand} heightClass="h-6" />
-                            <span className="font-mono text-xs text-gray-900 dark:text-white">
-                              •••• {c.last4}
-                            </span>
-                            <span className="text-[10px] text-gray-400">
-                              ({c.expiryMonth}/{c.expiryYear})
-                            </span>
-                          </div>
-                          {c.isDefault && (
-                            <span className="rounded-full bg-violet-100 px-2 py-0.5 text-[9px] font-bold text-violet-700 dark:bg-violet-900/50 dark:text-violet-300">
-                              {label("Default", "افتراضية")}
-                            </span>
-                          )}
-                        </button>
-
-                        {/* Inline CVV Requirement for Selected Saved Card */}
-                        {isSelected && (
-                          <div className="mt-2.5 pt-2.5 border-t border-violet-100 dark:border-white/10 flex flex-wrap items-center justify-between gap-3">
-                            <div className="flex items-center gap-2 text-xs">
-                              <LockKeyhole className="h-3.5 w-3.5 text-violet-600 dark:text-violet-400 shrink-0" />
-                              <span className="font-bold text-gray-800 dark:text-gray-200 text-[11px]">
-                                {label("Enter 3-digit CVV / CVC:", "أدخل رمز الأمان (CVV):")}
-                              </span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <input
-                                type="password"
-                                inputMode="numeric"
-                                maxLength={4}
-                                placeholder="•••"
-                                value={cardCvv || ""}
-                                onChange={(e) => {
-                                  const val = e.target.value.replace(/\D/g, "").slice(0, 4);
-                                  if (setCardCvv) setCardCvv(val);
-                                  if (setPaymentMessage) setPaymentMessage(null);
-                                }}
-                                className="w-16 px-2.5 py-1 text-center font-mono text-xs font-black tracking-widest rounded-lg border border-violet-300 dark:border-violet-500/40 bg-violet-50/50 dark:bg-black/50 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-violet-500"
-                              />
-                              <span className="text-[10px] text-gray-400 font-semibold">
-                                {label("Required for payment", "مطلوب للدفع")}
-                              </span>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-
-                  <div
-                    onClick={() => {
-                      if (setSelectedCardId) setSelectedCardId("new");
-                      if (setCardCvv) setCardCvv("");
-                      if (setPaymentMessage) setPaymentMessage(null);
-                    }}
-                    className={`rounded-xl border transition-all cursor-pointer ${
-                      selectedCardId === "new" || selectedCardId === null
-                        ? "border-violet-600 bg-white p-3 shadow-sm dark:border-violet-400 dark:bg-violet-950/30"
-                        : "border-gray-200 bg-white/60 p-3 hover:bg-white dark:border-white/10 dark:bg-transparent"
-                    }`}
-                  >
-                    <div className="flex items-center justify-between text-xs">
-                      <div className="flex items-center gap-2.5">
-                        <span
-                          className={`flex h-4 w-4 items-center justify-center rounded-full border ${
-                            selectedCardId === "new" || selectedCardId === null
-                              ? "border-violet-600 bg-violet-600 text-white dark:border-violet-400 dark:bg-violet-400"
-                              : "border-gray-300 dark:border-gray-600"
-                          }`}
-                        >
-                          {(selectedCardId === "new" || selectedCardId === null) && (
-                            <Check className="h-2.5 w-2.5" />
-                          )}
-                        </span>
-                        <CreditCard className="h-4 w-4 text-violet-600 dark:text-violet-400" />
-                        <span className="font-bold text-gray-900 dark:text-white">
-                          {label("Pay with another card via gateway", "الدفع ببطاقة أخرى عبر البوابة")}
-                        </span>
-                      </div>
-                      <span className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded-full">
-                        {label("Auto-save to wallet", "حفظ تلقائي")}
-                      </span>
-                    </div>
-                    {(selectedCardId === "new" || selectedCardId === null) && (
-                      <p className="mt-2 text-[11px] text-gray-500 dark:text-gray-400 ltr:pl-6 rtl:pr-6">
-                        {label(
-                          "Enter details securely on payment gateway. This card will be auto-saved to your Digital Wallet for 1-click checkout on future stays.",
-                          "أدخل بيانات البطاقة بأمان عبر بوابة الدفع. سيتم حفظ البطاقة تلقائياً في محفظتك الرقمية للاستخدام بنقرة واحدة في حجوزاتك القادمة."
-                        )}
-                      </p>
-                    )}
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {paymentMethod === "card" && savedCards.length === 0 && (
-              <div className="my-2.5 rounded-xl border border-emerald-100 bg-emerald-50/60 p-3 dark:border-emerald-500/20 dark:bg-emerald-950/20">
-                <div className="flex items-center gap-2 text-xs font-semibold text-emerald-700 dark:text-emerald-300">
-                  <CreditCard className="h-4 w-4 shrink-0" />
-                  <span>
-                    {label(
-                      "Your card will be securely auto-saved to your Digital Wallet for 1-click future checkout.",
-                      "سيتم حفظ بطاقتك بأمان تلقائياً في محفظتك الرقمية للاستخدام السريع بنقرة واحدة مستقبلاً."
-                    )}
-                  </span>
-                </div>
-              </div>
+            {paymentMethod === "card" && (
+              <SavedCardsSelector
+                savedCards={savedCards}
+                selectedCardId={selectedCardId}
+                setSelectedCardId={setSelectedCardId}
+                cardCvv={cardCvv}
+                setCardCvv={setCardCvv}
+                setPaymentMessage={setPaymentMessage}
+                label={label}
+              />
             )}
           </div>
 
-          {/* Loyalty Reward Callout */}
           <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-purple-200/60 bg-gradient-to-r from-purple-50/90 to-amber-50/70 p-3.5 dark:border-purple-500/20 dark:from-purple-950/30 dark:to-amber-950/20">
             <div className="flex items-center gap-2.5">
               <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-[#4F2396] text-white">
@@ -586,12 +309,8 @@ export default function ReservationPaymentMethods({
                 </p>
                 <p className="text-[11px] text-gray-500 dark:text-gray-400">
                   {label(
-                    paymentMethod === "wallet"
-                      ? "Exclusive 1.5X Points offer applied automatically!"
-                      : "Points are added automatically to your account upon confirmation.",
-                    paymentMethod === "wallet"
-                      ? "عرض مضاعفة ١.٥X نقطة مطبق تلقائياً عند الدفع من رصيد المحفظة!"
-                      : "تضاف النقاط إلى محفظتك تلقائياً فور تأكيد الحجز."
+                    paymentMethod === "wallet" ? "Exclusive 1.5X Points offer applied automatically!" : "Points are added automatically to your account upon confirmation.",
+                    paymentMethod === "wallet" ? "عرض مضاعفة ١.٥X نقطة مطبق تلقائياً عند الدفع من رصيد المحفظة!" : "تضاف النقاط إلى محفظتك تلقائياً فور تأكيد الحجز."
                   )}
                 </p>
               </div>
@@ -615,9 +334,7 @@ export default function ReservationPaymentMethods({
                 <TabbyBrandMark />
                 <TamaraBrandMark />
                 <ChevronRight
-                  className={`h-5 w-5 text-gray-600 transition-transform dark:text-gray-300 ${
-                    splitMethodsOpen ? "rotate-90" : ""
-                  }`}
+                  className={`h-5 w-5 text-gray-600 transition-transform dark:text-gray-300 ${splitMethodsOpen ? "rotate-90" : ""}`}
                 />
               </span>
             </button>
@@ -637,29 +354,17 @@ export default function ReservationPaymentMethods({
                     <PaymentRow
                       selected={paymentMethod === "tabby"}
                       disabled={false}
-                      onSelect={() => {
-                        setPaymentMethod("tabby");
-                        setPaymentMessage(null);
-                      }}
+                      onSelect={() => selectMethod("tabby")}
                       title="Tabby"
-                      description={`${label(
-                        "Pay in 4 installments",
-                        "ادفع على ٤ دفعات"
-                      )} · 4 × ${installmentPrice}`}
+                      description={`${label("Pay in 4 installments", "ادفع على ٤ دفعات")} · 4 × ${installmentPrice}`}
                       marks={<TabbyBrandMark />}
                     />
                     <PaymentRow
                       selected={paymentMethod === "tamara"}
                       disabled={false}
-                      onSelect={() => {
-                        setPaymentMethod("tamara");
-                        setPaymentMessage(null);
-                      }}
+                      onSelect={() => selectMethod("tamara")}
                       title="Tamara"
-                      description={`${label(
-                        "Split into 4 payments",
-                        "قسّم المبلغ على ٤ دفعات"
-                      )} · 4 × ${installmentPrice}`}
+                      description={`${label("Split into 4 payments", "قسّم المبلغ على ٤ دفعات")} · 4 × ${installmentPrice}`}
                       marks={<TamaraBrandMark />}
                     />
                   </div>
@@ -682,4 +387,3 @@ export default function ReservationPaymentMethods({
     </section>
   );
 }
-

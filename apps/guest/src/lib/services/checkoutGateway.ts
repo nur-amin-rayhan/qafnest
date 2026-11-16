@@ -9,7 +9,7 @@ import {
   getSamsungPayWebConfig,
   type MyFatoorahHostedMethod,
 } from "@/lib/services/myfatoorah";
-import { toMyFatoorahMobile } from "@/lib/services/phone";
+import { toMyFatoorahMobile } from "@qafnest/shared/phone";
 import { cancelInitiatedBooking } from "@/lib/services/bookingReconciliation";
 import { maskPii } from "@/lib/services/piiSanitizer";
 import {

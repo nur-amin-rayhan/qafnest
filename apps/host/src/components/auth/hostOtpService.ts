@@ -12,7 +12,7 @@ import {
   getStoredFirebaseProfile,
   saveStoredFirebaseProfile,
 } from "@/lib/firebase/client";
-import { normalizeSaudiPhone } from "@/lib/phone";
+import { normalizeSaudiPhone } from "@qafnest/shared/phone";
 import { setHostSessionCookie } from "@/context/HostAuthContext";
 import type { HostProfile } from "@/context/HostAuthContext";
 import type { OtpChannel } from "./hostAuthHelpers";

@@ -157,22 +157,6 @@ export function getStayTotal(
   return totalStayRate;
 }
 
-export interface Deal {
-  id: string;
-  title: string;
-  location: string;
-  categoryName: string;
-  rating: number;
-  reviewsCount: number;
-  description: string;
-  amenities: string[];
-  image: string;
-  originalPrice: number;
-  discountPrice: number;
-  discountPercentage: number;
-  savings: number;
-}
-
 export interface Destination {
   id: string;
   city: string;
@@ -181,39 +165,6 @@ export interface Destination {
   count: number;
   image: string;
   isMonthly?: boolean;
-}
-
-export interface LifestyleCollection {
-  id: string;
-  type: 'chalet' | 'villa' | 'farm' | 'camp';
-  title: string;
-  subtitle: string;
-  countTag: string;
-  description: string;
-  image: string;
-  icon: string;
-}
-
-export interface FaqItem {
-  question: string;
-  answer: string;
-}
-
-export interface ReviewItem {
-  quote: string;
-  author: string;
-  location: string;
-  avatar: string;
-}
-
-export interface StoryItem {
-  id: string;
-  title: string;
-  tag: string;
-  readTime: string;
-  summary: string;
-  author: string;
-  image: string;
 }
 
 export const DESTINATIONS: Destination[] = [
@@ -313,70 +264,5 @@ export const DESTINATIONS: Destination[] = [
     subtitle: 'Al-Qassim Date Palm Ranches',
     count: 0,
     image: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=400&fit=crop',
-  },
-];
-
-export const PROPERTIES: Property[] = [];
-
-export const DEALS: Deal[] = [];
-
-export const LIFESTYLE_COLLECTIONS: LifestyleCollection[] = [];
-
-export const FAQS: FaqItem[] = [
-  {
-    question: 'What is the QafNest platform and how is it licensed in Saudi Arabia?',
-    answer: 'QafNest is an authorized peer-to-peer vacation rental and hospitality platform, officially licensed and supervised by the Saudi Ministry of Tourism (License No. 73102999). We directly connect travelers with verified chalets, private villas, heritage farms, and luxury glamping sanctuaries across the Kingdom with full consumer protection and guaranteed reservation security.',
-  },
-  {
-    question: 'How does Self Check-in with Digital Smart Locks work?',
-    answer: 'Properties with the "Self Check-in" badge offer contactless access. Once your reservation is confirmed, your host manually configures your personal smart lock PIN and shares it on your "My Bookings" page and via WhatsApp before arrival.',
-  },
-  {
-    question: 'Can I split my reservation payment in 4 installments with Tabby or Tamara?',
-    answer: 'Yes! During checkout, select either Tabby or Tamara as your payment method. Your total booking amount will be divided into 4 equal monthly installments with 0% interest and 0 hidden fees. First installment is paid at booking confirmation, and the remaining 3 are automatically deducted monthly. All installments are Sharia-compliant and approved by SAMA.',
-  },
-  {
-    question: 'What is the cancellation and refund policy?',
-    answer: 'The reservation cannot be cancelled or postponed.',
-  },
-  {
-    question: 'Can I host a large family banquet or celebration at a chalet or farm?',
-    answer: 'Absolutely. Most of our chalets, villas, and farms are custom-architected for Saudi social culture, featuring separate expansive men’s and women’s majlis, outdoor barbecue facilities, children’s splash zones, and catering kitchens. Please check each property’s "Guest Capacity" spec on the booking card before finalizing your date.',
-  },
-  {
-    question: 'How do I list my property as a host and what are the earnings?',
-    answer: 'Listing your chalet, farm, or villa takes only 2 minutes via our Host Portal with automated calendar synchronization and prompt direct bank transfers.',
-  },
-];
-
-export const REVIEWS: ReviewItem[] = [];
-
-export const STORIES: StoryItem[] = [
-  {
-    id: 'story-1',
-    title: 'Al-Ammariyah: The Modern Riyadh Retreat for Heated Pool Chalets',
-    tag: 'Riyadh Getaway',
-    readTime: '4 min read',
-    summary: 'Why this serene valley north of Diriyah has become Saudi Arabia’s favorite destination for private family weekends away from city lights.',
-    author: 'QafNest Editorial Team',
-    image: 'https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?w=600&fit=crop',
-  },
-  {
-    id: 'story-2',
-    title: 'Obhur Waterfront: Private Villas with Direct Sea Access & Yacht Docks',
-    tag: 'Jeddah Coast',
-    readTime: '5 min read',
-    summary: 'Everything you need to know about booking private coastal residences along Obhur Creek for jet-skiing, boat rentals, and coastal serenity.',
-    author: 'Red Sea Living',
-    image: 'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=600&fit=crop',
-  },
-  {
-    id: 'story-3',
-    title: 'AlUla After Dark: Glamping Under Celestial Skies & Ancient Canyons',
-    tag: 'Heritage & Desert',
-    readTime: '3 min read',
-    summary: 'Step inside architecturally breathtaking geodesic domes nestled between 2,000-year-old sandstone cliffs and unpolluted starry nights.',
-    author: 'Heritage Explorers',
-    image: 'https://images.unsplash.com/photo-1509316975850-ff9c5deb0cd9?w=600&fit=crop',
   },
 ];

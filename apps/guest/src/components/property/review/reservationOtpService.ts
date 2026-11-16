@@ -12,7 +12,7 @@ import {
   getStoredFirebaseProfile,
   isFirebaseConfigured,
 } from "@/lib/firebase/client";
-import { normalizePhoneInput } from "@/lib/services/phone";
+import { normalizePhoneInput } from "@qafnest/shared/phone";
 import type { OtpChannel } from "./types";
 import { OTP_LENGTH } from "./types";
 

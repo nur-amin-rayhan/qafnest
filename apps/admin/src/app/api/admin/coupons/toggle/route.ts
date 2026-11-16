@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminDataClient, isAdminRequest } from "@/lib/adminApi";
-import { getPromotionState, savePromotionState } from "@/lib/promotionStore";
+import { getPromotionState, savePromotionState } from "@qafnest/shared/promotionStore";
 
 export async function POST(request: NextRequest) {
   if (!isAdminRequest(request)) {

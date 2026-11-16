@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getAdminOrServerClient } from "@/lib/supabase/service";
-import { normalizePhoneInput, normalizeSaudiPhone } from "@/lib/services/phone";
+import { normalizePhoneInput, normalizeSaudiPhone } from "@qafnest/shared/phone";
 import {
   extractClientIp,
   normalizeDeviceId,

@@ -14,7 +14,7 @@ import {
   isFirebaseConfigured,
   saveStoredFirebaseProfile,
 } from "@/lib/firebase/client";
-import { normalizePhoneInput } from "@/lib/services/phone";
+import { normalizePhoneInput } from "@qafnest/shared/phone";
 
 export const OTP_LENGTH = process.env.NEXT_PUBLIC_SUPABASE_OTP_LENGTH === "4" ? 4 : 6;
 export const EMPTY_OTP = () => Array.from({ length: OTP_LENGTH }, () => "");

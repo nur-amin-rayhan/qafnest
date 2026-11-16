@@ -1,4 +1,4 @@
-import { normalizeSaudiPhone } from "@/lib/services/phone";
+import { normalizeSaudiPhone } from "@qafnest/shared/phone";
 import { isUuid } from "@/lib/services/propertyIdentifiers";
 import type { VerifiedGuestUser } from "@/lib/auth/serverAuth";
 

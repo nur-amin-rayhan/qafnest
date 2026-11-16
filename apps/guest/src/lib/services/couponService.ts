@@ -3,7 +3,7 @@ import {
   CouponDefinition,
   CouponValidationResult,
 } from "@/lib/services/pricing";
-import { getPromotionState, savePromotionState } from "@/lib/services/promotionStore";
+import { getPromotionState, savePromotionState } from "@qafnest/shared/promotionStore";
 
 export interface AuthoritativeCouponParams {
   code: string;

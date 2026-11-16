@@ -1,4 +1,4 @@
-import { readRootJsonFile, writeRootJsonFile } from "@qafnest/shared/serverJsonStore";
+import { readRootJsonFile, writeRootJsonFile } from "./serverJsonStore";
 
 export interface StoredCoupon {
   id: string;
@@ -45,4 +45,3 @@ export function getPromotionState(): PromotionState {
 export function savePromotionState(state: PromotionState): void {
   writeRootJsonFile(PROMOTIONS_STORE_FILE, state);
 }
-

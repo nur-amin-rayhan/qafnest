@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { getPromotionState } from "@/lib/services/promotionStore";
+import { getPromotionState } from "@qafnest/shared/promotionStore";
 
 export async function GET() {
   try {

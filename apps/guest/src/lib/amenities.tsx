@@ -472,77 +472,68 @@ export const AMENITIES_CATALOG: Record<string, AmenityDefinition> = {
   },
 };
 
-/**
- * Universal Amenity Icon Component
- */
+const AMENITY_ICON_MAP: Record<string, React.ComponentType<LucideProps>> = {
+  Waves,
+  ShieldCheck,
+  Flame,
+  Baby,
+  Bath,
+  ShowerHead,
+  Sofa,
+  Home,
+  Utensils,
+  BedDouble,
+  Bed,
+  Maximize2,
+  Sparkles,
+  UtensilsCrossed,
+  Refrigerator,
+  Microwave,
+  Coffee,
+  Trees,
+  Gamepad2,
+  Car,
+  Wind,
+  Wifi,
+  Tv,
+  Volume2,
+  Tv2,
+  AirVent,
+  Key,
+  Camera,
+  Users,
+};
+
+/** Universal Amenity Icon Component. */
 export function AmenityIcon({
   name,
   className = "w-4 h-4",
   ...props
 }: { name: string; className?: string } & LucideProps) {
-  switch (name) {
-    case "Waves":
-      return <Waves className={className} {...props} />;
-    case "ShieldCheck":
-      return <ShieldCheck className={className} {...props} />;
-    case "Flame":
-      return <Flame className={className} {...props} />;
-    case "Baby":
-      return <Baby className={className} {...props} />;
-    case "Bath":
-      return <Bath className={className} {...props} />;
-    case "ShowerHead":
-      return <ShowerHead className={className} {...props} />;
-    case "Sofa":
-      return <Sofa className={className} {...props} />;
-    case "Home":
-      return <Home className={className} {...props} />;
-    case "Utensils":
-      return <Utensils className={className} {...props} />;
-    case "BedDouble":
-      return <BedDouble className={className} {...props} />;
-    case "Bed":
-      return <Bed className={className} {...props} />;
-    case "Maximize2":
-      return <Maximize2 className={className} {...props} />;
-    case "Sparkles":
-      return <Sparkles className={className} {...props} />;
-    case "UtensilsCrossed":
-      return <UtensilsCrossed className={className} {...props} />;
-    case "Refrigerator":
-      return <Refrigerator className={className} {...props} />;
-    case "Microwave":
-      return <Microwave className={className} {...props} />;
-    case "Coffee":
-      return <Coffee className={className} {...props} />;
-    case "Trees":
-      return <Trees className={className} {...props} />;
-    case "Gamepad2":
-      return <Gamepad2 className={className} {...props} />;
-    case "Car":
-      return <Car className={className} {...props} />;
-    case "Wind":
-      return <Wind className={className} {...props} />;
-    case "Wifi":
-      return <Wifi className={className} {...props} />;
-    case "Tv":
-      return <Tv className={className} {...props} />;
-    case "Volume2":
-      return <Volume2 className={className} {...props} />;
-    case "Tv2":
-      return <Tv2 className={className} {...props} />;
-    case "AirVent":
-      return <AirVent className={className} {...props} />;
-    case "Key":
-      return <Key className={className} {...props} />;
-    case "Camera":
-      return <Camera className={className} {...props} />;
-    case "Users":
-      return <Users className={className} {...props} />;
-    default:
-      return <Check className={className} {...props} />;
-  }
+  const Icon = AMENITY_ICON_MAP[name] || Check;
+  return <Icon className={className} {...props} />;
 }
+
+const AMENITY_KEYWORD_RULES: Array<[string[], string]> = [
+  [["jacuzzi", "جاكوزي"], "jacuzzi"],
+  [["wifi", "واي فاي", "انترنت"], "wifi"],
+  [["self", "checkin", "check-in", "دخول ذاتي"], "self_checkin"],
+  [["majlis", "مجلس", "صالة"], "main_majlis"],
+  [["outdoor", "جلسة", "جلسات"], "outdoor_seating"],
+  [["bbq", "شواء", "باربيكيو"], "bbq_facility"],
+  [["fire", "مشب", "حطب"], "outdoor_firepit"],
+  [["kitchen", "مطبخ", "طهي"], "equipped_kitchen"],
+  [["play", "ألعاب", "نطيطة"], "kids_playground"],
+  [["cinema", "سينما", "بروجكتر"], "cinema_projector"],
+  [["tv", "شاشة", "تلفزيون"], "smart_tv"],
+  [["sound", "سماعات", "موسيقى"], "sound_system"],
+  [["coffee", "قهوة", "نسبريسو"], "coffee_machine"],
+  [["park", "موقف", "سيارة"], "private_parking"],
+  [["green", "حديقة", "مسطح"], "green_lawn"],
+  [["bath", "دورة مياه", "حمام"], "bathrooms"],
+  [["bed", "سرير", "غرفة نوم"], "master_bedroom"],
+  [["ac", "تكييف", "سبليت"], "air_conditioning"],
+];
 
 /**
  * Maps any feature string (legacy or modern) to an AmenityDefinition
@@ -598,16 +589,9 @@ export function resolveAmenity(featureTextOrId: string): AmenityDefinition {
     "مسبح": AMENITIES_CATALOG.private_pool,
   };
 
-  if (HOST_FEATURE_MAP[raw]) {
-    return HOST_FEATURE_MAP[raw];
-  }
+  if (HOST_FEATURE_MAP[raw]) return HOST_FEATURE_MAP[raw];
+  if (AMENITIES_CATALOG[normalized]) return AMENITIES_CATALOG[normalized];
 
-  // 1. Direct catalog lookup by ID
-  if (AMENITIES_CATALOG[normalized]) {
-    return AMENITIES_CATALOG[normalized];
-  }
-
-  // 2. Fuzzy matching based on keywords in Arabic or English
   if (normalized.includes("pool") || normalized.includes("مسبح")) {
     if (normalized.includes("heated") || normalized.includes("دافئ") || normalized.includes("مسخن")) {
       return AMENITIES_CATALOG.heated_pool;
@@ -621,92 +605,14 @@ export function resolveAmenity(featureTextOrId: string): AmenityDefinition {
     return AMENITIES_CATALOG.private_pool;
   }
 
-  if (normalized.includes("jacuzzi") || normalized.includes("جاكوزي")) {
-    return AMENITIES_CATALOG.jacuzzi;
+  for (const [keywords, catalogKey] of AMENITY_KEYWORD_RULES) {
+    if (keywords.some((kw) => normalized.includes(kw))) {
+      return AMENITIES_CATALOG[catalogKey];
+    }
   }
 
-  if (normalized.includes("wifi") || normalized.includes("واي فاي") || normalized.includes("انترنت")) {
-    return AMENITIES_CATALOG.wifi;
-  }
-
-  if (
-    normalized.includes("self") ||
-    normalized.includes("checkin") ||
-    normalized.includes("check-in") ||
-    normalized.includes("دخول ذاتي")
-  ) {
-    return AMENITIES_CATALOG.self_checkin;
-  }
-
-  if (normalized.includes("majlis") || normalized.includes("مجلس") || normalized.includes("صالة")) {
-    return AMENITIES_CATALOG.main_majlis;
-  }
-
-  if (normalized.includes("outdoor") || normalized.includes("جلسة") || normalized.includes("جلسات")) {
-    return AMENITIES_CATALOG.outdoor_seating;
-  }
-
-  if (normalized.includes("bbq") || normalized.includes("شواء") || normalized.includes("باربيكيو")) {
-    return AMENITIES_CATALOG.bbq_facility;
-  }
-
-  if (normalized.includes("fire") || normalized.includes("مشب") || normalized.includes("حطب")) {
-    return AMENITIES_CATALOG.outdoor_firepit;
-  }
-
-  if (
-    normalized.includes("kitchen") ||
-    normalized.includes("مطبخ") ||
-    normalized.includes("طهي")
-  ) {
-    return AMENITIES_CATALOG.equipped_kitchen;
-  }
-
-  if (normalized.includes("play") || normalized.includes("ألعاب") || normalized.includes("نطيطة")) {
-    return AMENITIES_CATALOG.kids_playground;
-  }
-
-  if (normalized.includes("cinema") || normalized.includes("سينما") || normalized.includes("بروجكتر")) {
-    return AMENITIES_CATALOG.cinema_projector;
-  }
-
-  if (normalized.includes("tv") || normalized.includes("شاشة") || normalized.includes("تلفزيون")) {
-    return AMENITIES_CATALOG.smart_tv;
-  }
-
-  if (normalized.includes("sound") || normalized.includes("سماعات") || normalized.includes("موسيقى")) {
-    return AMENITIES_CATALOG.sound_system;
-  }
-
-  if (normalized.includes("coffee") || normalized.includes("قهوة") || normalized.includes("نسبريسو")) {
-    return AMENITIES_CATALOG.coffee_machine;
-  }
-
-  if (normalized.includes("park") || normalized.includes("موقف") || normalized.includes("سيارة")) {
-    return AMENITIES_CATALOG.private_parking;
-  }
-
-  if (normalized.includes("green") || normalized.includes("حديقة") || normalized.includes("مسطح")) {
-    return AMENITIES_CATALOG.green_lawn;
-  }
-
-  if (normalized.includes("bath") || normalized.includes("دورة مياه") || normalized.includes("حمام")) {
-    return AMENITIES_CATALOG.bathrooms;
-  }
-
-  if (normalized.includes("bed") || normalized.includes("سرير") || normalized.includes("غرفة نوم")) {
-    return AMENITIES_CATALOG.master_bedroom;
-  }
-
-  if (normalized.includes("ac") || normalized.includes("تكييف") || normalized.includes("سبليت")) {
-    return AMENITIES_CATALOG.air_conditioning;
-  }
-
-  // Fallback dynamic item
-  // Strip emoji if present
   const firstToken = featureTextOrId.split(" ")[0] || "";
-  const hasEmojiPrefix = firstToken.charCodeAt(0) >= 0xd800;
-  const cleanLabel = hasEmojiPrefix ? featureTextOrId.slice(firstToken.length).trim() : featureTextOrId;
+  const cleanLabel = firstToken.charCodeAt(0) >= 0xd800 ? featureTextOrId.slice(firstToken.length).trim() : featureTextOrId;
 
   return {
     id: normalized.replace(/\s+/g, "_"),

@@ -5,7 +5,7 @@ import type { ConfirmationResult, RecaptchaVerifier } from "firebase/auth";
 import type { SupabaseClient, User } from "@supabase/supabase-js";
 import { getFirebaseErrorMessage } from "@/lib/firebase/client";
 import { checkSignupGuard, claimWelcomeBonus } from "@/lib/auth/deviceFingerprint";
-import { normalizePhoneInput } from "@/lib/services/phone";
+import { normalizePhoneInput } from "@qafnest/shared/phone";
 import type { OtpChannel, OtpStep } from "./types";
 import { resetRecaptcha } from "./types";
 import {

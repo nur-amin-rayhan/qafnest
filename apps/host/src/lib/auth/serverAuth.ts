@@ -1,6 +1,6 @@
 import crypto from "crypto";
 import { createClient } from "@/lib/supabase/server";
-import { normalizeSaudiPhone, normalizePhoneInput } from "@/lib/phone";
+import { normalizeSaudiPhone, normalizePhoneInput } from "@qafnest/shared/phone";
 
 export interface VerifiedHostUser {
   id: string;
