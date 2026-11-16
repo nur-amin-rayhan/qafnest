@@ -99,7 +99,7 @@ export function StepCategoryLocation({
           </div>
 
           {/* 10 Photo Category Tiles */}
-          <div className="grid grid-cols-4 gap-2.5">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
             {CATEGORIES.map((cat) => {
               const isSelected = draft.category === cat.id;
               return (

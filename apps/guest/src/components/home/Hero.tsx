@@ -41,11 +41,11 @@ export default function Hero() {
   } = useHeroSearchForm();
 
   return (
-    <section id="top" className="relative z-40 pt-20 sm:pt-22 lg:pt-24 pb-4 sm:pb-6 overflow-visible">
+    <section id="top" className="relative z-40 pt-20 sm:pt-22 lg:pt-24 pb-4 sm:pb-6 overflow-x-clip overflow-y-visible">
       {/* Background Ambience */}
       <div className="absolute inset-0 grid-bg opacity-25 pointer-events-none" />
       <div
-        className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[300px] rounded-full pointer-events-none"
+        className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[min(600px,100vw)] h-[300px] rounded-full pointer-events-none"
         style={{
           background:
             "radial-gradient(circle, rgba(147, 51, 234, 0.15) 0%, rgba(168, 85, 247, 0.04) 50%, transparent 70%)",
@@ -105,7 +105,7 @@ export default function Hero() {
           <div className="bg-white dark:bg-[#0E0E1A] rounded-2xl sm:rounded-3xl shadow-[0_15px_45px_rgba(0,0,0,0.12)] border border-gray-200/80 dark:border-white/10 p-2 sm:p-2.5 relative z-50">
             <form
               onSubmit={handleSearchSubmit}
-              className="flex flex-col lg:flex-row lg:items-center text-left relative"
+              className="flex flex-col lg:flex-row lg:items-center text-start relative"
             >
               {/* 1. CHOOSE A CITY */}
               <CitySelectDropdown
@@ -183,14 +183,17 @@ export default function Hero() {
               />
 
               {/* 5. SEARCH BUTTON */}
-              <div className="p-1.5 shrink-0 flex items-center justify-end">
+              <div className="p-1.5 shrink-0 flex items-center justify-end w-full lg:w-auto">
                 <button
                   type="submit"
                   aria-label="Search accommodations"
                   aria-busy="false"
-                  className="h-12 w-12 sm:h-13 sm:w-13 min-h-[44px] min-w-[44px] rounded-2xl bg-purple-800 hover:bg-purple-900 active:scale-95 text-white flex items-center justify-center shadow-md transition-all cursor-pointer focus-visible:ring-2 focus-visible:ring-violet-400 focus-visible:ring-offset-2 focus-visible:outline-none"
+                  className="h-12 w-full lg:w-12 sm:h-13 min-h-[44px] min-w-[44px] rounded-2xl bg-purple-800 hover:bg-purple-900 active:scale-95 text-white flex items-center justify-center gap-2 shadow-md transition-all cursor-pointer focus-visible:ring-2 focus-visible:ring-violet-400 focus-visible:ring-offset-2 focus-visible:outline-none"
                 >
-                  <Search className="w-5 h-5 text-white" />
+                  <Search className="w-5 h-5 text-white shrink-0" />
+                  <span className="lg:hidden font-bold text-sm">
+                    {language === "ar" ? "بحث" : "Search"}
+                  </span>
                 </button>
               </div>
             </form>

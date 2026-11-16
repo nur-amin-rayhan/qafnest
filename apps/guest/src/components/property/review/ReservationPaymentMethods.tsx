@@ -50,7 +50,7 @@ export function PaymentRow({
       aria-label={`${title}. ${description}`}
       disabled={disabled}
       onClick={onSelect}
-      className={`flex w-full items-center gap-3 py-4 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-violet-500 disabled:cursor-not-allowed cursor-pointer ${
+      className={`flex w-full items-center gap-3 py-4 text-start transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-violet-500 disabled:cursor-not-allowed cursor-pointer ${
         selected ? "text-gray-950 dark:text-white" : "text-gray-800 dark:text-gray-200"
       }`}
     >
@@ -74,7 +74,7 @@ export function PaymentRow({
           {description}
         </span>
       </span>
-      <span className="ml-3 flex shrink-0 items-center justify-end">{marks}</span>
+      <span className="ms-3 flex shrink-0 items-center justify-end">{marks}</span>
     </button>
   );
 }
@@ -244,7 +244,7 @@ export default function ReservationPaymentMethods({
                       setPaymentMessage(null);
                     }
                   }}
-                  className="flex w-full items-center gap-3 py-1 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-violet-500 cursor-pointer"
+                  className="flex w-full items-center gap-3 py-1 text-start transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-violet-500 cursor-pointer"
                 >
                   <span
                     className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-md border transition-colors ${
@@ -270,7 +270,7 @@ export default function ReservationPaymentMethods({
                       )}
                     </span>
                   </span>
-                  <span className="ml-3 flex shrink-0 items-center gap-2">
+                  <span className="ms-3 flex shrink-0 items-center gap-2">
                     <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/15 px-2.5 py-1 text-xs font-black text-emerald-600 dark:text-emerald-400">
                       <Wallet className="h-3.5 w-3.5" />
                       {walletBalance.toFixed(2)} SAR
@@ -481,7 +481,7 @@ export default function ReservationPaymentMethods({
 
                         {/* Inline CVV Requirement for Selected Saved Card */}
                         {isSelected && (
-                          <div className="mt-2.5 pt-2.5 border-t border-violet-100 dark:border-white/10 flex items-center justify-between gap-3">
+                          <div className="mt-2.5 pt-2.5 border-t border-violet-100 dark:border-white/10 flex flex-wrap items-center justify-between gap-3">
                             <div className="flex items-center gap-2 text-xs">
                               <LockKeyhole className="h-3.5 w-3.5 text-violet-600 dark:text-violet-400 shrink-0" />
                               <span className="font-bold text-gray-800 dark:text-gray-200 text-[11px]">
@@ -575,7 +575,7 @@ export default function ReservationPaymentMethods({
           </div>
 
           {/* Loyalty Reward Callout */}
-          <div className="mt-4 flex items-center justify-between rounded-2xl border border-purple-200/60 bg-gradient-to-r from-purple-50/90 to-amber-50/70 p-3.5 dark:border-purple-500/20 dark:from-purple-950/30 dark:to-amber-950/20">
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-purple-200/60 bg-gradient-to-r from-purple-50/90 to-amber-50/70 p-3.5 dark:border-purple-500/20 dark:from-purple-950/30 dark:to-amber-950/20">
             <div className="flex items-center gap-2.5">
               <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-[#4F2396] text-white">
                 <Gift className="h-4 w-4" />
@@ -606,7 +606,7 @@ export default function ReservationPaymentMethods({
               type="button"
               aria-expanded={splitMethodsOpen}
               onClick={() => setSplitMethodsOpen((open) => !open)}
-              className="flex w-full items-center justify-between gap-3 py-4 text-left cursor-pointer"
+              className="flex w-full items-center justify-between gap-3 py-4 text-start cursor-pointer"
             >
               <span className="text-sm font-bold text-gray-950 dark:text-white">
                 {label("Pay in Splits", "ادفع بالتقسيط")}

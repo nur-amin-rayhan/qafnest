@@ -97,7 +97,7 @@ function SearchContent() {
 
           {/* Sticky Search Header & Filter Bar */}
           <div
-            className={`sticky top-[58px] sm:top-[64px] z-40 -mx-4 px-4 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8 pt-2 pb-1.5 transition-all duration-200 ${isStickyScrolled
+            className={`lg:sticky lg:top-[64px] z-40 -mx-4 px-4 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8 pt-2 pb-1.5 transition-all duration-200 ${isStickyScrolled
                 ? "bg-white/95 dark:bg-[#08070D]/95 backdrop-blur-xl border-b border-violet-200/80 dark:border-violet-500/20 shadow-[0_12px_34px_rgba(109,40,217,0.08)]"
                 : "bg-white/90 dark:bg-[#08070D]/90 backdrop-blur-md border-b border-violet-100/80 dark:border-white/10"
               }`}

@@ -2,16 +2,27 @@
 
 import { useEffect, useState } from "react";
 import { type Property } from "@/data/properties";
-import { listProperties } from "@/lib/services/properties";
-import { clearPropertyCache } from "@/lib/services/properties";
+import {
+  clearPropertyCache,
+  getMemoryPropertiesSnapshot,
+  listProperties,
+  readSessionPropertiesSnapshot,
+} from "@/lib/services/properties";
 import { createClient } from "@/lib/supabase/client";
 
 export function useProperties() {
-  const [properties, setProperties] = useState<Property[]>([]);
-  const [loading, setLoading] = useState(true);
+  const initialMemory = getMemoryPropertiesSnapshot();
+  const [properties, setProperties] = useState<Property[]>(() => initialMemory ?? []);
+  const [loading, setLoading] = useState<boolean>(() => !initialMemory);
 
   useEffect(() => {
     let active = true;
+    const warmSession = getMemoryPropertiesSnapshot() ?? readSessionPropertiesSnapshot();
+    if (warmSession && warmSession.length > 0) {
+      setProperties(warmSession);
+      setLoading(false);
+    }
+
     listProperties().then((result) => {
       if (!active) return;
       setProperties(result);

@@ -60,11 +60,11 @@ export function GuestsCounterDropdown({
     : selectGuestsLabel;
 
   return (
-    <div className={`relative flex-1 min-w-[160px] transition-all ${isOpen ? "z-50" : "z-10"}`}>
+    <div className={`relative flex-1 min-w-0 lg:min-w-[160px] transition-all ${isOpen ? "z-50" : "z-10"}`}>
       <button
         type="button"
         onClick={onToggle}
-        className="w-full px-4 py-3 sm:py-3.5 flex items-center justify-between text-left rtl:text-right hover:bg-gray-50/60 dark:hover:bg-white/[0.04] rounded-xl transition-colors cursor-pointer"
+        className="w-full px-4 py-3 sm:py-3.5 flex items-center justify-between text-start hover:bg-gray-50/60 dark:hover:bg-white/[0.04] rounded-xl transition-colors cursor-pointer"
       >
         <div className="min-w-0 pr-2 rtl:pr-0 rtl:pl-2">
           <span className="text-xs text-gray-500 dark:text-gray-400 font-medium block whitespace-nowrap">

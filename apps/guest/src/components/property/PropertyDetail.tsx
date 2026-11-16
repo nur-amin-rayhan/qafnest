@@ -1,12 +1,13 @@
 "use client";
 
 import React, { useMemo } from "react";
+import dynamic from "next/dynamic";
 import { groupAmenitiesByCategory } from "@/lib/amenities";
 import Navbar from "@/components/common/Navbar";
 import Footer from "@/components/common/Footer";
-import AuthModal from "@/components/modals/AuthModal";
-import AppModal from "@/components/modals/AppModal";
-import SearchModal from "@/components/modals/SearchModal";
+const AuthModal = dynamic(() => import("@/components/modals/AuthModal"), { ssr: false });
+const AppModal = dynamic(() => import("@/components/modals/AppModal"), { ssr: false });
+const SearchModal = dynamic(() => import("@/components/modals/SearchModal"), { ssr: false });
 import {
   getPropertyCapacity,
   normalizeCityId,
@@ -26,7 +27,7 @@ import { useApp } from "@/context/AppContext";
 
 import ReservationPanel from "./detail/ReservationPanel";
 import PropertyGallery from "./detail/PropertyGallery";
-import PropertyLightbox from "./detail/PropertyLightbox";
+const PropertyLightbox = dynamic(() => import("./detail/PropertyLightbox"), { ssr: false });
 import PropertyHostCard from "./detail/PropertyHostCard";
 import PropertyGuaranteeSection from "./detail/PropertyGuaranteeSection";
 import { PropertyHeaderSection } from "./detail/PropertyHeaderSection";

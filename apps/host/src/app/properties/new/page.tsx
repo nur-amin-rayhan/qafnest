@@ -237,7 +237,7 @@ function NewPropertyWizardInner() {
 
       {/* 2. Main Wizard Card */}
       <main className="flex-1 flex items-center justify-center bg-white px-4 py-8 sm:py-12">
-        <div className="w-full max-w-[460px] min-h-[760px] rounded-2xl border border-slate-200/90 bg-white shadow-[0_6px_30px_rgba(0,0,0,0.05)] flex flex-col justify-between overflow-hidden">
+        <div className="w-full max-w-[460px] min-h-[520px] lg:min-h-[760px] rounded-2xl border border-slate-200/90 bg-white shadow-[0_6px_30px_rgba(0,0,0,0.05)] flex flex-col justify-between overflow-hidden">
           {/* Card Body */}
           <div className="p-6 sm:p-8 flex-1 space-y-6">
             {editingPropertyId && (

@@ -71,7 +71,7 @@ export function StepAmenitiesFeatures({
           </span>
         </div>
 
-        <div className="grid grid-cols-4 gap-2.5 pt-2">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-2">
           {PROPERTY_FEATURES.map((feat) => {
             const Icon = feat.icon;
             const selected = draft.propertyFeatures.includes(feat.id);

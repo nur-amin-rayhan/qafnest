@@ -71,7 +71,7 @@ export function HostHero({ t, user, router, openHostAuthModal }: HostHeroProps) 
           </div>
 
           {/* 3 Core Trust Badges */}
-          <div className="mt-12 grid grid-cols-1 gap-4 sm:grid-cols-3 text-right dir-rtl">
+          <div className="mt-12 grid grid-cols-1 gap-4 sm:grid-cols-3 text-start">
             <div className="rounded-2xl border border-violet-200/80 bg-white p-5 shadow-xs">
               <div className="flex items-center gap-2.5 text-sm font-black text-[#4F2396]">
                 <Wallet size={18} className="text-[#FF9750]" />

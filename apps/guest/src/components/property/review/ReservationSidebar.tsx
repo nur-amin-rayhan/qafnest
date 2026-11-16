@@ -87,7 +87,7 @@ export default function ReservationSidebar({
     setActiveImageIndex((index) => (index + 1) % images.length);
 
   return (
-    <aside className="lg:sticky lg:top-24">
+    <aside className="min-w-0 lg:sticky lg:top-24">
       <section className="overflow-hidden rounded-3xl border border-violet-200 bg-white shadow-[0_18px_55px_rgba(70,35,130,0.12)] dark:border-violet-400/20 dark:bg-[#12101a] dark:shadow-[0_18px_55px_rgba(0,0,0,0.34)]">
         <div className="relative h-52 bg-gray-100">
           <Image
@@ -202,7 +202,7 @@ export default function ReservationSidebar({
                   {bookingCheckinTime}
                 </p>
               </div>
-              <div className="border-l border-violet-200/80 p-3.5 dark:border-violet-500/20">
+              <div className="border-s border-violet-200/80 p-3.5 dark:border-violet-500/20">
                 <span className="flex items-center gap-1.5 text-[10px] font-bold uppercase text-gray-500 dark:text-violet-300/80">
                   <CalendarDays className="h-3 w-3 text-violet-600 dark:text-violet-400" />
                   {label("Check-out", "المغادرة")}

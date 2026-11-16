@@ -32,14 +32,14 @@ export function PropertyTypeDropdown({
 }: PropertyTypeDropdownProps) {
   return (
     <div
-      className={`relative flex-1 min-w-[210px] border-b lg:border-b-0 lg:border-r border-gray-200/80 dark:border-white/10 transition-all ${
+      className={`relative flex-1 min-w-0 lg:min-w-[190px] border-b lg:border-b-0 lg:border-e border-gray-200/80 dark:border-white/10 transition-all ${
         isOpen ? "z-50" : "z-10"
       }`}
     >
       <button
         type="button"
         onClick={onToggle}
-        className="w-full px-4 py-3 sm:py-3.5 flex items-center justify-between text-left hover:bg-gray-50/60 dark:hover:bg-white/[0.04] rounded-xl transition-colors cursor-pointer"
+        className="w-full px-4 py-3 sm:py-3.5 flex items-center justify-between text-start hover:bg-gray-50/60 dark:hover:bg-white/[0.04] rounded-xl transition-colors cursor-pointer"
       >
         <div className="min-w-0 pr-2 rtl:pr-0 rtl:pl-2">
           <span className="text-xs text-gray-500 dark:text-gray-400 font-medium block whitespace-nowrap">

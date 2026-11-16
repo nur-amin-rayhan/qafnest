@@ -51,7 +51,7 @@ export function PropertyTabsContainer({
     <>
       {/* Tab navigation buttons */}
       <div
-        className="sticky top-[68px] z-20 mt-7 w-fit max-w-full overflow-x-auto rounded-full border border-violet-200/85 bg-white/95 p-1.5 shadow-md shadow-violet-900/5 backdrop-blur dark:border-violet-500/30 dark:bg-[#12101a]/95"
+        className="sticky top-[72px] z-20 mt-7 flex w-fit max-w-full items-center gap-1 overflow-x-auto no-scrollbar rounded-2xl border border-violet-200/85 bg-white/95 p-1.5 shadow-md shadow-violet-900/5 backdrop-blur sm:rounded-full dark:border-violet-500/30 dark:bg-[#12101a]/95"
         role="tablist"
         aria-label={anchorLabel("Property details", "تفاصيل العقار")}
       >

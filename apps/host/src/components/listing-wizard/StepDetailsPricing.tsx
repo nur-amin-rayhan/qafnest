@@ -184,7 +184,7 @@ export function StepDetailsPricing({
           </p>
         </div>
 
-        <div className="grid grid-cols-4 gap-2.5">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
           {MAIN_FACILITIES.map((fac) => {
             const Icon = fac.icon;
             const selected = draft.mainFacilities.includes(fac.id);

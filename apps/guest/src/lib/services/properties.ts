@@ -143,7 +143,51 @@ const BILINGUAL_SELECT_FIELDS =
 
 const LEGACY_SELECT_FIELDS = stripBilingualFromSelect(BILINGUAL_SELECT_FIELDS);
 
+const PROPS_SESSION_KEY = "qafnest_props_swr_v1";
+const PROPS_SESSION_TTL_MS = 120_000;
+
 let cachedProperties: Promise<Property[]> | null = null;
+let memorySnapshot: Property[] | null = null;
+
+/** Synchronous snapshot for instant SPA back/forward transitions without hydration mismatch. */
+export function getMemoryPropertiesSnapshot(): Property[] | null {
+  return memorySnapshot;
+}
+
+/** Client-only warm session cache reader for fast hard-reload paint before network resolves. */
+export function readSessionPropertiesSnapshot(): Property[] | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.sessionStorage.getItem(PROPS_SESSION_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as { ts?: number; data?: Property[] };
+    if (
+      Array.isArray(parsed?.data) &&
+      parsed.data.length > 0 &&
+      typeof parsed.ts === "number" &&
+      Date.now() - parsed.ts < PROPS_SESSION_TTL_MS
+    ) {
+      memorySnapshot = parsed.data;
+      return parsed.data;
+    }
+  } catch {
+    // Ignore storage read errors in restricted browsers
+  }
+  return null;
+}
+
+function writePropertiesCache(data: Property[]) {
+  memorySnapshot = data;
+  if (typeof window === "undefined") return;
+  try {
+    window.sessionStorage.setItem(
+      PROPS_SESSION_KEY,
+      JSON.stringify({ ts: Date.now(), data })
+    );
+  } catch {
+    // Ignore quota/storage errors
+  }
+}
 
 /** Fetch approved listings; use the bundled catalog only when Supabase is unavailable. */
 export function listProperties(options: { refresh?: boolean } = {}): Promise<Property[]> {
@@ -174,6 +218,7 @@ export function listProperties(options: { refresh?: boolean } = {}): Promise<Pro
       if (error) throw error;
 
       const dbProperties = (data || []).map((row) => fromRow(row as PropertyRow));
+      writePropertiesCache(dbProperties);
       return dbProperties;
     } catch (error) {
       console.warn("Using local property catalog because Supabase listings are unavailable:", error);
@@ -225,4 +270,10 @@ export async function getPropertyById(id: string): Promise<Property | null> {
 
 export function clearPropertyCache() {
   cachedProperties = null;
+  memorySnapshot = null;
+  if (typeof window !== "undefined") {
+    try {
+      window.sessionStorage.removeItem(PROPS_SESSION_KEY);
+    } catch {}
+  }
 }

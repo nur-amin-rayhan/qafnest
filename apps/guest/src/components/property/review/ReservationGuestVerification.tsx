@@ -60,7 +60,7 @@ export default function ReservationGuestVerification({
       id="phone-verification"
       className="mt-6 scroll-mt-28 rounded-3xl border border-violet-200/85 bg-white p-5 shadow-[0_12px_35px_rgba(109,40,217,0.06)] dark:border-violet-500/20 dark:bg-[#12101a] sm:p-6"
     >
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex flex-wrap items-start justify-between gap-3 sm:gap-4">
         <div>
           <div className="flex items-center gap-2 text-violet-700 dark:text-violet-300">
             <ShieldCheck className="h-5 w-5" />
@@ -145,8 +145,8 @@ export default function ReservationGuestVerification({
               >
                 {label("Mobile number", "رقم الجوال")}
               </label>
-              <div className="flex gap-2" dir="ltr">
-                <span className="flex shrink-0 items-center rounded-2xl border border-violet-200/80 bg-violet-50/50 px-4 text-sm font-semibold text-violet-900 dark:border-violet-500/20 dark:bg-violet-950/30 dark:text-violet-200">
+              <div className="flex flex-wrap sm:flex-nowrap gap-2" dir="ltr">
+                <span className="flex shrink-0 items-center rounded-2xl border border-violet-200/80 bg-violet-50/50 px-3 sm:px-4 py-3 text-sm font-semibold text-violet-900 dark:border-violet-500/20 dark:bg-violet-950/30 dark:text-violet-200">
                   +966
                 </span>
                 <input
@@ -165,7 +165,7 @@ export default function ReservationGuestVerification({
                 <button
                   type="submit"
                   disabled={otpBusy}
-                  className="inline-flex shrink-0 items-center gap-2 rounded-2xl bg-violet-700 px-4 py-3 text-xs font-bold text-white shadow-sm transition hover:bg-violet-800 disabled:opacity-60 cursor-pointer"
+                  className="inline-flex w-full sm:w-auto shrink-0 items-center justify-center gap-2 rounded-2xl bg-violet-700 px-4 py-3 text-xs font-bold text-white shadow-sm transition hover:bg-violet-800 disabled:opacity-60 cursor-pointer"
                 >
                   {otpBusy && <LoaderCircle className="h-4 w-4 animate-spin" />}
                   {otpChannel === "sms"

@@ -203,7 +203,7 @@ export function GuestInvoiceModal({
           className="w-full max-w-2xl rounded-3xl bg-white p-6 sm:p-7 shadow-2xl border border-violet-100 dark:border-white/10 dark:bg-[#12101a] space-y-5 max-h-[92vh] overflow-y-auto text-gray-900 dark:text-white"
         >
           {/* Modal Controls (Hidden in Print) */}
-          <div className="flex items-center justify-between pb-3 border-b border-violet-100 dark:border-white/10 print-hidden-element">
+          <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-violet-100 dark:border-white/10 print-hidden-element">
             <div className="flex items-center gap-2 text-xs font-bold text-gray-500 dark:text-gray-400">
               <ShieldCheck className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
               <span>

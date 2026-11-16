@@ -185,7 +185,7 @@ export default function InteractiveMapView({
       className={`${
         isFullscreen
           ? "fixed inset-0 z-[90] h-screen w-screen rounded-none"
-          : "relative h-[420px] lg:h-[680px] rounded-3xl"
+          : "relative h-[460px] sm:h-[520px] lg:h-[680px] rounded-3xl"
       } overflow-hidden border border-gray-200 dark:border-white/10 bg-[#e8ede9] dark:bg-[#10131a] shadow-xl`}
     >
       <div

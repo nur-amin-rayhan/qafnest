@@ -2,10 +2,8 @@
 
 import React from "react";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { ArrowLeft } from "lucide-react";
-import AppModal from "@/components/modals/AppModal";
-import AuthModal from "@/components/modals/AuthModal";
-import SearchModal from "@/components/modals/SearchModal";
 import Footer from "@/components/common/Footer";
 import Navbar from "@/components/common/Navbar";
 import type { Property } from "@/data/properties";
@@ -14,10 +12,14 @@ import { useReservationReview } from "./review/useReservationReview";
 import ReservationSidebar from "./review/ReservationSidebar";
 import ReservationPaymentMethods from "./review/ReservationPaymentMethods";
 import ReservationGuestVerification from "./review/ReservationGuestVerification";
-import ReservationOtpModal from "./review/ReservationOtpModal";
-import ReservationConfirmedModal from "./review/ReservationConfirmedModal";
 import { ReservationPropertySummary } from "./review/ReservationPropertySummary";
 import { ReservationPoliciesCard } from "./review/ReservationPoliciesCard";
+
+const AppModal = dynamic(() => import("@/components/modals/AppModal"), { ssr: false });
+const AuthModal = dynamic(() => import("@/components/modals/AuthModal"), { ssr: false });
+const SearchModal = dynamic(() => import("@/components/modals/SearchModal"), { ssr: false });
+const ReservationOtpModal = dynamic(() => import("./review/ReservationOtpModal"), { ssr: false });
+const ReservationConfirmedModal = dynamic(() => import("./review/ReservationConfirmedModal"), { ssr: false });
 
 interface ReservationReviewProps {
   property: Property;
@@ -116,7 +118,7 @@ export default function ReservationReview({ property }: ReservationReviewProps) 
         </Link>
 
         <div className="mt-6 grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_400px]">
-          <div>
+          <div className="min-w-0">
             <div className="mb-6">
               <span className="inline-flex rounded-full bg-violet-50 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-violet-700 dark:bg-violet-400/10 dark:text-violet-300">
                 {label("Reservation · Step 1", "الحجز · الخطوة ١")}

@@ -92,7 +92,7 @@ export function SettlementSettingsModal({
           <label className="font-bold text-slate-700 block">
             {t("Minimum Payout Threshold", "الحد الأدنى للتحويل التلقائي")}
           </label>
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
             {[
               { val: 0, label: t("No Minimum", "بدون حد أدنى") },
               { val: 500, label: "500 SAR" },

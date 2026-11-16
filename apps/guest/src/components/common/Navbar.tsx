@@ -119,12 +119,12 @@ export default function Navbar() {
             : "bg-white/95 backdrop-blur-md border-purple-900/[0.05] py-4 text-gray-900"
       }`}
     >
-      <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-10 flex items-center justify-between gap-4">
+      <div className="max-w-[1440px] mx-auto px-3 sm:px-6 lg:px-10 flex items-center justify-between gap-2 sm:gap-4">
         {/* Brand Logo */}
-        <div className="flex items-center gap-4 sm:gap-6 shrink-0">
+        <div className="flex items-center gap-3 sm:gap-6 shrink-0">
           <Link href={localizePath("/", language)} className="inline-flex items-center gap-1 select-none shrink-0 group">
             <span
-              className={`text-[26px] sm:text-[30px] font-black tracking-[-0.05em] transition-colors ${
+              className={`text-[21px] sm:text-[28px] md:text-[30px] font-black tracking-[-0.05em] transition-colors ${
                 isDarkTheme ? "text-white" : "text-[#4F2396]"
               }`}
             >
@@ -198,7 +198,7 @@ export default function Navbar() {
         </nav>
 
         {/* Host CTA (Visible only when signed out), Theme, User Auth, Language */}
-        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+        <div className="flex items-center gap-1 sm:gap-2.5 shrink-0">
           {!user && (
             <a
               href={`${ECOSYSTEM_URLS.host}/?lang=${language}`}
@@ -218,7 +218,7 @@ export default function Navbar() {
           <button
             onClick={toggleTheme}
             aria-label="Toggle Theme"
-            className={`p-2 rounded-full transition-colors cursor-pointer ${
+            className={`p-1.5 sm:p-2 rounded-full transition-colors cursor-pointer ${
               isDarkTheme
                 ? "text-white/80 hover:text-white hover:bg-white/10"
                 : "text-amber-500 hover:text-amber-600 hover:bg-amber-50"
@@ -248,7 +248,7 @@ export default function Navbar() {
           ) : (
             <button
               onClick={() => openAuthModal("signin")}
-              className={`text-xs font-bold transition-colors cursor-pointer px-3.5 py-2 rounded-xl ${
+              className={`text-[11px] sm:text-xs font-bold whitespace-nowrap transition-colors cursor-pointer px-2 sm:px-3.5 py-1.5 sm:py-2 rounded-xl ${
                 isDarkTheme
                   ? "text-white/80 hover:text-white hover:bg-white/5"
                   : "text-gray-700 hover:text-gray-900 hover:bg-gray-100"
@@ -262,7 +262,7 @@ export default function Navbar() {
           <button
             onClick={toggleLanguage}
             aria-label="Switch Language"
-            className="group relative inline-flex items-center gap-1.5 px-3.5 py-2 sm:px-4 sm:py-2 rounded-xl text-xs sm:text-[13px] font-bold text-white bg-gradient-to-r from-violet-600 via-purple-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 shadow-[0_0_15px_rgba(168,85,247,0.3)] transition-all duration-200 cursor-pointer shrink-0 active:scale-95"
+            className="group relative inline-flex items-center gap-1 sm:gap-1.5 px-2 py-1.5 sm:px-4 sm:py-2 rounded-xl text-[11px] sm:text-[13px] font-bold text-white bg-gradient-to-r from-violet-600 via-purple-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 shadow-[0_0_15px_rgba(168,85,247,0.3)] transition-all duration-200 cursor-pointer shrink-0 active:scale-95"
           >
             <Globe className="w-3.5 h-3.5 text-white group-hover:rotate-45 transition-transform duration-300" />
             <span>{language === "en" ? "العربية" : "English"}</span>
@@ -272,7 +272,7 @@ export default function Navbar() {
           <button
             type="button"
             onClick={() => setMobileSearchOpen(!mobileSearchOpen)}
-            className={`md:hidden p-2 rounded-xl transition-colors cursor-pointer ${
+            className={`md:hidden p-1.5 sm:p-2 rounded-xl transition-colors cursor-pointer ${
               isDarkTheme
                 ? "text-white/80 hover:text-white hover:bg-white/5"
                 : "text-gray-700 hover:text-gray-900 hover:bg-gray-100"
@@ -285,7 +285,7 @@ export default function Navbar() {
           {/* Mobile Hamburger Toggle */}
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className={`min-[1025px]:hidden p-2 rounded-lg ${
+            className={`min-[1025px]:hidden p-1.5 sm:p-2 rounded-lg ${
               isDarkTheme
                 ? "text-white/80 hover:text-white hover:bg-white/5"
                 : "text-gray-700 hover:text-gray-900 hover:bg-gray-100"
