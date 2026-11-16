@@ -11,6 +11,12 @@ export function getSecretKey(): string {
   return secret;
 }
 
+export function constantTimeEqualText(a: string, b: string): boolean {
+  const hashA = crypto.createHash("sha256").update(a).digest();
+  const hashB = crypto.createHash("sha256").update(b).digest();
+  return crypto.timingSafeEqual(hashA, hashB) && a.length === b.length;
+}
+
 export function signAdminToken(payload: { email: string; role: string; exp: number }): string {
   const data = Buffer.from(JSON.stringify(payload)).toString("base64url");
   const signature = crypto
@@ -30,18 +36,30 @@ export function verifyAdminToken(token: string): { email: string; role: string; 
       .update(data)
       .digest("base64url");
 
-    if (signature !== expectedSignature) return null;
+    const sigBuf = Buffer.from(signature, "utf8");
+    const expectedBuf = Buffer.from(expectedSignature, "utf8");
+    if (sigBuf.length !== expectedBuf.length || !crypto.timingSafeEqual(sigBuf, expectedBuf)) {
+      return null;
+    }
 
     const payload = JSON.parse(Buffer.from(data, "base64url").toString("utf8")) as {
-      email: string;
-      role: string;
-      exp: number;
+      email?: unknown;
+      role?: unknown;
+      exp?: unknown;
     };
 
-    if (Date.now() > payload.exp) return null;
-    return payload;
+    if (
+      !payload ||
+      typeof payload !== "object" ||
+      typeof payload.email !== "string" ||
+      payload.role !== "admin" ||
+      typeof payload.exp !== "number" ||
+      Date.now() > payload.exp
+    ) {
+      return null;
+    }
+    return { email: payload.email, role: payload.role, exp: payload.exp };
   } catch {
     return null;
   }
 }
-

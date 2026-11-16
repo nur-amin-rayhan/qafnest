@@ -17,15 +17,15 @@ ALTER TABLE public.reviews
 
 ALTER TABLE public.reviews
   ALTER COLUMN rating TYPE NUMERIC(3, 1)
-    USING (rating * 2)::NUMERIC(3, 1),
+    USING (CASE WHEN rating <= 5 THEN rating * 2 ELSE rating END)::NUMERIC(3, 1),
   ALTER COLUMN cleanliness_rating TYPE NUMERIC(3, 1)
-    USING (cleanliness_rating * 2)::NUMERIC(3, 1),
+    USING (CASE WHEN cleanliness_rating <= 5 THEN cleanliness_rating * 2 ELSE cleanliness_rating END)::NUMERIC(3, 1),
   ALTER COLUMN accuracy_rating TYPE NUMERIC(3, 1)
-    USING (accuracy_rating * 2)::NUMERIC(3, 1),
+    USING (CASE WHEN accuracy_rating <= 5 THEN accuracy_rating * 2 ELSE accuracy_rating END)::NUMERIC(3, 1),
   ALTER COLUMN checkin_rating TYPE NUMERIC(3, 1)
-    USING (checkin_rating * 2)::NUMERIC(3, 1),
+    USING (CASE WHEN checkin_rating <= 5 THEN checkin_rating * 2 ELSE checkin_rating END)::NUMERIC(3, 1),
   ALTER COLUMN value_rating TYPE NUMERIC(3, 1)
-    USING (value_rating * 2)::NUMERIC(3, 1);
+    USING (CASE WHEN value_rating <= 5 THEN value_rating * 2 ELSE value_rating END)::NUMERIC(3, 1);
 
 ALTER TABLE public.reviews
   ADD CONSTRAINT reviews_rating_check CHECK (rating BETWEEN 1 AND 10),

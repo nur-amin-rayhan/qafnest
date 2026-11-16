@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { verifyGuestSession } from "@/lib/auth/serverAuth";
-import { topUpWallet } from "@/lib/services/walletService";
+import { registerPendingTopUp } from "@/lib/services/walletService";
+import { getCanonicalOrigin } from "@/lib/services/callbackRedirect";
 import {
   executeMyFatoorahPayment,
   getMyFatoorahConfig,
@@ -9,8 +10,9 @@ import {
   type MyFatoorahHostedMethod,
 } from "@/lib/services/myfatoorah";
 import { toMyFatoorahMobile } from "@qafnest/shared/phone";
-import { dispatchWalletTopupZatcaInvoice } from "@/lib/services/zatcaReportingHelper";
 import { resolveRequestLocale } from "@/lib/services/requestLocale";
+
+const MAX_TOPUP_SAR = 50_000;
 
 export async function POST(request: Request) {
   const authUser = await verifyGuestSession(request);
@@ -26,12 +28,13 @@ export async function POST(request: Request) {
   }
 
   const rawAmount = Number(body.amount);
-  if (isNaN(rawAmount) || rawAmount < 10) {
+  if (!Number.isFinite(rawAmount) || rawAmount < 10 || rawAmount > MAX_TOPUP_SAR) {
     return NextResponse.json(
-      { error: "Minimum top-up amount is 10 SAR" },
+      { error: `Top-up amount must be between 10 and ${MAX_TOPUP_SAR.toLocaleString()} SAR` },
       { status: 400 }
     );
   }
+  const roundedAmount = Math.round(rawAmount * 100) / 100;
 
   const method = typeof body.method === "string" ? body.method : "card";
   const resolvedLocale = resolveRequestLocale(request, body.locale ?? body.lang);
@@ -50,9 +53,16 @@ export async function POST(request: Request) {
     );
   }
 
+  const config = getMyFatoorahConfig();
+  if (!config.apiKey) {
+    return NextResponse.json(
+      { error: "Payment gateway is not configured for wallet top-ups." },
+      { status: 503 }
+    );
+  }
+
   const reference = `TOPUP-${Date.now().toString(36).toUpperCase()}-${Math.floor(1000 + Math.random() * 9000)}`;
 
-  // Resolve MyFatoorah payment method ID dynamically (Mada, Apple Pay, Google Pay, STC Pay, Visa/MC)
   const topupMethodMap: Record<string, MyFatoorahHostedMethod> = {
     apple: "apple",
     mada: "mada",
@@ -63,81 +73,61 @@ export async function POST(request: Request) {
   const resolvedTopupMethod: MyFatoorahHostedMethod = topupMethodMap[method] || "card";
   const mfPaymentMethodId = await resolveMyFatoorahPaymentMethodId(
     resolvedTopupMethod,
-    rawAmount,
+    roundedAmount,
     "SAR"
   );
 
-  const forwardedProto = request.headers.get("x-forwarded-proto") || "http";
-  const host = request.headers.get("host") || "localhost:3000";
-  const requestOrigin = request.headers.get("origin") || (host.startsWith("http") ? host : `${forwardedProto}://${host}`);
+  const canonicalOrigin = getCanonicalOrigin(request);
+  const callBackUrl = `${canonicalOrigin}/api/wallet/topup/callback?ref=${encodeURIComponent(reference)}&method=${encodeURIComponent(method)}&locale=${resolvedLocale}`;
+  const errorUrl = `${canonicalOrigin}/${resolvedLocale}/account?tab=wallet&topup_error=cancelled`;
 
-  const callBackUrl = `${requestOrigin}/api/wallet/topup/callback?ref=${reference}&amount=${rawAmount}&userId=${userId}&method=${method}&locale=${resolvedLocale}`;
-  const errorUrl = `${requestOrigin}/${resolvedLocale}/account?tab=wallet&topup_error=cancelled`;
-
-  const config = getMyFatoorahConfig();
-
-  // If MyFatoorah API key is configured and not in dev instant mode
-  if (config.apiKey && !body.instant) {
-    try {
-      const mfResponse = await executeMyFatoorahPayment({
-        paymentMethodId: mfPaymentMethodId,
-        invoiceValue: rawAmount,
-        customerName: userName,
-        customerMobile: toMyFatoorahMobile(userPhone),
-        customerEmail: userEmail,
-        customerReference: reference,
-        displayCurrencyIso: "SAR",
-        callBackUrl,
-        errorUrl,
-        language: resolvedLocale,
-        invoiceItems: [
-          {
-            itemName: `QafNest Wallet Credit Top-up (${rawAmount} SAR)`,
-            quantity: 1,
-            unitPrice: rawAmount,
-          },
-        ],
-      });
-
-      if (mfResponse.IsSuccess && mfResponse.Data?.PaymentURL) {
-        return NextResponse.json({
-          success: true,
-          redirectUrl: mfResponse.Data.PaymentURL,
-          invoiceId: mfResponse.Data.InvoiceId,
-          reference,
-          amount: rawAmount,
-        });
-      }
-    } catch (err) {
-      console.warn("MyFatoorah topup attempt failed, falling back to direct topup:", err);
-    }
-  }
-
-  // Instant top-up (development / simulation / demo mode)
-  const updatedWallet = await topUpWallet({
+  await registerPendingTopUp({
+    reference,
     userId,
-    amount: rawAmount,
-    paymentMethod: method,
-    reference,
+    amount: roundedAmount,
+    method: resolvedTopupMethod,
   });
 
-  // Report real-money top-up tax receipt to ZATCA Phase 2 API
-  const zatcaResult = await dispatchWalletTopupZatcaInvoice({
-    transactionId: updatedWallet.transactions[0]?.id || reference,
-    reference,
-    amount: rawAmount,
-    buyerName: userName,
-    paymentMethod: method,
-  });
+  try {
+    const mfResponse = await executeMyFatoorahPayment({
+      paymentMethodId: mfPaymentMethodId,
+      invoiceValue: roundedAmount,
+      customerName: userName,
+      customerMobile: toMyFatoorahMobile(userPhone),
+      customerEmail: userEmail,
+      customerReference: reference,
+      displayCurrencyIso: "SAR",
+      callBackUrl,
+      errorUrl,
+      language: resolvedLocale,
+      invoiceItems: [
+        {
+          itemName: `QafNest Wallet Credit Top-up (${roundedAmount.toFixed(2)} SAR)`,
+          quantity: 1,
+          unitPrice: roundedAmount,
+        },
+      ],
+    });
 
-  return NextResponse.json({
-    success: true,
-    instant: true,
-    wallet: updatedWallet,
-    reference,
-    amount: rawAmount,
-    zatcaStatus: zatcaResult?.clearanceStatus || null,
-    zatcaInvoiceNumber: zatcaResult?.invoiceNumber || null,
-    message: "Wallet topped up successfully!",
-  });
+    if (mfResponse.IsSuccess && mfResponse.Data?.PaymentURL) {
+      return NextResponse.json({
+        success: true,
+        redirectUrl: mfResponse.Data.PaymentURL,
+        invoiceId: mfResponse.Data.InvoiceId,
+        reference,
+        amount: roundedAmount,
+      });
+    }
+
+    return NextResponse.json(
+      { error: mfResponse.Message || "Payment gateway rejected top-up initiation." },
+      { status: 400 }
+    );
+  } catch (err) {
+    console.error("MyFatoorah wallet top-up gateway error:", err);
+    return NextResponse.json(
+      { error: "Unable to initiate wallet top-up payment right now." },
+      { status: 502 }
+    );
+  }
 }

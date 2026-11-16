@@ -38,14 +38,26 @@ export async function POST(request: Request) {
   }
 
   const cardholderName = String(body.cardholderName || "").trim();
-  const cardNumber = String(body.cardNumber || "").replace(/\s/g, "");
+  const cardNumber = String(body.cardNumber || "").replace(/\D/g, "");
   const expiryMonth = String(body.expiryMonth || "").trim();
   const expiryYear = String(body.expiryYear || "").trim();
+  const cvv = String(body.cvv || "").replace(/\D/g, "");
   const isDefault = Boolean(body.isDefault);
 
-  if (!cardholderName || cardNumber.length < 15 || !expiryMonth || !expiryYear) {
+  const monthNum = parseInt(expiryMonth, 10);
+  if (
+    !cardholderName ||
+    cardNumber.length < 15 ||
+    cardNumber.length > 19 ||
+    !expiryMonth ||
+    !expiryYear ||
+    isNaN(monthNum) ||
+    monthNum < 1 ||
+    monthNum > 12 ||
+    !/^\d{3,4}$/.test(cvv)
+  ) {
     return NextResponse.json(
-      { error: "Please enter complete cardholder name, valid card number, and expiry date." },
+      { error: "Please enter complete cardholder name, valid card number, expiry date, and CVV." },
       { status: 400 }
     );
   }
@@ -55,6 +67,7 @@ export async function POST(request: Request) {
     cardNumber,
     expiryMonth,
     expiryYear,
+    cvv,
     isDefault,
   });
 

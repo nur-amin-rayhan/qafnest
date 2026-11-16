@@ -107,6 +107,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ code: "unauthorized" }, { status: 401 });
   }
 
+  await import("@qafnest/shared/userActivityStore").then((m) => m.hydrateUserGovernanceStore());
   const supabase = createAdminDataClient();
   if (!supabase) {
     return NextResponse.json({ code: "admin_database_not_configured" }, { status: 503 });
@@ -695,6 +696,7 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({ code: "unauthorized" }, { status: 401 });
   }
 
+  await import("@qafnest/shared/userActivityStore").then((m) => m.hydrateUserGovernanceStore());
   const supabase = createAdminDataClient();
   const session = getAdminSession(request);
   const actorEmail = session?.email || "Admin Operations";

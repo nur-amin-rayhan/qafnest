@@ -125,6 +125,7 @@ export default function PaymentMethodsTab({ t }: PaymentMethodsTabProps) {
           cardNumber: cleanNum,
           expiryMonth: month,
           expiryYear: year,
+          cvv,
           brand: detectCardBrand(cleanNum),
           isDefault,
         }),

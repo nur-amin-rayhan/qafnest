@@ -46,9 +46,18 @@ type PropertyRow = {
   is_licensed: boolean | null;
   capacity: number | null;
   bedrooms_count: number | null;
+  bathrooms_count?: number | null;
   living_rooms_count: number | null;
   checkin_time: string | null;
   checkout_time: string | null;
+  custom_day_pricing?: any;
+  sunday_price?: number | null;
+  monday_price?: number | null;
+  tuesday_price?: number | null;
+  wednesday_price?: number | null;
+  thursday_price?: number | null;
+  friday_price?: number | null;
+  saturday_price?: number | null;
   area_sqm: number | null;
   lat: number | null;
   lng: number | null;
@@ -128,9 +137,18 @@ function fromRow(rawRow: PropertyRow): Property {
     section: inferSection(row),
     capacity: row.capacity ?? undefined,
     bedroomsCount: row.bedrooms_count ?? undefined,
+    bathroomsCount: row.bathrooms_count ?? undefined,
     livingRoomsCount: row.living_rooms_count ?? undefined,
     checkinTime: row.checkin_time?.slice(0, 5) || undefined,
     checkoutTime: row.checkout_time?.slice(0, 5) || undefined,
+    customDayPricing: row.custom_day_pricing || undefined,
+    sundayPrice: row.sunday_price ? Number(row.sunday_price) : undefined,
+    mondayPrice: row.monday_price ? Number(row.monday_price) : undefined,
+    tuesdayPrice: row.tuesday_price ? Number(row.tuesday_price) : undefined,
+    wednesdayPrice: row.wednesday_price ? Number(row.wednesday_price) : undefined,
+    thursdayPrice: row.thursday_price ? Number(row.thursday_price) : undefined,
+    fridayPrice: row.friday_price ? Number(row.friday_price) : undefined,
+    saturdayPrice: row.saturday_price ? Number(row.saturday_price) : undefined,
     areaSqm: row.area_sqm ?? undefined,
     lat: row.lat ?? undefined,
     lng: row.lng ?? undefined,
@@ -139,7 +157,7 @@ function fromRow(rawRow: PropertyRow): Property {
 }
 
 const BILINGUAL_SELECT_FIELDS =
-  "id,slug,title,title_ar,description,description_ar,category,city,city_name,state,state_ar,district,district_ar,address,address_ar,street,street_ar,postal_code,google_maps_url,category_name,specs,base_price,weekend_price,original_price,discount_percentage,images,features,rating,reviews_count,instant_book,has_pool,self_checkin,is_licensed,capacity,bedrooms_count,living_rooms_count,checkin_time,checkout_time,area_sqm,lat,lng,is_approved,created_at,host_id,external_host_id";
+  "id,slug,title,title_ar,description,description_ar,category,city,city_name,state,state_ar,district,district_ar,address,address_ar,street,street_ar,postal_code,google_maps_url,category_name,specs,base_price,weekend_price,original_price,discount_percentage,images,features,rating,reviews_count,instant_book,has_pool,self_checkin,is_licensed,capacity,bedrooms_count,bathrooms_count,living_rooms_count,checkin_time,checkout_time,custom_day_pricing,sunday_price,monday_price,tuesday_price,wednesday_price,thursday_price,friday_price,saturday_price,area_sqm,lat,lng,is_approved,created_at,host_id,external_host_id";
 
 const LEGACY_SELECT_FIELDS = stripBilingualFromSelect(BILINGUAL_SELECT_FIELDS);
 
@@ -239,21 +257,18 @@ export async function getPropertyById(id: string): Promise<Property | null> {
   // Fallback for previewing unpublished listings directly by id or slug
   try {
     const supabase = createClient();
-    const initial = await supabase
-      .from("properties")
-      .select(BILINGUAL_SELECT_FIELDS)
-      .or(`id.eq.${id},slug.eq.${id}`)
-      .single();
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+    const initial = await (isUuid
+      ? supabase.from("properties").select(BILINGUAL_SELECT_FIELDS).eq("id", id).maybeSingle()
+      : supabase.from("properties").select(BILINGUAL_SELECT_FIELDS).eq("slug", id).maybeSingle());
 
     let data = initial.data as PropertyRow | null;
     let error = initial.error;
 
     if (error && isMissingBilingualColumnError(error)) {
-      const retry = await supabase
-        .from("properties")
-        .select(LEGACY_SELECT_FIELDS)
-        .or(`id.eq.${id},slug.eq.${id}`)
-        .single();
+      const retry = await (isUuid
+        ? supabase.from("properties").select(LEGACY_SELECT_FIELDS).eq("id", id).maybeSingle()
+        : supabase.from("properties").select(LEGACY_SELECT_FIELDS).eq("slug", id).maybeSingle());
       data = retry.data as PropertyRow | null;
       error = retry.error;
     }

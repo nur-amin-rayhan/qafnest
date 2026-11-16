@@ -1,7 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 /** Default timeout after which an unpaid initiated checkout session expires (in minutes).
- * SEC-06: Set to 30 minutes to accommodate 3D-Secure SMS delays and BNPL (Tamara/Tabby) verification.
+ * Extended to 30 minutes to prevent premature dropouts during 3DS / Nafath verification.
  */
 export const CHECKOUT_EXPIRY_MINUTES = 30;
 
@@ -128,10 +128,14 @@ export async function cancelPreviousInitiatedGuestBookings(
       })
       .eq("status", "pending")
       .eq("payment_status", "initiated")
+      .not("auth_subject", "ilike", "%SADAD_HOLD%")
       .neq("status", "confirmed")
       .neq("payment_status", "success");
 
-    if (guestId) {
+    const isGuestIdUuid =
+      Boolean(guestId) &&
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(guestId));
+    if (isGuestIdUuid) {
       query = query.or(`guest_id.eq.${guestId},auth_subject.eq.${guestSubject}`);
     } else {
       query = query.eq("auth_subject", guestSubject);

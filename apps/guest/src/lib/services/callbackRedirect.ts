@@ -4,7 +4,7 @@ import { NextRequest, NextResponse } from "next/server";
  * Resolves the canonical, trusted origin for the guest application.
  * Prevents redirection to non-existent domains, placeholders, or invalid strings.
  */
-export function getCanonicalOrigin(request: NextRequest): string {
+export function getCanonicalOrigin(request: NextRequest | Request): string {
   const envCandidates = [
     process.env.NEXT_PUBLIC_GUEST_URL,
     process.env.NEXT_PUBLIC_SITE_URL,
@@ -47,7 +47,7 @@ export function getCanonicalOrigin(request: NextRequest): string {
   }
 
   try {
-    const nextOrigin = request.nextUrl.origin;
+    const nextOrigin = "nextUrl" in request && request.nextUrl ? request.nextUrl.origin : new URL(request.url).origin;
     if (nextOrigin && nextOrigin.startsWith("http") && !nextOrigin.includes(" ") && !nextOrigin.includes("relative")) {
       return nextOrigin.replace(/\/+$/, "");
     }

@@ -53,28 +53,26 @@ export async function POST(request: Request) {
       });
     }
 
-    // Verify account age: grant bonus strictly for new signups (created within last 48h or explicit isNewSignup)
-    let isRecentSignup = Boolean(body.isNewSignup);
+    // Verify account age strictly from server records (never let body.isNewSignup mark old Supabase accounts new)
+    let isRecentSignup = false;
     try {
       const admin = await getAdminOrServerClient();
-      if ("auth" in admin && admin.auth?.admin?.getUserById) {
+      if ("auth" in admin && admin.auth?.admin?.getUserById && /^[0-9a-f-]{36}$/i.test(authUser.id)) {
         const { data: userRes } = await admin.auth.admin.getUserById(authUser.id);
         const createdAt = userRes?.user?.created_at;
         if (createdAt) {
           const ageMs = Date.now() - Date.parse(createdAt);
           if (ageMs >= 0 && ageMs <= 48 * 3600_000) {
             isRecentSignup = true;
-          } else if (!body.isNewSignup) {
-            isRecentSignup = false;
           }
         }
       }
     } catch {
-      // Fallback: treat unrecorded account as eligible only when device/IP guard passes
-      isRecentSignup = isRecentSignup || wallet.transactions.length === 0;
+      if (wallet.transactions.length === 0 && Boolean(body.isNewSignup)) {
+        isRecentSignup = true;
+      }
     }
 
-    // Allow newly created Firebase OTP guests whose wallet has zero prior transactions
     if (!isRecentSignup && authUser.provider === "firebase" && wallet.transactions.length === 0) {
       isRecentSignup = true;
     }

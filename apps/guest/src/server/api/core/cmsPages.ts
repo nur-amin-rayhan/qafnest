@@ -1,8 +1,11 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { getAllCmsPages, getCmsPage } from "@qafnest/shared/cmsPagesStore";
+import { hydrateSharedJsonFile } from "@qafnest/shared/serverJsonStore";
+import type { CmsPageRecord } from "@qafnest/shared";
 
 export async function GET(request: NextRequest) {
   try {
+    await hydrateSharedJsonFile<CmsPageRecord[]>("cms-pages.json", () => []);
     const { searchParams } = new URL(request.url);
     const id = searchParams.get("id");
     if (id) {

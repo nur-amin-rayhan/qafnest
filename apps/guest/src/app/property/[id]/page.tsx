@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import PropertyRouteLoader from "@/components/property/PropertyRouteLoader";
 import {
   getSeoAlternates,
@@ -19,10 +19,12 @@ interface PageProps {
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
-  const cookieStore = await cookies();
-  const rawLang = cookieStore.get("qafnest_lang")?.value;
+  const [cookieStore, reqHeaders] = await Promise.all([cookies(), headers()]);
+  const headerLang = reqHeaders.get("x-qafnest-locale");
+  const rawLang = headerLang || cookieStore.get("qafnest_lang")?.value;
   const lang: "ar" | "en" = rawLang === "en" ? "en" : "ar";
   const propertyId = decodeURIComponent(params.id);
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(propertyId);
   let property:
     | Pick<Property, "id" | "title" | "titleAr" | "city" | "cityName" | "district" | "districtAr">
     | null = null;
@@ -42,7 +44,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     const initial = await supabase
       .from("properties")
       .select("id, title, title_ar, city, city_name, district, district_ar, external_host_id")
-      .or(`id.eq.${propertyId},slug.eq.${propertyId}`)
+      .eq(isUuid ? "id" : "slug", propertyId)
       .maybeSingle();
 
     let data = initial.data as MetadataPropertyRow | null;
@@ -52,7 +54,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       const retry = await supabase
         .from("properties")
         .select("id, title, city, city_name, district, external_host_id")
-        .or(`id.eq.${propertyId},slug.eq.${propertyId}`)
+        .eq(isUuid ? "id" : "slug", propertyId)
         .maybeSingle();
       data = retry.data as MetadataPropertyRow | null;
     }

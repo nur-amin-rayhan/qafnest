@@ -1,9 +1,14 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useState } from "react";
+import QRCode from "qrcode";
 import { X, Printer, ShieldCheck, QrCode, Download } from "lucide-react";
 import type { HostVatInvoice } from "@/lib/services/hostFinancialsService";
-import { generateZatcaUbl21Xml, QAFNEST_ZATCA_DEFAULTS } from "@qafnest/shared";
+import {
+  generateZatcaTlvBase64,
+  generateZatcaUbl21Xml,
+  QAFNEST_ZATCA_DEFAULTS,
+} from "@qafnest/shared";
 
 interface VatInvoiceModalProps {
   invoice: HostVatInvoice | null;
@@ -13,6 +18,36 @@ interface VatInvoiceModalProps {
 }
 
 export function VatInvoiceModal({ invoice, onClose, lang, t }: VatInvoiceModalProps) {
+  const [qrDataUrl, setQrDataUrl] = useState<string>("");
+
+  useEffect(() => {
+    if (!invoice) {
+      setQrDataUrl("");
+      return;
+    }
+    let active = true;
+    const tlvPayload =
+      invoice.qrPayload ||
+      generateZatcaTlvBase64({
+        sellerName: QAFNEST_ZATCA_DEFAULTS.sellerNameAr,
+        vatNumber: QAFNEST_ZATCA_DEFAULTS.vatNumber,
+        timestamp: invoice.date || new Date().toISOString(),
+        totalWithVat: invoice.total.replace(/[^0-9.]/g, "") || "0.00",
+        vatAmount: invoice.vat.replace(/[^0-9.]/g, "") || "0.00",
+      });
+
+    QRCode.toDataURL(tlvPayload, { width: 128, margin: 1 })
+      .then((url) => {
+        if (active) setQrDataUrl(url);
+      })
+      .catch(() => {
+        if (active) setQrDataUrl("");
+      });
+    return () => {
+      active = false;
+    };
+  }, [invoice]);
+
   if (!invoice) return null;
 
   const handlePrint = () => {
@@ -126,7 +161,16 @@ export function VatInvoiceModal({ invoice, onClose, lang, t }: VatInvoiceModalPr
 
             {/* ZATCA QR Code Representation */}
             <div className="flex flex-col items-center justify-center p-2 rounded-2xl border border-slate-200 bg-slate-50 text-center">
-              <QrCode size={52} className="text-slate-800" />
+              {qrDataUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={qrDataUrl}
+                  alt={t("ZATCA Phase 2 Invoice QR Code", "رمز الاستجابة السريعة لفاتورة زاتكا")}
+                  className="h-16 w-16 rounded-lg bg-white p-0.5 object-contain"
+                />
+              ) : (
+                <QrCode size={52} className="text-slate-800" />
+              )}
               <span className="text-[9px] font-mono text-slate-500 mt-1 uppercase">ZATCA Fatoorah</span>
             </div>
           </div>

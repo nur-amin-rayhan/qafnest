@@ -4,6 +4,39 @@ import { verifyHostSession } from "@/lib/auth/serverAuth";
 import { getHostServiceRoleClient } from "@/lib/supabase/service";
 import { ALLOWED_IMAGE_MIMES, MAX_FILE_SIZE_BYTES } from "@/lib/storage/uploadBridge";
 
+const ALLOWED_BUCKETS = new Set(["property-images", "host-avatars"]);
+const MAX_UPLOAD_FILES_PER_REQUEST = 12;
+
+function hasMatchingImageMagicBytes(buf: Buffer, mime: string): boolean {
+  if (buf.length < 12) return false;
+  if (mime === "image/jpeg" || mime === "image/jpg") {
+    return buf[0] === 0xff && buf[1] === 0xd8 && buf[2] === 0xff;
+  }
+  if (mime === "image/png") {
+    return (
+      buf[0] === 0x89 &&
+      buf[1] === 0x50 &&
+      buf[2] === 0x4e &&
+      buf[3] === 0x47 &&
+      buf[4] === 0x0d &&
+      buf[5] === 0x0a &&
+      buf[6] === 0x1a &&
+      buf[7] === 0x0a
+    );
+  }
+  if (mime === "image/webp") {
+    return (
+      buf.subarray(0, 4).toString("ascii") === "RIFF" &&
+      buf.subarray(8, 12).toString("ascii") === "WEBP"
+    );
+  }
+  if (mime === "image/avif") {
+    const ftyp = buf.subarray(4, 12).toString("ascii");
+    return ftyp.startsWith("ftyp") && (ftyp.includes("avif") || ftyp.includes("avis") || ftyp.includes("mif1"));
+  }
+  return false;
+}
+
 export async function POST(request: NextRequest) {
   // 1. Enforce authenticated host session (supports Firebase phone, Supabase token/cookie, dev host)
   const authUser = await verifyHostSession(request);
@@ -55,9 +88,27 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const bucketName = (formData.get("bucket") as string)?.trim() || "property-images";
+  if (fileEntries.length > MAX_UPLOAD_FILES_PER_REQUEST) {
+    return NextResponse.json(
+      {
+        code: "too_many_files",
+        message: `At most ${MAX_UPLOAD_FILES_PER_REQUEST} files can be uploaded in a single batch.`,
+      },
+      { status: 400 }
+    );
+  }
+
+  const requestedBucket = (formData.get("bucket") as string)?.trim() || "property-images";
+  if (!ALLOWED_BUCKETS.has(requestedBucket)) {
+    return NextResponse.json(
+      { code: "invalid_bucket", message: "Unsupported storage bucket." },
+      { status: 400 }
+    );
+  }
+  const bucketName = requestedBucket;
 
   // 4. Strict security validation on all files before performing uploads
+  const validatedEntries: Array<{ file: File; buffer: Buffer; ext: string }> = [];
   for (const file of fileEntries) {
     if (!(ALLOWED_IMAGE_MIMES as readonly string[]).includes(file.type)) {
       return NextResponse.json(
@@ -78,6 +129,21 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
+
+    const buffer = Buffer.from(await file.arrayBuffer());
+    if (!hasMatchingImageMagicBytes(buffer, file.type)) {
+      return NextResponse.json(
+        {
+          code: "invalid_image_signature",
+          message: `File "${file.name}" failed image header validation.`,
+        },
+        { status: 400 }
+      );
+    }
+
+    const rawExt = file.name.split(".").pop()?.toLowerCase().replace(/[^a-z0-9]/g, "") || "jpg";
+    const safeExt = ["jpeg", "jpg", "png", "webp", "avif"].includes(rawExt) ? rawExt : "jpg";
+    validatedEntries.push({ file, buffer, ext: safeExt });
   }
 
   const uploadedPaths: string[] = [];
@@ -85,13 +151,8 @@ export async function POST(request: NextRequest) {
   const fileDetails: { originalName: string; url: string; path: string; size: number }[] = [];
 
   try {
-    for (const file of fileEntries) {
-      const rawExt = file.name.split(".").pop()?.toLowerCase().replace(/[^a-z0-9]/g, "") || "jpg";
-      const safeExt = ["jpeg", "jpg", "png", "webp", "avif"].includes(rawExt) ? rawExt : "jpg";
-      const filePath = `${authUser.id}/${crypto.randomUUID()}.${safeExt}`;
-
-      const arrayBuf = await file.arrayBuffer();
-      const buffer = Buffer.from(arrayBuf);
+    for (const { file, buffer, ext } of validatedEntries) {
+      const filePath = `${authUser.id}/${crypto.randomUUID()}.${ext}`;
 
       const { error: uploadError } = await supabase.storage
         .from(bucketName)

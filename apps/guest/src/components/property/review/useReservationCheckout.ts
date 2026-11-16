@@ -225,7 +225,7 @@ export function useReservationCheckout({
           propertyId: property.id,
           checkIn: bookingCheckinDate,
           checkOut: bookingCheckoutDate,
-          checkinTime: bookingCheckinTime || "15:00",
+          checkinTime: bookingCheckinTime || "16:00",
           checkoutTime: bookingCheckoutTime || "12:00",
           guests: bookingGuestsCount,
           guestPhone: effectivePhone,

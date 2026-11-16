@@ -121,8 +121,10 @@ export async function processGatewayPayment({
   if (selectedMethod === "card" && savedCard) {
     const gatewayToken = savedCard.gatewayToken ? decryptCardNumber(savedCard.gatewayToken) : "";
     const fullCardNumber = savedCard.cardToken ? decryptCardNumber(savedCard.cardToken) : "";
+    const savedCvv = savedCard.cvvToken ? decryptCardNumber(savedCard.cvvToken) : "";
+    const effectiveCvv = cardCvv && /^\d{3,4}$/.test(cardCvv.trim()) ? cardCvv.trim() : savedCvv;
     const canTryDirectCharge = Boolean(
-      savedCard.supportsDirectCharge && cardCvv && (gatewayToken || fullCardNumber)
+      savedCard.supportsDirectCharge && effectiveCvv && (gatewayToken || fullCardNumber)
     );
 
     if (canTryDirectCharge) {
@@ -152,7 +154,7 @@ export async function processGatewayPayment({
               ? {
                   PaymentType: "token",
                   Token: gatewayToken,
-                  SecurityCode: cardCvv,
+                  SecurityCode: effectiveCvv,
                   Bypass3DS: false,
                 }
               : {
@@ -163,7 +165,7 @@ export async function processGatewayPayment({
                     Number: fullCardNumber,
                     ExpiryMonth: savedCard.expiryMonth,
                     ExpiryYear: savedCard.expiryYear,
-                    SecurityCode: cardCvv,
+                    SecurityCode: effectiveCvv,
                     HolderName: savedCard.cardholderName,
                   },
                 };

@@ -61,11 +61,13 @@ export async function GET(request: NextRequest) {
 
   // Single property query
   if (searchId) {
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(searchId);
+    const lookupCol = isUuid ? "id" : "slug";
     const initialSingle = await supabase
       .from("properties")
       .select(ADMIN_PROPERTY_SELECT)
-      .or(`id.eq.${searchId},slug.eq.${searchId}`)
-      .single();
+      .eq(lookupCol, searchId)
+      .maybeSingle();
 
     let p = initialSingle.data as Record<string, unknown> | null;
     let error = initialSingle.error;
@@ -74,8 +76,8 @@ export async function GET(request: NextRequest) {
       const retrySingle = await supabase
         .from("properties")
         .select(stripBilingualFromSelect(ADMIN_PROPERTY_SELECT))
-        .or(`id.eq.${searchId},slug.eq.${searchId}`)
-        .single();
+        .eq(lookupCol, searchId)
+        .maybeSingle();
       p = retrySingle.data as Record<string, unknown> | null;
       error = retrySingle.error;
     }

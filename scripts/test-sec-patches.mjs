@@ -1,13 +1,20 @@
 import assert from "assert";
 import crypto from "crypto";
+import fs from "fs";
 import { createClient } from "@supabase/supabase-js";
 import { maskPii } from "../apps/guest/src/lib/services/piiSanitizer.ts";
 import { CHECKOUT_EXPIRY_MINUTES } from "../apps/guest/src/lib/services/bookingReconciliation.ts";
 
 // Load environment
+for (const envPath of [".env.local", "apps/guest/.env.local", "apps/admin/.env.local"]) {
+  if (fs.existsSync(envPath)) {
+    try { process.loadEnvFile(envPath); } catch {}
+  }
+}
+
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://uolrxgcxzbdsmvszuoyz.supabase.co";
 const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || "dummy-anon-key-for-offline-test";
 
 const supabase = createClient(supabaseUrl, serviceKey || anonKey);
 

@@ -20,35 +20,53 @@ export async function GET(request: NextRequest) {
   const propertyId = searchParams.get("propertyId") || "";
 
   try {
-    let query = supabase
-      .from("reviews")
-      .select(
-        "id, property_id, guest_id, guest_display_name, title, title_ar, comment, comment_ar, rating, cleanliness_rating, accuracy_rating, checkin_rating, value_rating, services_rating, property_state_rating, is_published, is_sample, created_at, admin_reply, admin_reply_ar, admin_reply_by, admin_reply_at",
-        { count: "exact" }
-      )
-      .eq("is_published", true)
-      .eq("is_sample", false)
-      .order("created_at", { ascending: false });
+    const baseSelectCols =
+      "id, property_id, guest_id, guest_display_name, title, title_ar, comment, comment_ar, rating, cleanliness_rating, accuracy_rating, checkin_rating, value_rating, services_rating, property_state_rating, is_published, is_sample, created_at, admin_reply, admin_reply_ar, admin_reply_by, admin_reply_at";
 
-    if (statusFilter === "pending") {
-      query = query.is("admin_reply", null);
-    } else if (statusFilter === "replied") {
-      query = query.not("admin_reply", "is", null);
+    const runListQuery = (withHostCols: boolean) => {
+      const cols = withHostCols
+        ? `${baseSelectCols}, host_reply, host_reply_ar, host_reply_at`
+        : baseSelectCols;
+      let q = supabase
+        .from("reviews")
+        .select(cols, { count: "exact" })
+        .eq("is_published", true)
+        .eq("is_sample", false)
+        .order("created_at", { ascending: false });
+
+      if (statusFilter === "pending") {
+        q = withHostCols
+          ? q.is("admin_reply", null).is("host_reply", null)
+          : q.is("admin_reply", null);
+      } else if (statusFilter === "replied") {
+        q = withHostCols
+          ? q.or("admin_reply.not.is.null,host_reply.not.is.null")
+          : q.not("admin_reply", "is", null);
+      }
+
+      if (propertyId && UUID_REGEX.test(propertyId)) {
+        q = q.eq("property_id", propertyId);
+      }
+
+      const start = (page - 1) * pageSize;
+      return q.range(start, start + pageSize - 1);
+    };
+
+    let { data: rawReviews, count, error } = await runListQuery(true);
+    let hasHostCols = true;
+    if (error && /host_reply/i.test(error.message || "")) {
+      hasHostCols = false;
+      const legacy = await runListQuery(false);
+      rawReviews = legacy.data;
+      count = legacy.count;
+      error = legacy.error;
     }
 
-    if (propertyId && UUID_REGEX.test(propertyId)) {
-      query = query.eq("property_id", propertyId);
-    }
-
-    const start = (page - 1) * pageSize;
-    query = query.range(start, start + pageSize - 1);
-
-    const { data: rawReviews, count, error } = await query;
     if (error) {
       return NextResponse.json({ code: "reviews_query_failed", message: error.message }, { status: 500 });
     }
 
-    const reviewsList = rawReviews || [];
+    const reviewsList = (rawReviews || []) as unknown as Array<Record<string, any>>;
     const propertyIds = Array.from(new Set(reviewsList.map((r) => r.property_id).filter(Boolean)));
 
     let propertyMap = new Map<string, { title: string; city?: string }>();
@@ -66,15 +84,15 @@ export async function GET(request: NextRequest) {
     }
 
     // Fetch summary statistics
-    const { data: allStatsReviews } = await supabase
+    const statsRes = await supabase
       .from("reviews")
-      .select("rating, admin_reply")
+      .select(hasHostCols ? "rating, admin_reply, host_reply" : "rating, admin_reply")
       .eq("is_published", true)
       .eq("is_sample", false);
 
-    const allReviews = allStatsReviews || [];
+    const allReviews = (statsRes.data || []) as unknown as Array<Record<string, any>>;
     const totalCount = allReviews.length;
-    const repliedCount = allReviews.filter((r) => Boolean(r.admin_reply)).length;
+    const repliedCount = allReviews.filter((r) => Boolean(r.admin_reply || r.host_reply)).length;
     const pendingCount = totalCount - repliedCount;
     const avgRating =
       totalCount > 0
@@ -85,6 +103,9 @@ export async function GET(request: NextRequest) {
       const propInfo = propertyMap.get(rev.property_id);
       return {
         ...rev,
+        admin_reply: rev.admin_reply || rev.host_reply || null,
+        admin_reply_ar: rev.admin_reply_ar || rev.host_reply_ar || null,
+        admin_reply_at: rev.admin_reply_at || rev.host_reply_at || null,
         property_title: propInfo?.title || "—",
         property_city: propInfo?.city || "—",
         guest_display_name: rev.guest_display_name || "Guest",

@@ -61,6 +61,27 @@ export function localizeHostPath(targetPath: string, locale: HostLocale): string
   return `${localizedPathname}${queryPart}${hashPart}`;
 }
 
+export function sanitizeHostReturnPath(
+  rawReturnUrl?: string | null,
+  fallback = "/app",
+): string {
+  const safeFallback =
+    fallback.startsWith("/") && !/^\/[\/\\]/.test(fallback) ? fallback : "/app";
+  const raw = typeof rawReturnUrl === "string" ? rawReturnUrl.trim() : "";
+  if (!raw || !raw.startsWith("/") || /^\/[\/\\]/.test(raw) || raw.includes("\0")) {
+    return safeFallback;
+  }
+  try {
+    const parsed = new URL(raw, "https://business.qafnest.com");
+    if (parsed.origin !== "https://business.qafnest.com") {
+      return safeFallback;
+    }
+    return `${parsed.pathname}${parsed.search}${parsed.hash}`;
+  } catch {
+    return safeFallback;
+  }
+}
+
 export function getHostBaseUrl(): string {
   const raw =
     process.env.NEXT_PUBLIC_SITE_URL ||

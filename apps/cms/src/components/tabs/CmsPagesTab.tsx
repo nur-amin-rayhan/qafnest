@@ -410,11 +410,13 @@ export function CmsPagesTab({ t }: CmsPagesTabProps) {
                           onChange={(e) => handleFaqChange(idx, "category", e.target.value)}
                           className="px-2 py-1 rounded bg-black/60 border border-white/15 text-[11px] text-gray-300"
                         >
+                          <option value="general">General / عام</option>
                           <option value="booking">Booking / الحجز</option>
                           <option value="verification">Verification / التحقق</option>
                           <option value="smart-locks">Smart Locks / الدخول الذكي</option>
                           <option value="helpline">Helpline / الدعم الهاتفي</option>
                           <option value="payment">Payment & VAT / الدفع والضريبة</option>
+                          <option value="host">Hosts / المضيفون</option>
                         </select>
                       </div>
                       <button

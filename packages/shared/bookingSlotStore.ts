@@ -9,8 +9,10 @@ import {
 import {
   getTmpDataDir,
   getWritableLockDir,
+  hydrateSharedJsonFile,
   isUnwritableFsError,
   markReadOnlyFsFallback,
+  persistSharedJsonFile,
   readSharedJsonFile,
   writeSharedJsonFile,
 } from "./serverJsonStore";
@@ -25,20 +27,34 @@ const SLOT_CONFIGS_FILE = "booking-slot-configs.json";
 const inMemoryQueues = new Map<string, Promise<unknown>>();
 let warnedLockFallback = false;
 
+const normalizeSlotConfigDoc = (parsed: unknown): StoredSlotConfigDocument => {
+  const candidate = parsed as Partial<StoredSlotConfigDocument>;
+  return {
+    configs: candidate?.configs && typeof candidate.configs === "object" ? candidate.configs : {},
+    slugToPropertyId:
+      candidate?.slugToPropertyId && typeof candidate.slugToPropertyId === "object"
+        ? candidate.slugToPropertyId
+        : {},
+  };
+};
+
+export async function hydrateBookingSlotStore(): Promise<StoredSlotConfigDocument> {
+  return hydrateSharedJsonFile<StoredSlotConfigDocument>(
+    SLOT_CONFIGS_FILE,
+    () => ({ configs: {}, slugToPropertyId: {} }),
+    normalizeSlotConfigDoc
+  );
+}
+
+export async function persistBookingSlotStore(): Promise<boolean> {
+  return persistSharedJsonFile(SLOT_CONFIGS_FILE, readStoreDocument());
+}
+
 function readStoreDocument(): StoredSlotConfigDocument {
   return readSharedJsonFile<StoredSlotConfigDocument>(
     SLOT_CONFIGS_FILE,
     () => ({ configs: {}, slugToPropertyId: {} }),
-    (parsed) => {
-      const candidate = parsed as Partial<StoredSlotConfigDocument>;
-      return {
-        configs: candidate?.configs && typeof candidate.configs === "object" ? candidate.configs : {},
-        slugToPropertyId:
-          candidate?.slugToPropertyId && typeof candidate.slugToPropertyId === "object"
-            ? candidate.slugToPropertyId
-            : {},
-      };
-    }
+    normalizeSlotConfigDoc
   );
 }
 
@@ -277,8 +293,11 @@ export async function acquirePropertyBookingLock<T>(
   fn: () => Promise<T>,
   timeoutMs = 8_000
 ): Promise<T> {
-  const rawList = Array.isArray(propertyKeys) ? propertyKeys : [propertyKeys];
-  const primaryKey = rawList.find((k): k is string => Boolean(k && k.trim())) || "global";
+  const rawList = (Array.isArray(propertyKeys) ? propertyKeys : [propertyKeys])
+    .filter((k): k is string => Boolean(k && k.trim()))
+    .map((k) => k.trim());
+  const uuidKey = rawList.find((k) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(k));
+  const primaryKey = uuidKey || rawList[0] || "global";
 
   return runWithInProcessMutex(primaryKey, async () => {
     const lockPath = getLockFilePath(primaryKey);

@@ -21,13 +21,14 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ code: "missing_reference" }, { status: 400 });
   }
 
-  // Optional authentication check: caller can be authenticated or session owner
   const authUser = await verifyGuestSession(request);
+  if (!authUser) {
+    return NextResponse.json({ code: "unauthorized" }, { status: 401 });
+  }
 
   try {
     const dbClient = await getAdminOrServerClient();
 
-    // Check booking existence and prevent cancelling paid reservations
     const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(bookingRef);
     const query = dbClient.from("bookings").select("guest_id, auth_subject, status, payment_status");
     const { data: rows } = await (isUuid ? query.eq("id", bookingRef) : query.eq("booking_reference", bookingRef));
@@ -41,19 +42,17 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      if (authUser) {
-        const isOwner =
-          b.guest_id === authUser.id ||
-          b.auth_subject === authUser.id ||
-          (authUser.phone && b.auth_subject === authUser.phone);
+      const isOwner =
+        b.guest_id === authUser.id ||
+        b.auth_subject === authUser.id ||
+        (authUser.isPhoneVerified && authUser.phone && b.auth_subject === authUser.phone);
 
-        if (!isOwner) {
-          return NextResponse.json({ code: "unauthorized" }, { status: 403 });
-        }
+      if (!isOwner) {
+        return NextResponse.json({ code: "unauthorized" }, { status: 403 });
       }
     }
 
-    clearPendingWalletSplit(bookingRef);
+    await clearPendingWalletSplit(bookingRef);
     const result = await cancelInitiatedBooking(dbClient, bookingRef);
     if (!result.success) {
       return NextResponse.json(

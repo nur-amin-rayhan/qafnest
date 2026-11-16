@@ -20,25 +20,12 @@ async function checkExistingGuestAccount(params: {
       : null;
 
     if (phoneNormalized) {
-      const digits = phoneNormalized.replace(/\D/g, "");
-      const localDigits = digits.startsWith("966") ? digits.slice(3) : digits;
       const { data: phoneRows } = await supabase
         .from("profiles")
         .select("id, phone")
-        .or(`phone.ilike.%${localDigits}%,phone.eq.${phoneNormalized}`)
+        .eq("phone", phoneNormalized)
         .limit(1);
       if (phoneRows && phoneRows.length > 0) {
-        return true;
-      }
-    }
-
-    if (email) {
-      const { data: emailRows } = await supabase
-        .from("profiles")
-        .select("id")
-        .ilike("email", email)
-        .limit(1);
-      if (emailRows && emailRows.length > 0) {
         return true;
       }
     }

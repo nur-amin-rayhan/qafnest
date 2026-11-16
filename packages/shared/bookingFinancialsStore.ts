@@ -6,7 +6,11 @@ import {
   type GuestFeeMode,
   type PlatformFeeConfig,
 } from "./platformFee";
-import { readSharedJsonFile, writeSharedJsonFile } from "./serverJsonStore";
+import {
+  hydrateSharedJsonFile,
+  readSharedJsonFile,
+  writeSharedJsonFile,
+} from "./serverJsonStore";
 
 export interface BookingFinancialSnapshot {
   bookingRef: string;
@@ -38,17 +42,27 @@ interface SnapshotStoreDoc {
 
 const FINANCIALS_STORE_FILE = "booking-financials.json";
 
+const normalizeFinancialsDoc = (parsed: unknown): SnapshotStoreDoc => {
+  const candidate = parsed as Partial<SnapshotStoreDoc>;
+  return {
+    snapshots:
+      candidate?.snapshots && typeof candidate.snapshots === "object" ? candidate.snapshots : {},
+  };
+};
+
+export async function hydrateBookingFinancialsStore(): Promise<SnapshotStoreDoc> {
+  return hydrateSharedJsonFile<SnapshotStoreDoc>(
+    FINANCIALS_STORE_FILE,
+    () => ({ snapshots: {} }),
+    normalizeFinancialsDoc
+  );
+}
+
 function readDoc(): SnapshotStoreDoc {
   return readSharedJsonFile<SnapshotStoreDoc>(
     FINANCIALS_STORE_FILE,
     () => ({ snapshots: {} }),
-    (parsed) => {
-      const candidate = parsed as Partial<SnapshotStoreDoc>;
-      return {
-        snapshots:
-          candidate?.snapshots && typeof candidate.snapshots === "object" ? candidate.snapshots : {},
-      };
-    }
+    normalizeFinancialsDoc
   );
 }
 

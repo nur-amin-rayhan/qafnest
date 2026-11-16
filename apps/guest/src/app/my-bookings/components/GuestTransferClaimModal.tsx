@@ -2,6 +2,8 @@
 
 import React, { useState } from "react";
 import { X, Building2, CheckCircle2, ShieldCheck, Copy, Check } from "lucide-react";
+import { getFirebaseAuth, isFirebaseConfigured } from "@/lib/firebase/client";
+import { createClient } from "@/lib/supabase/client";
 import type { Booking } from "../types";
 
 interface GuestTransferClaimModalProps {
@@ -44,9 +46,28 @@ export function GuestTransferClaimModal({
     setSubmitting(true);
     setError(null);
     try {
+      let authToken: string | null = null;
+      try {
+        const supabase = createClient();
+        const { data } = await supabase.auth.getSession();
+        authToken = data.session?.access_token || null;
+      } catch {}
+      if (!authToken && isFirebaseConfigured()) {
+        try {
+          const fbAuth = getFirebaseAuth();
+          await fbAuth.authStateReady();
+          if (fbAuth.currentUser) {
+            authToken = await fbAuth.currentUser.getIdToken();
+          }
+        } catch {}
+      }
+
       const res = await fetch(`/api/bookings/${encodeURIComponent(bookingRef)}/transfer-claim`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
+        },
         body: JSON.stringify({
           transferReference: transferRef.trim(),
           bankName,

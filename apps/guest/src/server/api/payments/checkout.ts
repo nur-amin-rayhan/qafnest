@@ -27,6 +27,8 @@ import {
 } from "@qafnest/shared";
 import { acquirePropertyBookingLock } from "@qafnest/shared/bookingSlotStore";
 import { getServerEffectiveGuestFeeConfig } from "@qafnest/shared/platformFeeStore";
+import { hydrateSharedJsonFile } from "@qafnest/shared/serverJsonStore";
+import { DEFAULT_FEE_CONFIG } from "@qafnest/shared/platformFee";
 import {
   getUserWallet,
   getUserSavedCards,
@@ -132,6 +134,11 @@ async function executeCheckoutPost(request: Request) {
     return NextResponse.json({ code: "invalid_booking" }, { status: 400 });
   }
 
+  await Promise.all([
+    hydrateSharedJsonFile("platform-fee-config.json", () => DEFAULT_FEE_CONFIG),
+    hydrateSharedJsonFile("booking-slot-configs.json", () => ({ properties: {} })),
+  ]).catch(() => undefined);
+
   const supabase = await createClient();
   const propInfo = await resolveCheckoutProperty(rawPropertyId, supabase);
   if (!propInfo) {
@@ -211,7 +218,8 @@ async function executeCheckoutPost(request: Request) {
     if (!savedCard) {
       return NextResponse.json({ code: "card_not_found", message: "Selected saved card could not be found." }, { status: 404 });
     }
-    if (savedCard.supportsDirectCharge && (!cardCvv || cardCvv.length < 3)) {
+    const hasUsableCvv = Boolean((cardCvv && cardCvv.length >= 3) || savedCard.cvvToken);
+    if (savedCard.supportsDirectCharge && !hasUsableCvv) {
       return NextResponse.json(
         { code: "cvv_required", message: "Card CVV security code is required for saved card payments." },
         { status: 400 }

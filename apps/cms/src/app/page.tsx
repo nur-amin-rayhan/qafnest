@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
+import { cmsPath } from "@/lib/cmsUrl";
 import { useAdminAuth } from "@/context/AdminAuthContext";
 import { CmsHeader } from "@/components/CmsHeader";
 import { CmsSidebar } from "@/components/CmsSidebar";
@@ -17,7 +18,7 @@ import {
   INITIAL_SEO_ROUTES,
   INITIAL_FAQS,
 } from "@/data/cmsMockData";
-import type { CmsTab, BlogArticle, SeoRouteMeta, FaqItem } from "@/types/cms";
+import type { CmsTab, SeoRouteMeta, FaqItem } from "@/types/cms";
 
 export default function ContentAndSeoCmsPage() {
   const { user, signOut } = useAdminAuth();
@@ -26,9 +27,20 @@ export default function ContentAndSeoCmsPage() {
 
   const t = (en: string, ar: string) => (lang === "ar" ? ar : en);
 
-  const [articles, setArticles] = useState<BlogArticle[]>(INITIAL_ARTICLES);
+  const [articlesCount, setArticlesCount] = useState<number>(INITIAL_ARTICLES.length);
   const [seoRoutes] = useState<SeoRouteMeta[]>(INITIAL_SEO_ROUTES);
   const [faqs] = useState<FaqItem[]>(INITIAL_FAQS);
+
+  useEffect(() => {
+    fetch(cmsPath("/api/cms/blogs"))
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (Array.isArray(data?.posts)) {
+          setArticlesCount(data.posts.length);
+        }
+      })
+      .catch(() => null);
+  }, [activeTab]);
 
   return (
     <div className={`min-h-screen bg-[#07090E] text-white flex flex-col ${lang === "ar" ? "rtl" : "ltr"}`}>
@@ -47,7 +59,7 @@ export default function ContentAndSeoCmsPage() {
         <CmsSidebar
           activeTab={activeTab}
           setActiveTab={setActiveTab}
-          articlesCount={articles.length}
+          articlesCount={articlesCount}
           t={t}
         />
 

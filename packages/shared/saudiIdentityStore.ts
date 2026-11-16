@@ -5,6 +5,7 @@ import {
 import { readSharedJsonFile, writeSharedJsonFile } from "./serverJsonStore";
 
 export * from "./saudiIdentity";
+export const DEFAULT_SAUDI_IDENTITY_CONFIG = DEFAULT_IDENTITY_CONFIG;
 
 const SAUDI_IDENTITY_FILE = "saudi-identity-config.json";
 

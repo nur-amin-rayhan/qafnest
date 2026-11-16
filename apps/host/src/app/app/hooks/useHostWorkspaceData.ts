@@ -165,6 +165,7 @@ export function useHostWorkspaceData(userId: string | undefined, lang: "ar" | "e
     dismissAlert,
   } = useHostRealtime({
     hostId: userId,
+    propertyIds: submittedProperties.map((p) => p.id),
     onBookingChange: () => {
       void loadDashboardData();
     },

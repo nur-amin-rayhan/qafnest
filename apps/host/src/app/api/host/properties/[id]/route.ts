@@ -62,8 +62,8 @@ export async function GET(
       );
     }
 
-    // Verify ownership
-    if (prop.host_id && prop.host_id !== authUser.id) {
+    // Verify ownership (never allow unclaimed null host_id properties)
+    if (!prop.host_id || prop.host_id !== authUser.id) {
       return NextResponse.json(
         { code: "forbidden", message: "You are not authorized to view this property." },
         { status: 403 }
@@ -126,7 +126,7 @@ export async function PUT(
       return NextResponse.json({ code: "property_not_found" }, { status: 404 });
     }
 
-    if (existing.host_id && existing.host_id !== authUser.id) {
+    if (!existing.host_id || existing.host_id !== authUser.id) {
       return NextResponse.json(
         { code: "forbidden", message: "You are not authorized to edit this property." },
         { status: 403 }
@@ -149,6 +149,40 @@ export async function PUT(
         },
         { status: 400 }
       );
+    }
+
+    const nextBasePrice = Number(body.base_price ?? body.weekday_price);
+    const nextWeekdayPrice = Number(body.weekday_price ?? body.base_price);
+    const nextWeekendPrice = Number(body.weekend_price ?? body.weekday_price ?? body.base_price);
+    if (
+      !Number.isFinite(nextBasePrice) ||
+      nextBasePrice <= 0 ||
+      !Number.isFinite(nextWeekdayPrice) ||
+      nextWeekdayPrice <= 0 ||
+      !Number.isFinite(nextWeekendPrice) ||
+      nextWeekendPrice <= 0
+    ) {
+      return NextResponse.json(
+        { code: "invalid_price", message: "Nightly property prices must be positive numbers." },
+        { status: 400 }
+      );
+    }
+    if (body.lat !== undefined || body.lng !== undefined) {
+      const latNum = Number(body.lat);
+      const lngNum = Number(body.lng);
+      if (
+        !Number.isFinite(latNum) ||
+        !Number.isFinite(lngNum) ||
+        latNum < -90 ||
+        latNum > 90 ||
+        lngNum < -180 ||
+        lngNum > 180
+      ) {
+        return NextResponse.json(
+          { code: "invalid_coordinates", message: "Latitude and longitude must be valid coordinates." },
+          { status: 400 }
+        );
+      }
     }
 
     // 2. Prepare updated fields with sanitization
@@ -175,13 +209,14 @@ export async function PUT(
       postal_code: typeof body.postal_code === "string" ? body.postal_code.trim() : null,
       google_maps_url: typeof body.google_maps_url === "string" ? body.google_maps_url.trim() : null,
       specs: body.specs,
-      base_price: Number(body.base_price || body.weekday_price || 0),
-      weekday_price: Number(body.weekday_price || body.base_price || 0),
-      weekend_price: Number(body.weekend_price || body.weekday_price || body.base_price || 0),
+      base_price: nextBasePrice,
+      weekday_price: nextWeekdayPrice,
+      weekend_price: nextWeekendPrice,
       tourism_license_number: body.tourism_license_number || null,
       is_licensed: Boolean(body.tourism_license_number),
-      capacity: Number(body.capacity ?? 4),
+      capacity: Math.max(1, Number(body.capacity ?? 4)),
       bedrooms_count: body.bedrooms_count !== undefined && body.bedrooms_count !== null ? Number(body.bedrooms_count) : 0,
+      bathrooms_count: body.bathrooms_count !== undefined && body.bathrooms_count !== null ? Number(body.bathrooms_count) : 0,
       living_rooms_count: body.living_rooms_count !== undefined && body.living_rooms_count !== null ? Number(body.living_rooms_count) : 0,
       area_sqm: body.area_sqm !== undefined && body.area_sqm !== null ? Number(body.area_sqm) : 0,
       images: Array.isArray(body.images) ? body.images : [],
@@ -194,8 +229,18 @@ export async function PUT(
       updated_at: new Date().toISOString(),
     };
 
-    if (body.lat !== undefined) updatePayload.lat = body.lat;
-    if (body.lng !== undefined) updatePayload.lng = body.lng;
+    if (typeof body.checkin_time === "string" && /^\d{2}:\d{2}/.test(body.checkin_time)) {
+      updatePayload.checkin_time = body.checkin_time.slice(0, 5);
+    }
+    if (typeof body.checkout_time === "string" && /^\d{2}:\d{2}/.test(body.checkout_time)) {
+      updatePayload.checkout_time = body.checkout_time.slice(0, 5);
+    }
+    if (body.custom_day_pricing && typeof body.custom_day_pricing === "object") {
+      updatePayload.custom_day_pricing = body.custom_day_pricing;
+    }
+
+    if (body.lat !== undefined) updatePayload.lat = Number(body.lat);
+    if (body.lng !== undefined) updatePayload.lng = Number(body.lng);
 
     const preparedUpdatePayload = extractExtendedLocationToExternalMeta(updatePayload, {
       existingExternalHostId: existing.external_host_id,
@@ -209,15 +254,20 @@ export async function PUT(
       .select("*")
       .single();
 
-    if (updateError && isMissingBilingualColumnError(updateError)) {
+    if (
+      updateError &&
+      (isMissingBilingualColumnError(updateError) ||
+        /bathrooms_count|custom_day_pricing/i.test(updateError.message || ""))
+    ) {
+      const retryPayload = stripBilingualColumnsWithFallback(updatePayload, {
+        existingExternalHostId: existing.external_host_id,
+        clearReview: true,
+      });
+      delete retryPayload.bathrooms_count;
+      delete retryPayload.custom_day_pricing;
       const retry = await supabase
         .from("properties")
-        .update(
-          stripBilingualColumnsWithFallback(updatePayload, {
-            existingExternalHostId: existing.external_host_id,
-            clearReview: true,
-          })
-        )
+        .update(retryPayload)
         .eq("id", propertyId)
         .select("*")
         .single();
@@ -277,7 +327,7 @@ export async function DELETE(
       return NextResponse.json({ code: "property_not_found", message: "Property not found." }, { status: 404 });
     }
 
-    if (existing.host_id && existing.host_id !== authUser.id) {
+    if (!existing.host_id || existing.host_id !== authUser.id) {
       return NextResponse.json(
         { code: "forbidden", message: "You are not authorized to delete this property." },
         { status: 403 }

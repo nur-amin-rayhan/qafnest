@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { voidCancelledBookingPayout, hydrateHostPayoutStore } from "@qafnest/shared/hostPayoutStore";
+import { addDaysToIsoDate } from "@qafnest/shared";
 import { getSupabaseConfig } from "@/lib/supabase/config";
 import { verifyHostSession } from "@/lib/auth/serverAuth";
 
@@ -16,19 +18,7 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: { id: string } | Promise<{ id: string }> }
 ) {
-  let authUser = await verifyHostSession(request);
-  if (!authUser && process.env.NODE_ENV !== "production") {
-    authUser = {
-      id: process.env.NEXT_PUBLIC_DEV_HOST_ID || "00000000-0000-0000-0000-000000000002",
-      phone: process.env.NEXT_PUBLIC_DEV_HOST_PHONE || "",
-      isPhoneVerified: true,
-      email: process.env.NEXT_PUBLIC_DEV_HOST_EMAIL || "",
-      name: process.env.NEXT_PUBLIC_DEV_HOST_NAME || "",
-      role: "host",
-      provider: "supabase",
-    };
-  }
-
+  const authUser = await verifyHostSession(request);
   if (!authUser) {
     return NextResponse.json(
       { code: "unauthorized", message: "Host authentication required." },
@@ -43,7 +33,7 @@ export async function PATCH(
   }
 
   let body: {
-    status?: "confirmed" | "cancelled" | "pending";
+    status?: "confirmed" | "cancelled" | "pending" | "checked_in" | "completed";
     pin?: string;
   };
 
@@ -62,7 +52,7 @@ export async function PATCH(
     // 1. Fetch booking and check property ownership
     const { data: booking, error: bErr } = await supabase
       .from("bookings")
-      .select("id, booking_reference, property_id, status, payment_status, smart_lock_pin")
+      .select("id, booking_reference, property_id, check_in, check_out, status, payment_status, smart_lock_pin")
       .eq("id", bookingId)
       .single();
 
@@ -76,7 +66,7 @@ export async function PATCH(
       .eq("id", booking.property_id)
       .single();
 
-    if (pErr || !property || property.host_id !== authUser.id) {
+    if (pErr || !property || !property.host_id || property.host_id !== authUser.id) {
       return NextResponse.json(
         { code: "forbidden", message: "You are not authorized to modify this booking." },
         { status: 403 }
@@ -87,22 +77,45 @@ export async function PATCH(
     const updatePayload: Record<string, unknown> = {
       updated_at: new Date().toISOString(),
     };
+    let hasMutation = false;
+    const isPaymentSettled =
+      booking.payment_status === "success" || booking.payment_status === "paid";
+    const allowedStatuses = ["confirmed", "cancelled", "pending", "checked_in", "completed"] as const;
 
-    if (body.status && ["confirmed", "cancelled", "pending"].includes(body.status)) {
-      if (body.status === "confirmed" && booking.payment_status !== "success") {
+    if (body.status !== undefined) {
+      if (!(allowedStatuses as readonly string[]).includes(body.status)) {
+        return NextResponse.json(
+          { code: "invalid_status", message: "Unsupported booking status transition." },
+          { status: 400 }
+        );
+      }
+      if (
+        (body.status === "confirmed" ||
+          body.status === "checked_in" ||
+          body.status === "completed") &&
+        !isPaymentSettled
+      ) {
         return NextResponse.json(
           {
             code: "payment_not_verified",
-            message: "Cannot confirm reservation without verified payment confirmation from gateway.",
+            message: "Cannot advance reservation without verified payment confirmation from gateway.",
           },
           { status: 400 }
         );
       }
       updatePayload.status = body.status;
+      hasMutation = true;
     }
 
-    if (body.pin && /^\d{4,12}$/.test(body.pin)) {
-      if (booking.status === "cancelled") {
+    const effectiveNextStatus = String(updatePayload.status || booking.status || "");
+    if (body.pin !== undefined) {
+      if (!/^\d{4,12}$/.test(String(body.pin))) {
+        return NextResponse.json(
+          { code: "invalid_pin", message: "Smart Lock PIN must be 4 to 12 digits." },
+          { status: 400 }
+        );
+      }
+      if (effectiveNextStatus === "cancelled") {
         return NextResponse.json(
           {
             code: "pin_disabled_for_cancelled",
@@ -111,8 +124,15 @@ export async function PATCH(
           { status: 400 }
         );
       }
+      updatePayload.smart_lock_pin = String(body.pin);
+      hasMutation = true;
+    }
 
-      updatePayload.smart_lock_pin = body.pin;
+    if (!hasMutation) {
+      return NextResponse.json(
+        { code: "empty_update", message: "Provide a valid status or Smart Lock PIN update." },
+        { status: 400 }
+      );
     }
 
     // 3. Perform update
@@ -125,6 +145,36 @@ export async function PATCH(
 
     if (uErr) {
       return NextResponse.json({ code: "update_failed", message: uErr.message }, { status: 500 });
+    }
+
+    // 3b. When a booking is cancelled by Host, release booked night slots & void pending payout
+    if (updatePayload.status === "cancelled" && booking.status !== "cancelled") {
+      try {
+        if (booking.check_in && booking.check_out && booking.check_out > booking.check_in) {
+          const releaseDates: string[] = [];
+          let cursor = String(booking.check_in).slice(0, 10);
+          const endDate = String(booking.check_out).slice(0, 10);
+          let guard = 0;
+          while (cursor < endDate && guard < 180) {
+            releaseDates.push(cursor);
+            cursor = addDaysToIsoDate(cursor, 1);
+            guard++;
+          }
+          if (releaseDates.length > 0) {
+            await supabase
+              .from("property_availability")
+              .update({ is_available: true, updated_at: new Date().toISOString() })
+              .eq("property_id", booking.property_id)
+              .in("date", releaseDates);
+          }
+        }
+        if (booking.booking_reference) {
+          await hydrateHostPayoutStore();
+          voidCancelledBookingPayout(String(booking.booking_reference), 0);
+        }
+      } catch (cleanupErr) {
+        console.warn("Notice: booking cancellation cleanup warning:", cleanupErr);
+      }
     }
 
     // 4. Create host notification record if PIN or status changed

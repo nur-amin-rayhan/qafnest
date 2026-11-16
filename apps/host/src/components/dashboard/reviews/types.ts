@@ -20,6 +20,9 @@ export interface HostReviewItem {
   admin_reply_ar: string | null;
   admin_reply_by: string | null;
   admin_reply_at: string | null;
+  host_reply?: string | null;
+  host_reply_ar?: string | null;
+  host_reply_at?: string | null;
   created_at: string;
   propertyTitle: string;
   propertyTitleAr: string;

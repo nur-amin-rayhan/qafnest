@@ -5,6 +5,7 @@ import type { ConfirmationResult, RecaptchaVerifier } from "firebase/auth";
 import { createClient } from "@/lib/supabase/client";
 import { getFirebaseErrorMessage } from "@/lib/firebase/client";
 import { useHostAuth } from "@/context/HostAuthContext";
+import { sanitizeHostReturnPath } from "@/lib/hostLocale";
 import {
   AuthTab,
   PhoneStep,
@@ -98,8 +99,9 @@ export function useHostAuthFlow({
     if (onSuccess) {
       onSuccess();
     } else {
+      const safeTarget = sanitizeHostReturnPath(returnUrl, "/app");
       setTimeout(() => {
-        window.location.replace(withLang(returnUrl, effectiveLang));
+        window.location.replace(withLang(safeTarget, effectiveLang));
       }, 350);
     }
   };

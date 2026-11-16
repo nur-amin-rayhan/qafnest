@@ -81,6 +81,7 @@ export default function AdminHeader({
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [readIds, setReadIds] = useState<string[]>([]);
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
+  const [submittingSearch, setSubmittingSearch] = useState(false);
   const searchContainerRef = useRef<HTMLDivElement>(null);
   const mobileSearchContainerRef = useRef<HTMLDivElement>(null);
   const notificationsContainerRef = useRef<HTMLDivElement>(null);
@@ -238,7 +239,11 @@ export default function AdminHeader({
     }
 
     // 2. Pending Property Approvals
-    const pendingProps = properties.filter((p) => !p.is_approved || p.status === "pending");
+    const pendingProps = properties.filter(
+      (p) =>
+        p.status === "pending" ||
+        (!p.is_approved && p.status !== "rejected" && (p.status as string) !== "suspended")
+    );
     for (const prop of pendingProps.slice(0, 4)) {
       list.push({
         id: `prop:${prop.id}:${prop.status}`,
@@ -322,25 +327,30 @@ export default function AdminHeader({
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!q) return;
+    if (!q || submittingSearch) return;
+    setSubmittingSearch(true);
 
-    if (matchingBookings.length > 0 && onSelectBooking) {
-      const selected = toBookingDetail(matchingBookings[0]);
-      onSelectBooking(selected);
-      setDropdownOpen(false);
-      setMobileSearchOpen(false);
-      triggerToast(t(`Opened Booking #${selected.id}`, `تم فتح الحجز #${selected.id}`));
-    } else if (matchingProperties.length > 0 && onSelectProperty) {
-      onSelectProperty(matchingProperties[0]);
-      setDropdownOpen(false);
-      setMobileSearchOpen(false);
-      triggerToast(t(`Opened Property ${matchingProperties[0].title}`, `تم فتح العقار ${matchingProperties[0].title}`));
-    } else if (matchingShortcuts.length > 0 && onNavigateTab) {
-      onNavigateTab(matchingShortcuts[0].tab);
-      setDropdownOpen(false);
-      setMobileSearchOpen(false);
-    } else {
-      setDropdownOpen(true);
+    try {
+      if (matchingBookings.length > 0 && onSelectBooking) {
+        const selected = toBookingDetail(matchingBookings[0]);
+        onSelectBooking(selected);
+        setDropdownOpen(false);
+        setMobileSearchOpen(false);
+        triggerToast(t(`Opened Booking #${selected.id}`, `تم فتح الحجز #${selected.id}`));
+      } else if (matchingProperties.length > 0 && onSelectProperty) {
+        onSelectProperty(matchingProperties[0]);
+        setDropdownOpen(false);
+        setMobileSearchOpen(false);
+        triggerToast(t(`Opened Property ${matchingProperties[0].title}`, `تم فتح العقار ${matchingProperties[0].title}`));
+      } else if (matchingShortcuts.length > 0 && onNavigateTab) {
+        onNavigateTab(matchingShortcuts[0].tab);
+        setDropdownOpen(false);
+        setMobileSearchOpen(false);
+      } else {
+        setDropdownOpen(true);
+      }
+    } finally {
+      setSubmittingSearch(false);
     }
   };
 
@@ -513,7 +523,7 @@ export default function AdminHeader({
               search
             </span>
             <input
-              className="flex-1 min-w-0 bg-transparent font-body-sm text-xs sm:text-sm text-on-surface placeholder:text-outline focus:outline-none"
+              className="flex-1 min-w-0 bg-transparent font-body-sm text-xs sm:text-sm text-on-surface placeholder:text-outline focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 rounded-md px-1"
               placeholder={t("Search reservations, chalets, guests, phones...", "ابحث برقم الحجز، العقار، الضيف، الجوال...")}
               type="text"
               value={searchQuery}
@@ -542,11 +552,12 @@ export default function AdminHeader({
 
             <button
               type="submit"
-              className="w-7 h-7 rounded-lg bg-primary hover:bg-primary/90 text-on-primary flex items-center justify-center shadow-xs shrink-0 cursor-pointer transition"
+              disabled={submittingSearch}
+              className="w-7 h-7 rounded-lg bg-primary hover:bg-primary/90 disabled:opacity-50 text-on-primary flex items-center justify-center shadow-xs shrink-0 cursor-pointer transition"
               title={t("Execute Search", "بحث فوري")}
             >
               <span className="material-symbols-outlined text-[16px]">
-                {dir === "rtl" ? "arrow_back" : "arrow_forward"}
+                {submittingSearch ? "hourglass_top" : dir === "rtl" ? "arrow_back" : "arrow_forward"}
               </span>
             </button>
           </form>
@@ -846,11 +857,12 @@ export default function AdminHeader({
               )}
               <button
                 type="submit"
-                className="w-7 h-7 rounded-lg bg-primary text-on-primary flex items-center justify-center shrink-0 cursor-pointer"
+                disabled={submittingSearch}
+                className="w-7 h-7 rounded-lg bg-primary disabled:opacity-50 text-on-primary flex items-center justify-center shrink-0 cursor-pointer"
                 title={t("Search", "بحث")}
               >
                 <span className="material-symbols-outlined text-[16px]">
-                  {dir === "rtl" ? "arrow_back" : "arrow_forward"}
+                  {submittingSearch ? "hourglass_top" : dir === "rtl" ? "arrow_back" : "arrow_forward"}
                 </span>
               </button>
             </form>

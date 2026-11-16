@@ -39,7 +39,10 @@ export function HostReviewCard({
   lang,
   t,
 }: HostReviewCardProps) {
-  const hasReply = Boolean(rev.admin_reply);
+  const existingReply = rev.host_reply || rev.admin_reply || "";
+  const existingReplyAr = rev.host_reply_ar || rev.admin_reply_ar || existingReply;
+  const existingReplyDate = rev.host_reply_at || rev.admin_reply_at || "";
+  const hasReply = Boolean(existingReply);
 
   return (
     <div className="rounded-2xl border border-slate-200/90 bg-white p-6 shadow-xs space-y-4 hover:border-slate-300 transition">
@@ -111,7 +114,7 @@ export function HostReviewCard({
       </div>
 
       {/* Host Official Response Section */}
-      {hasReply ? (
+      {hasReply && !isReplyingThis ? (
         <div className="rounded-xl border border-violet-100 bg-violet-50/50 p-4 space-y-2 text-xs">
           <div className="flex items-center justify-between text-[#4F2396] font-black">
             <div className="inline-flex items-center gap-1.5">
@@ -119,17 +122,15 @@ export function HostReviewCard({
               <span>{t("Official Host Response", "رد المضيف الرسمي")}</span>
             </div>
             <span className="text-[10px] font-bold text-slate-400">
-              {rev.admin_reply_at ? new Date(rev.admin_reply_at).toLocaleDateString() : ""}
+              {existingReplyDate ? new Date(existingReplyDate).toLocaleDateString() : ""}
             </span>
           </div>
           <p className="font-semibold text-slate-700 leading-relaxed">
-            {lang === "ar"
-              ? rev.admin_reply_ar || rev.admin_reply
-              : rev.admin_reply || rev.admin_reply_ar}
+            {lang === "ar" ? existingReplyAr : existingReply}
           </p>
           <button
             type="button"
-            onClick={() => onOpenReply(rev.id, rev.admin_reply || "")}
+            onClick={() => onOpenReply(rev.id, existingReply)}
             className="inline-flex items-center gap-1 text-[11px] font-black text-[#4F2396] hover:underline pt-1 cursor-pointer"
           >
             <Edit3 size={11} />

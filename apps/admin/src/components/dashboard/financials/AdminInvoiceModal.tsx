@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
+import QRCode from "qrcode";
 import { X, Printer, ShieldCheck, QrCode, Download, Send, CheckCircle2, Loader2 } from "lucide-react";
 import type { AdminTaxInvoiceRecord } from "@/lib/services/adminInvoicesService";
 import { downloadInvoicePdf } from "@/lib/services/downloadInvoicePdf";
@@ -17,6 +18,25 @@ export function AdminInvoiceModal({ invoice, onClose }: AdminInvoiceModalProps) 
   const { t, dir, lang } = useAdminAuth();
   const [reporting, setReporting] = useState(false);
   const [downloadingPdf, setDownloadingPdf] = useState(false);
+  const [qrDataUrl, setQrDataUrl] = useState("");
+
+  useEffect(() => {
+    if (!invoice) {
+      setQrDataUrl("");
+      return;
+    }
+    let active = true;
+    QRCode.toDataURL(invoice.qrPayload || invoice.invoiceNumber, { width: 128, margin: 1 })
+      .then((url) => {
+        if (active) setQrDataUrl(url);
+      })
+      .catch(() => {
+        if (active) setQrDataUrl("");
+      });
+    return () => {
+      active = false;
+    };
+  }, [invoice]);
   const [reportResult, setReportResult] = useState<{
     clearanceStatus: string;
     invoiceHash: string;
@@ -184,7 +204,16 @@ export function AdminInvoiceModal({ invoice, onClose }: AdminInvoiceModalProps) 
             </div>
 
             <div className="flex flex-col items-center justify-center p-2 rounded-2xl border border-surface-container-high bg-surface-container-low text-center shrink-0">
-              <QrCode size={50} className="text-on-surface" />
+              {qrDataUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={qrDataUrl}
+                  alt={t("ZATCA Tax Invoice QR Code", "رمز الاستجابة السريعة لفاتورة زاتكا")}
+                  className="w-16 h-16 rounded-lg bg-white p-0.5 object-contain"
+                />
+              ) : (
+                <QrCode size={50} className="text-on-surface" />
+              )}
               <span className="text-[9px] font-mono text-outline mt-1 uppercase">
                 {t("ZATCA Verified", "موثق ضريبياً")}
               </span>

@@ -357,10 +357,15 @@ export function CmsIdentityTab({ t }: CmsIdentityTabProps) {
               />
             </div>
             <div>
-              <label className="block text-gray-400 mb-1 font-semibold">{t("App Secret / API Key", "المفتاح السري (Secret Key)")}</label>
+              <label className="block text-gray-400 mb-1 font-semibold">
+                {t("App Secret / API Key", "المفتاح السري (Secret Key)")}
+                {yakeenAppKey === "__CONFIGURED__" && (
+                  <span className="ml-2 text-[10px] text-emerald-400 font-bold">({t("Stored securely", "محفوظ")})</span>
+                )}
+              </label>
               <input
                 type="password"
-                placeholder="••••••••••••••••••••"
+                placeholder={yakeenAppKey === "__CONFIGURED__" ? "Saved — leave unchanged to preserve" : "••••••••••••••••••••"}
                 value={yakeenAppKey}
                 onChange={(e) => setYakeenAppKey(e.target.value)}
                 className="w-full px-3.5 py-2.5 rounded-xl bg-black/40 border border-white/10 text-white font-mono focus:outline-none focus:border-teal-500"
@@ -396,10 +401,15 @@ export function CmsIdentityTab({ t }: CmsIdentityTabProps) {
               />
             </div>
             <div>
-              <label className="block text-gray-400 mb-1 font-semibold">{t("Nafath Secret Key", "المفتاح السري (Secret Key)")}</label>
+              <label className="block text-gray-400 mb-1 font-semibold">
+                {t("Nafath Secret Key", "المفتاح السري (Secret Key)")}
+                {nafathAppKey === "__CONFIGURED__" && (
+                  <span className="ml-2 text-[10px] text-emerald-400 font-bold">({t("Stored securely", "محفوظ")})</span>
+                )}
+              </label>
               <input
                 type="password"
-                placeholder="••••••••••••••••••••"
+                placeholder={nafathAppKey === "__CONFIGURED__" ? "Saved — leave unchanged to preserve" : "••••••••••••••••••••"}
                 value={nafathAppKey}
                 onChange={(e) => setNafathAppKey(e.target.value)}
                 className="w-full px-3.5 py-2.5 rounded-xl bg-black/40 border border-white/10 text-white font-mono focus:outline-none focus:border-teal-500"

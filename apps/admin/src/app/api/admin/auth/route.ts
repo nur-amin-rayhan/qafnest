@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import {
   ADMIN_COOKIE_NAME,
   COOKIE_MAX_AGE,
+  constantTimeEqualText,
   signAdminToken,
   verifyAdminToken,
 } from "@/lib/adminAuth";
@@ -32,13 +33,18 @@ export async function POST(request: NextRequest) {
     let isValid = false;
     let adminName = "Master Administrator";
 
-    // 1. Check Master Configured Admin Credentials
-    if (configuredAdminEmail && configuredAdminPassword && email === configuredAdminEmail && password === configuredAdminPassword) {
+    // 1. Check Master Configured Admin Credentials (constant-time comparison)
+    if (
+      configuredAdminEmail &&
+      configuredAdminPassword &&
+      constantTimeEqualText(email, configuredAdminEmail) &&
+      constantTimeEqualText(password, configuredAdminPassword)
+    ) {
       isValid = true;
       adminName = "Super Admin";
     }
 
-    // 2. Also check Supabase Auth for team staff users
+    // 2. Check Supabase Auth for team staff users (strictly server-controlled app_metadata.role)
     if (!isValid) {
       try {
         const supabase = await createClient();
@@ -48,16 +54,13 @@ export async function POST(request: NextRequest) {
         });
 
         if (!authError && authData.user) {
-          // Verify user role in profiles table
           const { data: profile } = await supabase
             .from("profiles")
             .select("full_name")
             .eq("id", authData.user.id)
             .maybeSingle();
 
-          const userRole =
-            authData.user.app_metadata?.role ||
-            authData.user.user_metadata?.role;
+          const userRole = authData.user.app_metadata?.role;
 
           if (userRole === "admin") {
             isValid = true;

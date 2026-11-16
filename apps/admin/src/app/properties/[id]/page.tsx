@@ -43,10 +43,11 @@ export default function AdminPropertyPreviewPage() {
 
       try {
         const supabase = createClient();
+        const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
         const { data, error } = await supabase
           .from("properties")
           .select("*")
-          .or(`id.eq.${id},slug.eq.${id}`)
+          .eq(isUuid ? "id" : "slug", id)
           .single();
 
         if (!error && data && active) {
@@ -84,19 +85,10 @@ export default function AdminPropertyPreviewPage() {
           admin_feedback: feedback,
         }),
       });
-      if (response.ok) {
-        setProperty((prev) =>
-          prev
-            ? {
-                ...prev,
-                status,
-                is_approved: status === "approved",
-                admin_feedback: feedback,
-              }
-            : null
-        );
+      if (!response.ok) {
+        const errBody = await response.json().catch(() => ({}));
+        throw new Error(errBody.message || `Failed to update status (${response.status})`);
       }
-    } catch {
       setProperty((prev) =>
         prev
           ? {
@@ -107,6 +99,13 @@ export default function AdminPropertyPreviewPage() {
             }
           : null
       );
+    } catch (err: unknown) {
+      console.error("Failed to update property status:", err);
+      if (typeof window !== "undefined") {
+        window.alert(
+          err instanceof Error ? err.message : "Failed to save property status change."
+        );
+      }
     }
   };
 

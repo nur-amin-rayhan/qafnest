@@ -707,6 +707,15 @@ export async function PATCH(request: NextRequest) {
   }
 
   try {
+    await Promise.all([
+      import("@qafnest/shared/hostPayoutStore").then((m) => m.hydrateHostPayoutStore()),
+      import("@qafnest/shared/bookingRefundStore").then((m) => m.hydrateBookingRefundStore()),
+      import("@qafnest/shared/helplineVerificationStore").then((m) =>
+        m.hydrateHelplineVerificationStore()
+      ),
+      import("@qafnest/shared/userActivityStore").then((m) => m.hydrateUserGovernanceStore()),
+    ]);
+
     const body = (await request.json()) as Record<string, unknown>;
     const idOrRef = String(body.bookingId || body.bookingReference || "").trim();
     const action = String(body.action || "confirm_payment");
@@ -719,7 +728,7 @@ export async function PATCH(request: NextRequest) {
     const { data: existing, error: fetchErr } = await supabase
       .from("bookings")
       .select("id, booking_reference, total_price, status, payment_status, check_in, check_out, total_nights, property_id, guest_id, auth_subject, created_at, properties(id, title, category, base_price, host_id)")
-      .or(isUuidLike ? `id.eq.${idOrRef}` : `booking_reference.eq.${idOrRef}`)
+      .eq(isUuidLike ? "id" : "booking_reference", idOrRef)
       .maybeSingle();
 
     if (fetchErr || !existing) {
@@ -831,6 +840,30 @@ export async function PATCH(request: NextRequest) {
         { code: "update_failed", message: updErr?.message || "Could not update booking." },
         { status: 500 }
       );
+    }
+
+    if (action === "cancel" && existing.property_id && existing.check_in && existing.check_out && existing.check_out > existing.check_in) {
+      try {
+        const { addDaysToIsoDate } = await import("@qafnest/shared");
+        const releaseDates: string[] = [];
+        let cursor = String(existing.check_in).slice(0, 10);
+        const endIso = String(existing.check_out).slice(0, 10);
+        let guard = 0;
+        while (cursor < endIso && guard < 180) {
+          releaseDates.push(cursor);
+          cursor = addDaysToIsoDate(cursor, 1);
+          guard++;
+        }
+        if (releaseDates.length > 0) {
+          await supabase
+            .from("property_availability")
+            .update({ is_available: true, updated_at: new Date().toISOString() })
+            .eq("property_id", existing.property_id)
+            .in("date", releaseDates);
+        }
+      } catch (releaseErr) {
+        console.warn("[admin/bookings] cancellation availability release warning:", releaseErr);
+      }
     }
 
     if (action === "confirm_payment") {

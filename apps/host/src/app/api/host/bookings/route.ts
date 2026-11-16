@@ -22,20 +22,8 @@ function getAdminClient() {
 }
 
 export async function GET(request: NextRequest) {
-  // 1. Authenticate host session (with dev fallback in local environment)
-  let authUser = await verifyHostSession(request);
-  if (!authUser && process.env.NODE_ENV !== "production") {
-    authUser = {
-      id: process.env.NEXT_PUBLIC_DEV_HOST_ID || "00000000-0000-0000-0000-000000000002",
-      phone: process.env.NEXT_PUBLIC_DEV_HOST_PHONE || "",
-      isPhoneVerified: true,
-      email: process.env.NEXT_PUBLIC_DEV_HOST_EMAIL || "",
-      name: process.env.NEXT_PUBLIC_DEV_HOST_NAME || "",
-      role: "host",
-      provider: "supabase",
-    };
-  }
-
+  // 1. Authenticate host session (strictly verified session/token)
+  const authUser = await verifyHostSession(request);
   if (!authUser) {
     return NextResponse.json(
       { code: "unauthorized", message: "Host authentication required." },
@@ -138,7 +126,7 @@ export async function GET(request: NextRequest) {
     // 3b. Fetch bookings for this host's properties
     const { data: bookingData, error: bookErr } = await supabase
       .from("bookings")
-      .select("id, booking_reference, property_id, guest_id, auth_subject, check_in, check_out, total_nights, guests_count, total_price, status, payment_status, payment_id, payment_method, smart_lock_pin, created_at, updated_at")
+      .select("id, booking_reference, property_id, guest_id, auth_subject, check_in, check_out, checkin_time, checkout_time, total_nights, guests_count, total_price, promo_discount, coupon_discount, status, payment_status, payment_id, payment_method, smart_lock_pin, created_at, updated_at")
       .in("property_id", propertyIds)
       .order("created_at", { ascending: false });
 
@@ -226,6 +214,11 @@ export async function GET(request: NextRequest) {
         nights,
         nightlyPrice: prop?.base_price,
         category: prop?.category,
+        promoDiscount: Number(
+          (b as Record<string, unknown>).promo_discount ??
+            (b as Record<string, unknown>).coupon_discount ??
+            0
+        ),
         feeConfig: feeCfg,
       });
       const commissionAmount = settlement.hostCommissionAmountSar;
@@ -297,7 +290,9 @@ export async function GET(request: NextRequest) {
     let totalRevenueSAR = 0;
 
     for (const b of allBookings) {
-      if (b.status === "confirmed" && b.payment_status === "success") {
+      const isPaid =
+        !b.payment_status || b.payment_status === "success" || b.payment_status === "paid";
+      if ((b.status === "confirmed" || b.status === "completed") && isPaid) {
         totalRevenueSAR += Number(b.total_price) || 0;
         if (b.stayStatus === "today" || b.stayStatus === "in_house") {
           checkedInTodayCount++;

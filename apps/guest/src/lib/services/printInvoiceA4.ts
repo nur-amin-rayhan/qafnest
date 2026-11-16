@@ -5,6 +5,7 @@
  */
 
 import QRCode from "qrcode";
+import { escapeHtml } from "@qafnest/shared/escapeHtml";
 
 export interface PrintableInvoiceParams {
   invoiceNumber: string;
@@ -68,7 +69,7 @@ export async function printInvoiceA4(params: PrintableInvoiceParams): Promise<vo
     <html dir="${dir}" lang="${lang}">
       <head>
         <meta charset="utf-8" />
-        <title>${params.invoiceNumber} - QafNest Tax Invoice</title>
+        <title>${escapeHtml(params.invoiceNumber)} - QafNest Tax Invoice</title>
         <style>
           @page {
             size: A4 portrait;
@@ -263,9 +264,9 @@ export async function printInvoiceA4(params: PrintableInvoiceParams): Promise<vo
             <div class="header-box">
               <div>
                 <div class="brand-title">Qaf<span class="brand-accent">Nest</span>.</div>
-                <div class="company-name">${params.isArabic ? params.sellerNameAr : params.sellerNameEn}</div>
-                <div class="company-meta">${params.isArabic ? "ترخيص وزارة السياحة:" : "Ministry of Tourism License:"} ${params.licenseNumber}</div>
-                <div class="company-meta">${params.isArabic ? "الرقم الضريبي (VAT):" : "VAT Registration No:"} ${params.vatNumber}</div>
+                <div class="company-name">${escapeHtml(params.isArabic ? params.sellerNameAr : params.sellerNameEn)}</div>
+                <div class="company-meta">${params.isArabic ? "ترخيص وزارة السياحة:" : "Ministry of Tourism License:"} ${escapeHtml(params.licenseNumber)}</div>
+                <div class="company-meta">${params.isArabic ? "الرقم الضريبي (VAT):" : "VAT Registration No:"} ${escapeHtml(params.vatNumber)}</div>
               </div>
               <div class="qr-box">
                 <img src="${qrDataUrl}" width="110" height="110" alt="ZATCA Verified QR Code" />
@@ -277,19 +278,19 @@ export async function printInvoiceA4(params: PrintableInvoiceParams): Promise<vo
             <div class="meta-grid">
               <div>
                 <div class="meta-label">${params.isArabic ? "رقم الفاتورة:" : "Invoice Number:"}</div>
-                <div class="meta-value">${params.invoiceNumber}</div>
+                <div class="meta-value">${escapeHtml(params.invoiceNumber)}</div>
               </div>
               <div>
                 <div class="meta-label">${params.isArabic ? "الرقم المرجعي:" : "Transaction Ref:"}</div>
-                <div class="meta-value">${params.referenceNumber}</div>
+                <div class="meta-value">${escapeHtml(params.referenceNumber)}</div>
               </div>
               <div>
                 <div class="meta-label">${params.isArabic ? "تاريخ ووقت الإصدار:" : "Issue Date & Time:"}</div>
-                <div class="meta-value" style="font-family: inherit;">${params.issueDate} ${params.issueTime}</div>
+                <div class="meta-value" style="font-family: inherit;">${escapeHtml(params.issueDate)} ${escapeHtml(params.issueTime)}</div>
               </div>
               <div>
                 <div class="meta-label">${params.isArabic ? "وسيلة الدفع:" : "Payment Method:"}</div>
-                <div class="meta-value" style="color: #4F2396;">${params.paymentMethod}</div>
+                <div class="meta-value" style="color: #4F2396;">${escapeHtml(params.paymentMethod)}</div>
               </div>
             </div>
           </div>
@@ -311,8 +312,8 @@ export async function printInvoiceA4(params: PrintableInvoiceParams): Promise<vo
                     (item) => `
                   <tr>
                     <td>
-                      <div class="item-name">${item.name}</div>
-                      ${item.description ? `<div class="item-desc">${item.description}</div>` : ""}
+                      <div class="item-name">${escapeHtml(item.name)}</div>
+                      ${item.description ? `<div class="item-desc">${escapeHtml(item.description)}</div>` : ""}
                     </td>
                     <td class="num-col">${item.subtotal.toFixed(2)} SAR</td>
                     <td class="num-col" style="color: #b91c1c;">${item.vatAmount.toFixed(2)} SAR</td>

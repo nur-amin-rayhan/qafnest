@@ -238,16 +238,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         window.localStorage.removeItem(SESSION_CACHE_KEY);
         window.sessionStorage.setItem("qafnest_is_logging_out", "1");
       } catch {}
-      window.location.replace("/");
     }
 
+    const signOutTasks: Promise<unknown>[] = [];
     try {
-      void supabase.auth.signOut().catch(() => {});
+      signOutTasks.push(supabase.auth.signOut().catch(() => {}));
     } catch {}
     if (isFirebaseConfigured()) {
       try {
-        void firebaseSignOut(getFirebaseAuth()).catch(() => {});
+        signOutTasks.push(firebaseSignOut(getFirebaseAuth()).catch(() => {}));
       } catch {}
+    }
+    if (signOutTasks.length > 0) {
+      await Promise.race([
+        Promise.allSettled(signOutTasks),
+        new Promise((resolve) => setTimeout(resolve, 900)),
+      ]);
+    }
+
+    if (typeof window !== "undefined") {
+      const seg = window.location.pathname.split("/").filter(Boolean)[0];
+      window.location.replace(seg === "en" ? "/en" : "/ar");
     }
   };
 

@@ -45,6 +45,7 @@ const ALLOWED_PROPERTY_KEYS = [
   "is_licensed",
   "capacity",
   "bedrooms_count",
+  "bathrooms_count",
   "living_rooms_count",
   "images",
   "features",
@@ -52,6 +53,7 @@ const ALLOWED_PROPERTY_KEYS = [
   "has_pool",
   "checkin_time",
   "checkout_time",
+  "custom_day_pricing",
   "slug",
   "lat",
   "lng",
@@ -99,6 +101,53 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const rawBasePrice = Number(payload.base_price ?? payload.weekday_price);
+    if (!Number.isFinite(rawBasePrice) || rawBasePrice <= 0 || rawBasePrice > 1_000_000) {
+      return NextResponse.json(
+        { code: "invalid_price", message: "Base nightly price must be a positive number." },
+        { status: 400 }
+      );
+    }
+    if (
+      payload.weekday_price !== undefined &&
+      (!Number.isFinite(Number(payload.weekday_price)) ||
+        Number(payload.weekday_price) <= 0 ||
+        Number(payload.weekday_price) > 1_000_000)
+    ) {
+      return NextResponse.json(
+        { code: "invalid_weekday_price", message: "Weekday price must be a positive number." },
+        { status: 400 }
+      );
+    }
+    if (
+      payload.weekend_price !== undefined &&
+      (!Number.isFinite(Number(payload.weekend_price)) ||
+        Number(payload.weekend_price) <= 0 ||
+        Number(payload.weekend_price) > 1_000_000)
+    ) {
+      return NextResponse.json(
+        { code: "invalid_weekend_price", message: "Weekend price must be a positive number." },
+        { status: 400 }
+      );
+    }
+    if (payload.lat !== undefined || payload.lng !== undefined) {
+      const latNum = Number(payload.lat);
+      const lngNum = Number(payload.lng);
+      if (
+        !Number.isFinite(latNum) ||
+        !Number.isFinite(lngNum) ||
+        latNum < -90 ||
+        latNum > 90 ||
+        lngNum < -180 ||
+        lngNum > 180
+      ) {
+        return NextResponse.json(
+          { code: "invalid_coordinates", message: "Latitude and longitude must be valid coordinates." },
+          { status: 400 }
+        );
+      }
+    }
+
     // 3. Whitelist and sanitize allowed fields (stripping forbidden/injected fields)
     const sanitizedData: Record<string, unknown> = {};
     for (const key of ALLOWED_PROPERTY_KEYS) {
@@ -106,6 +155,13 @@ export async function POST(request: NextRequest) {
         sanitizedData[key] = payload[key];
       }
     }
+    sanitizedData.base_price = rawBasePrice;
+    sanitizedData.weekday_price =
+      payload.weekday_price !== undefined ? Number(payload.weekday_price) : rawBasePrice;
+    sanitizedData.weekend_price =
+      payload.weekend_price !== undefined ? Number(payload.weekend_price) : sanitizedData.weekday_price;
+    if (!sanitizedData.checkin_time) sanitizedData.checkin_time = "16:00";
+    if (!sanitizedData.checkout_time) sanitizedData.checkout_time = "12:00";
 
     // 4. Force authenticated ownership, persist location extras safely, and force initial review state
     const rawPropertyToInsert = {
@@ -124,10 +180,17 @@ export async function POST(request: NextRequest) {
       .select("id, slug, title, status, is_approved")
       .single();
 
-    if (error && isMissingBilingualColumnError(error)) {
+    if (
+      error &&
+      (isMissingBilingualColumnError(error) ||
+        /bathrooms_count|custom_day_pricing/i.test(error.message || ""))
+    ) {
+      const fallbackRow = stripBilingualColumnsWithFallback(rawPropertyToInsert);
+      delete fallbackRow.bathrooms_count;
+      delete fallbackRow.custom_day_pricing;
       const retry = await supabase
         .from("properties")
-        .insert(stripBilingualColumnsWithFallback(rawPropertyToInsert))
+        .insert(fallbackRow)
         .select("id, slug, title, status, is_approved")
         .single();
       data = retry.data;

@@ -44,7 +44,7 @@ export const DEFAULT_FEE_CONFIG: PlatformFeeConfig = {
   guestServiceFeePercent: 13.0,
   guestFeeMode: "percentage",
   guestFixedFeeAmountSar: 0,
-  syncGuestServiceFee: false,
+  syncGuestServiceFee: true,
   vatRatePercent: 15.0,
   enableCategoryOverrides: false,
   categoryOverrides: [
@@ -186,7 +186,7 @@ export function getEffectiveGuestFeeConfig(
     serviceFeeRate: Math.round((percent / 100) * 10000) / 10000,
     fixedFeeAmountSar,
     vatRatePercent: round2(config.vatRatePercent ?? 15),
-    hostCommissionPercent: round2(config.baseCommissionPercent ?? 20),
+    hostCommissionPercent: getEffectiveHostCommissionPercent(category, config),
     welcomeBonusAmountSar: round2(config.welcomeBonusAmountSar ?? 50),
     welcomeBonusEnabled: config.welcomeBonusEnabled !== false,
   };
@@ -228,13 +228,16 @@ export function calculatePlatformFee(
   const rawCommission = round2(baseAmount * (effectiveRatePercent / 100));
   const floor = Math.max(0, cfg.minCommissionAmountSar || 0);
   const commissionAmount = floor > 0 && baseAmount > 0 ? Math.max(rawCommission, floor) : rawCommission;
-  const vatAmount = round2(baseAmount * ((cfg.vatRatePercent ?? 15) / 100));
-  const netHostPayout = round2(Math.max(0, baseAmount - commissionAmount));
+  const vatAmount = round2(commissionAmount * ((cfg.vatRatePercent ?? 15) / 100));
+  const totalDeductions = round2(commissionAmount);
+  const netHostPayout = round2(Math.max(0, baseAmount - totalDeductions));
 
   return {
+    grossAmount: round2(baseAmount),
     appliedRatePercent: effectiveRatePercent,
     commissionAmount,
     vatAmount,
+    totalDeductions,
     netHostPayout,
   };
 }

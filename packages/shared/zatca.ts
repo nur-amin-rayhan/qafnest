@@ -30,9 +30,20 @@ export const QAFNEST_ZATCA_DEFAULTS = {
  */
 export function generateZatcaTlvBase64(payload: ZatcaInvoicePayload): string {
   try {
+    const encodeLength = (len: number): Buffer => {
+      if (len < 128) return Buffer.from([len]);
+      const bytes: number[] = [];
+      let tmp = len;
+      while (tmp > 0) {
+        bytes.unshift(tmp & 0xff);
+        tmp >>= 8;
+      }
+      return Buffer.from([0x80 | bytes.length, ...bytes]);
+    };
+
     const formatValue = (tag: number, val: string): Buffer => {
       const valBuf = Buffer.from(val, "utf8");
-      const lenBuf = Buffer.from([valBuf.length]);
+      const lenBuf = encodeLength(valBuf.length);
       const tagBuf = Buffer.from([tag]);
       return Buffer.concat([tagBuf, lenBuf, valBuf]);
     };

@@ -5,7 +5,7 @@ import {
   saveCloudPendingSplit,
   saveWalletStore,
 } from "./walletStore";
-import { deductWalletForBooking } from "./walletOperations";
+import { deductWalletForBooking, refundWalletForBooking } from "./walletOperations";
 import type { PendingWalletSplit } from "./walletTypes";
 
 export async function registerPendingWalletSplit(
@@ -57,13 +57,24 @@ export async function clearPendingWalletSplit(bookingRef: string): Promise<void>
 
 export async function settlePendingWalletSplit(
   bookingRef: string
-): Promise<{ settled: boolean; walletAmount: number; welcomeBonusUsed: number; error?: string }> {
+): Promise<{
+  settled: boolean;
+  userId?: string;
+  walletAmount: number;
+  welcomeBonusUsed: number;
+  error?: string;
+}> {
   const split = await getPendingWalletSplit(bookingRef);
   if (!split) {
     return { settled: false, walletAmount: 0, welcomeBonusUsed: 0, error: "split_not_found" };
   }
   if (split.settled) {
-    return { settled: true, walletAmount: split.walletAmount, welcomeBonusUsed: split.welcomeBonusAmount || 0 };
+    return {
+      settled: true,
+      userId: split.userId,
+      walletAmount: split.walletAmount,
+      welcomeBonusUsed: split.welcomeBonusAmount || 0,
+    };
   }
 
   const deduct = await deductWalletForBooking({
@@ -86,7 +97,32 @@ export async function settlePendingWalletSplit(
   saveWalletStore(freshStore);
   await saveCloudPendingSplit(settledSplit);
 
-  return { settled: true, walletAmount: split.walletAmount, welcomeBonusUsed: deduct.welcomeBonusUsed };
+  return {
+    settled: true,
+    userId: split.userId,
+    walletAmount: split.walletAmount,
+    welcomeBonusUsed: deduct.welcomeBonusUsed,
+  };
+}
+
+export async function refundSettledWalletSplit(bookingRef: string, reason = "Reservation overlap / confirmation failed"): Promise<void> {
+  const split = await getPendingWalletSplit(bookingRef);
+  if (!split || !split.settled || !split.userId || split.walletAmount <= 0) return;
+
+  await refundWalletForBooking({
+    userId: split.userId,
+    amount: split.walletAmount,
+    welcomeBonusRestore: split.welcomeBonusAmount || 0,
+    bookingRef,
+    reason,
+  });
+
+  const store = loadWalletStore();
+  if (store.pendingSplits?.[bookingRef]) {
+    delete store.pendingSplits[bookingRef];
+    saveWalletStore(store);
+  }
+  await deleteCloudPendingSplit(bookingRef);
 }
 
 /** Validates gateway collected amount against booking total or pending wallet+gateway split. */
@@ -96,7 +132,13 @@ export async function verifyAndSettleBookingPaymentAmount(params: {
   gatewayPaidAmount: number;
   gatewayName: string;
 }): Promise<
-  | { ok: true; totalConfirmedAmount: number; effectiveGatewayLabel: string; isSplit: boolean }
+  | {
+      ok: true;
+      totalConfirmedAmount: number;
+      effectiveGatewayLabel: string;
+      isSplit: boolean;
+      splitDeducted?: { userId: string; walletAmount: number; welcomeBonusUsed: number };
+    }
   | { ok: false; code: "amount_mismatch" | "wallet_split_failed"; message: string }
 > {
   const split = await getPendingWalletSplit(params.bookingRef);
@@ -142,5 +184,12 @@ export async function verifyAndSettleBookingPaymentAmount(params: {
     totalConfirmedAmount: params.expectedBookingTotal,
     effectiveGatewayLabel: `wallet+${params.gatewayName}`,
     isSplit: true,
+    splitDeducted: settlement.userId
+      ? {
+          userId: settlement.userId,
+          walletAmount: settlement.walletAmount,
+          welcomeBonusUsed: settlement.welcomeBonusUsed,
+        }
+      : undefined,
   };
 }

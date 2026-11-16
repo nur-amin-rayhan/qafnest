@@ -68,7 +68,7 @@ export async function GET(
     authUser && (
       booking.guest_id === authUser.id ||
       booking.auth_subject === authUser.id ||
-      (authUser.phone && booking.auth_subject === authUser.phone)
+      (authUser.isPhoneVerified && authUser.phone && booking.auth_subject === authUser.phone)
     )
   );
 

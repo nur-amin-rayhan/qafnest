@@ -39,10 +39,23 @@ export interface SavedCard {
   isDefault: boolean;
   createdAt: string;
   cardToken?: string;
+  cvvToken?: string;
+  hasSavedCvv?: boolean;
   gatewayToken?: string;
   panHash?: string;
   maskedPan?: string;
   supportsDirectCharge?: boolean;
+}
+
+export interface PendingWalletTopUp {
+  reference: string;
+  userId: string;
+  amount: number;
+  method: string;
+  settled: boolean;
+  paymentId?: string;
+  createdAt: string;
+  settledAt?: string;
 }
 
 export interface LoyaltySettings {
@@ -85,6 +98,8 @@ export interface WalletStoreState {
   activeOffers: LoyaltyOffer[];
   loyaltySettings?: LoyaltySettings;
   pendingSplits?: Record<string, PendingWalletSplit>;
+  pendingTopUps?: Record<string, PendingWalletTopUp>;
+  processedTopUpPaymentIds?: string[];
 }
 
 export const DEFAULT_LOYALTY_SETTINGS: LoyaltySettings = {

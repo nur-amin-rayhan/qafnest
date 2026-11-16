@@ -32,6 +32,7 @@ export default function LoyaltyTab({ triggerToast }: LoyaltyTabProps) {
   // Modal for new/edit offer
   const [modalOpen, setModalOpen] = useState(false);
   const [editingOffer, setEditingOffer] = useState<Partial<LoyaltyOffer> | null>(null);
+  const [savingOffer, setSavingOffer] = useState(false);
 
   const fetchLoyaltyData = useCallback(async () => {
     try {
@@ -113,6 +114,7 @@ export default function LoyaltyTab({ triggerToast }: LoyaltyTabProps) {
     }
 
     try {
+      setSavingOffer(true);
       const res = await fetch(adminPath("/api/admin/loyalty"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -131,6 +133,8 @@ export default function LoyaltyTab({ triggerToast }: LoyaltyTabProps) {
       }
     } catch {
       triggerToast(t("Error saving campaign", "حدث خطأ أثناء حفظ الحملة"));
+    } finally {
+      setSavingOffer(false);
     }
   };
 
@@ -614,9 +618,10 @@ export default function LoyaltyTab({ triggerToast }: LoyaltyTabProps) {
                 </button>
                 <button
                   type="submit"
-                  className="h-9 px-4 rounded-xl bg-primary text-on-primary text-xs font-bold hover:bg-primary/90 cursor-pointer"
+                  disabled={savingOffer}
+                  className="h-9 px-4 rounded-xl bg-primary text-on-primary text-xs font-bold hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                 >
-                  {t("Save Campaign", "حفظ الحملة")}
+                  {savingOffer ? t("Saving...", "جارٍ الحفظ...") : t("Save Campaign", "حفظ الحملة")}
                 </button>
               </div>
             </form>

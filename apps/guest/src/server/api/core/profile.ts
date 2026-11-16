@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyGuestSession } from "@/lib/auth/serverAuth";
 import { getAdminOrServerClient } from "@/lib/supabase/service";
+import { getFirebaseGuestProfile, saveFirebaseGuestProfile } from "@/lib/services/firebaseGuestProfileStore";
+import { normalizeSaudiPhone } from "@qafnest/shared";
 
 // Validation helpers for Saudi identity systems
 function isValidSaudiNationalId(id: string): boolean {
@@ -53,6 +55,7 @@ export async function GET(request: NextRequest) {
   let profile: { id?: string; full_name?: string | null; phone?: string | null; national_id?: string | null; avatar_url?: string | null } | null = null;
   let userMeta: Record<string, unknown> = {};
 
+  let fbProfile = null;
   if (isUuid) {
     const { data } = await db
       .from("profiles")
@@ -69,16 +72,35 @@ export async function GET(request: NextRequest) {
     } catch {
       // Service role auth admin lookup optional
     }
+  } else {
+    fbProfile = await getFirebaseGuestProfile(authUser.id);
+    if (fbProfile) {
+      profile = {
+        id: authUser.id,
+        full_name: fbProfile.full_name || null,
+        phone: fbProfile.phone || null,
+        national_id: fbProfile.national_id || null,
+        avatar_url: fbProfile.avatar_url || null,
+      };
+      userMeta = {
+        full_name: fbProfile.full_name,
+        iqama: fbProfile.iqama,
+        id_type: fbProfile.id_type,
+        city: fbProfile.city,
+        contact_email: fbProfile.contact_email,
+        is_verified: fbProfile.is_verified,
+        avatar_url: fbProfile.avatar_url,
+      };
+    }
   }
 
-  // Fallback by verified phone suffix so callers auto-created via Helpline or logging in via Firebase/Supabase OTP restore their saved profile
-  const phoneDigitsRaw = String(authUser.phone || "").replace(/\D/g, "");
-  const phoneDigits9 = phoneDigitsRaw.length >= 8 ? phoneDigitsRaw.slice(-9) : "";
-  if ((!profile || !profile.full_name) && phoneDigits9) {
+  // Fallback strictly by verified phone so callers auto-created via Helpline / OTP restore their profile safely
+  if ((!profile || !profile.full_name) && authUser.isPhoneVerified && authUser.phone) {
+    const cleanPhone = normalizeSaudiPhone(authUser.phone) || authUser.phone;
     const { data: phoneProfile } = await db
       .from("profiles")
       .select("id, full_name, phone, national_id, avatar_url")
-      .ilike("phone", `%${phoneDigits9}%`)
+      .eq("phone", cleanPhone)
       .limit(1)
       .maybeSingle();
 
@@ -210,7 +232,6 @@ async function handleProfileUpdate(request: NextRequest) {
     const resolvedEmail = email || (existingMeta.contact_email as string | undefined) || authUser.email || null;
 
     if (isUuid) {
-      // Persist valid columns to profiles table
       const { error: upsertErr } = await db.from("profiles").upsert(
         {
           id: authUser.id,
@@ -228,7 +249,6 @@ async function handleProfileUpdate(request: NextRequest) {
         );
       }
 
-      // Persist extended identity attributes in Supabase Auth user_metadata
       try {
         if (typeof (db as any).auth?.admin?.updateUserById === "function") {
           await (db as any).auth.admin.updateUserById(authUser.id, {
@@ -247,6 +267,18 @@ async function handleProfileUpdate(request: NextRequest) {
       } catch {
         // Non-fatal if admin auth client unavailable
       }
+    } else {
+      const existingFb = await getFirebaseGuestProfile(authUser.id);
+      await saveFirebaseGuestProfile(authUser.id, {
+        full_name: resolvedFullName || existingFb?.full_name || null,
+        phone: resolvedPhone || existingFb?.phone || null,
+        national_id: resolvedNationalId || existingFb?.national_id || null,
+        iqama: resolvedIqama || existingFb?.iqama || null,
+        id_type: resolvedIdType || existingFb?.id_type || "national_id",
+        city: city ?? existingFb?.city ?? null,
+        contact_email: resolvedEmail || existingFb?.contact_email || null,
+        is_verified: Boolean(verifiedStatus || existingFb?.is_verified),
+      });
     }
 
     return NextResponse.json({

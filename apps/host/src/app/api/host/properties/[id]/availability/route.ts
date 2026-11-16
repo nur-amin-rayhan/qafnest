@@ -16,6 +16,8 @@ import {
 import {
   acquirePropertyBookingLock,
   getServerPropertySlotConfig,
+  hydrateBookingSlotStore,
+  mergeSlotConfigIntoCustomDayPricing,
   updateServerPropertySlotConfig,
 } from "@qafnest/shared/bookingSlotStore";
 
@@ -115,51 +117,63 @@ export async function GET(
   }
 
   try {
-    // 1. Fetch property to verify host ownership and current base/weekend pricing
-    // 1. Verify property ownership (schema-safe columns only)
-    let propQuery = supabase
-      .from("properties")
-      .select("id, slug, title, host_id, base_price, weekday_price, weekend_price");
+    await hydrateBookingSlotStore();
 
-    if (isUuid(propertyId)) {
-      propQuery = propQuery.or(`id.eq.${propertyId},slug.eq.${propertyId}`);
-    } else {
-      propQuery = propQuery.eq("slug", propertyId);
+    // 1. Verify property exists and belongs to the authenticated host
+    const fullPropSelect =
+      "id, slug, title, host_id, base_price, weekday_price, weekend_price, custom_day_pricing, sunday_price, monday_price, tuesday_price, wednesday_price, thursday_price, friday_price, saturday_price";
+    const runPropSelect = (cols: string) => {
+      let q = supabase.from("properties").select(cols);
+      q = isUuid(propertyId) ? q.or(`id.eq.${propertyId},slug.eq.${propertyId}`) : q.eq("slug", propertyId);
+      return q.maybeSingle();
+    };
+
+    let { data: prop, error: propErr } = await runPropSelect(fullPropSelect);
+    if (propErr && /custom_day_pricing|sunday_price|column .* does not exist/i.test(propErr.message || "")) {
+      const retry = await runPropSelect("id, slug, title, host_id, base_price, weekday_price, weekend_price");
+      prop = retry.data;
+      propErr = retry.error;
     }
 
-    const { data: prop } = await propQuery.maybeSingle();
-
-    if (prop && prop.host_id && prop.host_id !== authUser.id) {
+    if (propErr) {
+      return NextResponse.json({ code: "db_error", message: propErr.message }, { status: 500 });
+    }
+    if (!prop) {
+      return NextResponse.json({ code: "property_not_found", message: "Property not found." }, { status: 404 });
+    }
+    const propRecord = prop as unknown as Record<string, unknown>;
+    if (!propRecord.host_id || propRecord.host_id !== authUser.id) {
       return NextResponse.json(
         { code: "forbidden", message: "You are not authorized to manage this property." },
         { status: 403 }
       );
     }
 
-    const effectiveProp = prop || {
-      id: propertyId,
-      slug: propertyId,
-      title: propertyId,
-      host_id: authUser.id,
-      base_price: 0,
-      weekday_price: 0,
-      weekend_price: 0,
+    const effectiveProp = propRecord as Record<string, unknown> & {
+      id: string;
+      slug?: string;
+      title?: string;
+      base_price?: number;
+      weekday_price?: number;
+      weekend_price?: number;
+      custom_day_pricing?: unknown;
     };
 
-    const customDayPricing = cleanWeekdayPricing({}, effectiveProp as Record<string, unknown>);
+    const customDayPricing = cleanWeekdayPricing(effectiveProp.custom_day_pricing, effectiveProp);
     const slotConfig = getServerPropertySlotConfig({
       propertyId: effectiveProp.id,
       slug: effectiveProp.slug,
+      dbCustomDayPricing: effectiveProp.custom_day_pricing,
     });
 
-    const targetDbId = prop && isUuid(prop.id) ? prop.id : (isUuid(propertyId) ? propertyId : null);
+    const targetDbId = isUuid(effectiveProp.id) ? effectiveProp.id : null;
 
     // 2. Fetch verified confirmed/completed bookings only (never show unpaid pending checkouts as Booked)
     let bookingsData: unknown[] = [];
     if (targetDbId) {
       const { data: bRows } = await supabase
         .from("bookings")
-        .select("id, booking_reference, check_in, check_out, status, payment_status, created_at")
+        .select("id, booking_reference, check_in, check_out, checkin_time, checkout_time, status, payment_status, created_at")
         .eq("property_id", targetDbId)
         .in("status", ["confirmed", "completed"]);
       bookingsData = (bRows || []).filter(
@@ -252,31 +266,42 @@ export async function POST(
   }
 
   try {
-    // 1. Verify property ownership (schema-safe columns only)
-    let propQuery = supabase
-      .from("properties")
-      .select("id, slug, host_id, base_price");
+    await hydrateBookingSlotStore();
 
-    if (isUuid(propertyId)) {
-      propQuery = propQuery.or(`id.eq.${propertyId},slug.eq.${propertyId}`);
-    } else {
-      propQuery = propQuery.eq("slug", propertyId);
+    // 1. Verify property exists & ownership
+    const fullPostSelect = "id, slug, host_id, base_price, custom_day_pricing";
+    const runPostPropSelect = (cols: string) => {
+      let q = supabase.from("properties").select(cols);
+      q = isUuid(propertyId) ? q.or(`id.eq.${propertyId},slug.eq.${propertyId}`) : q.eq("slug", propertyId);
+      return q.maybeSingle();
+    };
+    let { data: prop, error: propErr } = await runPostPropSelect(fullPostSelect);
+    if (propErr && /custom_day_pricing/i.test(propErr.message || "")) {
+      const retry = await runPostPropSelect("id, slug, host_id, base_price");
+      prop = retry.data;
+      propErr = retry.error;
     }
 
-    const { data: prop } = await propQuery.maybeSingle();
-
-    if (prop && prop.host_id && prop.host_id !== authUser.id) {
+    if (propErr) {
+      return NextResponse.json({ code: "db_error", message: propErr.message }, { status: 500 });
+    }
+    if (!prop) {
+      return NextResponse.json({ code: "property_not_found", message: "Property not found." }, { status: 404 });
+    }
+    const postPropRecord = prop as unknown as Record<string, unknown>;
+    if (!postPropRecord.host_id || postPropRecord.host_id !== authUser.id) {
       return NextResponse.json(
         { code: "forbidden", message: "You are not authorized to manage this property." },
         { status: 403 }
       );
     }
 
-    const effectiveProp = prop || {
-      id: propertyId,
-      slug: propertyId,
-      host_id: authUser.id,
-      base_price: 0,
+    const effectiveProp = postPropRecord as Record<string, unknown> & {
+      id: string;
+      slug?: string;
+      host_id: string;
+      base_price?: number;
+      custom_day_pricing?: unknown;
     };
 
     const payload = await request.json();
@@ -290,15 +315,32 @@ export async function POST(
       slotConfigUpdates,
     } = payload || {};
 
+    for (const [label, candidate] of [
+      ["basePrice", basePrice],
+      ["weekdayPrice", weekdayPrice],
+      ["weekendPrice", weekendPrice],
+    ] as const) {
+      if (
+        candidate !== undefined &&
+        candidate !== null &&
+        (!Number.isFinite(Number(candidate)) || Number(candidate) <= 0 || Number(candidate) > 1_000_000)
+      ) {
+        return NextResponse.json(
+          { code: "invalid_price", message: `${label} must be a positive number.` },
+          { status: 400 }
+        );
+      }
+    }
+
     return await acquirePropertyBookingLock([effectiveProp.id, effectiveProp.slug], async () => {
       // Load active bookings to prevent accidental overwrite or blocking already-booked slots
       const fifteenMinutesAgo = new Date(Date.now() - 15 * 60 * 1000).toISOString();
-      const targetDbId = prop && isUuid(prop.id) ? prop.id : (isUuid(propertyId) ? propertyId : null);
+      const targetDbId = isUuid(effectiveProp.id) ? effectiveProp.id : null;
       let activeBookingRows: unknown[] = [];
       if (targetDbId) {
         const { data: bRows } = await supabase
           .from("bookings")
-          .select("id, booking_reference, check_in, check_out, status, created_at")
+          .select("id, booking_reference, check_in, check_out, checkin_time, checkout_time, status, created_at")
           .eq("property_id", targetDbId)
           .or(`status.in.(confirmed,completed),and(status.eq.pending,created_at.gt.${fifteenMinutesAgo})`);
         activeBookingRows = bRows || [];
@@ -383,16 +425,18 @@ export async function POST(
         }
       }
 
-      // 2. Persist slot configuration in shared store (booking-slot-configs.json)
+      // 2. Persist slot configuration in shared store (booking-slot-configs.json) + DB custom_day_pricing
       let nextSlotConfig = getServerPropertySlotConfig({
         propertyId: effectiveProp.id,
         slug: effectiveProp.slug,
+        dbCustomDayPricing: effectiveProp.custom_day_pricing,
       });
 
       if (slotConfigUpdates || Array.isArray(blockedDates)) {
         nextSlotConfig = updateServerPropertySlotConfig({
           propertyId: effectiveProp.id,
           slug: effectiveProp.slug,
+          dbCustomDayPricing: effectiveProp.custom_day_pricing,
           updates: {
             ...(slotConfigUpdates || {}),
             ...(Array.isArray(blockedDates)
@@ -407,7 +451,7 @@ export async function POST(
         });
       }
 
-      // 3. Update valid DB pricing columns on properties (base_price, weekday_price, weekend_price)
+      // 3. Update DB pricing columns + 7-day customDayPricing + embedded __slotConfig on properties
       const propertyUpdates: Record<string, unknown> = {};
       if (typeof basePrice === "number" && basePrice > 0) {
         propertyUpdates.base_price = basePrice;
@@ -422,13 +466,60 @@ export async function POST(
         propertyUpdates.weekend_price = weekendPrice;
       }
 
-      if (prop) {
-        propertyUpdates.updated_at = new Date().toISOString();
-        if (isUuid(prop.id)) {
-          await supabase.from("properties").update(propertyUpdates).eq("id", prop.id);
-        } else {
-          await supabase.from("properties").update(propertyUpdates).eq("slug", prop.slug || propertyId);
+      const dayColMap = [
+        ["sunday", "sunday_price"],
+        ["monday", "monday_price"],
+        ["tuesday", "tuesday_price"],
+        ["wednesday", "wednesday_price"],
+        ["thursday", "thursday_price"],
+        ["friday", "friday_price"],
+        ["saturday", "saturday_price"],
+      ] as const;
+
+      const existingCustomObj =
+        effectiveProp.custom_day_pricing && typeof effectiveProp.custom_day_pricing === "object"
+          ? { ...(effectiveProp.custom_day_pricing as Record<string, unknown>) }
+          : {};
+      if (customDayPricing && typeof customDayPricing === "object") {
+        const rec = customDayPricing as Record<string, unknown>;
+        for (const [dayKey, dbCol] of dayColMap) {
+          const val = rec[dayKey];
+          if (val === null || val === "") {
+            delete existingCustomObj[dayKey];
+            propertyUpdates[dbCol] = null;
+          } else if (val !== undefined && Number.isFinite(Number(val)) && Number(val) > 0) {
+            const num = Math.round(Number(val) * 100) / 100;
+            existingCustomObj[dayKey] = num;
+            propertyUpdates[dbCol] = num;
+          }
         }
+      }
+
+      if (slotConfigUpdates || Array.isArray(blockedDates) || (customDayPricing && typeof customDayPricing === "object")) {
+        propertyUpdates.custom_day_pricing = mergeSlotConfigIntoCustomDayPricing(
+          existingCustomObj,
+          nextSlotConfig
+        );
+      }
+
+      propertyUpdates.updated_at = new Date().toISOString();
+      const whereCol = isUuid(effectiveProp.id) ? "id" : "slug";
+      const whereVal = isUuid(effectiveProp.id) ? effectiveProp.id : effectiveProp.slug || propertyId;
+      const { error: updatePropErr } = await supabase
+        .from("properties")
+        .update(propertyUpdates)
+        .eq(whereCol, whereVal);
+      if (
+        updatePropErr &&
+        /custom_day_pricing|sunday_price|column .* does not exist/i.test(updatePropErr.message || "")
+      ) {
+        const safeUpdates: Record<string, unknown> = {
+          updated_at: propertyUpdates.updated_at,
+        };
+        if (propertyUpdates.base_price !== undefined) safeUpdates.base_price = propertyUpdates.base_price;
+        if (propertyUpdates.weekday_price !== undefined) safeUpdates.weekday_price = propertyUpdates.weekday_price;
+        if (propertyUpdates.weekend_price !== undefined) safeUpdates.weekend_price = propertyUpdates.weekend_price;
+        await supabase.from("properties").update(safeUpdates).eq(whereCol, whereVal);
       }
 
       // 4. Update manual blocked dates in property_availability WITHOUT unblocking confirmed booking nights
@@ -486,7 +577,7 @@ export async function POST(
 
       // 5. Update date-specific price overrides without overwriting blocked flag
       if (targetDbId && priceOverrides && typeof priceOverrides === "object") {
-        const dates = Object.keys(priceOverrides);
+        const dates = Object.keys(priceOverrides).filter((d) => /^\d{4}-\d{2}-\d{2}$/.test(d));
         if (dates.length > 0) {
           const { data: existingRows } = await supabase
             .from("property_availability")
@@ -495,13 +586,20 @@ export async function POST(
             .in("date", dates);
           const availByDate = new Map((existingRows || []).map((r) => [r.date, r.is_available]));
 
-          const overrideRows = Object.entries(priceOverrides).map(([dateStr, price]) => ({
-            property_id: targetDbId,
-            date: dateStr,
-            nightly_price: price != null && Number(price) > 0 ? Number(price) : null,
-            is_available: availByDate.has(dateStr) ? Boolean(availByDate.get(dateStr)) : true,
-            updated_at: new Date().toISOString(),
-          }));
+          const overrideRows = dates.map((dateStr) => {
+            const rawPrice = (priceOverrides as Record<string, unknown>)[dateStr];
+            const numericPrice = Number(rawPrice);
+            return {
+              property_id: targetDbId,
+              date: dateStr,
+              nightly_price:
+                rawPrice != null && Number.isFinite(numericPrice) && numericPrice > 0 && numericPrice <= 1_000_000
+                  ? numericPrice
+                  : null,
+              is_available: availByDate.has(dateStr) ? Boolean(availByDate.get(dateStr)) : true,
+              updated_at: new Date().toISOString(),
+            };
+          });
 
           await supabase.from("property_availability").upsert(overrideRows, {
             onConflict: "property_id,date",

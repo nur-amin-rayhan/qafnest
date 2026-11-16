@@ -5,6 +5,7 @@ import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 import type { AdminTaxInvoiceRecord } from "./adminInvoicesService";
 import { QAFNEST_ZATCA_DEFAULTS } from "@qafnest/shared";
+import { escapeHtml } from "@qafnest/shared/escapeHtml";
 
 /**
  * Universal Bilingual (English + Arabic) ZATCA Phase 2 Tax Invoice PDF Downloader.
@@ -71,16 +72,16 @@ export async function downloadInvoicePdf(invoice: AdminTaxInvoiceRecord): Promis
               Qaf<span style="color: #FF9750;">Nest</span>.
             </div>
             <div style="font-size: 13px; font-weight: 800; margin-top: 4px; color: #0f172a;">
-              QafNest Real Estate Vacation Rentals Co. · ${QAFNEST_ZATCA_DEFAULTS.sellerNameAr}
+              QafNest Real Estate Vacation Rentals Co. · ${escapeHtml(QAFNEST_ZATCA_DEFAULTS.sellerNameAr)}
             </div>
             <div style="font-size: 11px; color: #475569; margin-top: 5px;">
-              <strong>CR:</strong> ${QAFNEST_ZATCA_DEFAULTS.crNumber} · <strong>السجل التجاري:</strong> ${QAFNEST_ZATCA_DEFAULTS.crNumber}
+              <strong>CR:</strong> ${escapeHtml(QAFNEST_ZATCA_DEFAULTS.crNumber)} · <strong>السجل التجاري:</strong> ${escapeHtml(QAFNEST_ZATCA_DEFAULTS.crNumber)}
             </div>
             <div style="font-size: 11px; color: #475569; margin-top: 2px;">
-              <strong>MoT License:</strong> ${QAFNEST_ZATCA_DEFAULTS.licenseNumber} · <strong>ترخيص وزارة السياحة:</strong> ${QAFNEST_ZATCA_DEFAULTS.licenseNumber}
+              <strong>MoT License:</strong> ${escapeHtml(QAFNEST_ZATCA_DEFAULTS.licenseNumber)} · <strong>ترخيص وزارة السياحة:</strong> ${escapeHtml(QAFNEST_ZATCA_DEFAULTS.licenseNumber)}
             </div>
             <div style="font-size: 11px; color: #475569; margin-top: 2px;">
-              <strong>VAT ID:</strong> <span style="font-family: monospace; font-weight: 800;">${QAFNEST_ZATCA_DEFAULTS.vatNumber}</span> · <strong>الرقم الضريبي</strong>
+              <strong>VAT ID:</strong> <span style="font-family: monospace; font-weight: 800;">${escapeHtml(QAFNEST_ZATCA_DEFAULTS.vatNumber)}</span> · <strong>الرقم الضريبي</strong>
             </div>
           </div>
 
@@ -94,15 +95,15 @@ export async function downloadInvoicePdf(invoice: AdminTaxInvoiceRecord): Promis
         <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 18px;">
           <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 10px 14px;">
             <div style="font-size: 10px; color: #64748b; font-weight: 700;">Invoice Number / رقم الفاتورة</div>
-            <div style="font-size: 13px; font-weight: 900; color: #0f172a; font-family: monospace; margin-top: 3px;">${invoice.invoiceNumber}</div>
+            <div style="font-size: 13px; font-weight: 900; color: #0f172a; font-family: monospace; margin-top: 3px;">${escapeHtml(invoice.invoiceNumber)}</div>
           </div>
           <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 10px 14px;">
             <div style="font-size: 10px; color: #64748b; font-weight: 700;">Issue Date / تاريخ الإصدار</div>
-            <div style="font-size: 13px; font-weight: 800; color: #0f172a; margin-top: 3px;">${invoice.issueDate}</div>
+            <div style="font-size: 13px; font-weight: 800; color: #0f172a; margin-top: 3px;">${escapeHtml(invoice.issueDate)}</div>
           </div>
           <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 10px 14px;">
             <div style="font-size: 10px; color: #64748b; font-weight: 700;">Booking Reference / مرجع الحجز</div>
-            <div style="font-size: 13px; font-weight: 900; color: #4F2396; font-family: monospace; margin-top: 3px;">${invoice.bookingReference}</div>
+            <div style="font-size: 13px; font-weight: 900; color: #4F2396; font-family: monospace; margin-top: 3px;">${escapeHtml(invoice.bookingReference)}</div>
           </div>
         </div>
 
@@ -110,15 +111,15 @@ export async function downloadInvoicePdf(invoice: AdminTaxInvoiceRecord): Promis
         <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px 16px; margin-bottom: 18px;">
           <div style="display: flex; justify-content: space-between; font-size: 12px; padding: 3px 0;">
             <span style="color: #64748b; font-weight: 700;">Client / Billed To · العميل:</span>
-            <span style="font-weight: 800; color: #0f172a;">${invoice.clientName} (${invoice.clientRole === 'guest' ? 'Guest / نزيل' : 'Host / مضيف'})</span>
+            <span style="font-weight: 800; color: #0f172a;">${escapeHtml(invoice.clientName)} (${invoice.clientRole === 'guest' ? 'Guest / نزيل' : 'Host / مضيف'})</span>
           </div>
           <div style="display: flex; justify-content: space-between; font-size: 12px; padding: 3px 0;">
             <span style="color: #64748b; font-weight: 700;">Property Title · العقار:</span>
-            <span style="font-weight: 800; color: #0f172a;">${invoice.propertyTitle}</span>
+            <span style="font-weight: 800; color: #0f172a;">${escapeHtml(invoice.propertyTitle)}</span>
           </div>
           <div style="display: flex; justify-content: space-between; font-size: 12px; padding: 3px 0;">
             <span style="color: #64748b; font-weight: 700;">Payment Method · طريقة الدفع:</span>
-            <span style="font-weight: 800; color: #0f172a;">${invoice.paymentMethod}</span>
+            <span style="font-weight: 800; color: #0f172a;">${escapeHtml(invoice.paymentMethod)}</span>
           </div>
         </div>
 
@@ -138,7 +139,7 @@ export async function downloadInvoicePdf(invoice: AdminTaxInvoiceRecord): Promis
                 <td style="padding: 12px 14px; border-bottom: 1px solid #f1f5f9; font-size: 12px;">
                   <strong style="display: block; font-size: 12px; color: #0f172a;">${itemDescEn}</strong>
                   <span style="display: block; font-size: 11px; color: #475569; margin-top: 2px;">${itemDescAr}</span>
-                  <span style="display: block; font-size: 10px; color: #64748b; margin-top: 2px;">${invoice.propertyTitle} · Ref: ${invoice.bookingReference}</span>
+                  <span style="display: block; font-size: 10px; color: #64748b; margin-top: 2px;">${escapeHtml(invoice.propertyTitle)} · Ref: ${escapeHtml(invoice.bookingReference)}</span>
                 </td>
                 <td style="padding: 12px 14px; border-bottom: 1px solid #f1f5f9; font-size: 12px; text-align: right; font-family: monospace; font-weight: 700;">
                   ${invoice.taxableAmount.toLocaleString("en-US", { minimumFractionDigits: 2 })}

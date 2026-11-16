@@ -17,6 +17,7 @@ import Navbar from "@/components/common/Navbar";
 import Footer from "@/components/common/Footer";
 import { useApp } from "@/context/AppContext";
 import { localizePath } from "@/lib/localization/localeHelper";
+import { sanitizeRichHtml } from "@qafnest/shared/escapeHtml";
 import {
   BLOG_POST_DETAILS,
   getDefaultBlogPost,
@@ -142,7 +143,9 @@ export default function BlogPostDetailPage() {
         {/* Article Body: Renders either rich HTML or paragraphs */}
         <article
           dir={language === "ar" ? "rtl" : "ltr"}
-          className="max-w-3xl mx-auto px-5 sm:px-8 space-y-6 text-sm sm:text-base leading-relaxed text-gray-300"
+          className={`max-w-3xl mx-auto px-5 sm:px-8 space-y-6 text-sm sm:text-base leading-relaxed ${
+            isDarkTheme ? "text-gray-300" : "text-slate-700"
+          }`}
         >
           {Array.isArray(htmlContent) ? (
             htmlContent.map((paragraph, idx) => (
@@ -152,8 +155,12 @@ export default function BlogPostDetailPage() {
             ))
           ) : typeof htmlContent === "string" ? (
             <div
-              className="prose prose-invert max-w-none text-gray-200 leading-8 space-y-4 [&>h2]:text-2xl [&>h2]:font-bold [&>h2]:text-white [&>h2]:mt-6 [&>h3]:text-xl [&>h3]:font-bold [&>h3]:text-violet-300 [&>h3]:mt-4 [&>p]:leading-8 [&>blockquote]:border-s-4 [&>blockquote]:border-violet-500 [&>blockquote]:ps-4 [&>blockquote]:italic [&>ul]:list-disc [&>ul]:ps-6 [&>ol]:list-decimal [&>ol]:ps-6"
-              dangerouslySetInnerHTML={{ __html: htmlContent }}
+              className={
+                isDarkTheme
+                  ? "prose prose-invert max-w-none text-gray-200 leading-8 space-y-4 [&>h2]:text-2xl [&>h2]:font-bold [&>h2]:text-white [&>h2]:mt-6 [&>h3]:text-xl [&>h3]:font-bold [&>h3]:text-violet-300 [&>h3]:mt-4 [&>p]:leading-8 [&>blockquote]:border-s-4 [&>blockquote]:border-violet-500 [&>blockquote]:ps-4 [&>blockquote]:italic [&>ul]:list-disc [&>ul]:ps-6 [&>ol]:list-decimal [&>ol]:ps-6"
+                  : "prose max-w-none text-slate-800 leading-8 space-y-4 [&>h2]:text-2xl [&>h2]:font-bold [&>h2]:text-slate-900 [&>h2]:mt-6 [&>h3]:text-xl [&>h3]:font-bold [&>h3]:text-violet-700 [&>h3]:mt-4 [&>p]:leading-8 [&>blockquote]:border-s-4 [&>blockquote]:border-violet-500 [&>blockquote]:ps-4 [&>blockquote]:italic [&>ul]:list-disc [&>ul]:ps-6 [&>ol]:list-decimal [&>ol]:ps-6"
+              }
+              dangerouslySetInnerHTML={{ __html: sanitizeRichHtml(htmlContent) }}
             />
           ) : (
             <p>{excerpt}</p>

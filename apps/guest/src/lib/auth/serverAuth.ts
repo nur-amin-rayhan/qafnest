@@ -86,6 +86,8 @@ export async function verifyFirebaseIdToken(token: string): Promise<VerifiedGues
     if (expectedProjectId) {
       if (payload.aud !== expectedProjectId) return null;
       if (payload.iss !== `https://securetoken.google.com/${expectedProjectId}`) return null;
+    } else if (process.env.NODE_ENV === "production") {
+      return null;
     } else {
       if (!payload.iss?.startsWith("https://securetoken.google.com/")) return null;
     }
@@ -147,7 +149,7 @@ export async function verifyGuestSession(request: Request): Promise<VerifiedGues
           return {
             id: user.id,
             phone,
-            isPhoneVerified: Boolean(user.phone_confirmed_at || phone),
+            isPhoneVerified: Boolean(user.phone_confirmed_at),
             email: user.email || null,
             name: rawName,
             role: "guest",
@@ -185,7 +187,7 @@ export async function verifyGuestSession(request: Request): Promise<VerifiedGues
         return {
           id: user.id,
           phone,
-          isPhoneVerified: Boolean(user.phone_confirmed_at || phone),
+          isPhoneVerified: Boolean(user.phone_confirmed_at),
           email: user.email || null,
           name: rawName,
           role: "guest",

@@ -1,8 +1,11 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { getAllBlogs, getBlogBySlug } from "@qafnest/shared/blogStore";
+import { hydrateSharedJsonFile } from "@qafnest/shared/serverJsonStore";
+import type { SharedBlogPost } from "@qafnest/shared";
 
 export async function GET(request: NextRequest) {
   try {
+    await hydrateSharedJsonFile<SharedBlogPost[]>("cms-blogs.json", () => []);
     const { searchParams } = new URL(request.url);
     const slug = searchParams.get("slug");
     if (slug) {

@@ -162,6 +162,21 @@ export function CmsZatcaTab({ t }: { t: (en: string, ar: string) => string }) {
     }
   };
 
+  const handleUpgradeProductionCsid = async () => {
+    setOnboarding(true);
+    setErrorMsg(null);
+    try {
+      const { ok, data } = await postZatcaAction({ action: "upgrade_production_csid" });
+      if (!ok || !data.success) throw new Error(data?.error || "Failed to upgrade to Production CSID");
+      setTestResult({ type: "onboard", success: true, data, timestamp: new Date().toLocaleTimeString() });
+      fetchConfig();
+    } catch (err: unknown) {
+      setErrorMsg(err instanceof Error ? err.message : "Production CSID upgrade failed");
+    } finally {
+      setOnboarding(false);
+    }
+  };
+
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
@@ -220,7 +235,13 @@ export function CmsZatcaTab({ t }: { t: (en: string, ar: string) => string }) {
     try {
       const { data } = await postZatcaAction({ action: "report_test_invoice" });
       if (data?.result) {
-        setTestResult({ type: "invoice", success: data.result.clearanceStatus === "REPORTED", data: data.result, timestamp: new Date().toLocaleTimeString() });
+        const st = String(data.result.clearanceStatus || "").toUpperCase();
+        setTestResult({
+          type: "invoice",
+          success: st === "REPORTED" || st === "CLEARED",
+          data: data.result,
+          timestamp: new Date().toLocaleTimeString(),
+        });
         fetchConfig();
       }
     } catch (err: unknown) {
@@ -370,6 +391,17 @@ export function CmsZatcaTab({ t }: { t: (en: string, ar: string) => string }) {
                   {onboarding ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Key className="w-3.5 h-3.5" />}
                   <span>{t("Onboard CSID", "تفعيل الشهادة")}</span>
                 </button>
+                {csidToken && csidSecret && (
+                  <button
+                    type="button"
+                    onClick={handleUpgradeProductionCsid}
+                    disabled={onboarding}
+                    className="inline-flex items-center gap-1.5 px-3 py-2.5 rounded-xl bg-purple-500/20 hover:bg-purple-500/30 border border-purple-500/40 text-purple-200 font-bold transition cursor-pointer disabled:opacity-50 whitespace-nowrap"
+                    title={t("Upgrade Compliance CSID to Production CSID", "ترقية شهادة الامتثال إلى شهادة الإنتاج")}
+                  >
+                    <span>{t("Production CSID", "ترقية للإنتاج")}</span>
+                  </button>
+                )}
               </div>
             </div>
             <div>
@@ -377,12 +409,22 @@ export function CmsZatcaTab({ t }: { t: (en: string, ar: string) => string }) {
               <input type="text" value={egsSerialNumber} onChange={(e) => setEgsSerialNumber(e.target.value)} className="w-full px-3.5 py-2.5 rounded-xl bg-black/40 border border-white/10 font-mono text-white focus:outline-hidden focus:border-teal-500" />
             </div>
             <div>
-              <label className="block font-semibold text-gray-300 mb-1.5">{t("Compliance CSID Token / Binary Security Token", "شهادة أو رمز CSID (Binary Security Token)")}</label>
-              <input type="password" value={csidToken} onChange={(e) => setCsidToken(e.target.value)} className="w-full px-3.5 py-2.5 rounded-xl bg-black/40 border border-white/10 font-mono text-white focus:outline-hidden focus:border-teal-500" />
+              <label className="block font-semibold text-gray-300 mb-1.5">
+                {t("Compliance CSID Token / Binary Security Token", "شهادة أو رمز CSID (Binary Security Token)")}
+                {otp === "__CONFIGURED__" || csidSecret === "__CONFIGURED__" ? (
+                  <span className="ml-2 text-[10px] text-emerald-400 font-bold">({t("Secret stored", "محفوظ")})</span>
+                ) : null}
+              </label>
+              <input type="password" value={csidToken} onChange={(e) => setCsidToken(e.target.value)} placeholder={csidToken ? "Saved — enter new to replace" : ""} className="w-full px-3.5 py-2.5 rounded-xl bg-black/40 border border-white/10 font-mono text-white focus:outline-hidden focus:border-teal-500" />
             </div>
             <div>
-              <label className="block font-semibold text-gray-300 mb-1.5">{t("CSID Private Key / API Secret", "المفتاح الخاص بالشهادة (Secret Key)")}</label>
-              <input type="password" value={csidSecret} onChange={(e) => setCsidSecret(e.target.value)} className="w-full px-3.5 py-2.5 rounded-xl bg-black/40 border border-white/10 font-mono text-white focus:outline-hidden focus:border-teal-500" />
+              <label className="block font-semibold text-gray-300 mb-1.5">
+                {t("CSID Private Key / API Secret", "المفتاح الخاص بالشهادة (Secret Key)")}
+                {csidSecret === "__CONFIGURED__" && (
+                  <span className="ml-2 text-[10px] text-emerald-400 font-bold">({t("Stored securely", "محفوظ بأمان")})</span>
+                )}
+              </label>
+              <input type="password" value={csidSecret} onChange={(e) => setCsidSecret(e.target.value)} placeholder={csidSecret === "__CONFIGURED__" ? "Saved — leave unchanged to preserve" : ""} className="w-full px-3.5 py-2.5 rounded-xl bg-black/40 border border-white/10 font-mono text-white focus:outline-hidden focus:border-teal-500" />
             </div>
           </div>
 

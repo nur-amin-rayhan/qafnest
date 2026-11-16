@@ -4,9 +4,10 @@ import {
   getContactSettings,
   submitContactInquiry,
 } from "@qafnest/shared/contactInquiriesStore";
-
+import { hydrateSharedJsonFile } from "@qafnest/shared/serverJsonStore";
 
 export async function GET() {
+  await hydrateSharedJsonFile("contact-inquiries.json", () => ({}));
   const settings = getContactSettings();
   return NextResponse.json({
     success: true,

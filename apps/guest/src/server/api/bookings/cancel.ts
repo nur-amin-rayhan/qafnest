@@ -32,11 +32,11 @@ export async function GET(
     return NextResponse.json({ error: "Booking not found" }, { status: 404 });
   }
 
-  // Authorize: user must own the booking or match auth_subject
+  // Authorize: user must strictly own the booking via verified UID or verified phone
   const userMatches =
     booking.guest_id === authUser.id ||
-    String(booking.auth_subject || "").includes(authUser.id) ||
-    (authUser.phone && String(booking.auth_subject || "").includes(authUser.phone.slice(-8)));
+    booking.auth_subject === authUser.id ||
+    (authUser.isPhoneVerified && authUser.phone && booking.auth_subject === authUser.phone);
 
   if (!userMatches && authUser.role !== "admin") {
     return NextResponse.json({ error: "Forbidden: Not your booking" }, { status: 403 });
@@ -86,7 +86,7 @@ export async function POST(
   const supabase = await getAdminOrServerClient();
   const { data: booking, error } = await supabase
     .from("bookings")
-    .select("id, booking_reference, total_price, status, payment_status, check_in, check_out, guest_id, auth_subject, created_at, properties(id, title)")
+    .select("id, property_id, booking_reference, total_price, status, payment_status, check_in, check_out, guest_id, auth_subject, created_at, properties(id, title)")
     .eq("booking_reference", ref)
     .maybeSingle();
 
@@ -96,8 +96,8 @@ export async function POST(
 
   const userMatches =
     booking.guest_id === authUser.id ||
-    String(booking.auth_subject || "").includes(authUser.id) ||
-    (authUser.phone && String(booking.auth_subject || "").includes(authUser.phone.slice(-8)));
+    booking.auth_subject === authUser.id ||
+    (authUser.isPhoneVerified && authUser.phone && booking.auth_subject === authUser.phone);
 
   if (!userMatches && authUser.role !== "admin") {
     return NextResponse.json({ error: "Forbidden: Not your booking" }, { status: 403 });
@@ -141,6 +141,34 @@ export async function POST(
   if (updErr || !updated) {
     return NextResponse.json({ error: updErr?.message || "Failed to cancel booking" }, { status: 500 });
   }
+
+  // Release overnight property_availability dates when no other active booking occupies them
+  try {
+    if (booking.property_id && booking.check_in && booking.check_out && booking.check_out > booking.check_in) {
+      const startMs = Date.parse(`${booking.check_in}T00:00:00.000Z`);
+      const endMs = Date.parse(`${booking.check_out}T00:00:00.000Z`);
+      const numNights = Math.round((endMs - startMs) / 86_400_000);
+      if (numNights > 0) {
+        const { data: otherBookings } = await supabase
+          .from("bookings")
+          .select("check_in, check_out")
+          .eq("property_id", booking.property_id)
+          .in("status", ["confirmed", "completed"])
+          .neq("id", booking.id);
+        for (let i = 0; i < numNights; i++) {
+          const dayIso = new Date(startMs + i * 86_400_000).toISOString().slice(0, 10);
+          const stillOccupied = (otherBookings || []).some((ob) => ob.check_in <= dayIso && ob.check_out > dayIso);
+          if (!stillOccupied) {
+            await supabase
+              .from("property_availability")
+              .update({ is_available: true, updated_at: new Date().toISOString() })
+              .eq("property_id", booking.property_id)
+              .eq("date", dayIso);
+          }
+        }
+      }
+    }
+  } catch {}
 
   // 2. Host payout adjustment & refund record only apply if a non-zero refund was approved
   if (quote.refundPercentage > 0) {

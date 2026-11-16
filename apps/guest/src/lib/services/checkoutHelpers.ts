@@ -4,7 +4,7 @@ import {
   DEFAULT_CHECKIN_TIME,
   DEFAULT_CHECKOUT_TIME,
   DEFAULT_CHECKOUT_CUTOFF,
-  TimeSlotBooking,
+  type TimeSlotBooking,
   addDaysToIsoDate,
   computeSlotAwareStayRate,
   deriveHostManualBlockedDates,
@@ -75,7 +75,7 @@ export async function resolveCheckoutProperty(
       const q = (supabase.from("properties") as any).select(fields).eq("is_approved", true);
       return isUuid(rawPropertyId)
         ? q.eq("id", rawPropertyId).limit(1)
-        : q.or(`id.eq.${propertyUuid},title.ilike.%${propertySlug.replace(/-/g, " ")}%`).limit(1);
+        : q.eq("slug", propertySlug).limit(1);
     };
 
     const advRes = await filterQuery(advFields);
@@ -217,7 +217,7 @@ export async function checkDatesAndCalculateRate({
 
     const { data: candidateBookings } = await supabase
       .from("bookings")
-      .select("id, check_in, check_out, status, payment_status, guest_id, auth_subject, created_at, booking_reference")
+      .select("id, check_in, check_out, checkin_time, checkout_time, status, payment_status, guest_id, auth_subject, created_at, booking_reference")
       .eq("property_id", resolvedDbPropertyId)
       .lte("check_in", checkOut)
       .gte("check_out", checkIn)
@@ -232,11 +232,12 @@ export async function checkDatesAndCalculateRate({
       };
 
       for (const b of candidateBookings) {
+        const bMeta = b as Record<string, unknown>;
         const existingSlot: TimeSlotBooking = {
           checkIn: b.check_in,
           checkOut: b.check_out,
-          checkinTime: DEFAULT_CHECKIN_TIME,
-          checkoutTime: DEFAULT_CHECKOUT_TIME,
+          checkinTime: bMeta.checkin_time ? String(bMeta.checkin_time).slice(0, 5) : DEFAULT_CHECKIN_TIME,
+          checkoutTime: bMeta.checkout_time ? String(bMeta.checkout_time).slice(0, 5) : DEFAULT_CHECKOUT_TIME,
           bookingRef: b.booking_reference,
           status: b.status,
         };

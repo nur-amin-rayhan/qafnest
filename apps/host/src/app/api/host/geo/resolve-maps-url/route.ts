@@ -1,4 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
+import dns from "dns/promises";
+import net from "net";
+import { verifyHostSession } from "@/lib/auth/serverAuth";
 import {
   buildGoogleMapsEmbedUrl,
   buildGoogleMapsUrl,
@@ -13,6 +16,71 @@ import {
   reverseGeocodeReal,
   type ServerGeocodedLocation,
 } from "@/lib/geo/serverGeocoder";
+
+function isPrivateOrReservedIp(ip: string): boolean {
+  const clean = ip.replace(/^::ffff:/i, "").toLowerCase();
+  if (net.isIPv4(clean)) {
+    const parts = clean.split(".").map(Number);
+    if (parts.length !== 4 || parts.some((n) => Number.isNaN(n))) return true;
+    const [a, b] = parts;
+    if (a === 0 || a === 10 || a === 127) return true;
+    if (a === 169 && b === 254) return true;
+    if (a === 172 && b >= 16 && b <= 31) return true;
+    if (a === 192 && b === 168) return true;
+    if (a === 100 && b >= 64 && b <= 127) return true;
+    if (a >= 224) return true;
+    return false;
+  }
+  if (net.isIPv6(clean)) {
+    if (clean === "::" || clean === "::1") return true;
+    if (clean.startsWith("fc") || clean.startsWith("fd") || clean.startsWith("fe80")) return true;
+    return false;
+  }
+  return true;
+}
+
+async function assertPublicGoogleUrl(targetUrl: string): Promise<URL> {
+  const parsed = new URL(targetUrl);
+  if (parsed.protocol !== "https:" && parsed.protocol !== "http:") {
+    throw new Error("Only HTTP(S) URLs are allowed");
+  }
+  if (!isAllowedGoogleHost(parsed.hostname)) {
+    throw new Error("Only Google Maps URLs are allowed");
+  }
+  if (net.isIP(parsed.hostname)) {
+    throw new Error("IP literals are not allowed");
+  }
+  const resolved = await dns.lookup(parsed.hostname, { all: true });
+  if (!resolved.length || resolved.some((entry) => isPrivateOrReservedIp(entry.address))) {
+    throw new Error("Blocked private or reserved network destination");
+  }
+  return parsed;
+}
+
+async function safeFetchGoogleUrl(initialUrl: string, signal?: AbortSignal): Promise<{ response: Response; finalUrl: string }> {
+  let currentUrl = initialUrl;
+  for (let hop = 0; hop < 5; hop++) {
+    await assertPublicGoogleUrl(currentUrl);
+    const res = await fetch(currentUrl, {
+      method: "GET",
+      redirect: "manual",
+      signal,
+      headers: {
+        "User-Agent":
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+        "Accept-Language": "en-US,en;q=0.9,ar;q=0.8",
+      },
+    });
+    if (res.status >= 300 && res.status < 400) {
+      const location = res.headers.get("location");
+      if (!location) break;
+      currentUrl = new URL(location, currentUrl).toString();
+      continue;
+    }
+    return { response: res, finalUrl: res.url || currentUrl };
+  }
+  throw new Error("Too many Google Maps redirects");
+}
 
 function isAllowedGoogleHost(hostname: string): boolean {
   const host = hostname.toLowerCase();
@@ -183,6 +251,14 @@ function formatSuccessPayload(params: {
 }
 
 export async function POST(request: NextRequest) {
+  const authUser = await verifyHostSession(request);
+  if (!authUser) {
+    return NextResponse.json(
+      { code: "unauthorized", error: "Host authentication required." },
+      { status: 401 }
+    );
+  }
+
   try {
     const body = (await request.json().catch(() => null)) as Record<string, unknown> | null;
     if (!body) {
@@ -273,18 +349,12 @@ export async function POST(request: NextRequest) {
       try {
         const controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), 8000);
-        const response = await fetch(rawUrl, {
-          method: "GET",
-          redirect: "follow",
-          signal: controller.signal,
-          headers: {
-            "User-Agent":
-              "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-            "Accept-Language": "en-US,en;q=0.9,ar;q=0.8",
-          },
-        }).finally(() => clearTimeout(timeout));
+        const { response, finalUrl: resolvedFinalUrl } = await safeFetchGoogleUrl(
+          rawUrl,
+          controller.signal
+        ).finally(() => clearTimeout(timeout));
 
-        finalUrl = response.url || rawUrl;
+        finalUrl = resolvedFinalUrl || rawUrl;
         if (!coords) {
           coords = parseGoogleMapsCoordinates(finalUrl);
         }

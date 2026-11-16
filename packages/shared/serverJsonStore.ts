@@ -1,9 +1,11 @@
 import fs from "fs";
 import os from "os";
 import path from "path";
+import { fetchRemoteSharedState, pushRemoteSharedState } from "./supabaseKvStore";
 
 const TMP_DATA_DIR_NAME = "qafnest-data";
 const READ_ONLY_FS_CODES = new Set(["EROFS", "EACCES", "EPERM", "ENOENT", "ENOTDIR"]);
+const inFlightSyncPromises = new Map<string, Promise<boolean>>();
 
 let forceTmpStorage = false;
 
@@ -55,10 +57,14 @@ export function getTmpDataDir(): string {
 }
 
 export function getBundledSharedDataDir(): string {
-  const localDataDir = path.resolve(__dirname, "data");
-  if (fs.existsSync(path.join(localDataDir, "platform-fee-config.json"))) {
-    return localDataDir;
-  }
+  try {
+    if (typeof __dirname !== "undefined") {
+      const localDataDir = path.resolve(__dirname, "data");
+      if (fs.existsSync(path.join(localDataDir, "platform-fee-config.json"))) {
+        return localDataDir;
+      }
+    }
+  } catch {}
   return path.join(findMonorepoRoot(), "packages", "shared", "data");
 }
 
@@ -163,14 +169,93 @@ export function readSharedJsonFile<T>(
   return readJsonFromCandidates(candidates, fallback, normalize);
 }
 
+function scheduleRemoteSync(key: string, data: unknown): void {
+  const promise = pushRemoteSharedState(key, data).catch(() => false);
+  inFlightSyncPromises.set(key, promise);
+  void promise.finally(() => {
+    if (inFlightSyncPromises.get(key) === promise) {
+      inFlightSyncPromises.delete(key);
+    }
+  });
+}
+
+/** Waits for any background remote sync on a shared/root key or flushes explicitly. */
+export async function flushSharedStateSync(fileName?: string): Promise<void> {
+  if (fileName) {
+    const p = inFlightSyncPromises.get(path.basename(fileName));
+    if (p) await p;
+    return;
+  }
+  await Promise.all(Array.from(inFlightSyncPromises.values()));
+}
+
 /**
- * Atomically writes a JSON file to packages/shared/data, automatically falling back to /tmp/qafnest-data
- * on read-only filesystems (e.g., Vercel serverless functions) without throwing.
+ * Hydrates a shared JSON store from Supabase (`platform_shared_state` / `qafnest-private-state`)
+ * into local/tmp cache so subsequent synchronous store reads reflect cross-app updates.
+ */
+export async function hydrateSharedJsonFile<T>(
+  fileName: string,
+  fallback: () => T,
+  normalize?: (parsed: unknown) => T,
+  extraFallbackDirs: string[] = []
+): Promise<T> {
+  const key = path.basename(fileName);
+  await flushSharedStateSync(key);
+  const remote = await fetchRemoteSharedState<unknown>(key);
+  if (remote !== null) {
+    const value = normalize ? normalize(remote) : (remote as T);
+    const primaryPath = path.join(getBundledSharedDataDir(), key);
+    const tmpFallbackPath = path.join(getTmpDataDir(), key);
+    writeJsonWithTmpFallback(primaryPath, tmpFallbackPath, value);
+    return value;
+  }
+  return readSharedJsonFile(key, fallback, normalize, extraFallbackDirs);
+}
+
+/**
+ * Atomically writes a shared JSON file locally/tmp AND mirrors it asynchronously to Supabase.
  */
 export function writeSharedJsonFile(fileName: string, data: unknown): boolean {
-  const primaryPath = path.join(getBundledSharedDataDir(), fileName);
-  const tmpFallbackPath = path.join(getTmpDataDir(), fileName);
-  return writeJsonWithTmpFallback(primaryPath, tmpFallbackPath, data);
+  const key = path.basename(fileName);
+  const primaryPath = path.join(getBundledSharedDataDir(), key);
+  const tmpFallbackPath = path.join(getTmpDataDir(), key);
+  const ok = writeJsonWithTmpFallback(primaryPath, tmpFallbackPath, data);
+  scheduleRemoteSync(key, data);
+  return ok;
+}
+
+/** Writes locally/tmp and awaits remote Supabase persistence. */
+export async function persistSharedJsonFile(fileName: string, data: unknown): Promise<boolean> {
+  const key = path.basename(fileName);
+  const primaryPath = path.join(getBundledSharedDataDir(), key);
+  const tmpFallbackPath = path.join(getTmpDataDir(), key);
+  const localOk = writeJsonWithTmpFallback(primaryPath, tmpFallbackPath, data);
+  const remoteOk = await pushRemoteSharedState(key, data);
+  return localOk || remoteOk;
+}
+
+/**
+ * Hydrates a root-level JSON store from Supabase into local/tmp cache.
+ */
+export async function hydrateRootJsonFile<T>(
+  fileName: string,
+  fallback: () => T,
+  normalize?: (parsed: unknown) => T
+): Promise<T> {
+  const key = path.basename(fileName);
+  const remote = await fetchRemoteSharedState<unknown>(key);
+  if (remote !== null) {
+    const value = normalize ? normalize(remote) : (remote as T);
+    const tmpFallbackPath = path.join(getTmpDataDir(), key);
+    if (isReadOnlyServerlessEnv()) {
+      writeJsonWithTmpFallback(tmpFallbackPath, tmpFallbackPath, value);
+    } else {
+      const primaryPath = joinRuntimeFile(findMonorepoRoot(), key);
+      writeJsonWithTmpFallback(primaryPath, tmpFallbackPath, value);
+    }
+    return value;
+  }
+  return readRootJsonFile(key, fallback, normalize);
 }
 
 /**
@@ -190,13 +275,14 @@ export function readRootJsonFile<T>(
 }
 
 /**
- * Atomically writes a root-level JSON file, falling back to /tmp/qafnest-data on read-only deployments.
+ * Atomically writes a root-level JSON file locally/tmp and mirrors to Supabase.
  */
 export function writeRootJsonFile(fileName: string, data: unknown): boolean {
-  const tmpFallbackPath = path.join(getTmpDataDir(), fileName);
-  if (isReadOnlyServerlessEnv()) {
-    return writeJsonWithTmpFallback(tmpFallbackPath, tmpFallbackPath, data);
-  }
-  const primaryPath = joinRuntimeFile(findMonorepoRoot(), fileName);
-  return writeJsonWithTmpFallback(primaryPath, tmpFallbackPath, data);
+  const key = path.basename(fileName);
+  const tmpFallbackPath = path.join(getTmpDataDir(), key);
+  const ok = isReadOnlyServerlessEnv()
+    ? writeJsonWithTmpFallback(tmpFallbackPath, tmpFallbackPath, data)
+    : writeJsonWithTmpFallback(joinRuntimeFile(findMonorepoRoot(), key), tmpFallbackPath, data);
+  scheduleRemoteSync(key, data);
+  return ok;
 }

@@ -49,12 +49,24 @@ ALTER TABLE public.cms_faqs ENABLE ROW LEVEL SECURITY;
 
 GRANT ALL ON public.cms_articles TO service_role, postgres;
 GRANT SELECT ON public.cms_articles TO anon, authenticated;
+DROP POLICY IF EXISTS "Public can read published cms articles" ON public.cms_articles;
+CREATE POLICY "Public can read published cms articles"
+  ON public.cms_articles FOR SELECT TO anon, authenticated
+  USING (status = 'published');
 
 GRANT ALL ON public.cms_seo_routes TO service_role, postgres;
 GRANT SELECT ON public.cms_seo_routes TO anon, authenticated;
+DROP POLICY IF EXISTS "Public can read active cms seo routes" ON public.cms_seo_routes;
+CREATE POLICY "Public can read active cms seo routes"
+  ON public.cms_seo_routes FOR SELECT TO anon, authenticated
+  USING (true);
 
 GRANT ALL ON public.cms_faqs TO service_role, postgres;
 GRANT SELECT ON public.cms_faqs TO anon, authenticated;
+DROP POLICY IF EXISTS "Public can read active cms faqs" ON public.cms_faqs;
+CREATE POLICY "Public can read active cms faqs"
+  ON public.cms_faqs FOR SELECT TO anon, authenticated
+  USING (true);
 
 -- 5. Seed initial SEO Routes & Articles if empty
 INSERT INTO public.cms_seo_routes (route_path, title_en, title_ar, keywords, og_image)

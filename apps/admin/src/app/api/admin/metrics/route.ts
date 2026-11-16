@@ -2,15 +2,17 @@ import { NextRequest, NextResponse } from "next/server";
 import { createAdminDataClient, isAdminRequest } from "@/lib/adminApi";
 import {
   getHostPayoutPolicy,
+  hydrateHostPayoutStore,
   summarizePayoutReminders,
   syncConfirmedBookingsToPayouts,
   computePayoutSlaMetrics,
 } from "@qafnest/shared/hostPayoutStore";
-import { getBookingRefundRecord } from "@qafnest/shared/bookingRefundStore";
-import { getTransferClaim } from "@qafnest/shared/helplineVerificationStore";
-import { getServerPlatformFeeConfig } from "@qafnest/shared/platformFeeStore";
-import { resolveBookingSettlement } from "@qafnest/shared/bookingFinancialsStore";
+import { getBookingRefundRecord, hydrateBookingRefundStore } from "@qafnest/shared/bookingRefundStore";
+import { getTransferClaim, hydrateHelplineVerificationStore } from "@qafnest/shared/helplineVerificationStore";
+import { getServerPlatformFeeConfig, hydratePlatformFeeConfig } from "@qafnest/shared/platformFeeStore";
+import { hydrateBookingFinancialsStore, resolveBookingSettlement } from "@qafnest/shared/bookingFinancialsStore";
 import {
+  hydratePropertyDeletionStore,
   readPropertyDeletionRequests,
   type PropertyDeletionRequestSummary,
 } from "@qafnest/shared/propertyDeletionStore";
@@ -34,6 +36,15 @@ export async function GET(request: NextRequest) {
   }
 
   try {
+    await Promise.all([
+      hydrateHostPayoutStore(),
+      hydrateBookingRefundStore(),
+      hydrateHelplineVerificationStore(),
+      hydratePlatformFeeConfig(),
+      hydrateBookingFinancialsStore(),
+      hydratePropertyDeletionStore(),
+    ]);
+
     const [propertiesRes, bookingsRes, authUsersRes] = await Promise.all([
       supabase
         .from("properties")
@@ -46,7 +57,7 @@ export async function GET(request: NextRequest) {
           "id, booking_reference, total_price, total_nights, status, payment_status, payment_method, smart_lock_pin, check_in, check_out, guests_count, property_id, created_at, guest_id, auth_subject"
         )
         .order("created_at", { ascending: false })
-        .limit(50),
+        .limit(2000),
       supabase.auth.admin
         .listUsers({ page: 1, perPage: 500 })
         .catch(() => ({ data: { users: [] } })),

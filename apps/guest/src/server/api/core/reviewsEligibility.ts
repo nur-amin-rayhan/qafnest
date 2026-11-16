@@ -31,7 +31,7 @@ export async function GET(request: Request) {
         const { data: propData } = await adminClient
           .from("properties")
           .select("id")
-          .or(`slug.eq.${propertyId},id.eq.${propertyId}`)
+          .eq("slug", propertyId)
           .maybeSingle();
         if (propData?.id && uuidPattern.test(propData.id)) {
           resolvedPropertyId = propData.id;
@@ -51,6 +51,10 @@ export async function GET(request: Request) {
         payment_status: string;
       }> = [];
 
+      const isGuestIdUuid =
+        Boolean(auth.guestId) &&
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(auth.guestId));
+
       try {
         let query = adminClient
           .from("bookings")
@@ -58,12 +62,14 @@ export async function GET(request: Request) {
           .eq("property_id", resolvedPropertyId)
           .order("check_out", { ascending: false });
 
-        if (auth.guestId && auth.subject && auth.guestId !== auth.subject) {
+        if (isGuestIdUuid && auth.subject && auth.guestId !== auth.subject) {
           query = query.or(`guest_id.eq.${auth.guestId},auth_subject.eq.${auth.subject}`);
-        } else if (auth.guestId) {
-          query = query.or(`guest_id.eq.${auth.guestId},auth_subject.eq.${auth.guestId}`);
+        } else if (isGuestIdUuid) {
+          query = query.eq("guest_id", auth.guestId);
         } else if (auth.subject) {
           query = query.eq("auth_subject", auth.subject);
+        } else if (auth.guestId) {
+          query = query.eq("auth_subject", auth.guestId);
         }
 
         const { data: bookings } = await query;
@@ -72,16 +78,13 @@ export async function GET(request: Request) {
         }
       } catch {}
 
-      // Filter bookings to those owned by the authenticated guest
-      bookingRows = bookingRows.filter((b) => {
-        if (!b.guest_id && !b.auth_subject) return true;
-        return (
-          (auth.guestId && b.guest_id === auth.guestId) ||
-          (auth.subject && b.auth_subject === auth.subject) ||
-          (auth.subject && b.guest_id === auth.subject) ||
-          (auth.guestId && b.auth_subject === auth.guestId)
-        );
-      });
+      // Filter bookings to those strictly owned by the authenticated guest
+      bookingRows = bookingRows.filter((b) =>
+        (auth.guestId && b.guest_id === auth.guestId) ||
+        (auth.subject && b.auth_subject === auth.subject) ||
+        (auth.subject && b.guest_id === auth.subject) ||
+        (auth.guestId && b.auth_subject === auth.guestId)
+      );
 
       const bookingIds = bookingRows.map((booking) => booking.id);
       let reviewedBookingIds = new Set<string>();
@@ -122,12 +125,14 @@ export async function GET(request: Request) {
             .eq("property_id", resolvedPropertyId)
             .eq("is_sample", false);
 
-          if (auth.guestId && auth.subject && auth.guestId !== auth.subject) {
+          if (isGuestIdUuid && auth.subject && auth.guestId !== auth.subject) {
             uQuery = uQuery.or(`guest_id.eq.${auth.guestId},guest_subject.eq.${auth.subject}`);
-          } else if (auth.guestId) {
-            uQuery = uQuery.or(`guest_id.eq.${auth.guestId},guest_subject.eq.${auth.guestId}`);
+          } else if (isGuestIdUuid) {
+            uQuery = uQuery.eq("guest_id", auth.guestId);
           } else if (auth.subject) {
             uQuery = uQuery.eq("guest_subject", auth.subject);
+          } else if (auth.guestId) {
+            uQuery = uQuery.eq("guest_subject", auth.guestId);
           }
 
           const { data: directReviews } = await uQuery;

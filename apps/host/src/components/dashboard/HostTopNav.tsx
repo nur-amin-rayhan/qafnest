@@ -164,14 +164,15 @@ export default function HostTopNav({
             t={t}
           />
 
-          <button
-            type="button"
-            onClick={() => setActive("reservations")}
+          <a
+            href="https://wa.me/966576707709"
+            target="_blank"
+            rel="noopener noreferrer"
             className="grid h-9 w-9 sm:h-10 sm:w-10 place-items-center rounded-xl bg-[#dcd4ef] text-[#4F2396] hover:bg-[#ceC2e8] transition cursor-pointer"
-            title={t("Chat & Support", "المحادثات والدعم")}
+            title={t("Chat & Support (WhatsApp)", "المحادثات والدعم (واتساب)")}
           >
             <MessageSquareText size={18} />
-          </button>
+          </a>
 
           {/* Profile Dropdown */}
           <HostProfileDropdown

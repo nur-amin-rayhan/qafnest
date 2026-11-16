@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import ClientProviders from "@/components/providers/ClientProviders";
 import { DynamicSeoTags } from "@/components/common/DynamicSeoTags";
 import { getSeoAlternates } from "@/lib/localization/localeHelper";
@@ -60,10 +60,12 @@ const baseUrl =
     : "http://localhost:3000");
 
 export async function generateMetadata(): Promise<Metadata> {
-  const cookieStore = await cookies();
-  const rawLang = cookieStore.get("qafnest_lang")?.value;
+  const [cookieStore, reqHeaders] = await Promise.all([cookies(), headers()]);
+  const headerLang = reqHeaders.get("x-qafnest-locale");
+  const rawLang = headerLang || cookieStore.get("qafnest_lang")?.value;
   const lang: "ar" | "en" = rawLang === "en" ? "en" : "ar";
-  const { canonical, alternates } = getSeoAlternates("/", lang, baseUrl);
+  const activePathname = reqHeaders.get("x-qafnest-pathname") || "/";
+  const { canonical, alternates } = getSeoAlternates(activePathname, lang, baseUrl);
 
   return {
     metadataBase: new URL(baseUrl),
@@ -101,8 +103,9 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const cookieStore = await cookies();
-  const rawLang = cookieStore.get("qafnest_lang")?.value;
+  const [cookieStore, reqHeaders] = await Promise.all([cookies(), headers()]);
+  const headerLang = reqHeaders.get("x-qafnest-locale");
+  const rawLang = headerLang || cookieStore.get("qafnest_lang")?.value;
   const initialLang: "ar" | "en" = rawLang === "en" ? "en" : "ar";
   const initialDir = initialLang === "ar" ? "rtl" : "ltr";
 

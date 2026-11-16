@@ -37,6 +37,33 @@ export async function GET(request: NextRequest) {
     });
   }
 
+  const lookupRef = existing.bookingReference || ref;
+  let isAuthorized = authUser.role === "admin";
+  if (!isAuthorized && lookupRef) {
+    if (lookupRef.startsWith("TOPUP-")) {
+      const wallet = await getUserWallet(authUser.id);
+      isAuthorized = wallet.transactions.some((tx) => tx.reference === lookupRef);
+    } else {
+      const dbClient = await getAdminOrServerClient();
+      const { data: booking } = await dbClient
+        .from("bookings")
+        .select("guest_id, auth_subject")
+        .eq("booking_reference", lookupRef)
+        .maybeSingle();
+      if (booking) {
+        isAuthorized = Boolean(
+          booking.guest_id === authUser.id ||
+          booking.auth_subject === authUser.id ||
+          (authUser.isPhoneVerified && authUser.phone && booking.auth_subject === authUser.phone)
+        );
+      }
+    }
+  }
+
+  if (!isAuthorized) {
+    return NextResponse.json({ code: "forbidden" }, { status: 403 });
+  }
+
   return NextResponse.json({
     success: true,
     found: true,
@@ -74,30 +101,18 @@ export async function POST(request: NextRequest) {
       propertyTitle?: string;
     };
 
-    const existing = findZatcaInvoiceRecord({
-      uuid: body.id,
-      invoiceNumber: body.invoiceNumber,
-      bookingReference: body.reference,
-    });
+    const dbClient = await getAdminOrServerClient();
+    const isUuidId = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(body.id || ""));
 
-    if (
-      existing &&
-      (existing.clearanceStatus === "REPORTED" || existing.clearanceStatus === "CLEARED")
-    ) {
-      return NextResponse.json({
-        success: true,
-        alreadyReported: true,
-        record: existing,
-      });
-    }
-
-    if (body.kind === "booking" && body.id) {
-      const dbClient = await getAdminOrServerClient();
-      const { data: booking } = await dbClient
+    if (body.kind === "booking" && (body.id || body.reference)) {
+      const q = dbClient
         .from("bookings")
         .select("id, booking_reference, total_price, status, payment_status, guest_id, auth_subject, payment_method")
-        .eq("id", body.id)
-        .maybeSingle();
+        .limit(1);
+      const { data: booking } = await (isUuidId && body.id
+        ? q.eq("id", body.id)
+        : q.eq("booking_reference", body.reference || body.id || "")
+      ).maybeSingle();
 
       if (!booking) {
         return NextResponse.json({ code: "booking_not_found" }, { status: 404 });
@@ -106,10 +121,27 @@ export async function POST(request: NextRequest) {
       const ownsBooking =
         booking.guest_id === authUser.id ||
         booking.auth_subject === authUser.id ||
-        (authUser.phone && booking.auth_subject === authUser.phone);
+        (authUser.isPhoneVerified && authUser.phone && booking.auth_subject === authUser.phone);
 
       if (!ownsBooking && authUser.role !== "admin") {
         return NextResponse.json({ code: "forbidden" }, { status: 403 });
+      }
+
+      const existing = findZatcaInvoiceRecord({
+        uuid: booking.id,
+        invoiceNumber: body.invoiceNumber,
+        bookingReference: booking.booking_reference,
+      });
+
+      if (
+        existing &&
+        (existing.clearanceStatus === "REPORTED" || existing.clearanceStatus === "CLEARED")
+      ) {
+        return NextResponse.json({
+          success: true,
+          alreadyReported: true,
+          record: existing,
+        });
       }
 
       const total = Number(booking.total_price) || 0;

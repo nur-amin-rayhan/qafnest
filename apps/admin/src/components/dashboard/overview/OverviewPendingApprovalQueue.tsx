@@ -23,7 +23,9 @@ export function OverviewPendingApprovalQueue({
   t,
 }: OverviewPendingApprovalQueueProps) {
   const pendingProperties = properties.filter(
-    (p) => p.status === "pending" || !p.is_approved
+    (p) =>
+      p.status === "pending" ||
+      (!p.is_approved && p.status !== "rejected" && (p.status as string) !== "suspended")
   );
 
   return (

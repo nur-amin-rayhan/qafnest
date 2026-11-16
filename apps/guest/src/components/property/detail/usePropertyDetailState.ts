@@ -112,14 +112,17 @@ export function usePropertyDetailState({
     else if (property.checkinTime) setCheckinTime(property.checkinTime);
     if (checkoutAt) setCheckoutTime(checkoutAt);
     else if (property.checkoutTime) setCheckoutTime(property.checkoutTime);
-    if (Number.isInteger(guests) && guests > 0)
+    if (Number.isInteger(guests) && guests > 0) {
       setGuestsCount(Math.min(guests, capacity));
-    else setGuestsCount(Math.max(1, Math.min(guestsCount, capacity)));
+    } else {
+      setGuestsCount(Math.max(1, Math.min(guestsCount, capacity)));
+    }
   }, [
     searchParamString,
-    property,
+    property.id,
+    property.checkinTime,
+    property.checkoutTime,
     capacity,
-    guestsCount,
     setCheckinDate,
     setCheckinTime,
     setCheckoutDate,

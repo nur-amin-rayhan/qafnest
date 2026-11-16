@@ -23,7 +23,7 @@ export function FilterCategoryPopover({
       data-lenis-prevent="true"
       onWheel={(e) => e.stopPropagation()}
       style={{ left: language === "ar" ? undefined : popoverOffsetLeft }}
-      className="absolute top-full right-auto rtl:right-0 mt-2 w-60 rounded-3xl bg-white dark:bg-[#141122] border border-violet-200/90 dark:border-violet-500/30 shadow-[0_20px_50px_rgba(109,40,217,0.18)] p-2.5 z-[80]"
+      className="absolute top-full start-0 mt-2 w-60 rounded-3xl bg-white dark:bg-[#141122] border border-violet-200/90 dark:border-violet-500/30 shadow-[0_20px_50px_rgba(109,40,217,0.18)] p-2.5 z-[80]"
     >
       <div className="text-[11px] font-extrabold text-violet-700 dark:text-violet-300 px-3 py-1.5 uppercase tracking-wider">
         {language === "ar" ? "اختر نوع الإقامة" : "Choose Property Type"}

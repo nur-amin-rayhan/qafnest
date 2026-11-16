@@ -219,12 +219,22 @@ function escapeXml(str: string): string {
     .replace(/'/g, "&apos;");
 }
 
+function encodeLength(len: number): Buffer {
+  if (len < 128) return Buffer.from([len]);
+  const bytes: number[] = [];
+  let tmp = len;
+  while (tmp > 0) {
+    bytes.unshift(tmp & 0xff);
+    tmp >>= 8;
+  }
+  return Buffer.from([0x80 | bytes.length, ...bytes]);
+}
+
 function encodeTlv9Tag(tags: Array<[number, string | Buffer]>): string {
   const parts: Buffer[] = [];
   for (const [tag, val] of tags) {
     const valBuf = Buffer.isBuffer(val) ? val : Buffer.from(val, "utf8");
-    // Handle multi-byte lengths defensively if ever > 255, though ZATCA Tags 1-9 fit < 255
-    parts.push(Buffer.from([tag, valBuf.length]), valBuf);
+    parts.push(Buffer.from([tag]), encodeLength(valBuf.length), valBuf);
   }
   return Buffer.concat(parts).toString("base64");
 }
@@ -244,6 +254,13 @@ export function buildAndSignZatcaPhase2Invoice(
     billingReferenceId?: string;
     instructionNote?: string;
     sellerDistrict?: string;
+    sellerCrNumber?: string;
+    sellerStreet?: string;
+    sellerBuildingNumber?: string;
+    sellerCityName?: string;
+    sellerPostalZone?: string;
+    buyerPostalZone?: string;
+    buyerCityName?: string;
     paymentMeansCode?: string;
   },
   credentials?: {
@@ -256,6 +273,11 @@ export function buildAndSignZatcaPhase2Invoice(
   const subtype = data.type === "simplified" ? "0200000" : "0100000";
   const typeCode = data.invoiceTypeCode || "388";
   const sellerDistrict = escapeXml(data.sellerDistrict || "Al Olaya");
+  const sellerCrNumber = escapeXml(data.sellerCrNumber || "1010648921");
+  const sellerStreet = escapeXml(data.sellerStreet || "King Fahd Road");
+  const sellerBuildingNumber = escapeXml(data.sellerBuildingNumber || "1234");
+  const sellerCityName = escapeXml(data.sellerCityName || "Riyadh");
+  const sellerPostalZone = escapeXml(data.sellerPostalZone || "12214");
 
   // Compute exact line totals consistent with ZATCA BR-KSA-EN16931 rules
   const lines = data.lineItems.map((item, idx) => {
@@ -304,8 +326,9 @@ export function buildAndSignZatcaPhase2Invoice(
 
   const part1Open = `<Invoice xmlns="urn:oasis:names:specification:ubl:schema:xsd:Invoice-2" xmlns:cac="urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2" xmlns:cbc="urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2" xmlns:ext="urn:oasis:names:specification:ubl:schema:xsd:CommonExtensionComponents-2">`;
 
+  const profileId = data.type === "standard" ? "clearance:1.0" : "reporting:1.0";
   const part2BeforeQr = `
-    <cbc:ProfileID>reporting:1.0</cbc:ProfileID>
+    <cbc:ProfileID>${profileId}</cbc:ProfileID>
     <cbc:ID>${escapeXml(data.invoiceNumber)}</cbc:ID>
     <cbc:UUID>${escapeXml(data.uuid)}</cbc:UUID>
     <cbc:IssueDate>${issueDate}</cbc:IssueDate>
@@ -338,14 +361,14 @@ export function buildAndSignZatcaPhase2Invoice(
     <cac:AccountingSupplierParty>
         <cac:Party>
             <cac:PartyIdentification>
-                <cbc:ID schemeID="CRN">1010648921</cbc:ID>
+                <cbc:ID schemeID="CRN">${sellerCrNumber}</cbc:ID>
             </cac:PartyIdentification>
             <cac:PostalAddress>
-                <cbc:StreetName>King Fahd Road</cbc:StreetName>
-                <cbc:BuildingNumber>1234</cbc:BuildingNumber>
+                <cbc:StreetName>${sellerStreet}</cbc:StreetName>
+                <cbc:BuildingNumber>${sellerBuildingNumber}</cbc:BuildingNumber>
                 <cbc:CitySubdivisionName>${sellerDistrict}</cbc:CitySubdivisionName>
-                <cbc:CityName>Riyadh</cbc:CityName>
-                <cbc:PostalZone>12214</cbc:PostalZone>
+                <cbc:CityName>${sellerCityName}</cbc:CityName>
+                <cbc:PostalZone>${sellerPostalZone}</cbc:PostalZone>
                 <cac:Country>
                     <cbc:IdentificationCode>SA</cbc:IdentificationCode>
                 </cac:Country>

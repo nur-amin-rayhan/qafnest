@@ -68,28 +68,43 @@ export async function POST(
       .eq("id", review.property_id)
       .single();
 
-    if (propErr || !property || property.host_id !== authUser.id) {
+    if (propErr || !property || !property.host_id || property.host_id !== authUser.id) {
       return NextResponse.json(
         { code: "forbidden", message: "You are not authorized to reply to this review." },
         { status: 403 }
       );
     }
 
-    // 2. Update review with official host response
+    // 2. Update review with official host response in dedicated host_reply columns
     const nowIso = new Date().toISOString();
     const updatePayload: Record<string, unknown> = {
-      admin_reply: replyText,
-      admin_reply_ar: body.replyAr?.trim() || replyText,
-      admin_reply_by: "host",
-      admin_reply_at: nowIso,
+      host_reply: replyText,
+      host_reply_ar: body.replyAr?.trim() || replyText,
+      host_reply_at: nowIso,
     };
 
-    const { data: updated, error: updateErr } = await supabase
+    let { data: updated, error: updateErr } = await supabase
       .from("reviews")
       .update(updatePayload)
       .eq("id", reviewId)
       .select()
       .single();
+
+    if (updateErr && /host_reply|column .* does not exist/i.test(updateErr.message || "")) {
+      const legacyRetry = await supabase
+        .from("reviews")
+        .update({
+          admin_reply: replyText,
+          admin_reply_ar: body.replyAr?.trim() || replyText,
+          admin_reply_by: "host",
+          admin_reply_at: nowIso,
+        })
+        .eq("id", reviewId)
+        .select()
+        .single();
+      updated = legacyRetry.data;
+      updateErr = legacyRetry.error;
+    }
 
     if (updateErr) {
       return NextResponse.json({ code: "update_failed", message: updateErr.message }, { status: 500 });

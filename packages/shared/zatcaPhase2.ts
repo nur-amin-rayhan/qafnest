@@ -1,4 +1,5 @@
 import { QAFNEST_ZATCA_DEFAULTS } from "./zatca";
+import { escapeHtml } from "./escapeHtml";
 
 export interface ZatcaPhase2InvoiceData {
   uuid: string;
@@ -163,10 +164,12 @@ export function computeZatcaInvoiceHash(xmlString: string): string {
 export function signZatcaInvoiceHash(hashBase64: string): string {
   const nodeCrypto = getNodeCrypto();
   if (nodeCrypto) {
-    const secretKey = process.env.ZATCA_PRIVATE_KEY || "qafnest_zatca_phase2_private_key_secp256k1_ksa_production_2026";
-    return nodeCrypto.createHmac("sha256", secretKey).update(hashBase64).digest("base64");
+    const secretKey = process.env.ZATCA_PRIVATE_KEY?.trim() || process.env.ADMIN_SECRET_KEY?.trim();
+    if (secretKey) {
+      return nodeCrypto.createHmac("sha256", secretKey).update(hashBase64).digest("base64");
+    }
   }
-  return uint8ToBase64(utf8ToUint8(`SIG_${hashBase64.slice(0, 16)}`));
+  return uint8ToBase64(utf8ToUint8(`PREVIEW_${hashBase64.slice(0, 16)}`));
 }
 
 /**
@@ -180,11 +183,11 @@ export function generateZatcaUbl21Xml(data: ZatcaPhase2InvoiceData): string {
          xmlns:cac="urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2"
          xmlns:cbc="urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2"
          xmlns:ext="urn:oasis:names:specification:ubl:schema:xsd:CommonExtensionComponents-2">
-  <cbc:ProfileID>reporting:1.0</cbc:ProfileID>
-  <cbc:ID>${data.invoiceNumber}</cbc:ID>
-  <cbc:UUID>${data.uuid}</cbc:UUID>
-  <cbc:IssueDate>${data.issueDate}</cbc:IssueDate>
-  <cbc:IssueTime>${data.issueTime}</cbc:IssueTime>
+  <cbc:ProfileID>${data.type === "standard" ? "clearance:1.0" : "reporting:1.0"}</cbc:ProfileID>
+  <cbc:ID>${escapeHtml(data.invoiceNumber)}</cbc:ID>
+  <cbc:UUID>${escapeHtml(data.uuid)}</cbc:UUID>
+  <cbc:IssueDate>${escapeHtml(data.issueDate)}</cbc:IssueDate>
+  <cbc:IssueTime>${escapeHtml(data.issueTime)}</cbc:IssueTime>
   <cbc:InvoiceTypeCode name="${subtype}">388</cbc:InvoiceTypeCode>
   <cbc:DocumentCurrencyCode>SAR</cbc:DocumentCurrencyCode>
   <cbc:TaxCurrencyCode>SAR</cbc:TaxCurrencyCode>
@@ -219,13 +222,13 @@ export function generateZatcaUbl21Xml(data: ZatcaPhase2InvoiceData): string {
         </cac:Country>
       </cac:PostalAddress>
       <cac:PartyTaxScheme>
-        <cbc:CompanyID>${data.sellerVatNumber}</cbc:CompanyID>
+        <cbc:CompanyID>${escapeHtml(data.sellerVatNumber)}</cbc:CompanyID>
         <cac:TaxScheme>
           <cbc:ID>VAT</cbc:ID>
         </cac:TaxScheme>
       </cac:PartyTaxScheme>
       <cac:PartyLegalEntity>
-        <cbc:RegistrationName>${data.sellerNameAr}</cbc:RegistrationName>
+        <cbc:RegistrationName>${escapeHtml(data.sellerNameAr)}</cbc:RegistrationName>
       </cac:PartyLegalEntity>
     </cac:Party>
   </cac:AccountingSupplierParty>
@@ -234,7 +237,7 @@ export function generateZatcaUbl21Xml(data: ZatcaPhase2InvoiceData): string {
   <cac:AccountingCustomerParty>
     <cac:Party>
       <cac:PartyLegalEntity>
-        <cbc:RegistrationName>${data.buyerName || "Guest Customer / عميل ضيف"}</cbc:RegistrationName>
+        <cbc:RegistrationName>${escapeHtml(data.buyerName || "Guest Customer / عميل ضيف")}</cbc:RegistrationName>
       </cac:PartyLegalEntity>
     </cac:Party>
   </cac:AccountingCustomerParty>
@@ -272,7 +275,7 @@ export function generateZatcaUbl21Xml(data: ZatcaPhase2InvoiceData): string {
     <cbc:InvoicedQuantity unitCode="PCE">${item.quantity}</cbc:InvoicedQuantity>
     <cbc:LineExtensionAmount currencyID="SAR">${item.subtotal.toFixed(2)}</cbc:LineExtensionAmount>
     <cac:Item>
-      <cbc:Name>${item.name}</cbc:Name>
+      <cbc:Name>${escapeHtml(item.name)}</cbc:Name>
       <cac:ClassifiedTaxCategory>
         <cbc:ID>S</cbc:ID>
         <cbc:Percent>15.00</cbc:Percent>

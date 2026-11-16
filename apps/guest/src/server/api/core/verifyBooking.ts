@@ -4,13 +4,16 @@ import {
   verifySessionOtp,
   verifySessionIdentity,
 } from "@qafnest/shared/helplineVerificationStore";
+import { hydrateSharedJsonFile, persistSharedJsonFile } from "@qafnest/shared/serverJsonStore";
 
+const VERIFICATIONS_FILE = "helpline-verifications.json";
 
 export async function GET(
   request: NextRequest,
   context: { params: Promise<{ token: string }> }
 ) {
   const { token } = await context.params;
+  await hydrateSharedJsonFile(VERIFICATIONS_FILE, () => ({}));
   const session = getVerificationSession(token);
   if (!session) {
     return NextResponse.json({ error: "Verification link is invalid or expired." }, { status: 404 });
@@ -28,7 +31,6 @@ export async function GET(
       identityVerified: session.identityVerified,
       completed: session.completed,
       verificationMethod: session.verificationMethod,
-      devOtpCode: session.devOtpCode, // For sandbox dev testing convenience
     },
   });
 }
@@ -38,6 +40,7 @@ export async function POST(
   context: { params: Promise<{ token: string }> }
 ) {
   const { token } = await context.params;
+  await hydrateSharedJsonFile(VERIFICATIONS_FILE, () => ({}));
   const session = getVerificationSession(token);
   if (!session) {
     return NextResponse.json({ error: "Verification session not found" }, { status: 404 });
@@ -53,10 +56,13 @@ export async function POST(
       if (!res.success) {
         return NextResponse.json({ error: res.error }, { status: 400 });
       }
+      const all = await hydrateSharedJsonFile(VERIFICATIONS_FILE, () => ({}));
+      if (res.session) (all as Record<string, unknown>)[token] = res.session;
+      await persistSharedJsonFile(VERIFICATIONS_FILE, all);
       return NextResponse.json({
         success: true,
         message: "Mobile phone verified successfully.",
-        session: res.session,
+        session: res.session ? { ...res.session, devOtpCode: undefined } : undefined,
       });
     }
 
@@ -71,10 +77,13 @@ export async function POST(
       if (!res.success) {
         return NextResponse.json({ error: res.error }, { status: 400 });
       }
+      const all = await hydrateSharedJsonFile(VERIFICATIONS_FILE, () => ({}));
+      if (res.session) (all as Record<string, unknown>)[token] = res.session;
+      await persistSharedJsonFile(VERIFICATIONS_FILE, all);
       return NextResponse.json({
         success: true,
         message: "National ID / Iqama verified with Elm Yaqeen & Nafath portal.",
-        session: res.session,
+        session: res.session ? { ...res.session, devOtpCode: undefined } : undefined,
       });
     }
 

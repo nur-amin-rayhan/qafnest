@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { getSupabaseConfig, isSupabaseConfigured } from "@/lib/supabase/config";
 
-const PROTECTED_PREFIXES = ["/admin", "/dashboard"];
+const PROTECTED_PREFIXES = ["/admin", "/dashboard", "/api/admin"];
 
 interface JwkCache {
   keys: Array<Record<string, unknown>>;
@@ -75,6 +75,8 @@ async function verifyEdgeFirebaseToken(token?: string | null): Promise<boolean> 
     if (expectedProjectId) {
       if (payload.aud !== expectedProjectId) return false;
       if (payload.iss !== `https://securetoken.google.com/${expectedProjectId}`) return false;
+    } else if (process.env.NODE_ENV === "production") {
+      return false;
     } else if (!payload.iss?.startsWith("https://securetoken.google.com/")) {
       return false;
     }
@@ -180,9 +182,9 @@ export async function middleware(request: NextRequest) {
 
     // Verify token value
     if (sessionCookie) {
-      if (process.env.NODE_ENV !== "production" && (sessionCookie === "dev_guest_token" || sessionCookie === "1")) {
+      if (process.env.NODE_ENV !== "production" && sessionCookie === "dev_guest_token") {
         isFirebaseVerified = true;
-      } else if (sessionCookie !== "1") {
+      } else if (sessionCookie !== "1" && sessionCookie !== "dev_guest_token") {
         isFirebaseVerified = await verifyEdgeFirebaseToken(sessionCookie);
       }
     }
@@ -203,7 +205,7 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  // For localized pages, internally rewrite to internalPath with active locale
+  // For localized pages, internally rewrite to internalPath with active locale while preserving refreshed Supabase cookies
   if (!isApi) {
     const rewriteUrl = request.nextUrl.clone();
     rewriteUrl.pathname = internalPath;
@@ -213,11 +215,16 @@ export async function middleware(request: NextRequest) {
     requestHeaders.set("x-qafnest-locale", activeLocale);
     requestHeaders.set("x-qafnest-pathname", internalPath);
 
-    response = NextResponse.rewrite(rewriteUrl, {
+    const pendingCookies = response.cookies.getAll();
+    const rewriteResponse = NextResponse.rewrite(rewriteUrl, {
       request: {
         headers: requestHeaders,
       },
     });
+    for (const c of pendingCookies) {
+      rewriteResponse.cookies.set(c);
+    }
+    response = rewriteResponse;
   }
 
   response.cookies.set("qafnest_lang", activeLocale, {

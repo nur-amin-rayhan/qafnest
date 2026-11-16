@@ -1,6 +1,7 @@
 import QRCode from "qrcode";
 import type { AdminTaxInvoiceRecord } from "./adminInvoicesService";
 import { QAFNEST_ZATCA_DEFAULTS } from "@qafnest/shared";
+import { escapeHtml } from "@qafnest/shared/escapeHtml";
 
 export async function renderInvoicePdfHtml(invoice: AdminTaxInvoiceRecord, autoPrint = true): Promise<string> {
   let qrDataUrl = "";
@@ -28,7 +29,7 @@ export async function renderInvoicePdfHtml(invoice: AdminTaxInvoiceRecord, autoP
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>${invoice.invoiceNumber} - QafNest Tax Invoice (PDF)</title>
+  <title>${escapeHtml(invoice.invoiceNumber)} - QafNest Tax Invoice (PDF)</title>
   <style>
     @page {
       size: A4 portrait;
@@ -226,7 +227,7 @@ export async function renderInvoicePdfHtml(invoice: AdminTaxInvoiceRecord, autoP
 <body>
   <div class="no-print-bar">
     <div>
-      <strong>Simplified Tax Invoice · فاتورة ضريبية مبسطة</strong> · ${invoice.invoiceNumber}
+      <strong>Simplified Tax Invoice · فاتورة ضريبية مبسطة</strong> · ${escapeHtml(invoice.invoiceNumber)}
     </div>
     <div style="display: flex; gap: 10px;">
       <button class="btn-download" onclick="window.print()">
@@ -257,16 +258,16 @@ export async function renderInvoicePdfHtml(invoice: AdminTaxInvoiceRecord, autoP
         <div>
           <div class="logo-text">Qaf<span class="logo-nest">Nest</span>.</div>
           <div style="font-size: 13px; font-weight: 800; margin-top: 4px; color: #0f172a;">
-            QafNest Real Estate Vacation Rentals Co. · ${QAFNEST_ZATCA_DEFAULTS.sellerNameAr}
+            QafNest Real Estate Vacation Rentals Co. · ${escapeHtml(QAFNEST_ZATCA_DEFAULTS.sellerNameAr)}
           </div>
           <div style="font-size: 11px; color: #475569; margin-top: 5px;">
-            <strong>CR:</strong> ${QAFNEST_ZATCA_DEFAULTS.crNumber} · <strong>السجل التجاري:</strong> ${QAFNEST_ZATCA_DEFAULTS.crNumber}
+            <strong>CR:</strong> ${escapeHtml(QAFNEST_ZATCA_DEFAULTS.crNumber)} · <strong>السجل التجاري:</strong> ${escapeHtml(QAFNEST_ZATCA_DEFAULTS.crNumber)}
           </div>
           <div style="font-size: 11px; color: #475569; margin-top: 2px;">
-            <strong>MoT License:</strong> ${QAFNEST_ZATCA_DEFAULTS.licenseNumber} · <strong>ترخيص وزارة السياحة:</strong> ${QAFNEST_ZATCA_DEFAULTS.licenseNumber}
+            <strong>MoT License:</strong> ${escapeHtml(QAFNEST_ZATCA_DEFAULTS.licenseNumber)} · <strong>ترخيص وزارة السياحة:</strong> ${escapeHtml(QAFNEST_ZATCA_DEFAULTS.licenseNumber)}
           </div>
           <div style="font-size: 11px; color: #475569; margin-top: 2px;">
-            <strong>VAT ID:</strong> <span style="font-family: monospace; font-weight: 800;">${QAFNEST_ZATCA_DEFAULTS.vatNumber}</span> · <strong>الرقم الضريبي</strong>
+            <strong>VAT ID:</strong> <span style="font-family: monospace; font-weight: 800;">${escapeHtml(QAFNEST_ZATCA_DEFAULTS.vatNumber)}</span> · <strong>الرقم الضريبي</strong>
           </div>
         </div>
 
@@ -280,15 +281,15 @@ export async function renderInvoicePdfHtml(invoice: AdminTaxInvoiceRecord, autoP
       <div class="meta-grid">
         <div class="meta-card">
           <div class="meta-label">Invoice Number / رقم الفاتورة</div>
-          <div class="meta-val">${invoice.invoiceNumber}</div>
+          <div class="meta-val">${escapeHtml(invoice.invoiceNumber)}</div>
         </div>
         <div class="meta-card">
           <div class="meta-label">Issue Date / تاريخ الإصدار</div>
-          <div class="meta-val">${invoice.issueDate}</div>
+          <div class="meta-val">${escapeHtml(invoice.issueDate)}</div>
         </div>
         <div class="meta-card">
           <div class="meta-label">Booking Ref / مرجع الحجز</div>
-          <div class="meta-val" style="color: #4F2396;">${invoice.bookingReference}</div>
+          <div class="meta-val" style="color: #4F2396;">${escapeHtml(invoice.bookingReference)}</div>
         </div>
       </div>
 
@@ -296,15 +297,15 @@ export async function renderInvoicePdfHtml(invoice: AdminTaxInvoiceRecord, autoP
       <div class="client-box">
         <div class="client-row">
           <span style="color: #64748b; font-weight: 700;">Client / Billed To · العميل:</span>
-          <span style="font-weight: 800;">${invoice.clientName} (${invoice.clientRole === 'guest' ? 'Guest / نزيل' : 'Host / مضيف'})</span>
+          <span style="font-weight: 800;">${escapeHtml(invoice.clientName)} (${invoice.clientRole === 'guest' ? 'Guest / نزيل' : 'Host / مضيف'})</span>
         </div>
         <div class="client-row">
           <span style="color: #64748b; font-weight: 700;">Property Title · العقار:</span>
-          <span style="font-weight: 800;">${invoice.propertyTitle}</span>
+          <span style="font-weight: 800;">${escapeHtml(invoice.propertyTitle)}</span>
         </div>
         <div class="client-row">
           <span style="color: #64748b; font-weight: 700;">Payment Method · طريقة الدفع:</span>
-          <span style="font-weight: 800;">${invoice.paymentMethod}</span>
+          <span style="font-weight: 800;">${escapeHtml(invoice.paymentMethod)}</span>
         </div>
       </div>
 
@@ -324,7 +325,7 @@ export async function renderInvoicePdfHtml(invoice: AdminTaxInvoiceRecord, autoP
               <td>
                 <strong style="display: block; font-size: 12px; color: #0f172a;">${itemDescEn}</strong>
                 <span style="display: block; font-size: 11px; color: #475569; margin-top: 2px;">${itemDescAr}</span>
-                <span style="display: block; font-size: 10px; color: #64748b; margin-top: 2px;">${invoice.propertyTitle} · Ref: ${invoice.bookingReference}</span>
+                <span style="display: block; font-size: 10px; color: #64748b; margin-top: 2px;">${escapeHtml(invoice.propertyTitle)} · Ref: ${escapeHtml(invoice.bookingReference)}</span>
               </td>
               <td style="text-align: right; font-family: monospace; font-weight: 700;">
                 ${invoice.taxableAmount.toLocaleString("en-US", { minimumFractionDigits: 2 })}

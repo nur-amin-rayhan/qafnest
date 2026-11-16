@@ -103,10 +103,9 @@ export function DeletePropertyModal({
           setLocalError(
             err instanceof Error
               ? err.message
-              : t(
-                  "Could not verify reservation status.",
-                  "تعذر التحقق من حالة الحجوزات الحالية."
-                )
+              : lang === "ar"
+              ? "تعذر التحقق من حالة الحجوزات الحالية."
+              : "Could not verify reservation status."
           );
         }
       })
@@ -117,7 +116,7 @@ export function DeletePropertyModal({
     return () => {
       cancelled = true;
     };
-  }, [property, userId, t]);
+  }, [property, userId, lang]);
 
   useEffect(() => {
     if (!property) return;

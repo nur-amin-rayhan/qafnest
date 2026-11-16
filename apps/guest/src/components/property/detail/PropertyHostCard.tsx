@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Star, ChevronRight, ShieldCheck, Zap, Sparkles, Building2 } from "lucide-react";
 import type { Property } from "@/data/properties";
 import { resolveHostForProperty } from "@/lib/services/hostService";
+import { localizePath } from "@/lib/localization/localeHelper";
 
 interface PropertyHostCardProps {
   property: Property;
@@ -19,6 +20,8 @@ export default function PropertyHostCard({
   const hostDisplayName = anchorLabel(host.name, host.nameAr || host.name);
   const hostBadge = anchorLabel(host.badge, host.badgeAr || host.badge);
   const initial = (host.nameAr || host.name || "Q").trim().slice(0, 1).toUpperCase();
+  const currentLang = anchorLabel("en", "ar") as "en" | "ar";
+  const localizedProfileHref = host.profileHref ? localizePath(host.profileHref, currentLang) : "";
 
   const cardContent = (
     <>
@@ -140,9 +143,9 @@ export default function PropertyHostCard({
         </div>
       </div>
 
-      {host.profileHref ? (
+      {localizedProfileHref ? (
         <Link
-          href={host.profileHref}
+          href={localizedProfileHref}
           className="group relative mt-5 block overflow-hidden rounded-3xl border border-violet-200/80 bg-gradient-to-br from-violet-50/40 via-white to-violet-50/20 p-6 shadow-sm transition-all duration-300 hover:border-violet-400 hover:shadow-lg hover:shadow-violet-500/10 dark:border-violet-500/25 dark:from-[#12101a] dark:via-[#161224] dark:to-[#12101a] dark:hover:border-violet-500/50"
         >
           {cardContent}

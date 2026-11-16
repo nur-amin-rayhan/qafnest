@@ -9,6 +9,7 @@ import {
 } from "@qafnest/shared";
 import {
   getLatestDeletionRequestForProperty,
+  hydratePropertyDeletionStore,
   readPropertyDeletionRequests,
   toDeletionRequestSummary,
 } from "@qafnest/shared/propertyDeletionStore";
@@ -177,6 +178,7 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    await hydratePropertyDeletionStore();
     const deletionNotifications: Array<Record<string, unknown>> = readPropertyDeletionRequests()
       .filter((r) => r.hostId === effectiveHostId && r.status !== "cancelled")
       .slice(0, 10)

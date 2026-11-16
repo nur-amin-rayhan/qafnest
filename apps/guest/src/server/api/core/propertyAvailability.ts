@@ -33,11 +33,14 @@ export async function GET(
     let resolvedSlug = propertySlug;
     let definedCheckoutTime = DEFAULT_CHECKOUT_CUTOFF;
 
-    const { data: propData } = await supabase
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(rawPropertyId);
+    const propQuery = supabase
       .from("properties")
-      .select("id, slug, checkout_time")
-      .or(`id.eq.${propertyUuid},slug.eq.${propertySlug}`)
-      .maybeSingle();
+      .select("id, slug, checkout_time");
+    const { data: propData } = await (isUuid
+      ? propQuery.eq("id", propertyUuid)
+      : propQuery.eq("slug", propertySlug)
+    ).maybeSingle();
 
     if (propData?.id) {
       resolvedId = propData.id;
@@ -55,7 +58,7 @@ export async function GET(
     // 1. Fetch verified confirmed/completed bookings + helpline SADAD holds (never block calendars for abandoned online checkouts)
     const { data: bookings } = await supabase
       .from("bookings")
-      .select("id, check_in, check_out, status, payment_status, auth_subject, booking_reference, created_at")
+      .select("id, check_in, check_out, checkin_time, checkout_time, status, payment_status, auth_subject, booking_reference, created_at")
       .eq("property_id", resolvedId)
       .in("status", ["confirmed", "completed", "pending"]);
 

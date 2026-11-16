@@ -107,7 +107,7 @@ export function PropertyFiltersBar({
             search
           </span>
           <input
-            className="flex-1 min-w-0 bg-transparent font-body-sm text-body-sm text-on-surface placeholder:text-outline focus:outline-none"
+            className="flex-1 min-w-0 bg-transparent font-body-sm text-body-sm text-on-surface placeholder:text-outline focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/50 rounded-md px-1"
             placeholder={t(
               "Search by Unit # (e.g. 201001), listing name, ID, host, or neighborhood...",
               "ابحث برقم الوحدة (مثل 201001)، اسم العقار، المعرف، المضيف، أو الحي..."

@@ -79,7 +79,7 @@ export function useHostRealtime({
         (payload) => {
           const newRow = payload.new as Record<string, unknown> | undefined;
           const currentProps = propertyIdsRef.current;
-          if (newRow && (currentProps.length === 0 || currentProps.includes(String(newRow.property_id)))) {
+          if (newRow && currentProps.length > 0 && currentProps.includes(String(newRow.property_id))) {
             onBookingChangeRef.current?.(payload);
 
             const ref = String(newRow.booking_reference || "QAF-BOOKING");
@@ -115,7 +115,7 @@ export function useHostRealtime({
         (payload) => {
           const newRow = payload.new as Record<string, unknown> | undefined;
           const currentProps = propertyIdsRef.current;
-          if (newRow && (currentProps.length === 0 || currentProps.includes(String(newRow.property_id)))) {
+          if (newRow && currentProps.length > 0 && currentProps.includes(String(newRow.property_id))) {
             onReviewChangeRef.current?.(payload);
 
             if (payload.eventType === "INSERT") {

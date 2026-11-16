@@ -1,4 +1,9 @@
-import { readSharedJsonFile, writeSharedJsonFile } from "./serverJsonStore";
+import {
+  hydrateSharedJsonFile,
+  persistSharedJsonFile,
+  readSharedJsonFile,
+  writeSharedJsonFile,
+} from "./serverJsonStore";
 
 export type UserActivityRole = "guest" | "host" | "admin" | "system";
 
@@ -46,18 +51,32 @@ export interface UserGovernanceStoreDoc {
 
 const USER_GOVERNANCE_FILE = "user-governance-activity.json";
 
+const normalizeUserGovernanceStore = (parsed: unknown): UserGovernanceStoreDoc => {
+  const candidate = (parsed || {}) as Partial<UserGovernanceStoreDoc>;
+  return {
+    overrides:
+      candidate.overrides && typeof candidate.overrides === "object" ? candidate.overrides : {},
+    events: Array.isArray(candidate.events) ? candidate.events : [],
+  };
+};
+
+export async function hydrateUserGovernanceStore(): Promise<UserGovernanceStoreDoc> {
+  return hydrateSharedJsonFile<UserGovernanceStoreDoc>(
+    USER_GOVERNANCE_FILE,
+    () => ({ overrides: {}, events: [] }),
+    normalizeUserGovernanceStore
+  );
+}
+
+export async function persistUserGovernanceStore(): Promise<boolean> {
+  return persistSharedJsonFile(USER_GOVERNANCE_FILE, readUserGovernanceStore());
+}
+
 export function readUserGovernanceStore(): UserGovernanceStoreDoc {
   return readSharedJsonFile<UserGovernanceStoreDoc>(
     USER_GOVERNANCE_FILE,
     () => ({ overrides: {}, events: [] }),
-    (parsed) => {
-      const candidate = (parsed || {}) as Partial<UserGovernanceStoreDoc>;
-      return {
-        overrides:
-          candidate.overrides && typeof candidate.overrides === "object" ? candidate.overrides : {},
-        events: Array.isArray(candidate.events) ? candidate.events : [],
-      };
-    }
+    normalizeUserGovernanceStore
   );
 }
 

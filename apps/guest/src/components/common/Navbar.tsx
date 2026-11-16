@@ -42,14 +42,18 @@ export default function Navbar() {
   const [mounted, setMounted] = useState(false);
   const [headerSearchQuery, setHeaderSearchQuery] = useState("");
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
+  const [isSearching, setIsSearching] = useState(false);
 
   const router = useRouter();
 
   const handleHeaderSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!headerSearchQuery.trim()) return;
-    router.push(localizePath(`/search?q=${encodeURIComponent(headerSearchQuery.trim())}`, language));
+    const trimmed = headerSearchQuery.trim();
+    if (!trimmed || isSearching) return;
+    setIsSearching(true);
+    router.push(localizePath(`/search?q=${encodeURIComponent(trimmed)}`, language));
     setMobileSearchOpen(false);
+    window.setTimeout(() => setIsSearching(false), 500);
   };
 
   useEffect(() => {
@@ -152,10 +156,12 @@ export default function Navbar() {
           />
           <button
             type="submit"
+            disabled={!headerSearchQuery.trim() || isSearching}
             title={language === "ar" ? "بحث عن عقار" : "Search Properties"}
-            className="absolute end-1 w-7 h-7 rounded-full bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 text-white flex items-center justify-center cursor-pointer transition shadow-xs"
+            aria-label={language === "ar" ? "بحث عن عقار" : "Search Properties"}
+            className="absolute end-1 w-7 h-7 rounded-full bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 disabled:opacity-50 disabled:cursor-not-allowed text-white flex items-center justify-center cursor-pointer transition shadow-xs"
           >
-            <Search className="w-3.5 h-3.5" />
+            <Search className={`w-3.5 h-3.5 ${isSearching ? "animate-pulse" : ""}`} />
           </button>
         </form>
 
@@ -315,9 +321,11 @@ export default function Navbar() {
             />
             <button
               type="submit"
-              className="absolute end-1.5 w-7 h-7 rounded-lg bg-violet-600 text-white flex items-center justify-center cursor-pointer"
+              disabled={!headerSearchQuery.trim() || isSearching}
+              aria-label={language === "ar" ? "بحث عن عقار" : "Search Properties"}
+              className="absolute end-1.5 w-7 h-7 rounded-lg bg-violet-600 hover:bg-violet-500 disabled:opacity-50 disabled:cursor-not-allowed text-white flex items-center justify-center cursor-pointer transition"
             >
-              <Search className="w-3.5 h-3.5" />
+              <Search className={`w-3.5 h-3.5 ${isSearching ? "animate-pulse" : ""}`} />
             </button>
           </form>
         </div>

@@ -1,5 +1,10 @@
 import crypto from "crypto";
-import { readSharedJsonFile, writeSharedJsonFile } from "./serverJsonStore";
+import {
+  hydrateSharedJsonFile,
+  persistSharedJsonFile,
+  readSharedJsonFile,
+  writeSharedJsonFile,
+} from "./serverJsonStore";
 
 export interface SignupDeviceRecord {
   id: string;
@@ -72,20 +77,34 @@ function defaultSignupSecurityDoc(): SignupSecurityStoreDoc {
   };
 }
 
+const normalizeSignupSecurityDoc = (parsed: unknown): SignupSecurityStoreDoc => {
+  const candidate = (parsed || {}) as Partial<SignupSecurityStoreDoc>;
+  return {
+    policy: { ...DEFAULT_POLICY, ...(candidate.policy || {}) },
+    registrations: Array.isArray(candidate.registrations) ? candidate.registrations : [],
+    blockedIps: Array.isArray(candidate.blockedIps) ? candidate.blockedIps : [],
+    blockedDevices: Array.isArray(candidate.blockedDevices) ? candidate.blockedDevices : [],
+    alerts: Array.isArray(candidate.alerts) ? candidate.alerts : [],
+  };
+};
+
+export async function hydrateSignupSecurityStore(): Promise<SignupSecurityStoreDoc> {
+  return hydrateSharedJsonFile<SignupSecurityStoreDoc>(
+    SIGNUP_SECURITY_FILE,
+    defaultSignupSecurityDoc,
+    normalizeSignupSecurityDoc
+  );
+}
+
+export async function persistSignupSecurityStore(): Promise<boolean> {
+  return persistSharedJsonFile(SIGNUP_SECURITY_FILE, readDoc());
+}
+
 function readDoc(): SignupSecurityStoreDoc {
   return readSharedJsonFile<SignupSecurityStoreDoc>(
     SIGNUP_SECURITY_FILE,
     defaultSignupSecurityDoc,
-    (parsed) => {
-      const candidate = (parsed || {}) as Partial<SignupSecurityStoreDoc>;
-      return {
-        policy: { ...DEFAULT_POLICY, ...(candidate.policy || {}) },
-        registrations: Array.isArray(candidate.registrations) ? candidate.registrations : [],
-        blockedIps: Array.isArray(candidate.blockedIps) ? candidate.blockedIps : [],
-        blockedDevices: Array.isArray(candidate.blockedDevices) ? candidate.blockedDevices : [],
-        alerts: Array.isArray(candidate.alerts) ? candidate.alerts : [],
-      };
-    }
+    normalizeSignupSecurityDoc
   );
 }
 
@@ -94,13 +113,16 @@ function writeDoc(doc: SignupSecurityStoreDoc): void {
 }
 
 export function extractClientIp(request: Request): string {
-  const xff = request.headers.get("x-forwarded-for");
-  if (xff) {
-    const first = xff.split(",")[0]?.trim();
-    if (first) return first.replace(/^::ffff:/, "");
-  }
+  const cfIp = request.headers.get("cf-connecting-ip")?.trim();
+  if (cfIp) return cfIp.replace(/^::ffff:/, "");
   const realIp = request.headers.get("x-real-ip")?.trim();
   if (realIp) return realIp.replace(/^::ffff:/, "");
+  const xff = request.headers.get("x-forwarded-for");
+  if (xff) {
+    const parts = xff.split(",").map((s) => s.trim()).filter(Boolean);
+    const candidate = parts[0];
+    if (candidate) return candidate.replace(/^::ffff:/, "");
+  }
   return "127.0.0.1";
 }
 

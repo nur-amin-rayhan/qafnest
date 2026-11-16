@@ -82,12 +82,19 @@ async function verifyEdgeFirebaseToken(token?: string | null): Promise<boolean> 
     if (typeof payload.exp !== "number" || payload.exp < nowSec - 60) return false;
     if (typeof payload.auth_time !== "number" || payload.auth_time > nowSec + 300) return false;
 
-    const expectedProjectId = process.env.FIREBASE_PROJECT_ID || process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
-    if (expectedProjectId) {
+    const expectedProjectId =
+      process.env.FIREBASE_PROJECT_ID?.trim() ||
+      process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID?.trim();
+    if (!expectedProjectId) {
+      if (process.env.NODE_ENV === "production") {
+        return false;
+      }
+      if (!payload.iss?.startsWith("https://securetoken.google.com/")) {
+        return false;
+      }
+    } else {
       if (payload.aud !== expectedProjectId) return false;
       if (payload.iss !== `https://securetoken.google.com/${expectedProjectId}`) return false;
-    } else if (!payload.iss?.startsWith("https://securetoken.google.com/")) {
-      return false;
     }
 
     if (!payload.sub || typeof payload.sub !== "string") return false;
@@ -262,6 +269,6 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|robots.txt|sitemap.xml|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|robots.txt|sitemap.xml|.*\\.(?:svg|png|jpg|jpeg|gif|webp|avif|ico|woff|woff2|ttf|eot)$).*)",
   ],
 };

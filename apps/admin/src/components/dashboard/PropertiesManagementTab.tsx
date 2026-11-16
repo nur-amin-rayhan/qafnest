@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useAdminAuth } from "@/context/AdminAuthContext";
 import { PropertyItem, type AdminPropertyDeletionRequest } from "./types";
 import { PropertyTableRow } from "./properties/PropertyTableRow";
@@ -73,6 +73,20 @@ export function PropertiesManagementTab({
   onReviewDeletionRequest,
 }: PropertiesManagementTabProps) {
   const { dir, t } = useAdminAuth();
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+
+  const totalPages = Math.max(1, Math.ceil(filteredProperties.length / pageSize));
+  const safePage = Math.min(page, totalPages);
+
+  useEffect(() => {
+    setPage(1);
+  }, [filteredProperties.length, pageSize]);
+
+  const paginatedProperties = useMemo(() => {
+    const start = (safePage - 1) * pageSize;
+    return filteredProperties.slice(start, start + pageSize);
+  }, [filteredProperties, safePage, pageSize]);
 
   // Track total properties for each host across the portfolio
   const hostPropertyCounts = useMemo(() => {
@@ -202,7 +216,7 @@ export function PropertiesManagementTab({
                   </td>
                 </tr>
               ) : (
-                filteredProperties.map((prop) => (
+                paginatedProperties.map((prop) => (
                   <PropertyTableRow
                     key={prop.id}
                     prop={prop}
@@ -222,12 +236,12 @@ export function PropertiesManagementTab({
 
         {/* Mobile & Tablet Card Layout (< xl) */}
         <div className="block xl:hidden w-full divide-y divide-surface-container/60">
-          {filteredProperties.length === 0 ? (
+          {paginatedProperties.length === 0 ? (
             <div className="py-12 text-center text-outline">
               {t("No properties match your filter criteria.", "لا توجد عقارات تطابق معايير التصفية المحددة.")}
             </div>
           ) : (
-            filteredProperties.map((prop) => (
+            paginatedProperties.map((prop) => (
               <PropertyMobileCard
                 key={prop.id}
                 prop={prop}
@@ -250,33 +264,57 @@ export function PropertiesManagementTab({
               {t("Rows per page:", "عدد الصفوف:")}
             </span>
             <select
+              value={pageSize}
+              onChange={(e) => {
+                setPageSize(Number(e.target.value) || 10);
+                setPage(1);
+              }}
               className="h-8 px-2 bg-surface-container-lowest rounded-lg font-body-sm text-body-sm text-on-surface focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-400 focus-visible:ring-offset-2 cursor-pointer"
               aria-label="Rows per page"
             >
-              <option>10</option>
-              <option>25</option>
-              <option>50</option>
+              <option value={10}>10</option>
+              <option value={25}>25</option>
+              <option value={50}>50</option>
             </select>
             <span className="text-outline font-body-sm text-body-sm">
-              {t("Showing", "عرض")} {filteredProperties.length} {t("of", "من")} {properties.length} {t("total properties", "عقار")}
+              {t("Showing", "عرض")} {paginatedProperties.length} {t("of", "من")} {filteredProperties.length}{" "}
+              {t("matching properties", "عقار مطابق")} ({properties.length} {t("total", "إجمالي")})
             </span>
           </div>
 
           <div className="flex items-center gap-1">
             <button
               type="button"
-              className="h-8 w-8 rounded-lg bg-primary-container text-on-primary font-title-sm text-title-sm font-semibold flex items-center justify-center shadow-sm cursor-pointer"
+              disabled={safePage <= 1}
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              className="h-8 px-2.5 rounded-lg bg-surface-container-lowest text-on-surface hover:bg-surface-container disabled:opacity-40 font-title-sm text-xs flex items-center justify-center transition-colors cursor-pointer"
             >
-              1
+              {t("Prev", "السابق")}
             </button>
-            {filteredProperties.length > 10 && (
-              <button
-                type="button"
-                className="h-8 w-8 rounded-lg bg-surface-container-lowest text-on-surface hover:bg-surface-container font-title-sm text-title-sm flex items-center justify-center transition-colors cursor-pointer"
-              >
-                2
-              </button>
-            )}
+            {Array.from({ length: totalPages }, (_, idx) => idx + 1)
+              .slice(Math.max(0, safePage - 3), Math.max(5, safePage + 2))
+              .map((pageNum) => (
+                <button
+                  key={pageNum}
+                  type="button"
+                  onClick={() => setPage(pageNum)}
+                  className={`h-8 w-8 rounded-lg font-title-sm text-title-sm flex items-center justify-center transition-colors cursor-pointer ${
+                    pageNum === safePage
+                      ? "bg-primary-container text-on-primary font-semibold shadow-sm"
+                      : "bg-surface-container-lowest text-on-surface hover:bg-surface-container"
+                  }`}
+                >
+                  {pageNum}
+                </button>
+              ))}
+            <button
+              type="button"
+              disabled={safePage >= totalPages}
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              className="h-8 px-2.5 rounded-lg bg-surface-container-lowest text-on-surface hover:bg-surface-container disabled:opacity-40 font-title-sm text-xs flex items-center justify-center transition-colors cursor-pointer"
+            >
+              {t("Next", "التالي")}
+            </button>
           </div>
         </div>
       </div>

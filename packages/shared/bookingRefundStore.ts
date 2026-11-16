@@ -1,4 +1,9 @@
-import { readSharedJsonFile, writeSharedJsonFile } from "./serverJsonStore";
+import {
+  hydrateSharedJsonFile,
+  persistSharedJsonFile,
+  readSharedJsonFile,
+  writeSharedJsonFile,
+} from "./serverJsonStore";
 
 export interface RefundTimelineStep {
   step: "requested" | "approved" | "processing" | "disbursed" | "rejected";
@@ -43,14 +48,28 @@ export interface CancellationPolicyQuote {
 
 const REFUNDS_FILE_NAME = "booking-refunds.json";
 
+const normalizeRefunds = (parsed: unknown): Record<string, BookingRefundRecord> =>
+  parsed && typeof parsed === "object" && !Array.isArray(parsed)
+    ? (parsed as Record<string, BookingRefundRecord>)
+    : {};
+
+export async function hydrateBookingRefundStore(): Promise<Record<string, BookingRefundRecord>> {
+  return hydrateSharedJsonFile<Record<string, BookingRefundRecord>>(
+    REFUNDS_FILE_NAME,
+    () => ({}),
+    normalizeRefunds
+  );
+}
+
+export async function persistBookingRefundStore(): Promise<boolean> {
+  return persistSharedJsonFile(REFUNDS_FILE_NAME, loadRefunds());
+}
+
 function loadRefunds(): Record<string, BookingRefundRecord> {
   return readSharedJsonFile<Record<string, BookingRefundRecord>>(
     REFUNDS_FILE_NAME,
     () => ({}),
-    (parsed) =>
-      parsed && typeof parsed === "object" && !Array.isArray(parsed)
-        ? (parsed as Record<string, BookingRefundRecord>)
-        : {}
+    normalizeRefunds
   );
 }
 
@@ -81,12 +100,13 @@ export function calculateCancellationRefundQuote(params: {
 
   if (params.isAdminOverride && typeof params.adminOverridePercent === "number") {
     const percent = Math.min(100, Math.max(0, params.adminOverridePercent));
-    const refundAmt = Math.round((params.totalPrice * percent) / 100);
+    const refundAmt = Math.round(((params.totalPrice * percent) / 100) * 100) / 100;
+    const penaltyAmt = Math.round(Math.max(0, params.totalPrice - refundAmt) * 100) / 100;
     return {
       eligibleForRefund: percent > 0,
       refundPercentage: percent,
       refundAmount: refundAmt,
-      penaltyAmount: params.totalPrice - refundAmt,
+      penaltyAmount: penaltyAmt,
       policyTier: percent > 0 ? "admin_override" : "non_refundable",
       hoursSinceBooking: Math.round(hoursSinceBooking * 10) / 10,
       hoursUntilCheckin: Math.round(hoursUntilCheckin * 10) / 10,
@@ -181,7 +201,7 @@ export function createBookingRefundRecord(params: {
             {
               step: "rejected" as const,
               title: "Refund Ineligible",
-              description: "Booking was cancelled past the refundable window (< 24h before check-in).",
+              description: "Reservation cancelled under strict non-refundable post-payment policy.",
               timestamp: now,
               actor: "system" as const,
             },

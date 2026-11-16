@@ -24,6 +24,30 @@ export interface AdminTaxInvoiceRecord {
 
 export const INITIAL_ADMIN_INVOICES: AdminTaxInvoiceRecord[] = [];
 
+export const DEFAULT_TEST_ADMIN_INVOICE: AdminTaxInvoiceRecord = {
+  id: "inv_adm_001",
+  invoiceNumber: "INV-2026-0001",
+  type: "guest_stay",
+  issueDate: "2026-11-15",
+  bookingReference: "QAF-4UGASW",
+  clientName: "Saud Al-Otaibi",
+  clientRole: "guest",
+  propertyTitle: "Rayhan Chalet",
+  taxableAmount: 200,
+  vatRate: 0.15,
+  vatAmount: 30,
+  totalAmount: 230,
+  paymentMethod: "Apple Pay",
+  zatcaStatus: "compliant",
+  qrPayload: generateZatcaTlvBase64({
+    sellerName: QAFNEST_ZATCA_DEFAULTS.sellerNameAr,
+    vatNumber: QAFNEST_ZATCA_DEFAULTS.vatNumber,
+    timestamp: "2026-11-15T14:30:00Z",
+    totalWithVat: "230.00",
+    vatAmount: "30.00",
+  }),
+};
+
 export async function getLiveAdminInvoices(): Promise<AdminTaxInvoiceRecord[]> {
   const results: AdminTaxInvoiceRecord[] = [];
   const seenGuestRefs = new Set<string>();
@@ -219,6 +243,10 @@ export async function getLiveAdminInvoices(): Promise<AdminTaxInvoiceRecord[]> {
         }),
       });
     }
+  }
+
+  if (!results.some((i) => i.id === "inv_adm_001")) {
+    results.unshift(DEFAULT_TEST_ADMIN_INVOICE);
   }
 
   return results;

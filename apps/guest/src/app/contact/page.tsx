@@ -107,7 +107,7 @@ export default function ContactUsPage() {
     <div className="min-h-screen bg-[#FDFCFE] dark:bg-[#08070D] text-slate-900 dark:text-slate-100 flex flex-col justify-between">
       <Navbar />
 
-      <main className="flex-1 max-w-[1200px] w-full mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-14">
+      <main className="flex-1 max-w-[1200px] w-full mx-auto px-4 sm:px-6 lg:px-8 pt-24 sm:pt-28 pb-10 sm:pb-14">
         {/* Header Banner */}
         <div className="rounded-3xl bg-gradient-to-br from-[#4F2396] via-[#3B1973] to-[#250F4C] text-white p-8 sm:p-12 mb-10 shadow-xl relative overflow-hidden">
           <div className="relative z-10 max-w-2xl">

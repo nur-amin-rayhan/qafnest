@@ -116,7 +116,9 @@ export function useReservationCallback({
         let authToken: string | undefined;
         try {
           if (isFirebaseConfigured()) {
-            const fbUser = getFirebaseAuth().currentUser;
+            const fbAuth = getFirebaseAuth();
+            await fbAuth.authStateReady();
+            const fbUser = fbAuth.currentUser;
             if (fbUser) authToken = await fbUser.getIdToken();
           }
         } catch {}

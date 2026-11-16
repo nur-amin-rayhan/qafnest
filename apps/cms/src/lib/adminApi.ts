@@ -4,8 +4,11 @@ import { getSupabaseConfig } from "@/lib/supabase/config";
 import { ADMIN_COOKIE_NAME, verifyAdminToken } from "@/lib/adminAuth";
 
 export function isAdminRequest(request: NextRequest) {
-  const token = request.cookies.get(ADMIN_COOKIE_NAME)?.value;
-  const payload = token ? verifyAdminToken(token) : null;
+  const authHeader = request.headers.get("authorization");
+  const bearerToken = authHeader?.match(/^Bearer\s+(.+)$/i)?.[1]?.trim();
+  const cookieToken = request.cookies.get(ADMIN_COOKIE_NAME)?.value;
+  const rawToken = bearerToken || cookieToken;
+  const payload = rawToken ? verifyAdminToken(rawToken) : null;
   return Boolean(payload && payload.role === "admin");
 }
 

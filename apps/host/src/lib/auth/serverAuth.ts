@@ -82,12 +82,18 @@ export async function verifyFirebaseIdToken(token: string): Promise<VerifiedHost
       return null;
     }
 
-    const expectedProjectId = process.env.FIREBASE_PROJECT_ID || process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
-    if (expectedProjectId) {
+    const expectedProjectId =
+      process.env.FIREBASE_PROJECT_ID?.trim() ||
+      process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID?.trim();
+    if (!expectedProjectId) {
+      if (process.env.NODE_ENV === "production") {
+        console.error("Missing FIREBASE_PROJECT_ID / NEXT_PUBLIC_FIREBASE_PROJECT_ID in production.");
+        return null;
+      }
+      if (!payload.iss?.startsWith("https://securetoken.google.com/")) return null;
+    } else {
       if (payload.aud !== expectedProjectId) return null;
       if (payload.iss !== `https://securetoken.google.com/${expectedProjectId}`) return null;
-    } else {
-      if (!payload.iss?.startsWith("https://securetoken.google.com/")) return null;
     }
 
     if (!payload.sub || typeof payload.sub !== "string") return null;
@@ -112,36 +118,31 @@ export async function verifyFirebaseIdToken(token: string): Promise<VerifiedHost
   }
 }
 
+function parseCookieValue(cookieHeader: string, cookieName: string): string | null {
+  if (!cookieHeader) return null;
+  for (const part of cookieHeader.split(";")) {
+    const eqIdx = part.indexOf("=");
+    if (eqIdx <= 0) continue;
+    const key = part.slice(0, eqIdx).trim();
+    if (key !== cookieName) continue;
+    const rawVal = part.slice(eqIdx + 1).trim();
+    try {
+      return decodeURIComponent(rawVal);
+    } catch {
+      return rawVal;
+    }
+  }
+  return null;
+}
+
 export async function verifyHostSession(request: Request): Promise<VerifiedHostUser | null> {
   const authHeader = request.headers.get("authorization");
   const bearer = authHeader?.match(/^Bearer\s+(.+)$/i)?.[1]?.trim();
+  const cookieHeader = request.headers.get("cookie") || "";
+  const hostSessionCookie = parseCookieValue(cookieHeader, "qafnest_has_host_session");
 
-  // Local development fallback for mock/dev host
-  if (process.env.NODE_ENV !== "production") {
-    const devHostId = process.env.NEXT_PUBLIC_DEV_HOST_ID || "00000000-0000-0000-0000-000000000002";
-    const devHeader = request.headers.get("x-dev-host-id");
-    const cookieHeader = request.headers.get("cookie") || "";
-    if (
-      bearer === "dev_host_token" ||
-      bearer === devHostId ||
-      devHeader === devHostId ||
-      cookieHeader.includes("qafnest_host_dev=1") ||
-      cookieHeader.includes("qafnest_has_host_session") ||
-      (cookieHeader.includes("qafnest_has_host_session=1") && cookieHeader.includes(devHostId))
-    ) {
-      return {
-        id: devHostId,
-        phone: process.env.NEXT_PUBLIC_DEV_HOST_PHONE || "",
-        isPhoneVerified: Boolean(process.env.NEXT_PUBLIC_DEV_HOST_PHONE),
-        email: process.env.NEXT_PUBLIC_DEV_HOST_EMAIL || "host.dev@qafnest.com",
-        name: process.env.NEXT_PUBLIC_DEV_HOST_NAME || "Dev Host",
-        role: "host",
-        provider: "supabase",
-      };
-    }
-  }
-
-  if (bearer) {
+  // 1. Check Authorization Bearer token via Firebase first, then Supabase
+  if (bearer && bearer !== "dev_host_token") {
     const fbUser = await verifyFirebaseIdToken(bearer);
     if (fbUser) return fbUser;
 
@@ -168,6 +169,7 @@ export async function verifyHostSession(request: Request): Promise<VerifiedHostU
     } catch {}
   }
 
+  // 2. Check SSR Supabase Auth session cookie
   try {
     const supabase = await createClient();
     const { data: { user }, error } = await supabase.auth.getUser();
@@ -189,6 +191,36 @@ export async function verifyHostSession(request: Request): Promise<VerifiedHostU
       }
     }
   } catch {}
+
+  // 3. Check signed Firebase ID token inside host session cookie
+  if (hostSessionCookie && hostSessionCookie !== "1" && hostSessionCookie !== "dev_host_token") {
+    const fbCookieUser = await verifyFirebaseIdToken(hostSessionCookie);
+    if (fbCookieUser) return fbCookieUser;
+  }
+
+  // 4. Local development fallback ONLY when explicit dev credentials are provided
+  if (process.env.NODE_ENV !== "production") {
+    const devHostId = process.env.NEXT_PUBLIC_DEV_HOST_ID || "00000000-0000-0000-0000-000000000002";
+    const devHeader = request.headers.get("x-dev-host-id");
+    const devCookieFlag = parseCookieValue(cookieHeader, "qafnest_host_dev");
+    if (
+      bearer === "dev_host_token" ||
+      bearer === devHostId ||
+      devHeader === devHostId ||
+      devCookieFlag === "1" ||
+      hostSessionCookie === "dev_host_token"
+    ) {
+      return {
+        id: devHostId,
+        phone: process.env.NEXT_PUBLIC_DEV_HOST_PHONE || "",
+        isPhoneVerified: Boolean(process.env.NEXT_PUBLIC_DEV_HOST_PHONE),
+        email: process.env.NEXT_PUBLIC_DEV_HOST_EMAIL || "host.dev@qafnest.com",
+        name: process.env.NEXT_PUBLIC_DEV_HOST_NAME || "Dev Host",
+        role: "host",
+        provider: "supabase",
+      };
+    }
+  }
 
   return null;
 }

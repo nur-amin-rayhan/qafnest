@@ -36,7 +36,12 @@
     "./propertyDeletionStore": "./propertyDeletionStore.ts",
     "./unitCode": "./unitCode.ts",
     "./locationShare": "./locationShare.ts",
-    "./serverJsonStore": "./serverJsonStore.ts"
+    "./serverJsonStore": "./serverJsonStore.ts",
+    "./promotionStore": "./promotionStore.ts",
+    "./pricingEngine": "./pricingEngine.ts",
+    "./timeSlots": "./timeSlots.ts",
+    "./escapeHtml": "./escapeHtml.ts",
+    "./supabaseKvStore": "./supabaseKvStore.ts"
   },
   "dependencies": {
     "nodemailer": "^10.5.0"

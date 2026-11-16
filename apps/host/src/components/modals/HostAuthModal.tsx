@@ -3,6 +3,7 @@
 import React from "react";
 import { X, Phone, Mail, ShieldCheck, Globe } from "lucide-react";
 import { useHostAuth } from "@/context/HostAuthContext";
+import { localizeHostPath, sanitizeHostReturnPath } from "@/lib/hostLocale";
 import HostPhoneInputStep from "@/components/auth/HostPhoneInputStep";
 import HostOtpVerifyStep from "@/components/auth/HostOtpVerifyStep";
 import HostProfileDetailsStep from "@/components/auth/HostProfileDetailsStep";
@@ -18,6 +19,10 @@ export default function HostAuthModal() {
     t,
     toggleLang,
   } = useHostAuth();
+
+  const safeReturnTarget = hostReturnUrl
+    ? localizeHostPath(sanitizeHostReturnPath(hostReturnUrl, "/app"), lang)
+    : localizeHostPath("/app", lang);
 
   const {
     activeTab,
@@ -59,11 +64,11 @@ export default function HostAuthModal() {
     handleEmailAuth,
   } = useHostAuthFlow({
     effectiveLang: lang,
-    returnUrl: hostReturnUrl || `/${lang}/app`,
+    returnUrl: safeReturnTarget,
     onSuccess: () => {
       closeHostAuthModal();
       if (hostReturnUrl) {
-        window.location.href = hostReturnUrl;
+        window.location.href = safeReturnTarget;
       }
     },
   });
@@ -208,7 +213,7 @@ export default function HostAuthModal() {
                 onSubmit={handleSaveHostProfile}
                 onSkip={() => {
                   closeHostAuthModal();
-                  if (hostReturnUrl) window.location.href = hostReturnUrl;
+                  if (hostReturnUrl) window.location.href = safeReturnTarget;
                 }}
                 t={t}
                 effectiveLang={lang}

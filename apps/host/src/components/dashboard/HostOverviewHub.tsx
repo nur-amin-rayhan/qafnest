@@ -70,17 +70,30 @@ export default function HostOverviewHub({
       const revenue = confirmed.reduce((sum, b) => sum + (Number(b.total_price) || 0), 0);
       const upcoming = confirmed.filter((b) => b.check_in >= todayIso).length;
 
-      let totalNights = 0;
+      const nowMs = Date.now();
+      const windowEndMs = nowMs;
+      const windowStartMs = nowMs - 30 * 86_400_000;
+      let totalNightsInWindow = 0;
       for (const b of confirmed) {
-        const start = Date.parse(b.check_in);
-        const end = Date.parse(b.check_out);
-        const n = start && end && end > start ? Math.round((end - start) / 86_400_000) : 1;
-        totalNights += Math.max(1, n);
+        const startMs = Date.parse(`${String(b.check_in).slice(0, 10)}T00:00:00.000Z`);
+        const endMsRaw = Date.parse(`${String(b.check_out).slice(0, 10)}T00:00:00.000Z`);
+        const endMs =
+          Number.isFinite(endMsRaw) && Number.isFinite(startMs) && endMsRaw > startMs
+            ? endMsRaw
+            : Number.isFinite(startMs)
+            ? startMs + 86_400_000
+            : NaN;
+        if (!Number.isFinite(startMs) || !Number.isFinite(endMs)) continue;
+        const clampedStart = Math.max(startMs, windowStartMs);
+        const clampedEnd = Math.min(endMs, windowEndMs);
+        if (clampedEnd > clampedStart) {
+          totalNightsInWindow += Math.round((clampedEnd - clampedStart) / 86_400_000);
+        }
       }
       const potentialNights = Math.max(1, properties.length * 30);
       const occupancy =
-        properties.length > 0 && confirmed.length > 0
-          ? Math.min(100, Math.round((totalNights / potentialNights) * 100))
+        properties.length > 0 && totalNightsInWindow > 0
+          ? Math.min(100, Math.round((totalNightsInWindow / potentialNights) * 100))
           : 0;
 
       return {
@@ -88,7 +101,7 @@ export default function HostOverviewHub({
         activeBookingsCount: active.length,
         upcomingCheckinsCount: upcoming,
         occupancyRate: occupancy,
-        bookedNightsThisMonth: totalNights,
+        bookedNightsThisMonth: totalNightsInWindow,
       };
     }, [bookings, properties.length]);
 

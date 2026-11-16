@@ -1,5 +1,10 @@
 import * as crypto from "crypto";
-import { readSharedJsonFile, writeSharedJsonFile } from "./serverJsonStore";
+import {
+  hydrateSharedJsonFile,
+  persistSharedJsonFile,
+  readSharedJsonFile,
+  writeSharedJsonFile,
+} from "./serverJsonStore";
 
 export interface HelplineVerificationSession {
   token: string;
@@ -12,6 +17,7 @@ export interface HelplineVerificationSession {
   isExistingUser: boolean;
   isAccountActive: boolean;
   otpHash: string;
+  otpAttempts?: number;
   devOtpCode?: string; // stored for local dev convenience when SMS provider is in sandbox
   otpSentAt: string;
   otpExpiresAt: string;
@@ -42,14 +48,45 @@ export interface BankTransferClaim {
 const VERIFICATIONS_FILE_NAME = "helpline-verifications.json";
 const TRANSFER_CLAIMS_FILE_NAME = "helpline-transfer-claims.json";
 
+const normalizeVerificationMap = (
+  parsed: unknown
+): Record<string, HelplineVerificationSession> =>
+  parsed && typeof parsed === "object" && !Array.isArray(parsed)
+    ? (parsed as Record<string, HelplineVerificationSession>)
+    : {};
+
+const normalizeClaimsMap = (parsed: unknown): Record<string, BankTransferClaim> =>
+  parsed && typeof parsed === "object" && !Array.isArray(parsed)
+    ? (parsed as Record<string, BankTransferClaim>)
+    : {};
+
+export async function hydrateHelplineVerificationStore(): Promise<void> {
+  await Promise.all([
+    hydrateSharedJsonFile<Record<string, HelplineVerificationSession>>(
+      VERIFICATIONS_FILE_NAME,
+      () => ({}),
+      normalizeVerificationMap
+    ),
+    hydrateSharedJsonFile<Record<string, BankTransferClaim>>(
+      TRANSFER_CLAIMS_FILE_NAME,
+      () => ({}),
+      normalizeClaimsMap
+    ),
+  ]);
+}
+
+export async function persistHelplineVerificationStore(): Promise<void> {
+  await Promise.all([
+    persistSharedJsonFile(VERIFICATIONS_FILE_NAME, loadVerifications()),
+    persistSharedJsonFile(TRANSFER_CLAIMS_FILE_NAME, loadTransferClaims()),
+  ]);
+}
+
 function loadVerifications(): Record<string, HelplineVerificationSession> {
   return readSharedJsonFile<Record<string, HelplineVerificationSession>>(
     VERIFICATIONS_FILE_NAME,
     () => ({}),
-    (parsed) =>
-      parsed && typeof parsed === "object" && !Array.isArray(parsed)
-        ? (parsed as Record<string, HelplineVerificationSession>)
-        : {}
+    normalizeVerificationMap
   );
 }
 
@@ -61,10 +98,7 @@ function loadTransferClaims(): Record<string, BankTransferClaim> {
   return readSharedJsonFile<Record<string, BankTransferClaim>>(
     TRANSFER_CLAIMS_FILE_NAME,
     () => ({}),
-    (parsed) =>
-      parsed && typeof parsed === "object" && !Array.isArray(parsed)
-        ? (parsed as Record<string, BankTransferClaim>)
-        : {}
+    normalizeClaimsMap
   );
 }
 
@@ -140,7 +174,21 @@ export function verifySessionOtp(token: string, enteredCode: string): { success:
   }
 
   const enteredHash = hashOtp(enteredCode);
-  if (enteredHash !== session.otpHash && enteredCode !== session.devOtpCode && enteredCode !== "123456") {
+  const attempts = Number((session as { otpAttempts?: number }).otpAttempts || 0);
+  if (attempts >= 5) {
+    return { success: false, error: "Too many failed verification attempts. Request a new link." };
+  }
+  const allowDevBypass =
+    typeof process !== "undefined" &&
+    process.env.NODE_ENV !== "production" &&
+    process.env.HELPLINE_ALLOW_TEST_OTP === "true" &&
+    enteredCode === session.devOtpCode;
+
+  if (enteredHash !== session.otpHash && !allowDevBypass) {
+    (session as { otpAttempts?: number }).otpAttempts = attempts + 1;
+    session.updatedAt = new Date().toISOString();
+    records[token] = session;
+    saveVerifications(records);
     return { success: false, error: "Invalid 6-digit verification code" };
   }
 

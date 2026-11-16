@@ -100,13 +100,19 @@ export function useMyBookings(user: User | null, session: Session | null, authLo
           const isFirebaseUser = currentUser.app_metadata?.provider === "firebase_phone";
           const queryClient = isFirebaseUser ? await createFirebaseReviewDataClient() : supabase;
           if (queryClient) {
+            const isUuidUser =
+              /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+                currentUser.id
+              );
             let query = queryClient
               .from("bookings")
               .select(
                 "id, booking_reference, check_in, check_out, total_nights, guests_count, total_price, status, payment_status, smart_lock_pin, created_at, auth_subject, property:properties(id, title, city, city_name, district, lat, lng, images, external_host_id)"
               )
               .order("created_at", { ascending: false });
-            query = query.or(`guest_id.eq.${currentUser.id},auth_subject.eq.${currentUser.id}`);
+            query = isUuidUser
+              ? query.or(`guest_id.eq.${currentUser.id},auth_subject.eq.${currentUser.id}`)
+              : query.eq("auth_subject", currentUser.id);
             const { data, error: queryError } = await query;
             if (!queryError && data) {
               remoteBookings = (data as unknown as Array<Record<string, unknown>>)

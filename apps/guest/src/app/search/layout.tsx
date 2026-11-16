@@ -1,13 +1,14 @@
 import type { Metadata } from "next";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { getSeoAlternates } from "@/lib/localization/localeHelper";
 import { ECOSYSTEM_URLS } from "@qafnest/shared";
 
 const baseUrl = ECOSYSTEM_URLS.guest;
 
 export async function generateMetadata(): Promise<Metadata> {
-  const cookieStore = await cookies();
-  const rawLang = cookieStore.get("qafnest_lang")?.value;
+  const [cookieStore, reqHeaders] = await Promise.all([cookies(), headers()]);
+  const headerLang = reqHeaders.get("x-qafnest-locale");
+  const rawLang = headerLang || cookieStore.get("qafnest_lang")?.value;
   const lang: "ar" | "en" = rawLang === "en" ? "en" : "ar";
   const { canonical, alternates } = getSeoAlternates("/search", lang, baseUrl);
 

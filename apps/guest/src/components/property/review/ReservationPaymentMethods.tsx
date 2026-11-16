@@ -106,7 +106,7 @@ export default function ReservationPaymentMethods({
 
   useEffect(() => {
     const active = savedCards.find((c) => c.id === selectedCardId);
-    setSelectedCardRequiresCvv?.(Boolean(active?.supportsDirectCharge));
+    setSelectedCardRequiresCvv?.(Boolean(active?.supportsDirectCharge && !active?.hasSavedCvv));
   }, [savedCards, selectedCardId, setSelectedCardRequiresCvv]);
 
   const selectMethod = (next: PaymentMethod) => {
@@ -365,18 +365,24 @@ export default function ReservationPaymentMethods({
                   >
                     <PaymentRow
                       selected={paymentMethod === "tabby"}
-                      disabled={false}
-                      onSelect={() => selectMethod("tabby")}
-                      title="Tabby"
-                      description={`${label("Pay in 4 installments", "ادفع على ٤ دفعات")} · 4 × ${installmentPrice}`}
+                      disabled={true}
+                      onSelect={() => {}}
+                      title={label("Tabby (Coming Soon)", "تابي (قريباً)")}
+                      description={label(
+                        `Installments activating soon · 4 × ${installmentPrice}`,
+                        `خدمة التقسيط قيد التفعيل قريباً · ٤ × ${installmentPrice}`
+                      )}
                       marks={<TabbyBrandMark />}
                     />
                     <PaymentRow
                       selected={paymentMethod === "tamara"}
-                      disabled={false}
-                      onSelect={() => selectMethod("tamara")}
-                      title="Tamara"
-                      description={`${label("Split into 4 payments", "قسّم المبلغ على ٤ دفعات")} · 4 × ${installmentPrice}`}
+                      disabled={true}
+                      onSelect={() => {}}
+                      title={label("Tamara (Coming Soon)", "تمارا (قريباً)")}
+                      description={label(
+                        `Installments activating soon · 4 × ${installmentPrice}`,
+                        `خدمة التقسيط قيد التفعيل قريباً · ٤ × ${installmentPrice}`
+                      )}
                       marks={<TamaraBrandMark />}
                     />
                   </div>

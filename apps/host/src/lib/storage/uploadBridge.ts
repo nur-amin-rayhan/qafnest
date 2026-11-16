@@ -171,12 +171,27 @@ export async function uploadFilesViaServerRoute(
 ): Promise<string[]> {
   if (!files || files.length === 0) return [];
 
-  const formData = new FormData();
+  // Split uploads into compact batches (< 3 MB / max 2 files) so requests stay safely under Vercel's 4.5 MB body limit
+  const MAX_BATCH_BYTES = 3 * 1024 * 1024;
+  const MAX_BATCH_FILES = 2;
+  const batches: File[][] = [];
+  let currentBatch: File[] = [];
+  let currentBytes = 0;
+
   for (const file of files) {
-    formData.append("files", file);
+    if (
+      currentBatch.length > 0 &&
+      (currentBatch.length >= MAX_BATCH_FILES || currentBytes + file.size > MAX_BATCH_BYTES)
+    ) {
+      batches.push(currentBatch);
+      currentBatch = [];
+      currentBytes = 0;
+    }
+    currentBatch.push(file);
+    currentBytes += file.size;
   }
-  if (options.bucketName) {
-    formData.append("bucket", options.bucketName);
+  if (currentBatch.length > 0) {
+    batches.push(currentBatch);
   }
 
   const headers: Record<string, string> = {};
@@ -184,18 +199,30 @@ export async function uploadFilesViaServerRoute(
     headers["Authorization"] = `Bearer ${options.authToken}`;
   }
 
-  const res = await fetch("/api/host/upload", {
-    method: "POST",
-    headers,
-    body: formData,
-  });
+  const uploadedUrls: string[] = [];
+  for (const batch of batches) {
+    const formData = new FormData();
+    for (const file of batch) {
+      formData.append("files", file);
+    }
+    if (options.bucketName) {
+      formData.append("bucket", options.bucketName);
+    }
 
-  const data = await res.json();
-  if (!res.ok || !data.success || !Array.isArray(data.urls)) {
-    throw new Error(data.message || `Server upload failed with status ${res.status}`);
+    const res = await fetch("/api/host/upload", {
+      method: "POST",
+      headers,
+      body: formData,
+    });
+
+    const data = await res.json();
+    if (!res.ok || !data.success || !Array.isArray(data.urls)) {
+      throw new Error(data.message || `Server upload failed with status ${res.status}`);
+    }
+    uploadedUrls.push(...(data.urls as string[]));
   }
 
-  return data.urls as string[];
+  return uploadedUrls;
 }
 
 /**

@@ -34,17 +34,14 @@ export async function GET(request: NextRequest) {
       )
       .order("created_at", { ascending: false });
 
-    // Multi-tenant matcher: guest_id (for UUID / phone-linked profiles) + auth_subject (UID, phone, or 9-digit helpline subject)
+    // Multi-tenant matcher: strict UID match + verified phone match only
     const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(authUser.id);
-    const phoneDigitsRaw = String(authUser.phone || "").replace(/\D/g, "");
-    const phoneDigits9 = phoneDigitsRaw.length >= 8 ? phoneDigitsRaw.slice(-9) : "";
-
     const matchedProfileIds = new Set<string>(isUuid ? [authUser.id] : []);
-    if (phoneDigits9) {
+    if (authUser.isPhoneVerified && authUser.phone) {
       const { data: phoneProfiles } = await dbClient
         .from("profiles")
         .select("id")
-        .ilike("phone", `%${phoneDigits9}%`)
+        .eq("phone", authUser.phone)
         .limit(5);
       for (const row of phoneProfiles || []) {
         if (row?.id) matchedProfileIds.add(String(row.id));
@@ -55,11 +52,8 @@ export async function GET(request: NextRequest) {
     for (const pid of Array.from(matchedProfileIds)) {
       orFilters.push(`guest_id.eq.${pid}`);
     }
-    if (authUser.phone) {
+    if (authUser.isPhoneVerified && authUser.phone) {
       orFilters.push(`auth_subject.eq.${authUser.phone}`);
-    }
-    if (phoneDigits9) {
-      orFilters.push(`auth_subject.ilike.%${phoneDigits9}%`);
     }
 
     query = query.or(orFilters.join(","));

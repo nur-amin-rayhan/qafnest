@@ -25,7 +25,7 @@ export async function GET(request: Request) {
       const { data: propData } = await adminClient
         .from("properties")
         .select("id")
-        .or(`slug.eq.${propertyId},id.eq.${propertyId}`)
+        .eq("slug", propertyId)
         .maybeSingle();
 
       if (propData?.id && uuidPattern.test(propData.id)) {

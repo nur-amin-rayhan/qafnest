@@ -49,7 +49,7 @@ export interface PropertyItem {
   host_verified?: boolean;
   host_total_properties?: number;
   is_approved?: boolean;
-  status?: "approved" | "pending" | "rejected";
+  status?: "approved" | "pending" | "rejected" | "suspended";
   images?: string[];
   features?: string[];
   specs?: string;

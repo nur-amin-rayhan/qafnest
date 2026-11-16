@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Tag,
   CheckCircle2,
@@ -10,7 +10,7 @@ import {
   ChevronDown,
   ChevronUp,
 } from "lucide-react";
-import { ACTIVE_COUPONS } from "@/lib/services/pricing";
+import { ACTIVE_COUPONS, type PromoCoupon } from "@/lib/services/pricing";
 
 interface PricingCouponFormProps {
   couponInput: string;
@@ -36,6 +36,26 @@ export function PricingCouponForm({
   t,
 }: PricingCouponFormProps) {
   const [showQuickCoupons, setShowQuickCoupons] = useState(false);
+  const [liveCoupons, setLiveCoupons] = useState<PromoCoupon[]>(ACTIVE_COUPONS);
+  const [loadedCoupons, setLoadedCoupons] = useState(false);
+
+  useEffect(() => {
+    if (loadedCoupons) return;
+    let active = true;
+    fetch("/api/coupons/active", { cache: "no-store" })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (!active || !data) return;
+        if (Array.isArray(data.coupons)) {
+          setLiveCoupons(data.coupons);
+          setLoadedCoupons(true);
+        }
+      })
+      .catch(() => null);
+    return () => {
+      active = false;
+    };
+  }, [loadedCoupons]);
 
   return (
     <div className="pt-2">
@@ -112,27 +132,36 @@ export function PricingCouponForm({
               {t("Click any code to apply instantly:", "اضغط على أي كود للتطبيق الفوري:")}
             </span>
             <div className="flex flex-wrap gap-1.5">
-              {ACTIVE_COUPONS.map((c) => (
-                <button
-                  key={c.code}
-                  type="button"
-                  onClick={() => {
-                    setCouponInput(c.code);
-                    void onApplyCoupon(c.code);
-                  }}
-                  className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold border transition-all cursor-pointer ${
-                    appliedCoupon === c.code
-                      ? "bg-emerald-600 text-white border-emerald-600 shadow-xs"
-                      : "bg-white dark:bg-white/5 border-violet-200 dark:border-violet-500/30 text-violet-700 dark:text-violet-200 hover:bg-violet-100/60"
-                  }`}
-                >
-                  <Tag className="h-3 w-3" />
-                  <span className="font-mono">{c.code}</span>
-                  <span className="text-[10px] opacity-80">
-                    ({c.type === "percentage" ? `${c.value}% OFF` : `SAR ${c.value}`})
-                  </span>
-                </button>
-              ))}
+              {liveCoupons.length === 0 ? (
+                <span className="text-[11px] text-gray-500 dark:text-gray-400">
+                  {t(
+                    "No public promo codes active right now. Enter a private code above.",
+                    "لا توجد أكواد عامة حالياً — أدخل الكود الخاص بك أعلاه."
+                  )}
+                </span>
+              ) : (
+                liveCoupons.map((c) => (
+                  <button
+                    key={c.code}
+                    type="button"
+                    onClick={() => {
+                      setCouponInput(c.code);
+                      void onApplyCoupon(c.code);
+                    }}
+                    className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold border transition-all cursor-pointer ${
+                      appliedCoupon === c.code
+                        ? "bg-emerald-600 text-white border-emerald-600 shadow-xs"
+                        : "bg-white dark:bg-white/5 border-violet-200 dark:border-violet-500/30 text-violet-700 dark:text-violet-200 hover:bg-violet-100/60"
+                    }`}
+                  >
+                    <Tag className="h-3 w-3" />
+                    <span className="font-mono">{c.code}</span>
+                    <span className="text-[10px] opacity-80">
+                      ({c.type === "percentage" ? `${c.value}% OFF` : `SAR ${c.value}`})
+                    </span>
+                  </button>
+                ))
+              )}
             </div>
           </div>
         )}

@@ -7,6 +7,8 @@ import {
   type HostPayoutIban,
   type HostSettlementSettings,
 } from "./hostFinancialsService";
+import { hydrateHostPayoutStore } from "@qafnest/shared/hostPayoutStore";
+import { hydratePlatformFeeConfig } from "@qafnest/shared/platformFeeStore";
 
 export interface HostProfileSettings {
   fullName: string;
@@ -176,42 +178,56 @@ export async function updateHostProfileSettings(
   hostId: string,
   update: Partial<HostProfileSettings>
 ): Promise<HostProfileSettings> {
+  // Never let a host self-grant verified KYC status or overwrite verified phone/email directly
+  const sanitizedUpdate: Partial<HostProfileSettings> = {
+    ...(update.fullName !== undefined ? { fullName: update.fullName } : {}),
+    ...(update.city !== undefined ? { city: update.city } : {}),
+    ...(update.nationalId !== undefined ? { nationalId: update.nationalId } : {}),
+    ...(update.idType !== undefined ? { idType: update.idType } : {}),
+    ...(update.bio !== undefined ? { bio: update.bio } : {}),
+    ...(update.avatarUrl !== undefined ? { avatarUrl: update.avatarUrl } : {}),
+  };
+
   customProfiles[hostId] = {
     ...(customProfiles[hostId] || {}),
-    ...update,
+    ...sanitizedUpdate,
   };
 
   const supabase = getAdminClient();
   if (supabase && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(hostId)) {
-    try {
-      const dbPayload: Record<string, unknown> = {
-        id: hostId,
-        updated_at: new Date().toISOString(),
-      };
-      if (update.fullName !== undefined) dbPayload.full_name = update.fullName;
-      if (update.phone !== undefined) dbPayload.phone = update.phone;
-      if (update.nationalId !== undefined) dbPayload.national_id = update.nationalId;
-      if (update.avatarUrl !== undefined) dbPayload.avatar_url = update.avatarUrl;
+    const dbPayload: Record<string, unknown> = {
+      id: hostId,
+      updated_at: new Date().toISOString(),
+    };
+    if (sanitizedUpdate.fullName !== undefined) dbPayload.full_name = sanitizedUpdate.fullName;
+    if (sanitizedUpdate.nationalId !== undefined) dbPayload.national_id = sanitizedUpdate.nationalId;
+    if (sanitizedUpdate.avatarUrl !== undefined) dbPayload.avatar_url = sanitizedUpdate.avatarUrl;
 
-      await supabase.from("profiles").upsert(dbPayload, { onConflict: "id" });
+    const { error: upsertErr } = await supabase
+      .from("profiles")
+      .upsert(dbPayload, { onConflict: "id" });
+    if (upsertErr) {
+      throw new Error(`Profile update failed: ${upsertErr.message}`);
+    }
 
-      const { data: existingAuth } = await supabase.auth.admin.getUserById(hostId);
-      const prevMeta = (existingAuth?.user?.user_metadata || {}) as Record<string, unknown>;
-      const nextMeta: Record<string, unknown> = { ...prevMeta };
-      if (update.fullName !== undefined) nextMeta.full_name = update.fullName;
-      if (update.city !== undefined) nextMeta.city = update.city;
-      if (update.nationalId !== undefined) nextMeta.national_id = update.nationalId;
-      if (update.idType !== undefined) nextMeta.id_type = update.idType;
-      if (update.bio !== undefined) nextMeta.bio = update.bio;
-      if (update.avatarUrl !== undefined) nextMeta.avatar_url = update.avatarUrl;
-      if (update.isVerified !== undefined) nextMeta.is_verified = update.isVerified;
+    const { data: existingAuth, error: authReadErr } = await supabase.auth.admin.getUserById(hostId);
+    if (authReadErr) {
+      throw new Error(`Could not load host auth profile: ${authReadErr.message}`);
+    }
+    const prevMeta = (existingAuth?.user?.user_metadata || {}) as Record<string, unknown>;
+    const nextMeta: Record<string, unknown> = { ...prevMeta };
+    if (sanitizedUpdate.fullName !== undefined) nextMeta.full_name = sanitizedUpdate.fullName;
+    if (sanitizedUpdate.city !== undefined) nextMeta.city = sanitizedUpdate.city;
+    if (sanitizedUpdate.nationalId !== undefined) nextMeta.national_id = sanitizedUpdate.nationalId;
+    if (sanitizedUpdate.idType !== undefined) nextMeta.id_type = sanitizedUpdate.idType;
+    if (sanitizedUpdate.bio !== undefined) nextMeta.bio = sanitizedUpdate.bio;
+    if (sanitizedUpdate.avatarUrl !== undefined) nextMeta.avatar_url = sanitizedUpdate.avatarUrl;
 
-      await supabase.auth.admin.updateUserById(hostId, {
-        ...(update.email !== undefined && update.email ? { email: update.email } : {}),
-        user_metadata: nextMeta,
-      });
-    } catch (e) {
-      console.warn("Notice: DB profile update skipped:", e);
+    const { error: authUpdErr } = await supabase.auth.admin.updateUserById(hostId, {
+      user_metadata: nextMeta,
+    });
+    if (authUpdErr) {
+      throw new Error(`Host metadata update failed: ${authUpdErr.message}`);
     }
   }
 
@@ -229,6 +245,7 @@ export async function updateHostPayoutSettings(
     autoDisburse?: boolean;
   }
 ): Promise<HostPayoutSettings> {
+  await Promise.all([hydrateHostPayoutStore(), hydratePlatformFeeConfig()]);
   if (update.iban && update.accountHolder) {
     updateHostIban(hostId, update.iban, update.accountHolder);
   }
@@ -271,18 +288,22 @@ export async function updateHostPassword(
     throw new Error("Password must be at least 8 characters long.");
   }
 
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(hostId)) {
+    throw new Error(
+      "Phone-verified Firebase host accounts sign in with SMS OTP and do not use a Supabase password."
+    );
+  }
+
   const supabase = getAdminClient();
-  if (supabase) {
-    try {
-      const { error } = await supabase.auth.admin.updateUserById(hostId, {
-        password: newPassword,
-      });
-      if (error) {
-        console.warn("Supabase admin updateUser password notice:", error.message);
-      }
-    } catch (e) {
-      console.warn("Could not call supabase admin updateUser, fallback:", e);
-    }
+  if (!supabase) {
+    throw new Error("Authentication service is currently unavailable.");
+  }
+
+  const { error } = await supabase.auth.admin.updateUserById(hostId, {
+    password: newPassword,
+  });
+  if (error) {
+    throw new Error(error.message || "Failed to update account password.");
   }
 
   customSecurity[hostId] = {

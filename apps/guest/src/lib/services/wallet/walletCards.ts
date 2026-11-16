@@ -5,6 +5,26 @@ import { getUserWallet } from "./walletOperations";
 import type { SavedCard } from "./walletTypes";
 
 function getVaultKey(): Buffer {
+  const configured = process.env.ENCRYPTION_KEY?.trim();
+  if (configured) {
+    return crypto.createHash("sha256").update(configured).digest();
+  }
+  const serverSecret =
+    process.env.SUPABASE_SERVICE_ROLE_KEY?.trim() ||
+    process.env.ADMIN_SECRET_KEY?.trim();
+  if (serverSecret) {
+    return crypto
+      .createHmac("sha256", serverSecret)
+      .update("qafnest-card-vault-v2")
+      .digest();
+  }
+  if (process.env.NODE_ENV === "production") {
+    throw new Error("ENCRYPTION_KEY or SUPABASE_SERVICE_ROLE_KEY is required in production.");
+  }
+  return crypto.createHash("sha256").update("qafnest-dev-vault-key-local-only").digest();
+}
+
+function getLegacyVaultKey(): Buffer {
   return crypto
     .createHash("sha256")
     .update(process.env.ENCRYPTION_KEY || "qafnest-pci-vault-secret-2026")
@@ -12,17 +32,39 @@ function getVaultKey(): Buffer {
 }
 
 export function encryptCardNumber(num: string): string {
-  const iv = crypto.randomBytes(16);
-  const cipher = crypto.createCipheriv("aes-256-cbc", getVaultKey(), iv);
-  return `${iv.toString("hex")}:${cipher.update(num, "utf8", "hex")}${cipher.final("hex")}`;
+  const iv = crypto.randomBytes(12);
+  const cipher = crypto.createCipheriv("aes-256-gcm", getVaultKey(), iv);
+  const encrypted = Buffer.concat([cipher.update(num, "utf8"), cipher.final()]);
+  const tag = cipher.getAuthTag();
+  return `gcm:${iv.toString("hex")}:${tag.toString("hex")}:${encrypted.toString("hex")}`;
 }
 
 export function decryptCardNumber(token: string): string {
   try {
+    if (token.startsWith("gcm:")) {
+      const [, ivHex, tagHex, encHex] = token.split(":");
+      if (!ivHex || !tagHex || !encHex) return "";
+      const decipher = crypto.createDecipheriv(
+        "aes-256-gcm",
+        getVaultKey(),
+        Buffer.from(ivHex, "hex")
+      );
+      decipher.setAuthTag(Buffer.from(tagHex, "hex"));
+      return `${decipher.update(encHex, "hex", "utf8")}${decipher.final("utf8")}`;
+    }
+
+    // Legacy AES-256-CBC backwards-compatibility for pre-migration records
     const [ivHex, encHex] = token.split(":");
     if (!ivHex || !encHex) return "";
-    const decipher = crypto.createDecipheriv("aes-256-cbc", getVaultKey(), Buffer.from(ivHex, "hex"));
-    return `${decipher.update(encHex, "hex", "utf8")}${decipher.final("utf8")}`;
+    for (const candidateKey of [getVaultKey(), getLegacyVaultKey()]) {
+      try {
+        const decipher = crypto.createDecipheriv("aes-256-cbc", candidateKey, Buffer.from(ivHex, "hex"));
+        return `${decipher.update(encHex, "hex", "utf8")}${decipher.final("utf8")}`;
+      } catch {
+        // try legacy key
+      }
+    }
+    return "";
   } catch {
     return "";
   }
@@ -40,6 +82,7 @@ export function toPublicSavedCard(card: SavedCard): SavedCard {
     isDefault: card.isDefault,
     createdAt: card.createdAt,
     maskedPan: card.maskedPan,
+    hasSavedCvv: Boolean(card.cvvToken || card.hasSavedCvv),
     supportsDirectCharge: Boolean(card.supportsDirectCharge ?? (card.gatewayToken || card.cardToken)),
   };
   return publicCard;
@@ -66,6 +109,7 @@ export async function saveUserCard(
     cardNumber: string;
     expiryMonth: string;
     expiryYear: string;
+    cvv?: string;
     brand?: CardBrand;
     isDefault?: boolean;
     gatewayToken?: string;
@@ -86,6 +130,8 @@ export async function saveUserCard(
 
   const hasFullPan = !isMasked && cleanNumber.length >= 15;
   const cleanGatewayToken = cardInput.gatewayToken?.trim() || "";
+  const cleanCvv = String(cardInput.cvv || "").replace(/\D/g, "");
+  const hasValidCvv = /^\d{3,4}$/.test(cleanCvv);
 
   const newCard: SavedCard = {
     id: `card-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
@@ -98,6 +144,8 @@ export async function saveUserCard(
     isDefault: shouldBeDefault,
     createdAt: new Date().toISOString(),
     cardToken: hasFullPan ? encryptCardNumber(cleanNumber) : undefined,
+    cvvToken: hasValidCvv ? encryptCardNumber(cleanCvv) : undefined,
+    hasSavedCvv: hasValidCvv,
     gatewayToken: cleanGatewayToken ? encryptCardNumber(cleanGatewayToken) : undefined,
     panHash: cardInput.panHash?.trim() || undefined,
     maskedPan: cardInput.maskedPan?.trim() || (isMasked ? rawNumber.trim() : undefined),
@@ -116,6 +164,7 @@ export async function autoSaveCardFromInvoiceTransaction(params: {
   customerName?: string;
   gatewayName?: string;
   primaryTx?: Record<string, unknown>;
+  cvv?: string;
 }): Promise<void> {
   const tx = params.primaryTx || {};
   const cardObj =
@@ -177,6 +226,11 @@ export async function autoSaveCardFromInvoiceTransaction(params: {
       existing.supportsDirectCharge = true;
       changed = true;
     }
+    if (params.cvv && /^\d{3,4}$/.test(params.cvv) && !existing.cvvToken) {
+      existing.cvvToken = encryptCardNumber(params.cvv);
+      existing.hasSavedCvv = true;
+      changed = true;
+    }
     if (changed) {
       wallet.savedCards = currentCards;
       await commitUserWallet(wallet);
@@ -189,6 +243,7 @@ export async function autoSaveCardFromInvoiceTransaction(params: {
     cardNumber: rawCardNumber,
     expiryMonth,
     expiryYear,
+    cvv: params.cvv,
     brand,
     isDefault: currentCards.length === 0,
     gatewayToken,

@@ -26,8 +26,18 @@ export interface CmsContactInfo {
   licenseNumber: string;
 }
 
+export type CmsPageId =
+  | "terms"
+  | "privacy"
+  | "cookies"
+  | "faq"
+  | "contact"
+  | "announcements"
+  | "seo-routes"
+  | (string & {});
+
 export interface CmsPageRecord {
-  id: "terms" | "privacy" | "cookies" | "faq" | "contact";
+  id: CmsPageId;
   titleEn: string;
   titleAr: string;
   subtitleEn: string;

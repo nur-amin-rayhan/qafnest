@@ -58,16 +58,21 @@ export function useWishlistSync() {
         const { uuid } = resolvePropertyIdentifier(id);
         supabase.auth.getUser().then(({ data: { user } }) => {
           if (!user) return;
+          const isIdUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+          const isResolvedUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(uuid);
           if (isExisting) {
-            void supabase
-              .from("favorites")
-              .delete()
-              .eq("guest_id", user.id)
-              .or(`property_id.eq.${uuid},property_id.eq.${id}`);
-          } else {
+            const del = supabase.from("favorites").delete().eq("guest_id", user.id);
+            if (isResolvedUuid && isIdUuid && uuid !== id) {
+              void del.or(`property_id.eq.${uuid},property_id.eq.${id}`);
+            } else if (isResolvedUuid) {
+              void del.eq("property_id", uuid);
+            } else if (isIdUuid) {
+              void del.eq("property_id", id);
+            }
+          } else if (isResolvedUuid || isIdUuid) {
             void supabase.from("favorites").insert({
               guest_id: user.id,
-              property_id: uuid,
+              property_id: isResolvedUuid ? uuid : id,
             });
           }
         });

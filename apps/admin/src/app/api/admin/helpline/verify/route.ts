@@ -3,11 +3,12 @@ import { createAdminDataClient, isAdminRequest } from "@/lib/adminApi";
 import {
   createVerificationSession,
   getVerificationSession,
+  hydrateHelplineVerificationStore,
   verifySessionOtp,
   verifySessionIdentity,
   type HelplineVerificationSession,
 } from "@qafnest/shared/helplineVerificationStore";
-import { readUserGovernanceStore } from "@qafnest/shared/userActivityStore";
+import { hydrateUserGovernanceStore, readUserGovernanceStore } from "@qafnest/shared/userActivityStore";
 
 export const dynamic = "force-dynamic";
 
@@ -26,6 +27,8 @@ export async function GET(request: NextRequest) {
   if (!isAdminRequest(request)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+
+  await Promise.all([hydrateHelplineVerificationStore(), hydrateUserGovernanceStore()]);
 
   const { searchParams } = new URL(request.url);
   const token = searchParams.get("token");
@@ -226,6 +229,7 @@ export async function POST(request: NextRequest) {
   }
 
   try {
+    await Promise.all([hydrateHelplineVerificationStore(), hydrateUserGovernanceStore()]);
     const body = await request.json();
     const action = body.action || "create_session";
 
@@ -261,13 +265,18 @@ export async function POST(request: NextRequest) {
       const guestOrigin = process.env.NEXT_PUBLIC_GUEST_URL || `http://${hostHeader.replace(":3003", ":3000")}`;
       const verificationLink = `${guestOrigin}/verify-booking/${session.token}`;
 
+      const isTestOtpEnabled =
+        process.env.NODE_ENV !== "production" && Boolean(session.devOtpCode);
       return NextResponse.json({
         success: true,
         session,
         verificationLink,
-        message: session.verificationMethod === "link" 
-          ? "Verification link generated. Send this link to the caller to complete verification."
-          : `Verification code sent to caller (${phoneNumber}). Sandbox code: ${session.devOtpCode}`,
+        message:
+          session.verificationMethod === "link"
+            ? "Verification link generated. Send this link to the caller to complete verification."
+            : isTestOtpEnabled
+            ? `Verification code sent to caller (${phoneNumber}). Test code: ${session.devOtpCode}`
+            : `Verification code sent via SMS to caller (${phoneNumber}).`,
       });
     }
 

@@ -2,8 +2,12 @@ import { NextResponse } from "next/server";
 import { getAdminOrServerClient } from "@/lib/supabase/service";
 import type { calculatePricingBreakdown } from "@/lib/services/pricing";
 import { persistBookingToDatabase } from "@/lib/services/checkoutHelpers";
+import { recordCouponUsage } from "@/lib/services/couponService";
 import { dispatchBookingZatcaInvoice } from "@/lib/services/zatcaReportingHelper";
+import { getFirebaseGuestProfile } from "@/lib/services/firebaseGuestProfileStore";
+import { DEFAULT_SAUDI_IDENTITY_CONFIG } from "@qafnest/shared/saudiIdentityConfig";
 import { getServerSaudiIdentityConfig } from "@qafnest/shared/saudiIdentityStore";
+import { hydrateSharedJsonFile } from "@qafnest/shared/serverJsonStore";
 import { calculateBookingSettlement } from "@qafnest/shared/platformFee";
 import { saveBookingFinancialSnapshot } from "@qafnest/shared/bookingFinancialsStore";
 import type { getServerEffectiveGuestFeeConfig } from "@qafnest/shared/platformFeeStore";
@@ -11,38 +15,53 @@ import {
   awardLoyaltyPoints,
   deductWalletForBooking,
   getUserWallet,
+  refundWalletForBooking,
 } from "@/lib/services/walletService";
 
 type GuestFeeConfig = ReturnType<typeof getServerEffectiveGuestFeeConfig>;
 type PricingResult = ReturnType<typeof calculatePricingBreakdown>;
 type AdminDbClient = Awaited<ReturnType<typeof getAdminOrServerClient>>;
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /** Verifies Saudi National ID or Iqama when CMS mandatory guest policy is active. */
 export async function checkMandatorySaudiIdentity(userId: string): Promise<NextResponse | null> {
+  await hydrateSharedJsonFile("saudi-identity-config.json", () => DEFAULT_SAUDI_IDENTITY_CONFIG);
   const identityConfig = getServerSaudiIdentityConfig();
   if (!identityConfig.isMandatoryForGuests || !userId) return null;
 
-  const dbAdmin = await getAdminOrServerClient();
-  const { data: profile } = await dbAdmin
-    .from("profiles")
-    .select("national_id")
-    .eq("id", userId)
-    .maybeSingle();
-
+  let profileNationalId = "";
   let metaVerified = false;
   let metaIqama = "";
-  try {
-    if (typeof (dbAdmin as any).auth?.admin?.getUserById === "function") {
-      const { data: authRes } = await (dbAdmin as any).auth.admin.getUserById(userId);
-      const meta = (authRes?.user?.user_metadata || {}) as Record<string, unknown>;
-      metaVerified = Boolean(meta.is_verified);
-      metaIqama = typeof meta.iqama === "string" ? meta.iqama : "";
+
+  if (UUID_RE.test(userId)) {
+    const dbAdmin = await getAdminOrServerClient();
+    const { data: profile } = await dbAdmin
+      .from("profiles")
+      .select("national_id")
+      .eq("id", userId)
+      .maybeSingle();
+    profileNationalId = profile?.national_id || "";
+
+    try {
+      if (typeof (dbAdmin as any).auth?.admin?.getUserById === "function") {
+        const { data: authRes } = await (dbAdmin as any).auth.admin.getUserById(userId);
+        const meta = (authRes?.user?.user_metadata || {}) as Record<string, unknown>;
+        metaVerified = Boolean(meta.is_verified);
+        metaIqama = typeof meta.iqama === "string" ? meta.iqama : "";
+      }
+    } catch {
+      // Optional auth metadata check
     }
-  } catch {
-    // Optional auth metadata check
+  } else {
+    const fbProfile = await getFirebaseGuestProfile(userId);
+    if (fbProfile) {
+      profileNationalId = fbProfile.national_id || "";
+      metaVerified = Boolean(fbProfile.is_verified);
+      metaIqama = fbProfile.iqama || "";
+    }
   }
 
-  if (!metaVerified && !profile?.national_id && !metaIqama) {
+  if (!metaVerified && !profileNationalId && !metaIqama) {
     return NextResponse.json(
       {
         code: "identity_verification_required",
@@ -174,6 +193,13 @@ export async function executeDirectWalletCheckout(params: {
   });
 
   if (!bookingPersisted) {
+    await refundWalletForBooking({
+      userId: params.effectiveUserId,
+      amount: params.totalPrice,
+      welcomeBonusRestore: deductResult.welcomeBonusUsed,
+      bookingRef: params.bookingRef,
+      reason: overlapConflict ? "Slot conflict refund" : "Persistence failure refund",
+    });
     return NextResponse.json(
       overlapConflict
         ? {
@@ -187,6 +213,11 @@ export async function executeDirectWalletCheckout(params: {
           },
       { status: overlapConflict ? 409 : 500 }
     );
+  }
+
+  const appliedCode = params.pricing.couponCode || params.rawCouponCode;
+  if (appliedCode) {
+    await recordCouponUsage(appliedCode, params.effectiveUserId, params.bookingRef).catch(() => undefined);
   }
 
   const updatedWallet = await awardLoyaltyPoints({

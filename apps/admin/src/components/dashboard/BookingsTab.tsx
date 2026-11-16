@@ -95,9 +95,40 @@ export function BookingsTab({
           </Link>
           <button
             type="button"
-            onClick={() =>
-              triggerToast("Generating Ledger CSV. Download starting in 3 seconds...")
-            }
+            onClick={() => {
+              const esc = (v: unknown) => {
+                const s = String(v ?? "");
+                return /[",\r\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+              };
+              const headers = ["Booking_Ref", "Property", "Guest", "Phone", "Check_In", "Check_Out", "Nights", "Amount_SAR", "Status", "Payment_Status"];
+              const rows = filteredBookings.map((b) => [
+                b.booking_reference || b.id,
+                b.property_title || "",
+                b.guest_name || "",
+                b.guest_phone || "",
+                b.check_in || "",
+                b.check_out || "",
+                b.total_nights ?? 1,
+                Number(b.total_price ?? 0).toFixed(2),
+                b.status || "",
+                b.payment_status || "",
+              ]);
+              const csvContent =
+                "\uFEFF" +
+                [headers.map(esc).join(","), ...rows.map((r) => r.map(esc).join(","))].join("\r\n");
+              const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+              const url = URL.createObjectURL(blob);
+              const link = document.createElement("a");
+              link.href = url;
+              link.download = `qafnest-bookings-${new Date().toISOString().slice(0, 10)}.csv`;
+              document.body.appendChild(link);
+              link.click();
+              document.body.removeChild(link);
+              URL.revokeObjectURL(url);
+              triggerToast(
+                t(`Exported ${filteredBookings.length} booking rows to CSV.`, `تم تصدير ${filteredBookings.length} حجوزات إلى ملف CSV.`)
+              );
+            }}
             className="h-10 flex items-center gap-2 px-4 rounded-xl bg-primary-container text-on-primary font-title-sm text-xs font-bold shadow-xs hover:bg-primary transition-all cursor-pointer"
           >
             <span className="material-symbols-outlined text-[18px]">download</span>

@@ -32,6 +32,8 @@ export interface CouponDefinition {
   descriptionAr: string;
 }
 
+export type PromoCoupon = CouponDefinition;
+
 export const ACTIVE_COUPONS: CouponDefinition[] = [];
 
 export interface PricingBreakdown {

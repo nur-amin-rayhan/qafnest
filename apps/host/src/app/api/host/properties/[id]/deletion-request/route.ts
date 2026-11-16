@@ -6,6 +6,7 @@ import {
   createOrUpdatePendingDeletionRequest,
   getLatestDeletionRequestForProperty,
   getPendingDeletionRequestForProperty,
+  hydratePropertyDeletionStore,
   toDeletionRequestSummary,
   validateDeletionReasonInput,
 } from "@qafnest/shared/propertyDeletionStore";
@@ -66,7 +67,9 @@ async function resolveVerifiedHostProperty(params: {
     };
   }
 
-  if (existing.host_id && existing.host_id !== authUser.id) {
+  await hydratePropertyDeletionStore();
+
+  if (!existing.host_id || existing.host_id !== authUser.id) {
     return {
       errorRes: NextResponse.json(
         { code: "forbidden", message: "You are not authorized to manage this property." },

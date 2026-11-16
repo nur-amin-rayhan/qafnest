@@ -5,14 +5,36 @@ import {
   testZatcaGatewayHandshake,
   reportInvoiceToZatca,
   onboardZatcaComplianceCsid,
+  upgradeToProductionCsid,
   getZatcaInvoiceRecords,
+  hydrateZatcaState,
 } from "@qafnest/shared/zatcaStore";
+import { persistSharedJsonFile } from "@qafnest/shared/serverJsonStore";
 import type { ZatcaConfig } from "@qafnest/shared";
+import { isAdminRequest } from "@/lib/adminApi";
 
-export async function GET() {
+const CONFIGURED_SENTINEL = "__CONFIGURED__";
+
+function redactZatcaConfig(cfg: ZatcaConfig) {
+  return {
+    ...cfg,
+    otp: cfg.otp ? CONFIGURED_SENTINEL : "",
+    csidSecret: cfg.csidSecret ? CONFIGURED_SENTINEL : "",
+    privateKeyPem: undefined,
+    hasPrivateKey: Boolean(cfg.privateKeyPem),
+    hasCsidSecret: Boolean(cfg.csidSecret),
+  };
+}
+
+export async function GET(request: NextRequest) {
+  if (!isAdminRequest(request)) {
+    return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
+  }
+
   try {
+    await hydrateZatcaState();
     const config = getServerZatcaConfig();
-    const recentInvoices = getZatcaInvoiceRecords(25).map((inv) => ({
+    const recentInvoices = getZatcaInvoiceRecords(50).map((inv) => ({
       uuid: inv.uuid,
       invoiceNumber: inv.invoiceNumber,
       bookingReference: inv.bookingReference,
@@ -30,7 +52,7 @@ export async function GET() {
 
     return NextResponse.json({
       success: true,
-      config,
+      config: redactZatcaConfig(config),
       recentInvoices,
     });
   } catch (err: unknown) {
@@ -40,20 +62,47 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
+  if (!isAdminRequest(request)) {
+    return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
+  }
+
   try {
+    await hydrateZatcaState();
+    const existing = getServerZatcaConfig();
     const body = await request.json();
     const action = body.action || "save_config";
 
+    const preserveSecrets = (raw: Partial<ZatcaConfig> = {}): Partial<ZatcaConfig> => ({
+      ...raw,
+      ...(raw.otp === CONFIGURED_SENTINEL ? { otp: existing.otp } : {}),
+      ...(raw.csidSecret === CONFIGURED_SENTINEL ? { csidSecret: existing.csidSecret } : {}),
+      ...(raw.privateKeyPem === undefined ? {} : raw.privateKeyPem ? { privateKeyPem: raw.privateKeyPem } : {}),
+    });
+
     if (action === "onboard_csid") {
-      const onboardResult = await onboardZatcaComplianceCsid(body.configOverride);
+      const onboardResult = await onboardZatcaComplianceCsid(preserveSecrets(body.configOverride));
+      await persistSharedJsonFile("zatca-config.json", onboardResult.config);
       return NextResponse.json({
         ...onboardResult,
+        config: redactZatcaConfig(onboardResult.config),
         message: "Successfully onboarded EGS CSR & received live ZATCA Compliance CSID!",
       });
     }
 
+    if (action === "upgrade_production_csid") {
+      const prodResult = await upgradeToProductionCsid();
+      await persistSharedJsonFile("zatca-config.json", prodResult.config);
+      return NextResponse.json({
+        success: true,
+        requestID: prodResult.requestID,
+        dispositionMessage: prodResult.dispositionMessage,
+        config: redactZatcaConfig(prodResult.config),
+        message: "Upgraded to ZATCA Production CSID cleanly.",
+      });
+    }
+
     if (action === "test_handshake") {
-      const handshake = await testZatcaGatewayHandshake(body.configOverride);
+      const handshake = await testZatcaGatewayHandshake(preserveSecrets(body.configOverride));
       return NextResponse.json({
         success: true,
         handshake,
@@ -84,6 +133,8 @@ export async function POST(request: NextRequest) {
         totalWithVat: 1150.0,
         type: "simplified",
       });
+      await persistSharedJsonFile("zatca-config.json", getServerZatcaConfig());
+      await persistSharedJsonFile("zatca-invoices.json", getZatcaInvoiceRecords(500));
 
       return NextResponse.json({
         success: result.success,
@@ -94,14 +145,14 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Default: Save configuration updates
-    const updates: Partial<ZatcaConfig> = body.config || body;
+    const updates = preserveSecrets((body.config || body) as Partial<ZatcaConfig>);
     const updated = updateServerZatcaConfig(updates);
+    await persistSharedJsonFile("zatca-config.json", updated);
 
     return NextResponse.json({
       success: true,
       message: "ZATCA E-Invoicing configuration synchronized successfully.",
-      config: updated,
+      config: redactZatcaConfig(updated),
     });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Failed to process ZATCA request";

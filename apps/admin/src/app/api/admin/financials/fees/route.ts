@@ -60,7 +60,7 @@ export async function POST(request: NextRequest) {
 
     const feeUpdates: Record<string, unknown> = {
       ...(body || {}),
-      syncGuestServiceFee: false,
+      syncGuestServiceFee: body?.syncGuestServiceFee !== undefined ? Boolean(body.syncGuestServiceFee) : true,
       lastUpdatedBy: body?.lastUpdatedBy || session.email || "Super Admin (Finance Officer)",
     };
 

@@ -266,11 +266,21 @@ export function useAdminDashboardData() {
   };
 
   const quickDisbursePayout = async (payoutId: string) => {
+    const sarieInput =
+      typeof window !== "undefined"
+        ? window.prompt("Enter SAMA SARIE Transaction Reference (6+ alphanumeric chars):")
+        : null;
+    if (sarieInput === null) return;
+    const cleanedTxn = sarieInput.trim();
+    if (!/^[a-zA-Z0-9_-]{6,64}$/.test(cleanedTxn)) {
+      triggerToast("Valid SAMA SARIE transaction reference (6+ chars) is required.");
+      return;
+    }
     try {
       const res = await fetch(adminPath("/api/admin/financials"), {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ payoutId, status: "disbursed" }),
+        body: JSON.stringify({ payoutId, status: "disbursed", sarieTxnId: cleanedTxn }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || "Failed to disburse");

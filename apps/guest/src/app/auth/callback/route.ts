@@ -5,10 +5,11 @@ export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url);
   const code = requestUrl.searchParams.get("code");
   const requestedNext = requestUrl.searchParams.get("next") || "/";
-  const safeNext = requestedNext.startsWith("/") && !requestedNext.startsWith("//")
-    ? requestedNext
-    : "/";
-  const destination = new URL(safeNext, requestUrl.origin);
+  const isSafeRelativePath = requestedNext.startsWith("/") && !/^\/[\/\\]/.test(requestedNext);
+  let destination = new URL(isSafeRelativePath ? requestedNext : "/", requestUrl.origin);
+  if (destination.origin !== requestUrl.origin) {
+    destination = new URL("/", requestUrl.origin);
+  }
 
   if (!code) {
     destination.searchParams.set("auth_error", "confirmation_code_missing");

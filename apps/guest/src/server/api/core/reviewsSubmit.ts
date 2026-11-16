@@ -82,7 +82,7 @@ export async function POST(request: Request) {
         const { data: propData } = await adminClient
           .from("properties")
           .select("id")
-          .or(`slug.eq.${propertyId},id.eq.${propertyId}`)
+          .eq("slug", propertyId)
           .maybeSingle();
 
         if (propData?.id && uuidPattern.test(propData.id)) {
@@ -134,13 +134,19 @@ export async function POST(request: Request) {
       );
     }
 
-    // Check ownership
+    if (booking.property_id !== resolvedPropertyId) {
+      return NextResponse.json(
+        { code: "invalid_booking", message: "Booking does not match the reviewed property." },
+        { status: 403 }
+      );
+    }
+
+    // Check strict booking ownership
     const isOwner =
       (auth.guestId && booking.guest_id === auth.guestId) ||
       (auth.subject && booking.auth_subject === auth.subject) ||
       (auth.subject && booking.guest_id === auth.subject) ||
-      (auth.guestId && booking.auth_subject === auth.guestId) ||
-      (!booking.guest_id && !booking.auth_subject);
+      (auth.guestId && booking.auth_subject === auth.guestId);
 
     if (!isOwner) {
       return NextResponse.json(

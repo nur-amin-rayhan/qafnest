@@ -113,6 +113,7 @@ export function mapPropertyToWizardDraft(
         ? Number(p.capacity)
         : Math.max(2, Number(p.bedrooms_count || 0) * 2 + 2),
     bedroomsCount: p.bedrooms_count !== undefined && p.bedrooms_count !== null ? Number(p.bedrooms_count) : 0,
+    bathroomsCount: p.bathrooms_count !== undefined && p.bathrooms_count !== null ? Number(p.bathrooms_count) : 0,
     weekdayPrice: p.weekday_price || p.base_price ? String(p.weekday_price || p.base_price) : "",
     weekendPrice: p.weekend_price || p.base_price ? String(p.weekend_price || p.base_price) : "",
     tourismLicenseNumber: p.tourism_license_number || "",

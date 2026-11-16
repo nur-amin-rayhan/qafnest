@@ -295,12 +295,18 @@ export async function validateAuthoritativeCoupon(
  * Uses atomic Compare-And-Swap (CAS) optimistic concurrency control to prevent race conditions (SEC-07).
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export async function recordCouponUsage(code: string, dbClient?: any): Promise<void> {
+export async function recordCouponUsage(
+  code: string,
+  dbClientOrUserId?: any,
+  bookingRefOrUserId?: string,
+  _bookingRef?: string
+): Promise<void> {
   const cleanCode = (code || "").trim().toUpperCase();
   if (!cleanCode) return;
 
   try {
-    const supabase = dbClient || (await getAdminOrServerClient());
+    const isClient = dbClientOrUserId && typeof dbClientOrUserId.from === "function";
+    const supabase = isClient ? dbClientOrUserId : await getAdminOrServerClient();
 
     // 1. First attempt: Atomic stored procedure increment if present in database
     try {

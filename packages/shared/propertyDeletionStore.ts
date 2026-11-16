@@ -3,7 +3,12 @@
  * Synchronized across Host Portal (:3001) and Admin Portal (:3003).
  */
 
-import { readSharedJsonFile, writeSharedJsonFile } from "./serverJsonStore";
+import {
+  hydrateSharedJsonFile,
+  persistSharedJsonFile,
+  readSharedJsonFile,
+  writeSharedJsonFile,
+} from "./serverJsonStore";
 import {
   getDeletionReasonOption,
   type PropertyDeletionReasonCode,
@@ -19,16 +24,30 @@ interface PropertyDeletionStoreData {
 
 const DELETION_STORE_FILE = "property-deletion-requests.json";
 
+const normalizeDeletionStore = (parsed: unknown): PropertyDeletionStoreData => {
+  const candidate = (parsed || {}) as Partial<PropertyDeletionStoreData>;
+  return {
+    requests: Array.isArray(candidate.requests) ? candidate.requests : [],
+  };
+};
+
+export async function hydratePropertyDeletionStore(): Promise<PropertyDeletionStoreData> {
+  return hydrateSharedJsonFile<PropertyDeletionStoreData>(
+    DELETION_STORE_FILE,
+    () => ({ requests: [] }),
+    normalizeDeletionStore
+  );
+}
+
+export async function persistPropertyDeletionStore(): Promise<boolean> {
+  return persistSharedJsonFile(DELETION_STORE_FILE, readStore());
+}
+
 function readStore(): PropertyDeletionStoreData {
   return readSharedJsonFile<PropertyDeletionStoreData>(
     DELETION_STORE_FILE,
     () => ({ requests: [] }),
-    (parsed) => {
-      const candidate = (parsed || {}) as Partial<PropertyDeletionStoreData>;
-      return {
-        requests: Array.isArray(candidate.requests) ? candidate.requests : [],
-      };
-    }
+    normalizeDeletionStore
   );
 }
 

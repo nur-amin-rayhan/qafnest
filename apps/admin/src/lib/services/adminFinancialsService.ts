@@ -1,12 +1,13 @@
 import fs from "fs";
 import path from "path";
 import { createAdminDataClient } from "@/lib/adminApi";
-import { getServerPlatformFeeConfig } from "@qafnest/shared/platformFeeStore";
-import { resolveBookingSettlement } from "@qafnest/shared/bookingFinancialsStore";
+import { getServerPlatformFeeConfig, hydratePlatformFeeConfig } from "@qafnest/shared/platformFeeStore";
+import { hydrateBookingFinancialsStore, resolveBookingSettlement } from "@qafnest/shared/bookingFinancialsStore";
 import {
   getAllStoredPayouts,
   getHostPayoutPolicy,
   getSharedHostIban,
+  hydrateHostPayoutStore,
   updateHostPayoutPolicy,
   syncConfirmedBookingsToPayouts,
   reviewHostPayoutRequest,
@@ -89,6 +90,11 @@ export interface AdminHostLedger {
 }
 
 export async function getAdminFinancialData() {
+  await Promise.all([
+    hydrateHostPayoutStore(),
+    hydratePlatformFeeConfig(),
+    hydrateBookingFinancialsStore(),
+  ]);
   const supabase = createAdminDataClient();
   const round2 = (n: number) => Math.round((n + Number.EPSILON) * 100) / 100;
   let liveGrossVolume = 0;
@@ -256,12 +262,35 @@ export async function getAdminFinancialData() {
       ? Math.round(bookingPayouts.reduce((sum, p) => sum + (Number(p.vatAmount) || 0), 0) * 100) / 100
       : fallbackSettlement?.governmentVatRemittanceSar ?? 0;
 
-  const disbursedTotal =
-    Math.round(
-      payouts
-        .filter((p) => p.status === "disbursed")
-        .reduce((sum, p) => sum + p.netPayoutAmount, 0) * 100
-    ) / 100;
+function computeDeduplicatedDisbursedTotal(records: SharedHostPayoutRecord[]): number {
+  const disbursedBookingIds = new Set<string>();
+  let bookingSum = 0;
+  for (const p of records) {
+    if (p.status !== "disbursed" || p.source === "host_request") continue;
+    const key = p.bookingId || p.id;
+    if (disbursedBookingIds.has(key)) continue;
+    disbursedBookingIds.add(key);
+    for (const bk of p.bookings || []) {
+      if (bk.id) disbursedBookingIds.add(bk.id);
+    }
+    bookingSum += Number(p.netPayoutAmount) || 0;
+  }
+
+  let requestSum = 0;
+  for (const p of records) {
+    if (p.status !== "disbursed" || p.source !== "host_request") continue;
+    const coveredByBookingRow =
+      (p.bookingId && disbursedBookingIds.has(p.bookingId)) ||
+      ((p.bookings || []).length > 0 &&
+        (p.bookings || []).every((bk) => bk.id && disbursedBookingIds.has(bk.id)));
+    if (coveredByBookingRow) continue;
+    requestSum += Number(p.netPayoutAmount) || 0;
+  }
+
+  return Math.round((bookingSum + requestSum) * 100) / 100;
+}
+
+  const disbursedTotal = computeDeduplicatedDisbursedTotal(payouts);
   const pendingTotal =
     Math.round(
       payouts
@@ -447,11 +476,7 @@ export async function getAdminFinancialData() {
       pb.dueSar = Math.max(0, round2(pb.hostNetEarningsSar - pb.paidOutSar));
     }
 
-    const totalPaidOut = round2(
-      hostPayouts
-        .filter((p) => p.status === "disbursed")
-        .reduce((sum, p) => sum + (Number(p.netPayoutAmount) || 0), 0)
-    );
+    const totalPaidOut = computeDeduplicatedDisbursedTotal(hostPayouts);
     const onHoldAmount = round2(
       hostPayouts
         .filter((p) => p.status === "on_hold")
@@ -541,6 +566,7 @@ export async function reviewAdminPayoutRequest(
   actorEmail?: string,
   reason?: string
 ) {
+  await hydrateHostPayoutStore();
   const updated = reviewHostPayoutRequest(payoutId, decision, actorEmail, reason);
   if (updated) {
     await notifyHostIfPossible({
@@ -565,6 +591,7 @@ export async function updatePayoutStatus(
   holdReason?: string,
   sarieTxnId?: string
 ) {
+  await hydrateHostPayoutStore();
   const updated = updateStoredPayoutStatus(payoutId, newStatus, holdReason, sarieTxnId);
   if (updated && newStatus === "disbursed") {
     const policy = getHostPayoutPolicy();

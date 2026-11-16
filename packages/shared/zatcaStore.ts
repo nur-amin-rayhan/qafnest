@@ -1,7 +1,7 @@
 import crypto from "crypto";
 import {
-  ZatcaConfig,
-  ZatcaInvoiceAuditRecord,
+  type ZatcaConfig,
+  type ZatcaInvoiceAuditRecord,
   DEFAULT_ZATCA_CONFIG,
   ZATCA_ENVIRONMENT_URLS,
 } from "./zatcaConfig";
@@ -10,12 +10,13 @@ import {
   generateZatcaCsrAndKeyPair,
   buildAndSignZatcaPhase2Invoice,
 } from "./zatcaCrypto";
-import { readSharedJsonFile, writeSharedJsonFile } from "./serverJsonStore";
+import { hydrateSharedJsonFile, readSharedJsonFile, writeSharedJsonFile } from "./serverJsonStore";
 
 export * from "./zatcaConfig";
 
 const ZATCA_CONFIG_FILE = "zatca-config.json";
 const ZATCA_INVOICES_FILE = "zatca-invoices.json";
+let zatcaReportQueue: Promise<unknown> = Promise.resolve();
 
 function normalizeGatewayUrl(url: string | undefined, env: ZatcaConfig["environment"]): string {
   if (!url) return ZATCA_ENVIRONMENT_URLS[env];
@@ -96,10 +97,10 @@ export function findZatcaInvoiceRecord(lookup: {
 }
 
 function appendZatcaInvoiceRecord(record: ZatcaInvoiceAuditRecord): void {
-  const existing = getZatcaInvoiceRecords(500).filter(
+  const existing = getZatcaInvoiceRecords(5000).filter(
     (r) => r.invoiceNumber !== record.invoiceNumber && r.uuid !== record.uuid
   );
-  const updated = [record, ...existing].slice(0, 250);
+  const updated = [record, ...existing].slice(0, 2000);
   writeSharedJsonFile(ZATCA_INVOICES_FILE, updated);
 }
 
@@ -109,7 +110,10 @@ function appendZatcaInvoiceRecord(record: ZatcaInvoiceAuditRecord): void {
 export async function onboardZatcaComplianceCsid(configOverride?: Partial<ZatcaConfig>) {
   const config = updateServerZatcaConfig(configOverride || {});
   const targetUrl = normalizeGatewayUrl(config.portalUrl, config.environment);
-  const otp = (config.otp || "123345").trim();
+  const otp = (config.otp || "").trim() || (config.environment === "sandbox" ? "123345" : "");
+  if (!otp) {
+    throw new Error("ZATCA Fatoorah Portal OTP is required before Production CSID onboarding.");
+  }
   const deviceUuid = config.deviceUuid || crypto.randomUUID();
 
   const csrData = generateZatcaCsrAndKeyPair({
@@ -197,12 +201,22 @@ export async function upgradeToProductionCsid() {
     throw new Error(`Production CSID request failed (HTTP ${res.status}): ${JSON.stringify(data)}`);
   }
 
+  const updatedConfig = updateServerZatcaConfig({
+    environment: "production",
+    portalUrl: ZATCA_ENVIRONMENT_URLS.production,
+    csidToken: String(data.binarySecurityToken),
+    csidSecret: String(data.secret || config.csidSecret),
+    complianceRequestId: data.requestID || config.complianceRequestId,
+    csidIssuedAt: new Date().toISOString(),
+  });
+
   return {
     success: true,
     requestID: data.requestID,
     dispositionMessage: data.dispositionMessage,
     binarySecurityToken: data.binarySecurityToken,
     secret: data.secret,
+    config: updatedConfig,
   };
 }
 
@@ -283,8 +297,15 @@ export async function testZatcaGatewayHandshake(configOverride?: Partial<ZatcaCo
   }
 }
 
+export async function hydrateZatcaState(): Promise<void> {
+  await Promise.all([
+    hydrateSharedJsonFile<ZatcaConfig>(ZATCA_CONFIG_FILE, () => DEFAULT_ZATCA_CONFIG),
+    hydrateSharedJsonFile<ZatcaInvoiceAuditRecord[]>(ZATCA_INVOICES_FILE, () => []),
+  ]);
+}
+
 /**
- * Signs UBL 2.1 XML invoice & reports it directly to the active ZATCA API
+ * Signs UBL 2.1 XML invoice & reports it directly to the active ZATCA API (serialized for ICV/PIH integrity)
  */
 export async function reportInvoiceToZatca(params: {
   invoiceId: string;
@@ -311,6 +332,40 @@ export async function reportInvoiceToZatca(params: {
   billingReferenceId?: string;
   paymentMeansCode?: string;
 }) {
+  const run = zatcaReportQueue.then(
+    () => reportInvoiceToZatcaSerialized(params),
+    () => reportInvoiceToZatcaSerialized(params)
+  );
+  zatcaReportQueue = run.catch(() => undefined);
+  return run;
+}
+
+async function reportInvoiceToZatcaSerialized(params: {
+  invoiceId: string;
+  invoiceNumber: string;
+  bookingReference?: string;
+  issueDate?: string;
+  issueTime?: string;
+  buyerName?: string;
+  buyerVatNumber?: string;
+  lineItems: Array<{
+    name: string;
+    quantity: number;
+    unitPrice: number;
+    subtotal: number;
+    vatRate: number;
+    vatAmount: number;
+    total: number;
+  }>;
+  totalWithVat: number;
+  vatAmount: number;
+  taxableAmount: number;
+  type?: "simplified" | "standard";
+  invoiceTypeCode?: "388" | "381" | "383";
+  billingReferenceId?: string;
+  paymentMeansCode?: string;
+}) {
+  await hydrateZatcaState();
   let config = getServerZatcaConfig();
 
   // In Sandbox Developer Portal, auto-onboard a real Compliance CSID if none has been issued yet
@@ -350,6 +405,7 @@ export async function reportInvoiceToZatca(params: {
     invoiceTypeCode?: "388" | "381" | "383";
     billingReferenceId?: string;
     paymentMeansCode?: string;
+    sellerCrNumber?: string;
   } = {
     uuid: validUuid,
     invoiceNumber: params.invoiceNumber,
@@ -360,6 +416,7 @@ export async function reportInvoiceToZatca(params: {
     type: invType,
     sellerNameAr: config.sellerNameAr,
     sellerVatNumber: config.vatNumber,
+    sellerCrNumber: config.crNumber,
     buyerName: params.buyerName || "Valued Guest",
     buyerVatNumber: params.buyerVatNumber,
     lineItems: params.lineItems,

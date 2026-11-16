@@ -1,9 +1,18 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { getAllBlogs, saveBlog } from "@qafnest/shared/blogStore";
+import { hydrateSharedJsonFile, persistSharedJsonFile } from "@qafnest/shared/serverJsonStore";
+import { sanitizeRichHtml } from "@qafnest/shared/escapeHtml";
 import type { SharedBlogPost } from "@qafnest/shared";
+import { isAdminRequest } from "@/lib/adminApi";
+
+const BLOGS_FILE = "cms-blogs.json";
 
 export async function GET(request: NextRequest) {
+  if (!isAdminRequest(request)) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
   try {
+    await hydrateSharedJsonFile<SharedBlogPost[]>(BLOGS_FILE, () => []);
     const { searchParams } = new URL(request.url);
     const status = searchParams.get("status");
     const category = searchParams.get("category");
@@ -24,13 +33,16 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  if (!isAdminRequest(request)) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
   try {
+    await hydrateSharedJsonFile<SharedBlogPost[]>(BLOGS_FILE, () => []);
     const body = (await request.json()) as SharedBlogPost;
     if (!body || !body.titleEn || !body.titleAr) {
       return NextResponse.json({ error: "Missing required blog titles" }, { status: 400 });
     }
 
-    // Auto-generate slug if missing
     if (!body.slug) {
       body.slug = body.titleEn
         .toLowerCase()
@@ -42,12 +54,19 @@ export async function POST(request: NextRequest) {
       body.id = `blog-${Date.now()}`;
     }
 
-    const success = saveBlog(body);
+    const sanitizedPost: SharedBlogPost = {
+      ...body,
+      contentHtmlEn: sanitizeRichHtml(body.contentHtmlEn || (body as any).contentEn || ""),
+      contentHtmlAr: sanitizeRichHtml(body.contentHtmlAr || (body as any).contentAr || ""),
+    };
+
+    const success = saveBlog(sanitizedPost);
     if (!success) {
       return NextResponse.json({ error: "Failed to persist blog" }, { status: 500 });
     }
+    await persistSharedJsonFile(BLOGS_FILE, getAllBlogs());
 
-    return NextResponse.json({ success: true, blog: body });
+    return NextResponse.json({ success: true, blog: sanitizedPost });
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : "Internal error";
     return NextResponse.json({ error: msg }, { status: 500 });

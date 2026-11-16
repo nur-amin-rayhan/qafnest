@@ -1,9 +1,10 @@
 import crypto from "crypto";
 import { getServiceRoleClient } from "@/lib/supabase/service";
-import { readRootJsonFile, writeRootJsonFile } from "@qafnest/shared/serverJsonStore";
+import { hydrateRootJsonFile, readRootJsonFile, writeRootJsonFile } from "@qafnest/shared/serverJsonStore";
 import {
   DEFAULT_LOYALTY_SETTINGS,
   type PendingWalletSplit,
+  type PendingWalletTopUp,
   type UserWalletData,
   type WalletStoreState,
 } from "./walletTypes";
@@ -65,28 +66,47 @@ export function defaultWalletStoreState(): WalletStoreState {
     activeOffers: [],
     loyaltySettings: DEFAULT_LOYALTY_SETTINGS,
     pendingSplits: {},
+    pendingTopUps: {},
+    processedTopUpPaymentIds: [],
   };
+}
+
+function normalizeWalletStoreState(parsed: unknown): WalletStoreState {
+  const candidate = parsed as Partial<WalletStoreState> | null;
+  if (candidate && typeof candidate.wallets === "object" && candidate.wallets !== null) {
+    return {
+      wallets: candidate.wallets || {},
+      activeOffers: Array.isArray(candidate.activeOffers) ? candidate.activeOffers : [],
+      loyaltySettings: candidate.loyaltySettings || DEFAULT_LOYALTY_SETTINGS,
+      pendingSplits:
+        candidate.pendingSplits && typeof candidate.pendingSplits === "object"
+          ? candidate.pendingSplits
+          : {},
+      pendingTopUps:
+        candidate.pendingTopUps && typeof candidate.pendingTopUps === "object"
+          ? candidate.pendingTopUps
+          : {},
+      processedTopUpPaymentIds: Array.isArray(candidate.processedTopUpPaymentIds)
+        ? candidate.processedTopUpPaymentIds
+        : [],
+    };
+  }
+  return defaultWalletStoreState();
 }
 
 export function loadWalletStore(): WalletStoreState {
   return readRootJsonFile<WalletStoreState>(
     WALLET_STORE_FILE,
     defaultWalletStoreState,
-    (parsed) => {
-      const candidate = parsed as Partial<WalletStoreState> | null;
-      if (candidate && typeof candidate.wallets === "object" && candidate.wallets !== null) {
-        return {
-          wallets: candidate.wallets || {},
-          activeOffers: Array.isArray(candidate.activeOffers) ? candidate.activeOffers : [],
-          loyaltySettings: candidate.loyaltySettings || DEFAULT_LOYALTY_SETTINGS,
-          pendingSplits:
-            candidate.pendingSplits && typeof candidate.pendingSplits === "object"
-              ? candidate.pendingSplits
-              : {},
-        };
-      }
-      return defaultWalletStoreState();
-    }
+    normalizeWalletStoreState
+  );
+}
+
+export async function hydrateWalletStore(): Promise<WalletStoreState> {
+  return hydrateRootJsonFile<WalletStoreState>(
+    WALLET_STORE_FILE,
+    defaultWalletStoreState,
+    normalizeWalletStoreState
   );
 }
 
@@ -131,6 +151,31 @@ export async function deleteCloudPendingSplit(bookingRef: string): Promise<void>
     const admin = getServiceRoleClient();
     await admin.storage.from(PRIVATE_STATE_BUCKET).remove([`splits/${safeStorageKey(bookingRef)}.json`]);
   } catch {}
+}
+
+export async function loadCloudPendingTopUp(reference: string): Promise<PendingWalletTopUp | null> {
+  if (!reference) return null;
+  return readCloudJson<PendingWalletTopUp>(`topups/${safeStorageKey(reference)}.json`);
+}
+
+export async function saveCloudPendingTopUp(topup: PendingWalletTopUp): Promise<void> {
+  if (!topup?.reference) return;
+  await writeCloudJson(`topups/${safeStorageKey(topup.reference)}.json`, topup);
+}
+
+export async function isCloudTopUpPaymentProcessed(paymentId: string): Promise<boolean> {
+  if (!paymentId) return false;
+  const marker = await readCloudJson<{ processed?: boolean }>(`topup-payments/${safeStorageKey(paymentId)}.json`);
+  return Boolean(marker?.processed);
+}
+
+export async function markCloudTopUpPaymentProcessed(paymentId: string, reference: string): Promise<void> {
+  if (!paymentId) return;
+  await writeCloudJson(`topup-payments/${safeStorageKey(paymentId)}.json`, {
+    processed: true,
+    reference,
+    processedAt: new Date().toISOString(),
+  });
 }
 
 /** Sync wallet balance / loyalty metadata changes to Supabase Auth for UUID users. */

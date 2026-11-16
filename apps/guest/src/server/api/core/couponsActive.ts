@@ -1,8 +1,10 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getPromotionState } from "@qafnest/shared/promotionStore";
+import { hydrateRootJsonFile } from "@qafnest/shared/serverJsonStore";
 
 export async function GET() {
+  await hydrateRootJsonFile(".qafnest-promotions.json", () => ({ coupons: [], promotionsEnabled: true })).catch(() => undefined);
   try {
     const supabase = await createClient();
 

@@ -121,7 +121,17 @@ export function DateRangeDropdown({
               <ChevronRight className="w-4 h-4" />
             </button>
           ) : (
-            <div className="w-6" />
+            <>
+              <button
+                type="button"
+                onClick={onNextMonth}
+                className="sm:hidden p-1 rounded-full hover:bg-gray-100 dark:hover:bg-white/10 text-gray-600 dark:text-gray-300 transition-colors cursor-pointer"
+                aria-label="Next Month"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+              <div className="hidden sm:block w-6" />
+            </>
           )}
         </div>
 

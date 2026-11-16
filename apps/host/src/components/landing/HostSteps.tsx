@@ -57,7 +57,8 @@ export function HostSteps({ t, lang }: HostStepsProps) {
         {steps.map((item) => (
           <div
             key={item.step}
-            className="relative rounded-3xl border border-violet-200/80 bg-violet-50/35 p-6 text-right dir-rtl flex flex-col justify-between"
+            dir={lang === "ar" ? "rtl" : "ltr"}
+            className={`relative rounded-3xl border border-violet-200/80 bg-violet-50/35 p-6 ${lang === "ar" ? "text-right" : "text-left"} flex flex-col justify-between`}
           >
             <div>
               <span className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-[#4F2396] text-sm font-black text-white">
