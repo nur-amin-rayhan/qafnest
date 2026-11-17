@@ -39,9 +39,13 @@ export async function POST(request: NextRequest) {
   try {
     await hydrateSharedJsonFile<SharedBlogPost[]>(BLOGS_FILE, () => []);
     const body = (await request.json()) as SharedBlogPost;
-    if (!body || !body.titleEn || !body.titleAr) {
-      return NextResponse.json({ error: "Missing required blog titles" }, { status: 400 });
+    const titleEn = (body?.titleEn || body?.titleAr || "").trim();
+    const titleAr = (body?.titleAr || body?.titleEn || "").trim();
+    if (!body || (!titleEn && !titleAr)) {
+      return NextResponse.json({ error: "Missing required blog title" }, { status: 400 });
     }
+    body.titleEn = titleEn;
+    body.titleAr = titleAr;
 
     if (!body.slug) {
       body.slug = body.titleEn

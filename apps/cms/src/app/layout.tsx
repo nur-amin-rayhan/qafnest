@@ -41,8 +41,8 @@ export default function CmsRootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${geist.variable} ${dinNext.variable} dark`} suppressHydrationWarning>
-      <body className="font-body relative min-h-screen bg-[#05070B] text-white selection:bg-emerald-500/30" suppressHydrationWarning>
+    <html lang="en" className={`${geist.variable} ${dinNext.variable} light`} suppressHydrationWarning>
+      <body className="font-body relative min-h-screen bg-[#F8F9FA] text-[#111827] selection:bg-blue-500/20" suppressHydrationWarning>
         <AdminAuthProvider>{children}</AdminAuthProvider>
       </body>
     </html>

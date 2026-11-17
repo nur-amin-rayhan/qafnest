@@ -6,7 +6,7 @@ import { ECOSYSTEM_URLS } from "@qafnest/shared";
 import type { CmsTab } from "../types/cms";
 
 interface CmsSidebarProps {
-  activeTab: CmsTab;
+  activeTab: string;
   setActiveTab: (tab: CmsTab) => void;
   articlesCount: number;
   t: (en: string, ar: string) => string;
@@ -18,6 +18,7 @@ export function CmsSidebar({
   articlesCount,
   t,
 }: CmsSidebarProps) {
+  const selectLegacy = (tab: CmsTab) => setActiveTab(tab);
   return (
     <aside className="w-full md:w-64 border-r border-white/10 bg-[#090C13] p-4 space-y-1">
       <div className="px-3 py-2 text-[11px] font-bold uppercase tracking-wider text-gray-500">
@@ -26,9 +27,9 @@ export function CmsSidebar({
 
       <button
         type="button"
-        onClick={() => setActiveTab("articles")}
+        onClick={() => selectLegacy("blogs")}
         className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition cursor-pointer ${
-          activeTab === "articles"
+          activeTab === "blogs"
             ? "bg-teal-500/15 text-teal-300 border border-teal-500/30 font-bold"
             : "text-gray-400 hover:text-white hover:bg-white/5"
         }`}
@@ -42,9 +43,9 @@ export function CmsSidebar({
 
       <button
         type="button"
-        onClick={() => setActiveTab("pages")}
+        onClick={() => selectLegacy("legal-pages")}
         className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition cursor-pointer ${
-          activeTab === "pages"
+          activeTab === "legal-pages"
             ? "bg-teal-500/15 text-teal-300 border border-teal-500/30 font-bold"
             : "text-gray-400 hover:text-white hover:bg-white/5"
         }`}
@@ -58,9 +59,9 @@ export function CmsSidebar({
 
       <button
         type="button"
-        onClick={() => setActiveTab("contact")}
+        onClick={() => selectLegacy("contact-us")}
         className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition cursor-pointer ${
-          activeTab === "contact"
+          activeTab === "contact-us"
             ? "bg-teal-500/15 text-teal-300 border border-teal-500/30 font-bold"
             : "text-gray-400 hover:text-white hover:bg-white/5"
         }`}
@@ -74,9 +75,9 @@ export function CmsSidebar({
 
       <button
         type="button"
-        onClick={() => setActiveTab("seo")}
+        onClick={() => selectLegacy("site-seo")}
         className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition cursor-pointer ${
-          activeTab === "seo"
+          activeTab === "site-seo"
             ? "bg-teal-500/15 text-teal-300 border border-teal-500/30 font-bold"
             : "text-gray-400 hover:text-white hover:bg-white/5"
         }`}
@@ -87,7 +88,7 @@ export function CmsSidebar({
 
       <button
         type="button"
-        onClick={() => setActiveTab("faqs")}
+        onClick={() => selectLegacy("faqs")}
         className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition cursor-pointer ${
           activeTab === "faqs"
             ? "bg-teal-500/15 text-teal-300 border border-teal-500/30 font-bold"
@@ -100,9 +101,9 @@ export function CmsSidebar({
 
       <button
         type="button"
-        onClick={() => setActiveTab("announcements")}
+        onClick={() => selectLegacy("home-popups")}
         className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition cursor-pointer ${
-          activeTab === "announcements"
+          activeTab === "home-popups"
             ? "bg-teal-500/15 text-teal-300 border border-teal-500/30 font-bold"
             : "text-gray-400 hover:text-white hover:bg-white/5"
         }`}

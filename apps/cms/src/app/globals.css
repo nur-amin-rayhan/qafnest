@@ -259,8 +259,8 @@ html.light .text-gradient {
 
 /* ================= LIGHT MODE COMPREHENSIVE OVERRIDES ================= */
 html.light body {
-  background-color: #F7F5FC !important;
-  color: #16102B !important;
+  background-color: #F8F9FA !important;
+  color: #111827 !important;
 }
 
 html.light .glass {

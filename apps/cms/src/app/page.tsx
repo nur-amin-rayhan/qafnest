@@ -1,109 +1,324 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
+import { CheckCircle2 } from "lucide-react";
+import type { SharedBlogPost } from "@qafnest/shared";
 import { cmsPath } from "@/lib/cmsUrl";
 import { useAdminAuth } from "@/context/AdminAuthContext";
-import { CmsHeader } from "@/components/CmsHeader";
-import { CmsSidebar } from "@/components/CmsSidebar";
-import { CmsArticlesTab } from "@/components/tabs/CmsArticlesTab";
-import { CmsPagesTab } from "@/components/tabs/CmsPagesTab";
-import { CmsContactTab } from "@/components/tabs/CmsContactTab";
-import { CmsSeoTab } from "@/components/tabs/CmsSeoTab";
-import { CmsFaqsTab } from "@/components/tabs/CmsFaqsTab";
-import { CmsAnnouncementsTab } from "@/components/tabs/CmsAnnouncementsTab";
+import { createDefaultCmsWorkspace } from "@/data/cmsWorkspaceDefaults";
+import { CmsShellSidebar } from "@/components/cms/CmsShellSidebar";
+import { CmsTopBar } from "@/components/cms/CmsTopBar";
+import { CmsDashboardView } from "@/components/cms/CmsDashboardView";
+import { CmsBlogsModule } from "@/components/cms/CmsBlogsModule";
+import { CmsMediaModule } from "@/components/cms/CmsMediaModule";
+import { CmsRolesModule, CmsUsersModule } from "@/components/cms/CmsUsersAndRolesModule";
+import { CmsCollectionsModule } from "@/components/cms/CmsCollectionsModule";
+import { CmsGlobalsModule, type GlobalKind } from "@/components/cms/CmsGlobalsModule";
 import { CmsIdentityTab } from "@/components/tabs/CmsIdentityTab";
 import { CmsZatcaTab } from "@/components/tabs/CmsZatcaTab";
-import {
-  INITIAL_ARTICLES,
-  INITIAL_SEO_ROUTES,
-  INITIAL_FAQS,
-} from "@/data/cmsMockData";
-import type { CmsTab, SeoRouteMeta, FaqItem } from "@/types/cms";
+import type { CmsLocale, CmsMediaRecord, CmsTab, CmsWorkspaceData } from "@/types/cms";
+
+const GLOBAL_TABS: GlobalKind[] = [
+  "home-hero",
+  "features",
+  "fleet-capabilities",
+  "coverage-network",
+  "industries",
+  "contact-us",
+  "site-seo",
+  "google-tag-manager",
+  "about-us",
+];
+
+const COLLECTION_TABS = [
+  "categories",
+  "faqs",
+  "home-popups",
+  "business-pages",
+  "legal-pages",
+  "navigation-links",
+  "social-links",
+] as const;
 
 export default function ContentAndSeoCmsPage() {
   const { user, signOut } = useAdminAuth();
-  const [lang, setLang] = useState<"en" | "ar">("en");
-  const [activeTab, setActiveTab] = useState<CmsTab>("articles");
+  const [locale, setLocale] = useState<CmsLocale>("en");
+  const [darkMode, setDarkMode] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<CmsTab>("dashboard");
 
-  const t = (en: string, ar: string) => (lang === "ar" ? ar : en);
+  const [workspace, setWorkspace] = useState<CmsWorkspaceData>(() => createDefaultCmsWorkspace());
+  const [blogs, setBlogs] = useState<SharedBlogPost[]>([]);
+  const [blogsLoading, setBlogsLoading] = useState(true);
+  const [toast, setToast] = useState<string | null>(null);
 
-  const [articlesCount, setArticlesCount] = useState<number>(INITIAL_ARTICLES.length);
-  const [seoRoutes] = useState<SeoRouteMeta[]>(INITIAL_SEO_ROUTES);
-  const [faqs] = useState<FaqItem[]>(INITIAL_FAQS);
+  const t = (en: string, ar: string) => (locale === "ar" ? ar : en);
+
+  const notify = useCallback((msg: string) => {
+    setToast(msg);
+    setTimeout(() => setToast((curr) => (curr === msg ? null : curr)), 3200);
+  }, []);
+
+  // Sync html class for light/dark + RTL
+  useEffect(() => {
+    const html = document.documentElement;
+    html.classList.toggle("dark", darkMode);
+    html.classList.toggle("light", !darkMode);
+    html.setAttribute("dir", locale === "ar" ? "rtl" : "ltr");
+  }, [darkMode, locale]);
+
+  const loadWorkspace = useCallback(async () => {
+    try {
+      const res = await fetch(cmsPath("/api/cms/workspace"));
+      if (res.ok) {
+        const data = await res.json();
+        if (data?.workspace) {
+          setWorkspace(data.workspace);
+        }
+      }
+    } catch {
+      // Keep default workspace if offline
+    }
+  }, []);
+
+  const loadBlogs = useCallback(async () => {
+    setBlogsLoading(true);
+    try {
+      const res = await fetch(cmsPath("/api/cms/blogs"));
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data)) {
+          setBlogs(data);
+        } else if (Array.isArray(data?.posts)) {
+          setBlogs(data.posts);
+        } else if (Array.isArray(data?.blogs)) {
+          setBlogs(data.blogs);
+        }
+      }
+    } catch {
+      // Ignore transient network failures
+    } finally {
+      setBlogsLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
-    fetch(cmsPath("/api/cms/blogs"))
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data) => {
-        if (Array.isArray(data?.posts)) {
-          setArticlesCount(data.posts.length);
+    void loadWorkspace();
+    void loadBlogs();
+  }, [loadWorkspace, loadBlogs]);
+
+  const saveWorkspacePatch = useCallback(
+    async (patch: Partial<CmsWorkspaceData>) => {
+      const next: CmsWorkspaceData = {
+        ...workspace,
+        ...patch,
+        globals: patch.globals
+          ? { ...workspace.globals, ...patch.globals }
+          : workspace.globals,
+      };
+      setWorkspace(next);
+      try {
+        const res = await fetch(cmsPath("/api/cms/workspace"), {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ workspace: next }),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data?.workspace) setWorkspace(data.workspace);
         }
-      })
-      .catch(() => null);
-  }, [activeTab]);
+      } catch {
+        notify("Failed to persist changes");
+      }
+    },
+    [workspace, notify]
+  );
+
+  const handleMediaUploaded = useCallback((record: CmsMediaRecord) => {
+    setWorkspace((prev) => ({
+      ...prev,
+      media: [record, ...prev.media.filter((m) => m.id !== record.id)],
+    }));
+  }, []);
+
+  const handleAddCategoryQuick = useCallback(
+    async (name: string) => {
+      const slug = name
+        .toLowerCase()
+        .trim()
+        .replace(/[^a-z0-9\s-]/g, "")
+        .replace(/\s+/g, "-");
+      const newCat = {
+        id: `cat-${Date.now()}`,
+        name: { en: name, ar: name },
+        slug: slug || `cat-${Date.now()}`,
+        description: { en: "", ar: "" },
+        updatedAt: new Date().toISOString(),
+      };
+      await saveWorkspacePatch({ categories: [...workspace.categories, newCat] });
+      notify(`Category "${name}" added`);
+    },
+    [workspace.categories, saveWorkspacePatch, notify]
+  );
+
+  const counts: Partial<Record<CmsTab, number>> = {
+    users: workspace.users.length,
+    media: workspace.media.length,
+    categories: workspace.categories.length,
+    blogs: blogs.length,
+    roles: workspace.roles.length,
+    faqs: workspace.faqs.length,
+    "home-popups": workspace.homePopups.length,
+    "business-pages": workspace.businessPages.length,
+    "legal-pages": workspace.legalPages.length,
+    "navigation-links": workspace.navigationLinks.length,
+    "social-links": workspace.socialLinks.length,
+  };
+
+  const isCollectionTab = (COLLECTION_TABS as readonly string[]).includes(activeTab);
+  const isGlobalTab = (GLOBAL_TABS as readonly string[]).includes(activeTab);
 
   return (
-    <div className={`min-h-screen bg-[#07090E] text-white flex flex-col ${lang === "ar" ? "rtl" : "ltr"}`}>
-      {/* Top Bar */}
-      <CmsHeader
+    <div
+      dir={locale === "ar" ? "rtl" : "ltr"}
+      className={`min-h-screen flex transition-colors ${
+        darkMode ? "bg-[#0B0D14] text-slate-100" : "bg-[#F8F9FA] text-[#111827]"
+      }`}
+    >
+      {/* Left Navigation Sidebar */}
+      <CmsShellSidebar
+        activeTab={activeTab}
+        onSelectTab={setActiveTab}
+        onOpenSearch={() => setSearchOpen(true)}
+        locale={locale}
+        darkMode={darkMode}
+        collapsed={sidebarCollapsed}
         userEmail={user?.email}
-        lang={lang}
-        setLang={setLang}
-        signOut={signOut}
-        t={t}
+        counts={counts}
       />
 
-      {/* Main Container */}
-      <div className="flex-1 flex flex-col md:flex-row">
-        {/* Sidebar */}
-        <CmsSidebar
+      {/* Main Content Area */}
+      <div className="flex-1 min-w-0 flex flex-col">
+        <CmsTopBar
           activeTab={activeTab}
-          setActiveTab={setActiveTab}
-          articlesCount={articlesCount}
-          t={t}
+          locale={locale}
+          setLocale={setLocale}
+          darkMode={darkMode}
+          setDarkMode={setDarkMode}
+          collapsed={sidebarCollapsed}
+          setCollapsed={setSidebarCollapsed}
+          userEmail={user?.email}
+          onSignOut={signOut}
+          onSelectTab={setActiveTab}
+          searchOpen={searchOpen}
+          setSearchOpen={setSearchOpen}
         />
 
-        {/* Content Area */}
-        <main className="flex-1 p-6 md:p-8 space-y-6 max-w-6xl">
-          {activeTab === "articles" && (
-            <CmsArticlesTab t={t} />
-          )}
-
-          {activeTab === "pages" && (
-            <CmsPagesTab t={t} />
-          )}
-
-          {activeTab === "contact" && (
-            <CmsContactTab t={t} />
-          )}
-
-          {activeTab === "seo" && (
-            <CmsSeoTab
-              seoRoutes={seoRoutes}
-              t={t}
+        <main className="flex-1 p-5 md:p-8 max-w-[1440px] w-full mx-auto">
+          {activeTab === "dashboard" && (
+            <CmsDashboardView
+              workspace={workspace}
+              blogsCount={blogs.length}
+              locale={locale}
+              darkMode={darkMode}
+              onSelectTab={setActiveTab}
             />
           )}
 
-          {activeTab === "faqs" && (
-            <CmsFaqsTab
-              faqs={faqs}
-              t={t}
+          {activeTab === "blogs" && (
+            <CmsBlogsModule
+              blogs={blogs}
+              loading={blogsLoading}
+              onRefreshBlogs={loadBlogs}
+              categories={workspace.categories}
+              onAddCategoryQuick={handleAddCategoryQuick}
+              users={workspace.users}
+              mediaLibrary={workspace.media}
+              onMediaUploaded={handleMediaUploaded}
+              locale={locale}
+              setLocale={setLocale}
+              darkMode={darkMode}
+              onNotify={notify}
             />
           )}
 
-          {activeTab === "announcements" && (
-            <CmsAnnouncementsTab t={t} />
+          {activeTab === "media" && (
+            <CmsMediaModule
+              media={workspace.media}
+              onMediaChange={(next) => saveWorkspacePatch({ media: next })}
+              locale={locale}
+              darkMode={darkMode}
+              onNotify={notify}
+            />
+          )}
+
+          {activeTab === "users" && (
+            <CmsUsersModule
+              users={workspace.users}
+              roles={workspace.roles}
+              onUsersChange={(next) => saveWorkspacePatch({ users: next })}
+              locale={locale}
+              darkMode={darkMode}
+              onNotify={notify}
+            />
+          )}
+
+          {activeTab === "roles" && (
+            <CmsRolesModule
+              roles={workspace.roles}
+              onRolesChange={(next) => saveWorkspacePatch({ roles: next })}
+              locale={locale}
+              darkMode={darkMode}
+              onNotify={notify}
+            />
+          )}
+
+          {isCollectionTab && (
+            <CmsCollectionsModule
+              kind={activeTab as (typeof COLLECTION_TABS)[number]}
+              workspace={workspace}
+              onSaveWorkspacePatch={saveWorkspacePatch}
+              onMediaUploaded={handleMediaUploaded}
+              locale={locale}
+              darkMode={darkMode}
+              onNotify={notify}
+            />
+          )}
+
+          {isGlobalTab && (
+            <CmsGlobalsModule
+              kind={activeTab as GlobalKind}
+              workspace={workspace}
+              onSaveGlobals={(nextGlobals) => saveWorkspacePatch({ globals: nextGlobals })}
+              onMediaUploaded={handleMediaUploaded}
+              locale={locale}
+              darkMode={darkMode}
+              onNotify={notify}
+            />
           )}
 
           {activeTab === "identity" && (
-            <CmsIdentityTab t={t} />
+            <div className="rounded-2xl bg-[#0B0E17] text-white p-6 border border-white/10">
+              <CmsIdentityTab t={t} />
+            </div>
           )}
 
           {activeTab === "zatca" && (
-            <CmsZatcaTab t={t} />
+            <div className="rounded-2xl bg-[#0B0E17] text-white p-6 border border-white/10">
+              <CmsZatcaTab t={t} />
+            </div>
           )}
         </main>
       </div>
+
+      {/* Toast Notification */}
+      {toast && (
+        <div className="fixed bottom-5 right-5 z-50 flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#111827] text-white text-xs font-medium shadow-xl border border-white/10">
+          <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+          <span>{toast}</span>
+        </div>
+      )}
     </div>
   );
 }
