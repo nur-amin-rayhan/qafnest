@@ -110,6 +110,20 @@ export function useAdminDashboardData() {
   useEffect(() => {
     void loadLiveAdminData();
 
+    // Auto-refresh when admin refocuses tab
+    const handleFocus = () => {
+      void loadLiveAdminData();
+    };
+    if (typeof window !== "undefined") {
+      window.addEventListener("focus", handleFocus);
+    }
+
+    // Dynamic background poller fallback
+    const interval = setInterval(() => {
+      if (typeof document !== "undefined" && document.hidden) return;
+      void loadLiveAdminData();
+    }, 10000);
+
     let supabase: ReturnType<typeof createClient> | undefined;
     try {
       supabase = createClient();
@@ -140,11 +154,21 @@ export function useAdminDashboardData() {
         .subscribe();
 
       return () => {
+        if (typeof window !== "undefined") {
+          window.removeEventListener("focus", handleFocus);
+        }
+        clearInterval(interval);
         if (supabase) void supabase.removeChannel(channel);
       };
     } catch (e) {
       console.warn("Could not setup admin realtime listener:", e);
     }
+    return () => {
+      if (typeof window !== "undefined") {
+        window.removeEventListener("focus", handleFocus);
+      }
+      clearInterval(interval);
+    };
   }, [loadLiveAdminData]);
 
   const updatePropertyStatus = async (

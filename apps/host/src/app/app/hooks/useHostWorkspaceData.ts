@@ -175,18 +175,35 @@ export function useHostWorkspaceData(userId: string | undefined, lang: "ar" | "e
     onNotification: () => {
       void loadDashboardData();
     },
+    onPropertyChange: () => {
+      void loadDashboardData();
+    },
   });
 
   useEffect(() => {
     if (!userId) return;
     void loadDashboardData();
 
+    // Auto-refresh on window focus (e.g. host switching tabs between admin and host)
+    const handleFocus = () => {
+      void loadDashboardData();
+    };
+    if (typeof window !== "undefined") {
+      window.addEventListener("focus", handleFocus);
+    }
+
+    // Dynamic background poller fallback
     const interval = setInterval(() => {
       if (typeof document !== "undefined" && document.hidden) return;
       void loadDashboardData();
-    }, 30000);
+    }, 10000);
 
-    return () => clearInterval(interval);
+    return () => {
+      if (typeof window !== "undefined") {
+        window.removeEventListener("focus", handleFocus);
+      }
+      clearInterval(interval);
+    };
   }, [userId, loadDashboardData]);
 
   useEffect(() => {

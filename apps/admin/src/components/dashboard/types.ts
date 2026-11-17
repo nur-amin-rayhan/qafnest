@@ -53,6 +53,7 @@ export interface PropertyItem {
   images?: string[];
   features?: string[];
   specs?: string;
+  capacity?: number;
   area_sqm?: number;
   bedrooms_count?: number;
   living_rooms_count?: number;

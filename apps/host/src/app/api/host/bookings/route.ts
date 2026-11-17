@@ -126,7 +126,7 @@ export async function GET(request: NextRequest) {
     // 3b. Fetch bookings for this host's properties
     const { data: bookingData, error: bookErr } = await supabase
       .from("bookings")
-      .select("id, booking_reference, property_id, guest_id, auth_subject, check_in, check_out, checkin_time, checkout_time, total_nights, guests_count, total_price, promo_discount, coupon_discount, status, payment_status, payment_id, payment_method, smart_lock_pin, created_at, updated_at")
+      .select("id, booking_reference, property_id, guest_id, auth_subject, check_in, check_out, total_nights, guests_count, total_price, status, payment_status, payment_id, payment_method, smart_lock_pin, created_at, updated_at")
       .in("property_id", propertyIds)
       .order("created_at", { ascending: false });
 

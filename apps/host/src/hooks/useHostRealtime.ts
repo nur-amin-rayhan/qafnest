@@ -20,6 +20,7 @@ interface UseHostRealtimeOptions {
   onBookingChange?: (payload: unknown) => void;
   onReviewChange?: (payload: unknown) => void;
   onNotification?: (payload: unknown) => void;
+  onPropertyChange?: (payload: unknown) => void;
 }
 
 export function useHostRealtime({
@@ -28,6 +29,7 @@ export function useHostRealtime({
   onBookingChange,
   onReviewChange,
   onNotification,
+  onPropertyChange,
 }: UseHostRealtimeOptions) {
   const [isConnected, setIsConnected] = useState(false);
   const [alerts, setAlerts] = useState<RealtimeAlert[]>([]);
@@ -37,12 +39,14 @@ export function useHostRealtime({
   const onBookingChangeRef = useRef(onBookingChange);
   const onReviewChangeRef = useRef(onReviewChange);
   const onNotificationRef = useRef(onNotification);
+  const onPropertyChangeRef = useRef(onPropertyChange);
   const propertyIdsRef = useRef(propertyIds);
 
   useEffect(() => {
     onBookingChangeRef.current = onBookingChange;
     onReviewChangeRef.current = onReviewChange;
     onNotificationRef.current = onNotification;
+    onPropertyChangeRef.current = onPropertyChange;
     propertyIdsRef.current = propertyIds;
   });
 
@@ -149,6 +153,36 @@ export function useHostRealtime({
               titleAr: "إشعار جديد للمضيف",
               message: String(newRow.body || "You have a new update."),
               messageAr: String(newRow.body || "لديك تحديث جديد."),
+            });
+          }
+        }
+      )
+      // 4. Listen for Property status updates (approvals, revisions, updates)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "properties",
+          filter: `host_id=eq.${hostId}`,
+        },
+        (payload) => {
+          onPropertyChangeRef.current?.(payload);
+          const newRow = payload.new as Record<string, unknown> | undefined;
+          if (newRow && payload.eventType === "UPDATE") {
+            const status = String(newRow.status || "");
+            const title = String(newRow.title || "Property");
+            const isApproved = status === "approved" || Boolean(newRow.is_approved);
+            addAlert({
+              type: "notification",
+              title: isApproved ? "Listing Approved!" : "Listing Updated",
+              titleAr: isApproved ? "تمت الموافقة على العقار!" : "تم تحديث بيانات العقار",
+              message: isApproved
+                ? `Your listing "${title}" has been approved and is now live!`
+                : `Listing "${title}" status changed to ${status}.`,
+              messageAr: isApproved
+                ? `تم اعتماد عقارك "${title}" بنجاح وأصبح متاحاً للضيوف!`
+                : `تم تحديث حالة عقارك "${title}" إلى ${status}.`,
             });
           }
         }

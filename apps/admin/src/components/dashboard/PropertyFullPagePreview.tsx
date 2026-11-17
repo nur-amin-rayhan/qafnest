@@ -137,7 +137,12 @@ export function PropertyFullPagePreview({
   const bedrooms = property.bedrooms_count || 0;
   const bathrooms = property.bathrooms_count || bedrooms;
   const livingRooms = property.living_rooms_count || 0;
-  const capacity = areaSqm ? Math.max(2, Math.round(areaSqm / 30)) : Math.max(1, bedrooms * 2);
+  const capacity =
+    Number(property.capacity) > 0
+      ? Number(property.capacity)
+      : areaSqm
+        ? Math.max(2, Math.round(areaSqm / 30))
+        : Math.max(1, bedrooms * 2);
   const numericUnit = getNumericUnitCode(property.id);
   const unitReference = property.tourism_license_number
     ? `${numericUnit} · LIC-${property.tourism_license_number}`

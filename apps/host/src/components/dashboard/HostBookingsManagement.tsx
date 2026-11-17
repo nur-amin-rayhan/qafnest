@@ -1,6 +1,8 @@
 "use client";
 
 import React, { useState, useEffect, useMemo, useCallback } from "react";
+import { useHostAuth } from "@/context/HostAuthContext";
+import { getHostRequestHeaders } from "@/lib/hostPropertyActions";
 import {
   CalendarDays,
   CheckCircle2,
@@ -42,15 +44,21 @@ export default function HostBookingsManagement({
   const [copiedPinId, setCopiedPinId] = useState<string | null>(null);
   const [actionSuccessMsg, setActionSuccessMsg] = useState<string | null>(null);
 
+  const { user } = useHostAuth();
+
   // Fetch bookings from API
   const fetchBookings = useCallback(async () => {
     setError(null);
     try {
+      const headers = await getHostRequestHeaders(user?.id);
       const res = await fetch("/api/host/bookings", {
-        headers: { "x-dev-host-id": "00000000-0000-0000-0000-000000000002" },
+        headers,
         cache: "no-store",
       });
-      if (!res.ok) throw new Error("Failed to load bookings");
+      if (!res.ok) {
+        const errData = await res.json().catch(() => null);
+        throw new Error(errData?.message || "Failed to load bookings");
+      }
       const data = await res.json();
       if (data.success && Array.isArray(data.bookings)) {
         setBookings(data.bookings);
@@ -60,7 +68,7 @@ export default function HostBookingsManagement({
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [user?.id]);
 
   useEffect(() => {
     fetchBookings();

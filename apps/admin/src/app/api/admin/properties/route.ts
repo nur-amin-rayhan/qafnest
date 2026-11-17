@@ -11,7 +11,7 @@ import { readPropertyDeletionRequests } from "@qafnest/shared/propertyDeletionSt
 import { enrichDeletionRequestsWithLiveBookings } from "@/lib/propertyDeletionServer";
 
 const ADMIN_PROPERTY_SELECT =
-  "id, title, title_ar, slug, city, city_name, district, district_ar, category, category_name, base_price, weekday_price, weekend_price, tourism_license_number, host_id, is_approved, status, created_at, updated_at, description, description_ar, specs, images, features, area_sqm, bedrooms_count, living_rooms_count, lat, lng, external_host_id, address, address_ar, street, street_ar, postal_code";
+  "id, title, title_ar, slug, city, city_name, district, district_ar, category, category_name, base_price, weekday_price, weekend_price, tourism_license_number, host_id, is_approved, status, created_at, updated_at, description, description_ar, specs, images, features, capacity, area_sqm, bedrooms_count, living_rooms_count, lat, lng, external_host_id, address, address_ar, street, street_ar, postal_code";
 
 interface HostMetaFallback {
   full_name?: string;

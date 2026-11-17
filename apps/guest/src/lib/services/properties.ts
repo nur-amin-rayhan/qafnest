@@ -157,7 +157,7 @@ function fromRow(rawRow: PropertyRow): Property {
 }
 
 const BILINGUAL_SELECT_FIELDS =
-  "id,slug,title,title_ar,description,description_ar,category,city,city_name,state,state_ar,district,district_ar,address,address_ar,street,street_ar,postal_code,google_maps_url,category_name,specs,base_price,weekend_price,original_price,discount_percentage,images,features,rating,reviews_count,instant_book,has_pool,self_checkin,is_licensed,capacity,bedrooms_count,bathrooms_count,living_rooms_count,checkin_time,checkout_time,custom_day_pricing,sunday_price,monday_price,tuesday_price,wednesday_price,thursday_price,friday_price,saturday_price,area_sqm,lat,lng,is_approved,created_at,host_id,external_host_id";
+  "id,slug,title,title_ar,description,description_ar,category,city,city_name,state,state_ar,district,district_ar,address,address_ar,street,street_ar,postal_code,google_maps_url,category_name,specs,base_price,weekend_price,original_price,discount_percentage,images,features,rating,reviews_count,instant_book,has_pool,self_checkin,is_licensed,capacity,bedrooms_count,living_rooms_count,checkin_time,checkout_time,area_sqm,lat,lng,is_approved,created_at,host_id,external_host_id";
 
 const LEGACY_SELECT_FIELDS = stripBilingualFromSelect(BILINGUAL_SELECT_FIELDS);
 
