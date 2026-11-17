@@ -66,47 +66,66 @@ export default function BlogPostDetailPage() {
       <Navbar />
 
       <main className="pt-24 sm:pt-28 pb-20">
-        {/* Breadcrumb & Navigation */}
-        <div className="max-w-4xl mx-auto px-5 sm:px-8 py-6">
-          <div className="flex items-center gap-2 text-xs text-muted mb-4">
-            <Link href={localizePath("/", language)} className="hover:text-violet-400 transition">
+        {/* Breadcrumb, Header & Hero Image — Full Site Width */}
+        <div className="max-w-[1440px] mx-auto px-5 sm:px-8 lg:px-12 py-6">
+          <div className="flex items-center gap-2 text-xs text-muted mb-5">
+            <Link href={localizePath("/", language)} className="hover:text-violet-500 transition">
               {language === "ar" ? "الرئيسية" : "Home"}
             </Link>
             <ChevronRight className="w-3.5 h-3.5 rtl:rotate-180" />
-            <Link href={localizePath("/blog", language)} className="hover:text-violet-400 transition">
+            <Link href={localizePath("/blog", language)} className="hover:text-violet-500 transition">
               {language === "ar" ? "المدونة" : "Blog"}
             </Link>
             <ChevronRight className="w-3.5 h-3.5 rtl:rotate-180" />
-            <span className="text-violet-400 truncate max-w-[200px] sm:max-w-xs">{title}</span>
+            <span className="text-violet-500 truncate max-w-[260px] sm:max-w-lg">{title}</span>
           </div>
 
-          <button
-            onClick={() => router.back()}
-            className="inline-flex items-center gap-1.5 text-xs font-semibold text-muted hover:text-white transition cursor-pointer mb-6"
-          >
-            {language === "ar" ? <ArrowRight className="w-4 h-4" /> : <ArrowLeft className="w-4 h-4" />}
-            <span>{language === "ar" ? "العودة إلى المقالات" : "Back to Blog"}</span>
-          </button>
+          <div className="flex flex-wrap items-center gap-3 mb-5">
+            <button
+              onClick={() => router.back()}
+              className={`inline-flex items-center gap-1.5 text-xs font-semibold transition cursor-pointer ${
+                isDarkTheme ? "text-gray-300 hover:text-white" : "text-slate-600 hover:text-slate-900"
+              }`}
+            >
+              {language === "ar" ? <ArrowRight className="w-4 h-4" /> : <ArrowLeft className="w-4 h-4" />}
+              <span>{language === "ar" ? "العودة إلى المقالات" : "Back to Blog"}</span>
+            </button>
 
-          {/* Category Pill */}
-          <span className="inline-block px-3 py-1 rounded-full text-xs font-bold bg-violet-600/20 text-violet-300 border border-violet-500/30 mb-4">
-            {catName}
-          </span>
+            <span
+              className={`inline-block px-3.5 py-1 rounded-full text-xs font-bold border ${
+                isDarkTheme
+                  ? "bg-violet-600/20 text-violet-300 border-violet-500/30"
+                  : "bg-violet-100 text-violet-700 border-violet-200"
+              }`}
+            >
+              {catName}
+            </span>
+          </div>
 
           {/* Title */}
-          <h1 className="font-display font-extrabold text-2xl sm:text-4xl lg:text-5xl leading-tight tracking-tight mb-4">
+          <h1 className="font-display font-extrabold text-3xl sm:text-4xl lg:text-5xl leading-tight tracking-tight mb-4">
             {title}
           </h1>
 
           {/* Excerpt */}
-          <p className="text-sm sm:text-base lg:text-lg text-muted leading-relaxed mb-6">
+          <p className="text-base sm:text-lg lg:text-xl text-muted leading-relaxed mb-6 max-w-5xl">
             {excerpt}
           </p>
 
           {/* Author & Meta Row */}
-          <div className="flex flex-wrap items-center justify-between gap-4 py-4 border-y border-purple-500/15 mb-8">
+          <div
+            className={`flex flex-wrap items-center justify-between gap-4 py-4 border-y mb-8 ${
+              isDarkTheme ? "border-purple-500/20" : "border-slate-200"
+            }`}
+          >
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-violet-600/30 text-violet-300 font-bold flex items-center justify-center text-sm border border-violet-500/30">
+              <div
+                className={`w-10 h-10 rounded-full font-bold flex items-center justify-center text-sm border ${
+                  isDarkTheme
+                    ? "bg-violet-600/30 text-violet-300 border-violet-500/30"
+                    : "bg-violet-100 text-violet-700 border-violet-200"
+                }`}
+              >
                 {author.charAt(0)}
               </div>
               <div>
@@ -115,21 +134,21 @@ export default function BlogPostDetailPage() {
               </div>
             </div>
 
-            <div className="flex items-center gap-4 text-xs text-muted">
+            <div className="flex items-center gap-4 text-xs sm:text-sm text-muted">
               <span className="flex items-center gap-1.5">
-                <Calendar className="w-4 h-4 text-violet-400" />
+                <Calendar className="w-4 h-4 text-violet-500" />
                 {date}
               </span>
               <span>·</span>
               <span className="flex items-center gap-1.5">
-                <Clock className="w-4 h-4 text-violet-400" />
+                <Clock className="w-4 h-4 text-violet-500" />
                 {readTime}
               </span>
             </div>
           </div>
 
           {/* Hero Image */}
-          <div className="relative w-full h-64 sm:h-96 rounded-3xl overflow-hidden mb-10 shadow-2xl border border-purple-500/20">
+          <div className="relative w-full h-[260px] sm:h-[420px] lg:h-[520px] rounded-3xl overflow-hidden mb-10 shadow-2xl border border-purple-500/20">
             <Image
               src={image}
               alt={title}
@@ -140,10 +159,10 @@ export default function BlogPostDetailPage() {
           </div>
         </div>
 
-        {/* Article Body: Renders either rich HTML or paragraphs */}
+        {/* Article Body: Full Site Width */}
         <article
           dir={language === "ar" ? "rtl" : "ltr"}
-          className={`max-w-3xl mx-auto px-5 sm:px-8 space-y-6 text-sm sm:text-base leading-relaxed ${
+          className={`max-w-[1440px] mx-auto px-5 sm:px-8 lg:px-12 space-y-6 text-base sm:text-[17px] leading-8 ${
             isDarkTheme ? "text-gray-300" : "text-slate-700"
           }`}
         >
@@ -157,8 +176,8 @@ export default function BlogPostDetailPage() {
             <div
               className={
                 isDarkTheme
-                  ? "prose prose-invert max-w-none text-gray-200 leading-8 space-y-4 [&>h2]:text-2xl [&>h2]:font-bold [&>h2]:text-white [&>h2]:mt-6 [&>h3]:text-xl [&>h3]:font-bold [&>h3]:text-violet-300 [&>h3]:mt-4 [&>p]:leading-8 [&>blockquote]:border-s-4 [&>blockquote]:border-violet-500 [&>blockquote]:ps-4 [&>blockquote]:italic [&>ul]:list-disc [&>ul]:ps-6 [&>ol]:list-decimal [&>ol]:ps-6"
-                  : "prose max-w-none text-slate-800 leading-8 space-y-4 [&>h2]:text-2xl [&>h2]:font-bold [&>h2]:text-slate-900 [&>h2]:mt-6 [&>h3]:text-xl [&>h3]:font-bold [&>h3]:text-violet-700 [&>h3]:mt-4 [&>p]:leading-8 [&>blockquote]:border-s-4 [&>blockquote]:border-violet-500 [&>blockquote]:ps-4 [&>blockquote]:italic [&>ul]:list-disc [&>ul]:ps-6 [&>ol]:list-decimal [&>ol]:ps-6"
+                  ? "prose prose-lg prose-invert max-w-none text-gray-200 leading-8 space-y-5 [&>h2]:text-2xl sm:[&>h2]:text-3xl [&>h2]:font-bold [&>h2]:text-white [&>h2]:mt-8 [&>h3]:text-xl sm:[&>h3]:text-2xl [&>h3]:font-bold [&>h3]:text-violet-300 [&>h3]:mt-6 [&>p]:leading-8 [&>blockquote]:border-s-4 [&>blockquote]:border-violet-500 [&>blockquote]:ps-4 [&>blockquote]:italic [&>ul]:list-disc [&>ul]:ps-6 [&>ol]:list-decimal [&>ol]:ps-6"
+                  : "prose prose-lg max-w-none text-slate-800 leading-8 space-y-5 [&>h2]:text-2xl sm:[&>h2]:text-3xl [&>h2]:font-bold [&>h2]:text-slate-900 [&>h2]:mt-8 [&>h3]:text-xl sm:[&>h3]:text-2xl [&>h3]:font-bold [&>h3]:text-violet-700 [&>h3]:mt-6 [&>p]:leading-8 [&>blockquote]:border-s-4 [&>blockquote]:border-violet-500 [&>blockquote]:ps-4 [&>blockquote]:italic [&>ul]:list-disc [&>ul]:ps-6 [&>ol]:list-decimal [&>ol]:ps-6"
               }
               dangerouslySetInnerHTML={{ __html: sanitizeRichHtml(htmlContent) }}
             />
@@ -168,14 +187,20 @@ export default function BlogPostDetailPage() {
         </article>
 
         {/* Explore Related Properties Callout */}
-        <div className="max-w-3xl mx-auto px-5 sm:px-8 mt-12">
-          <div className="rounded-3xl p-6 sm:p-8 bg-gradient-to-r from-violet-950/60 via-purple-950/40 to-[#0F101A] border border-violet-500/30 shadow-xl flex flex-col sm:flex-row items-center justify-between gap-6">
+        <div className="max-w-[1440px] mx-auto px-5 sm:px-8 lg:px-12 mt-14">
+          <div
+            className={`rounded-3xl p-6 sm:p-10 border shadow-xl flex flex-col sm:flex-row items-center justify-between gap-6 ${
+              isDarkTheme
+                ? "bg-gradient-to-r from-violet-950/60 via-purple-950/40 to-[#0F101A] border-violet-500/30"
+                : "bg-gradient-to-r from-violet-50 via-purple-50/70 to-fuchsia-50/50 border-violet-200"
+            }`}
+          >
             <div>
-              <div className="inline-flex items-center gap-1.5 text-xs font-bold text-fuchsia-400 mb-2">
+              <div className="inline-flex items-center gap-1.5 text-xs font-bold text-fuchsia-600 dark:text-fuchsia-400 mb-2">
                 <Sparkles className="w-4 h-4" />
                 <span>{language === "ar" ? "إقامات مرخصة ومميزة" : "Verified Premium Stays"}</span>
               </div>
-              <h3 className="text-lg sm:text-xl font-bold font-display">
+              <h3 className="text-xl sm:text-2xl font-bold font-display">
                 {language === "ar"
                   ? "ابحث عن وحدتك التالية في هذه الوجهة"
                   : "Find stays matching this experience"}
@@ -189,7 +214,7 @@ export default function BlogPostDetailPage() {
 
             <Link
               href={localizePath(`/search?type=${post.category === "guides" ? "chalet" : (post.category || "chalet")}`, language)}
-              className="shrink-0 px-6 py-3 rounded-2xl bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 text-white font-bold text-xs sm:text-sm shadow-lg transition flex items-center gap-2 cursor-pointer"
+              className="shrink-0 px-7 py-3.5 rounded-2xl bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 text-white font-bold text-xs sm:text-sm shadow-lg transition flex items-center gap-2 cursor-pointer"
             >
               <span>{language === "ar" ? "استعراض العقارات" : "Browse Stays"}</span>
               <Compass className="w-4 h-4" />
