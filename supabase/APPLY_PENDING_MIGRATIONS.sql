@@ -1,4 +1,5 @@
-﻿-- QafNest Combined Pending Supabase Migrations (Run once in Supabase SQL Editor)
+-- QafNest Combined Pending Supabase Migrations (UTF-8 Clean)
+-- Paste entire file into Supabase SQL Editor and click Run.
 
 -- ============================================================
 -- MIGRATION: 20261104040000_promotions_and_coupons.sql
@@ -61,11 +62,11 @@ ON CONFLICT (key) DO NOTHING;
 -- Seed initial Kingdom vacation promotions
 INSERT INTO public.coupons (code, type, value, min_spend, max_discount, min_nights, usage_limit, used_count, is_active, description_en, description_ar, expires_at)
 VALUES
-  ('QAF10', 'percentage', 10.00, 200.00, 350.00, 1, 1000, 42, true, '10% off entire booking (up to SAR 350)', 'Ø®ØµÙ… 10% Ø¹Ù„Ù‰ Ø¥Ø¬Ù…Ø§Ù„ÙŠ Ø§Ù„Ø­Ø¬Ø² (Ø¨Ø­Ø¯ Ø£Ù‚ØµÙ‰ 350 Ø±.Ø³)', '2026-12-31 23:59:59+03'),
-  ('WELCOME50', 'fixed', 50.00, 250.00, NULL, 1, 500, 89, true, 'SAR 50 welcome discount for new guests', 'Ø®ØµÙ… ØªØ±Ø­ÙŠØ¨ÙŠ Ø¨Ù‚ÙŠÙ…Ø© 50 Ø±.Ø³ Ù„Ù„Ù†Ø²Ù„Ø§Ø¡ Ø§Ù„Ø¬Ø¯Ø¯', '2026-12-31 23:59:59+03'),
-  ('CHALET15', 'percentage', 15.00, 600.00, 500.00, 1, 300, 15, true, '15% off luxury chalets and private villas', 'Ø®ØµÙ… 15% Ø¹Ù„Ù‰ Ø§Ù„Ø´Ø§Ù„ÙŠÙ‡Ø§Øª ÙˆØ§Ù„ÙÙ„Ù„ Ø§Ù„ÙØ§Ø®Ø±Ø©', '2026-12-31 23:59:59+03'),
-  ('EID2026', 'fixed', 150.00, 750.00, NULL, 2, 200, 64, true, 'SAR 150 holiday discount on 2+ night stays', 'Ø®ØµÙ… 150 Ø±.Ø³ Ø¹Ù„Ù‰ Ø§Ù„Ø¥Ù‚Ø§Ù…Ø§Øª Ù„Ù…Ø¯Ø© Ù„ÙŠÙ„ØªÙŠÙ† Ø£Ùˆ Ø£ÙƒØ«Ø±', '2026-12-31 23:59:59+03'),
-  ('SAUDI2026', 'percentage', 20.00, 1000.00, 600.00, 1, 150, 12, true, '20% celebration discount on premium estates', 'Ø®ØµÙ… 20% Ø§Ø­ØªÙØ§Ù„ÙŠ Ø¹Ù„Ù‰ Ø§Ù„Ø¹Ù‚Ø§Ø±Ø§Øª ÙˆØ§Ù„Ù…Ù†ØªØ¬Ø¹Ø§Øª Ø§Ù„Ù…Ù…ÙŠØ²Ø©', '2026-12-31 23:59:59+03')
+  ('QAF10', 'percentage', 10.00, 200.00, 350.00, 1, 1000, 42, true, '10% off entire booking (up to SAR 350)', 'خصم 10% على إجمالي الحجز (بحد أقصى 350 ر.س)', '2026-12-31 23:59:59+03'),
+  ('WELCOME50', 'fixed', 50.00, 250.00, NULL, 1, 500, 89, true, 'SAR 50 welcome discount for new guests', 'خصم ترحيبي بقيمة 50 ر.س للنزلاء الجدد', '2026-12-31 23:59:59+03'),
+  ('CHALET15', 'percentage', 15.00, 600.00, 500.00, 1, 300, 15, true, '15% off luxury chalets and private villas', 'خصم 15% على الشاليهات والفلل الفاخرة', '2026-12-31 23:59:59+03'),
+  ('EID2026', 'fixed', 150.00, 750.00, NULL, 2, 200, 64, true, 'SAR 150 holiday discount on 2+ night stays', 'خصم 150 ر.س على الإقامات لمدة ليلتين أو أكثر', '2026-12-31 23:59:59+03'),
+  ('SAUDI2026', 'percentage', 20.00, 1000.00, 600.00, 1, 150, 12, true, '20% celebration discount on premium estates', 'خصم 20% احتفالي على العقارات والمنتجعات المميزة', '2026-12-31 23:59:59+03')
 ON CONFLICT (code) DO UPDATE
 SET
   type = EXCLUDED.type,
@@ -125,7 +126,6 @@ $$;
 REVOKE ALL ON FUNCTION public.increment_coupon_usage(TEXT) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.increment_coupon_usage(TEXT) TO authenticated, service_role;
 
-
 -- ============================================================
 -- MIGRATION: 20261108010000_time_slot_booking_availability.sql
 -- ============================================================
@@ -141,8 +141,6 @@ ALTER TABLE public.properties ADD COLUMN IF NOT EXISTS checkout_time TIME DEFAUL
 -- Index for high-performance time-slot availability querying
 CREATE INDEX IF NOT EXISTS idx_bookings_time_slots 
 ON public.bookings(property_id, check_in, check_out, status);
-
-
 
 -- ============================================================
 -- MIGRATION: 20261108020000_granular_7day_pricing.sql
@@ -161,8 +159,6 @@ ALTER TABLE public.properties
 -- Ensure property_availability has nightly_price column for date overrides
 ALTER TABLE public.property_availability
   ADD COLUMN IF NOT EXISTS nightly_price NUMERIC(10, 2);
-
-
 
 -- ============================================================
 -- MIGRATION: 20261110000000_booking_slot_controls_and_concurrency.sql
@@ -325,7 +321,6 @@ BEGIN
 END;
 $$;
 
-
 -- ============================================================
 -- MIGRATION: 20261114000000_bilingual_property_fields.sql
 -- ============================================================
@@ -347,26 +342,25 @@ UPDATE public.properties
 SET title_ar = title
 WHERE title_ar IS NULL
   AND title IS NOT NULL
-  AND title ~ '[Ø€-Û¿]';
+  AND title ~ E'[\u0600-\u06FF]';
 
 UPDATE public.properties
 SET description_ar = description
 WHERE description_ar IS NULL
   AND description IS NOT NULL
-  AND description ~ '[Ø€-Û¿]';
+  AND description ~ E'[\u0600-\u06FF]';
 
 UPDATE public.properties
 SET district_ar = district
 WHERE district_ar IS NULL
   AND district IS NOT NULL
-  AND district ~ '[Ø€-Û¿]';
+  AND district ~ E'[\u0600-\u06FF]';
 
 UPDATE public.properties
 SET address_ar = address
 WHERE address_ar IS NULL
   AND address IS NOT NULL
-  AND address ~ '[Ø€-Û¿]';
-
+  AND address ~ E'[\u0600-\u06FF]';
 
 -- ============================================================
 -- MIGRATION: 20261116010000_unified_persistence_and_rls_hardening.sql
@@ -584,6 +578,4 @@ BEGIN
     EXECUTE 'CREATE POLICY "Public can read active cms faqs" ON public.cms_faqs FOR SELECT TO anon, authenticated USING (true)';
   END IF;
 END $$;
-
-
 

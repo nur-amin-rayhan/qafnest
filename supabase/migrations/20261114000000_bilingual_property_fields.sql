@@ -16,22 +16,22 @@ UPDATE public.properties
 SET title_ar = title
 WHERE title_ar IS NULL
   AND title IS NOT NULL
-  AND title ~ '[؀-ۿ]';
+  AND title ~ E'[\u0600-\u06FF]';
 
 UPDATE public.properties
 SET description_ar = description
 WHERE description_ar IS NULL
   AND description IS NOT NULL
-  AND description ~ '[؀-ۿ]';
+  AND description ~ E'[\u0600-\u06FF]';
 
 UPDATE public.properties
 SET district_ar = district
 WHERE district_ar IS NULL
   AND district IS NOT NULL
-  AND district ~ '[؀-ۿ]';
+  AND district ~ E'[\u0600-\u06FF]';
 
 UPDATE public.properties
 SET address_ar = address
 WHERE address_ar IS NULL
   AND address IS NOT NULL
-  AND address ~ '[؀-ۿ]';
+  AND address ~ E'[\u0600-\u06FF]';
