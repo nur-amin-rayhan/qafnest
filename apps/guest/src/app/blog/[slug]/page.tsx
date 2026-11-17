@@ -33,7 +33,7 @@ export default function BlogPostDetailPage() {
 
   useEffect(() => {
     if (!slug) return;
-    fetch(`/api/cms/blogs?slug=${encodeURIComponent(slug)}`)
+    fetch(`/api/cms/blogs?slug=${encodeURIComponent(slug)}`, { cache: "no-store" })
       .then((r) => (r.ok ? r.json() : null))
       .then((data) => {
         if (data && data.slug) {

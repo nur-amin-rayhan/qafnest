@@ -394,7 +394,7 @@ export function CmsBlogsModule({
 
             {!isNewBlog && draft.slug && (
               <a
-                href={`${ECOSYSTEM_URLS.guest}/blog/${draft.slug}`}
+                href={`${ECOSYSTEM_URLS.guest}/${locale}/blog/${draft.slug}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border text-xs font-medium transition ${
@@ -404,7 +404,7 @@ export function CmsBlogsModule({
                 }`}
               >
                 <ExternalLink className="w-3.5 h-3.5" />
-                <span>Preview</span>
+                <span>Preview ({locale.toUpperCase()})</span>
               </a>
             )}
 
@@ -524,6 +524,7 @@ export function CmsBlogsModule({
                   darkMode={darkMode}
                   dir={isAr ? "rtl" : "ltr"}
                   mediaLibrary={mediaLibrary}
+                  onMediaUploaded={onMediaUploaded}
                 />
               </div>
             </div>
