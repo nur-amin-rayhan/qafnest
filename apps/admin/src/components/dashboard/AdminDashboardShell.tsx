@@ -233,7 +233,7 @@ export function AdminDashboardShell({ initialTab = "dashboard-overview" }: Admin
       />
 
       {/* Main Content Area */}
-      <div className="lg:ps-64 xl:ps-72 flex flex-col min-h-screen w-full min-w-0 max-w-full transition-all duration-300">
+      <div className="lg:ps-64 flex flex-col min-h-screen w-full min-w-0 max-w-full transition-all duration-300">
         {/* Header */}
         <AdminHeader
           searchQuery={searchQuery}
@@ -255,7 +255,7 @@ export function AdminDashboardShell({ initialTab = "dashboard-overview" }: Admin
         />
 
         {/* Main Canvas */}
-        <main className="w-full min-w-0 max-w-full min-h-screen pt-20 sm:pt-24 pb-12 flex-1 bg-surface-desert-sand px-3 sm:px-6 lg:px-8">
+        <main className="w-full min-w-0 max-w-full min-h-screen pt-20 sm:pt-24 pb-12 flex-1 bg-[#F8F9FA] px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col w-full max-w-[1600px] mx-auto space-y-6">
             {errorMsg && (
               <div className="p-3.5 rounded-xl bg-error/10 border border-error/20 text-error text-xs font-bold">

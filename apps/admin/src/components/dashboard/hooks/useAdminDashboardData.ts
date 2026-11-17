@@ -118,11 +118,11 @@ export function useAdminDashboardData() {
       window.addEventListener("focus", handleFocus);
     }
 
-    // Dynamic background poller fallback
+    // Dynamic background poller fallback (5s while visible)
     const interval = setInterval(() => {
       if (typeof document !== "undefined" && document.hidden) return;
       void loadLiveAdminData();
-    }, 10000);
+    }, 5000);
 
     let supabase: ReturnType<typeof createClient> | undefined;
     try {
@@ -133,7 +133,6 @@ export function useAdminDashboardData() {
           "postgres_changes",
           { event: "*", schema: "public", table: "properties" },
           (payload) => {
-            console.log("Admin received property update:", payload.eventType);
             void loadLiveAdminData();
             if (payload.eventType === "INSERT") {
               triggerToast("New host property submitted for review!");
@@ -144,10 +143,12 @@ export function useAdminDashboardData() {
           "postgres_changes",
           { event: "*", schema: "public", table: "bookings" },
           (payload) => {
-            console.log("Admin received booking update:", payload.eventType);
             void loadLiveAdminData();
+            const row = payload.new as Record<string, unknown> | undefined;
             if (payload.eventType === "INSERT") {
               triggerToast("New reservation booked on Guest platform!");
+            } else if (payload.eventType === "UPDATE" && row?.status === "confirmed") {
+              triggerToast(`Booking ${String(row.booking_reference || "")} confirmed!`);
             }
           }
         )

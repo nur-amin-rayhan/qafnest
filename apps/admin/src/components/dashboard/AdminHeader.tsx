@@ -484,7 +484,7 @@ export default function AdminHeader({
     <>
       <header
         dir={dir}
-        className="fixed top-0 start-0 lg:start-64 xl:start-72 end-0 h-16 bg-surface-container-lowest/95 backdrop-blur-xl z-30 shadow-[0_1px_8px_rgba(0,0,0,0.04)] border-b border-surface-container flex items-center justify-between px-3 sm:px-5 lg:px-6 transition-all duration-300 gap-2 sm:gap-3"
+        className="fixed top-0 start-0 lg:start-64 end-0 h-16 bg-white/95 backdrop-blur-xl z-30 border-b border-[#E5E7EB] flex items-center justify-between px-3 sm:px-5 lg:px-6 transition-all duration-300 gap-2 sm:gap-3"
       >
         {/* Start: Mobile Hamburger + Mobile Search Trigger + Desktop/Tablet Flex Search Bar */}
         <div ref={searchContainerRef} className="relative flex items-center gap-2 flex-1 min-w-0 max-w-sm xl:max-w-lg">

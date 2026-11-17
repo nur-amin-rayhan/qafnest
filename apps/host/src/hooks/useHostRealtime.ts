@@ -82,28 +82,34 @@ export function useHostRealtime({
         },
         (payload) => {
           const newRow = payload.new as Record<string, unknown> | undefined;
+          const oldRow = payload.old as Record<string, unknown> | undefined;
+          const targetPropId = String(newRow?.property_id || oldRow?.property_id || "");
           const currentProps = propertyIdsRef.current;
-          if (newRow && currentProps.length > 0 && currentProps.includes(String(newRow.property_id))) {
+          const matchesHostProperty =
+            currentProps.length === 0 || (targetPropId && currentProps.includes(targetPropId));
+          if (matchesHostProperty) {
             onBookingChangeRef.current?.(payload);
 
-            const ref = String(newRow.booking_reference || "QAF-BOOKING");
-            if (payload.eventType === "INSERT") {
-              addAlert({
-                type: "booking",
-                title: "New Booking Received!",
-                titleAr: "تم استلام حجز جديد!",
-                message: `Booking #${ref} has been created for your property.`,
-                messageAr: `تم إنشاء الحجز #${ref} لإحدى وحداتك المعروضة.`,
-              });
-            } else if (payload.eventType === "UPDATE") {
-              const status = String(newRow.status || "");
-              addAlert({
-                type: "booking",
-                title: "Booking Updated",
-                titleAr: "تحديث في بيانات الحجز",
-                message: `Booking #${ref} status changed to ${status}.`,
-                messageAr: `تم تحديث حالة الحجز #${ref} إلى ${status === "confirmed" ? "مؤكد" : status}.`,
-              });
+            if (newRow && targetPropId && currentProps.includes(targetPropId)) {
+              const ref = String(newRow.booking_reference || "QAF-BOOKING");
+              if (payload.eventType === "INSERT") {
+                addAlert({
+                  type: "booking",
+                  title: "New Booking Received!",
+                  titleAr: "تم استلام حجز جديد!",
+                  message: `Booking #${ref} has been created for your property.`,
+                  messageAr: `تم إنشاء الحجز #${ref} لإحدى وحداتك المعروضة.`,
+                });
+              } else if (payload.eventType === "UPDATE") {
+                const status = String(newRow.status || "");
+                addAlert({
+                  type: "booking",
+                  title: "Booking Updated",
+                  titleAr: "تحديث في بيانات الحجز",
+                  message: `Booking #${ref} status changed to ${status}.`,
+                  messageAr: `تم تحديث حالة الحجز #${ref} إلى ${status === "confirmed" ? "مؤكد" : status}.`,
+                });
+              }
             }
           }
         }

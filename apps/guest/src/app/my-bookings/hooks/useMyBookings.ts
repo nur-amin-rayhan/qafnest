@@ -262,18 +262,74 @@ export function useMyBookings(user: User | null, session: Session | null, authLo
 
   useEffect(() => {
     if (authLoading) return;
-    if (userId) {
-      const warm = readCachedBookings(userId);
-      if (warm) {
-        setBookings(warm);
-        setLoading(false);
-      }
-      void loadBookings({ silent: Boolean(warm) });
-    } else {
+    if (!userId) {
       setBookings([]);
       setLoading(false);
+      return;
     }
-  }, [authLoading, userId, loadBookings]);
+
+    const warm = readCachedBookings(userId);
+    if (warm) {
+      setBookings(warm);
+      setLoading(false);
+    }
+    void loadBookings({ silent: Boolean(warm) });
+
+    // Instant refresh when guest refocuses browser tab
+    const handleFocus = () => {
+      void loadBookings({ silent: true });
+    };
+    if (typeof window !== "undefined") {
+      window.addEventListener("focus", handleFocus);
+    }
+
+    // Fast background sync fallback when tab is visible
+    const pollInterval = setInterval(() => {
+      if (typeof document !== "undefined" && document.hidden) return;
+      void loadBookings({ silent: true });
+    }, 5000);
+
+    // Supabase Realtime subscription for instant booking/order updates without page refresh
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+    try {
+      channel = supabase
+        .channel(`guest-bookings-rt-${userId.slice(0, 8)}`)
+        .on(
+          "postgres_changes",
+          {
+            event: "*",
+            schema: "public",
+            table: "bookings",
+          },
+          (payload) => {
+            const row = (payload.new || payload.old) as Record<string, unknown> | undefined;
+            if (!row) {
+              void loadBookings({ silent: true });
+              return;
+            }
+            const matchesGuest =
+              String(row.guest_id || "") === userId ||
+              String(row.auth_subject || "") === userId;
+            if (matchesGuest || (!row.guest_id && !row.auth_subject)) {
+              void loadBookings({ silent: true });
+            }
+          }
+        )
+        .subscribe();
+    } catch (rtErr) {
+      console.warn("Notice: Guest bookings realtime channel fallback active:", rtErr);
+    }
+
+    return () => {
+      if (typeof window !== "undefined") {
+        window.removeEventListener("focus", handleFocus);
+      }
+      clearInterval(pollInterval);
+      if (channel) {
+        void supabase.removeChannel(channel);
+      }
+    };
+  }, [authLoading, userId, loadBookings, supabase]);
 
   return {
     bookings,

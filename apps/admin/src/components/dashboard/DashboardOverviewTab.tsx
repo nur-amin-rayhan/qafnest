@@ -49,69 +49,56 @@ export function DashboardOverviewTab({
 
   return (
     <div dir={dir} className="w-full space-y-6">
-      {/* 5-KPI Cluster */}
-      <OverviewMetricsStrip metrics={metrics} setActiveTab={setActiveTab} t={t} />
+      {/* Clean Page Title */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-[#111827]">
+            {t("Dashboard", "لوحة التحكم")}
+          </h1>
+          <p className="text-xs text-gray-500 mt-0.5">
+            {t(
+              "Live overview of bookings, property approvals, and payouts.",
+              "نظرة عامة مباشرة على الحجوزات واعتماد العقارات والمدفوعات."
+            )}
+          </p>
+        </div>
 
-      {/* 24-Hour Host Payout SLA & Live Reminder Banner */}
-      {payoutReminders && (
-        <Payout24hReminderBanner
-          compact
-          payouts={urgentPayoutQueue}
-          reminders={payoutReminders}
-          onOpenFinancials={() => setActiveTab("financials-and-payouts")}
-          onInspectPayout={onInspectPayout}
-          onDisburseNow={onInspectPayout ? undefined : onQuickDisbursePayout}
-          onSendReminders={onSendPayoutReminders}
-        />
-      )}
-
-      {/* Fluid Responsive Pending Approvals Banner */}
-      {metrics.pendingVerification > 0 && (
-        <div className="rounded-2xl border border-status-sand/40 bg-gradient-to-r from-status-sand/15 via-status-sand/5 to-surface-container-lowest p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-xs">
-          <div className="flex items-center gap-3.5 min-w-0">
-            <div className="w-11 h-11 rounded-xl bg-status-sand/20 text-status-sand flex items-center justify-center shrink-0 shadow-xs">
-              <span className="material-symbols-outlined text-[24px]">pending_actions</span>
-            </div>
-            <div className="min-w-0">
-              <div className="flex flex-wrap items-center gap-2">
-                <h3 className="font-title-sm text-sm sm:text-base font-bold text-on-surface">
-                  {t(
-                    `Action Required: ${metrics.pendingVerification} Listing Submission Awaiting Review`,
-                    `إجراء مطلوب: ${metrics.pendingVerification} عقارات معلقة بانتظار الاعتماد`
-                  )}
-                </h3>
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-status-sand/20 text-status-sand uppercase tracking-wider">
-                  {t("Priority Queue", "أولوية المراجعة")}
-                </span>
-              </div>
-              <p className="text-xs text-on-surface-variant mt-0.5 leading-relaxed">
-                {t(
-                  "New host chalet listings require Ministry of Tourism license audit and full layout inspection before being published.",
-                  "تتطلب عقارات المضيفين الجديدة تدقيق ترخيص وزارة السياحة والتأكد من مطابقة الصور والمواصفات قبل النشر."
-                )}
-              </p>
-            </div>
-          </div>
-
+        {metrics.pendingVerification > 0 && (
           <button
             type="button"
             onClick={() => setActiveTab("properties-management")}
-            className="h-10 px-5 rounded-xl bg-status-sand hover:bg-amber-600 text-white font-bold text-xs shadow-md shadow-amber-600/20 transition-all flex items-center justify-center gap-2 self-start sm:self-auto shrink-0 cursor-pointer"
+            className="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg bg-amber-50 border border-amber-200 text-amber-800 hover:bg-amber-100 text-xs font-semibold transition cursor-pointer"
           >
-            <span>{t("Inspect Submissions", "فحص طلبات العقارات")}</span>
-            <span className="material-symbols-outlined text-[16px]">
-              {dir === "rtl" ? "arrow_back" : "arrow_forward"}
+            <span className="w-2 h-2 rounded-full bg-amber-500" />
+            <span>
+              {t(
+                `${metrics.pendingVerification} Pending Approvals`,
+                `${metrics.pendingVerification} عقارات بانتظار الاعتماد`
+              )}
             </span>
           </button>
-        </div>
-      )}
+        )}
+      </div>
 
-      {/* Analytical Charts Row */}
-      <OverviewAnalyticalCharts metrics={metrics} bookings={bookings} />
+      {/* KPI Strip */}
+      <OverviewMetricsStrip metrics={metrics} setActiveTab={setActiveTab} t={t} />
 
-      {/* Split Operational Section: Live Bookings & Approval Queue */}
-      <div className="grid grid-cols-1 xl:grid-cols-12 gap-space-lg">
-        {/* Left: Recent Bookings */}
+      {/* Actionable Payout SLA Banner (only when payouts require attention) */}
+      {payoutReminders &&
+        ((payoutReminders.overdueCount || 0) > 0 || (payoutReminders.dueWithin24hCount || 0) > 0) && (
+          <Payout24hReminderBanner
+            compact
+            payouts={urgentPayoutQueue}
+            reminders={payoutReminders}
+            onOpenFinancials={() => setActiveTab("financials-and-payouts")}
+            onInspectPayout={onInspectPayout}
+            onDisburseNow={onInspectPayout ? undefined : onQuickDisbursePayout}
+            onSendReminders={onSendPayoutReminders}
+          />
+        )}
+
+      {/* Primary Operational Grid: Live Bookings & Approval Queue */}
+      <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
         <OverviewRecentBookings
           bookings={bookings}
           setActiveTab={setActiveTab}
@@ -119,7 +106,6 @@ export function DashboardOverviewTab({
           t={t}
         />
 
-        {/* Right: Approval Queue */}
         <OverviewPendingApprovalQueue
           properties={properties}
           updatePropertyStatus={updatePropertyStatus}
@@ -128,6 +114,9 @@ export function DashboardOverviewTab({
           t={t}
         />
       </div>
+
+      {/* Analytical Charts */}
+      <OverviewAnalyticalCharts metrics={metrics} bookings={bookings} />
     </div>
   );
 }
