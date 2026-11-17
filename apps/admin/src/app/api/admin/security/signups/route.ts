@@ -2,13 +2,19 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAdminSession, isAdminRequest } from "@/lib/adminApi";
 import {
   getSignupSecurityOverview,
+  hydrateSignupSecurityStore,
+  persistSignupSecurityStore,
   blockIpAddress,
   unblockIpAddress,
   clearIpRegistrationLock,
   clearDeviceRegistrationLock,
   updateSignupSecurityPolicy,
 } from "@qafnest/shared/signupSecurityStore";
-import { updateServerPlatformFeeConfig } from "@qafnest/shared/platformFeeStore";
+import {
+  hydratePlatformFeeConfig,
+  persistPlatformFeeConfig,
+  updateServerPlatformFeeConfig,
+} from "@qafnest/shared/platformFeeStore";
 
 export const dynamic = "force-dynamic";
 
@@ -25,6 +31,7 @@ export async function GET(request: NextRequest) {
     );
   }
 
+  await Promise.all([hydrateSignupSecurityStore(), hydratePlatformFeeConfig()]);
   const overview = getSignupSecurityOverview();
   return NextResponse.json(
     { success: true, ...overview },
@@ -118,19 +125,28 @@ export async function POST(request: NextRequest) {
       }
 
       case "update_policy": {
+        await Promise.all([hydrateSignupSecurityStore(), hydratePlatformFeeConfig()]);
         const policyUpdates = body.policy || {};
+        if (policyUpdates.welcomeBonusAmountSar !== undefined) {
+          policyUpdates.welcomeBonusAmountSar = Math.max(
+            0,
+            Math.round(Number(policyUpdates.welcomeBonusAmountSar) * 100) / 100
+          );
+        }
         const doc = updateSignupSecurityPolicy(policyUpdates);
+        await persistSignupSecurityStore();
         if (
           policyUpdates.welcomeBonusAmountSar !== undefined ||
           policyUpdates.welcomeBonusEnabled !== undefined
         ) {
-          updateServerPlatformFeeConfig({
+          const updatedFee = updateServerPlatformFeeConfig({
             welcomeBonusAmountSar: policyUpdates.welcomeBonusAmountSar,
             welcomeBonusEnabled: policyUpdates.welcomeBonusEnabled,
           });
+          await persistPlatformFeeConfig(updatedFee);
         }
         return NextResponse.json(
-          { success: true, message: "Signup security policy updated.", ...doc },
+          { success: true, message: "Signup security & welcome bonus policy updated.", ...doc },
           { headers: NO_STORE_HEADERS }
         );
       }

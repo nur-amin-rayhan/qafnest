@@ -2,13 +2,17 @@ import { NextResponse } from "next/server";
 import { verifyGuestSession } from "@/lib/auth/serverAuth";
 import { getAdminOrServerClient } from "@/lib/supabase/service";
 import { awardWelcomeBonus, getUserWallet } from "@/lib/services/walletService";
-import { getServerPlatformFeeConfig } from "@qafnest/shared/platformFeeStore";
+import {
+  getServerPlatformFeeConfig,
+  hydratePlatformFeeConfig,
+} from "@qafnest/shared/platformFeeStore";
 import {
   extractClientIp,
   normalizeDeviceId,
   evaluateAndRecordSignupAttempt,
   recordApprovedSignupDevice,
   getSignupSecurityOverview,
+  hydrateSignupSecurityStore,
 } from "@qafnest/shared/signupSecurityStore";
 
 
@@ -36,6 +40,7 @@ export async function POST(request: Request) {
       });
     }
 
+    await Promise.all([hydratePlatformFeeConfig(), hydrateSignupSecurityStore()]);
     const feeCfg = getServerPlatformFeeConfig();
     const secOverview = getSignupSecurityOverview();
     const welcomeEnabled =

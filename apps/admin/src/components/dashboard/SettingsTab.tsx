@@ -24,6 +24,7 @@ export function SettingsTab() {
   const [secBusy, setSecBusy] = useState(false);
   const [ipInput, setIpInput] = useState("");
   const [ipReason, setIpReason] = useState("");
+  const [welcomeAmountDraft, setWelcomeAmountDraft] = useState<string>("50");
   const [secToast, setSecToast] = useState<string | null>(null);
   const currencyLabel = t("SAR", "ر.س");
 
@@ -48,6 +49,9 @@ export function SettingsTab() {
           blockedDevices: data.blockedDevices || [],
           alerts: data.alerts || [],
         });
+        if (data.policy?.welcomeBonusAmountSar !== undefined) {
+          setWelcomeAmountDraft(String(data.policy.welcomeBonusAmountSar));
+        }
       }
     } catch {
       // Ignore transient error
@@ -79,6 +83,9 @@ export function SettingsTab() {
           blockedDevices: data.blockedDevices || [],
           alerts: data.alerts || [],
         });
+        if (data.policy?.welcomeBonusAmountSar !== undefined) {
+          setWelcomeAmountDraft(String(data.policy.welcomeBonusAmountSar));
+        }
         setSecToast(data.message || t("Security settings updated.", "تم تحديث إعدادات الأمان."));
         setTimeout(() => setSecToast(null), 4000);
       }
@@ -255,14 +262,14 @@ export function SettingsTab() {
             <div>
               <h2 className="text-base font-extrabold text-on-surface">
                 {t(
-                  "Guest Signup Anti-Abuse Security & 50 SAR Welcome Bonus Guard",
-                  "حماية التسجيل ومكافأة الترحيب (50 ر.س) ومكافحة التلاعب"
+                  `Guest Signup Anti-Abuse Security & ${secData?.policy.welcomeBonusAmountSar ?? 50} SAR Welcome Bonus Guard`,
+                  `حماية التسجيل ومكافأة الترحيب (${secData?.policy.welcomeBonusAmountSar ?? 50} ر.س) ومكافحة التلاعب`
                 )}
               </h2>
               <p className="text-xs text-on-surface-variant">
                 {t(
-                  "Enforces 1 guest account + 50 SAR platform-borne welcome gift per device & IP. Automatically detects & blocks multi-account signups.",
-                  "يفرض حساباً واحداً + 50 ر.س مكافأة ترحيب لكل جهاز وعنوان IP، ويكتشف ويحظر التسجيل المتكرر تلقائياً."
+                  `Enforces 1 guest account + ${secData?.policy.welcomeBonusAmountSar ?? 50} SAR platform-borne welcome gift per device & IP. Automatically detects & blocks multi-account signups.`,
+                  `يفرض حساباً واحداً + ${secData?.policy.welcomeBonusAmountSar ?? 50} ر.س مكافأة ترحيب لكل جهاز وعنوان IP، ويكتشف ويحظر التسجيل المتكرر تلقائياً.`
                 )}
               </p>
             </div>
@@ -358,28 +365,66 @@ export function SettingsTab() {
                 />
               </label>
 
-              <div className="p-3 rounded-xl bg-violet-50/70 border border-violet-200 flex items-center justify-between gap-2">
-                <div>
-                  <span className="font-bold text-violet-900 flex items-center gap-1">
-                    <Gift size={13} /> {t("Welcome Bonus", "مكافأة الترحيب")}
-                  </span>
-                  <span className="text-[11px] font-mono font-black text-primary">
-                    {secData.policy.welcomeBonusAmountSar} {currencyLabel} ({secData.registrations.length}{" "}
-                    {t("granted", "ممنوحة")})
-                  </span>
+              <div className="p-3 rounded-xl bg-violet-50/70 border border-violet-200 flex flex-col justify-between gap-2.5">
+                <div className="flex items-center justify-between gap-2">
+                  <div>
+                    <span className="font-bold text-violet-900 flex items-center gap-1">
+                      <Gift size={13} /> {t("Welcome Bonus", "مكافأة الترحيب")}
+                    </span>
+                    <span className="text-[10px] font-medium text-violet-700">
+                      {secData.registrations.length} {t("granted", "ممنوحة")}
+                    </span>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={secData.policy.welcomeBonusEnabled}
+                    disabled={secBusy}
+                    onChange={(e) =>
+                      void runSecurityAction({
+                        action: "update_policy",
+                        policy: { welcomeBonusEnabled: e.target.checked },
+                      })
+                    }
+                    className="h-4 w-4 accent-primary shrink-0 cursor-pointer"
+                    title={t("Enable or disable welcome bonus", "تفعيل أو تعطيل مكافأة الترحيب")}
+                  />
                 </div>
-                <input
-                  type="checkbox"
-                  checked={secData.policy.welcomeBonusEnabled}
-                  disabled={secBusy}
-                  onChange={(e) =>
+
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    const parsed = Math.max(0, Math.round(Number(welcomeAmountDraft || 0) * 100) / 100);
                     void runSecurityAction({
                       action: "update_policy",
-                      policy: { welcomeBonusEnabled: e.target.checked },
-                    })
-                  }
-                  className="h-4 w-4 accent-primary shrink-0"
-                />
+                      policy: { welcomeBonusAmountSar: parsed },
+                    });
+                  }}
+                  className="flex items-center gap-1.5"
+                >
+                  <div className="relative flex-1">
+                    <input
+                      type="number"
+                      min={0}
+                      max={10000}
+                      step="1"
+                      value={welcomeAmountDraft}
+                      disabled={secBusy || !secData.policy.welcomeBonusEnabled}
+                      onChange={(e) => setWelcomeAmountDraft(e.target.value)}
+                      className="w-full h-8 rounded-lg border border-violet-300 bg-white px-2.5 pe-10 text-xs font-mono font-bold text-violet-950 outline-none focus:border-primary disabled:opacity-50"
+                      aria-label={t("Welcome Bonus Amount (SAR)", "قيمة مكافأة الترحيب (ر.س)")}
+                    />
+                    <span className="absolute end-2 top-1/2 -translate-y-1/2 text-[10px] font-bold text-violet-500 pointer-events-none">
+                      {currencyLabel}
+                    </span>
+                  </div>
+                  <button
+                    type="submit"
+                    disabled={secBusy || !secData.policy.welcomeBonusEnabled}
+                    className="h-8 px-2.5 rounded-lg bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-[11px] font-bold transition disabled:opacity-50 shrink-0 cursor-pointer"
+                  >
+                    {t("Save", "حفظ")}
+                  </button>
+                </form>
               </div>
             </div>
 

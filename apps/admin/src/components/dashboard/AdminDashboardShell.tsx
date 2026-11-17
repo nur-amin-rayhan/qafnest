@@ -73,6 +73,8 @@ export function AdminDashboardShell({ initialTab = "dashboard-overview" }: Admin
     setShowBatchMenu,
     toastMsg,
     triggerToast,
+    liveAlerts,
+    dismissLiveAlert,
     metrics,
     properties,
     bookings,
@@ -188,6 +190,65 @@ export function AdminDashboardShell({ initialTab = "dashboard-overview" }: Admin
         <span className="material-symbols-outlined text-[20px] text-status-emerald">info</span>
         <span className="font-body-sm text-body-sm font-medium">{toastMsg}</span>
       </div>
+
+      {/* Clickable Slide-In Side Realtime Notification Popups */}
+      {liveAlerts.length > 0 && (
+        <div className="fixed top-20 end-5 z-50 flex flex-col gap-2.5 w-80 max-w-[calc(100vw-2rem)]">
+          {liveAlerts.map((alert) => (
+            <div
+              key={alert.id}
+              className="rounded-xl border border-[#E5E7EB] bg-white shadow-xl p-3.5 flex items-start gap-3 transition-all hover:border-[#2563EB]"
+            >
+              <button
+                type="button"
+                onClick={() => {
+                  if (alert.kind === "booking") {
+                    handleOpenNotificationTarget("bookings-and-reservations", {
+                      bookingId: alert.bookingId,
+                    });
+                  } else {
+                    handleOpenNotificationTarget("properties-management", {
+                      propertyId: alert.propertyId,
+                    });
+                  }
+                  dismissLiveAlert(alert.id);
+                }}
+                className="flex-1 flex items-start gap-2.5 text-start cursor-pointer min-w-0"
+              >
+                <span
+                  className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
+                    alert.kind === "booking"
+                      ? "bg-emerald-50 text-emerald-600"
+                      : "bg-blue-50 text-[#2563EB]"
+                  }`}
+                >
+                  <span className="material-symbols-outlined text-[18px]">
+                    {alert.kind === "booking" ? "calendar_check" : "villa"}
+                  </span>
+                </span>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-xs font-bold text-[#111827] truncate">{alert.title}</span>
+                    <span className="text-[10px] text-gray-400 shrink-0">{alert.timestamp}</span>
+                  </div>
+                  <p className="text-[11px] text-gray-600 mt-0.5 truncate">{alert.subtitle}</p>
+                  <span className="inline-block text-[10px] font-semibold text-[#2563EB] mt-1">
+                    {t("Click to open →", "اضغط للفتح ←")}
+                  </span>
+                </div>
+              </button>
+              <button
+                type="button"
+                onClick={() => dismissLiveAlert(alert.id)}
+                className="p-1 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-700 shrink-0 cursor-pointer"
+                title={t("Dismiss", "إغلاق")}
+              >
+                <span className="material-symbols-outlined text-[16px]">close</span>
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Property Detail Drawer */}
       <PropertyDetailDrawer

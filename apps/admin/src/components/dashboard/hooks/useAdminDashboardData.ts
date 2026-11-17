@@ -44,8 +44,40 @@ export function useAdminDashboardData() {
   const [selectedPropertyIds, setSelectedPropertyIds] = useState<string[]>([]);
   const [showBatchMenu, setShowBatchMenu] = useState(false);
 
-  // Toast notification
+  // Toast notification + Clickable Realtime Side Popups
   const [toastMsg, setToastMsg] = useState("");
+  const [liveAlerts, setLiveAlerts] = useState<
+    Array<{
+      id: string;
+      kind: "booking" | "property";
+      title: string;
+      subtitle: string;
+      bookingId?: string;
+      propertyId?: string;
+      timestamp: string;
+    }>
+  >([]);
+
+  const pushLiveAlert = useCallback(
+    (alert: {
+      kind: "booking" | "property";
+      title: string;
+      subtitle: string;
+      bookingId?: string;
+      propertyId?: string;
+    }) => {
+      const id = `rt-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+      setLiveAlerts((prev) => [
+        { ...alert, id, timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) },
+        ...prev.slice(0, 3),
+      ]);
+    },
+    []
+  );
+
+  const dismissLiveAlert = useCallback((id: string) => {
+    setLiveAlerts((prev) => prev.filter((a) => a.id !== id));
+  }, []);
 
   const triggerToast = (msg: string) => {
     setToastMsg(msg);
@@ -61,9 +93,12 @@ export function useAdminDashboardData() {
   const [urgentPayoutQueue, setUrgentPayoutQueue] = useState<SharedHostPayoutRecord[]>([]);
   const [deletionRequests, setDeletionRequests] = useState<AdminPropertyDeletionRequest[]>([]);
 
-  const loadLiveAdminData = useCallback(async () => {
-    setLoading(true);
-    setErrorMsg("");
+  const loadLiveAdminData = useCallback(async (options?: { silent?: boolean }) => {
+    const isSilent = Boolean(options?.silent);
+    if (!isSilent) {
+      setLoading(true);
+      setErrorMsg("");
+    }
     try {
       const [resMetrics, resProps] = await Promise.all([
         fetch(adminPath("/api/admin/metrics"), { cache: "no-store" }),
@@ -101,28 +136,32 @@ export function useAdminDashboardData() {
       }
     } catch (e) {
       console.error(e);
-      setErrorMsg("Failed to synchronize latest data from server.");
+      if (!isSilent) {
+        setErrorMsg("Failed to synchronize latest data from server.");
+      }
     } finally {
-      setLoading(false);
+      if (!isSilent) {
+        setLoading(false);
+      }
     }
   }, []);
 
   useEffect(() => {
     void loadLiveAdminData();
 
-    // Auto-refresh when admin refocuses tab
+    // Silent auto-refresh when admin refocuses tab
     const handleFocus = () => {
-      void loadLiveAdminData();
+      void loadLiveAdminData({ silent: true });
     };
     if (typeof window !== "undefined") {
       window.addEventListener("focus", handleFocus);
     }
 
-    // Dynamic background poller fallback (5s while visible)
+    // Silent background poller fallback (no spinning refresh icon)
     const interval = setInterval(() => {
       if (typeof document !== "undefined" && document.hidden) return;
-      void loadLiveAdminData();
-    }, 5000);
+      void loadLiveAdminData({ silent: true });
+    }, 8000);
 
     let supabase: ReturnType<typeof createClient> | undefined;
     try {
@@ -133,9 +172,15 @@ export function useAdminDashboardData() {
           "postgres_changes",
           { event: "*", schema: "public", table: "properties" },
           (payload) => {
-            void loadLiveAdminData();
-            if (payload.eventType === "INSERT") {
-              triggerToast("New host property submitted for review!");
+            void loadLiveAdminData({ silent: true });
+            const row = payload.new as Record<string, unknown> | undefined;
+            if (payload.eventType === "INSERT" && row) {
+              pushLiveAlert({
+                kind: "property",
+                title: "New Property Submitted",
+                subtitle: String(row.title || "A new listing awaits your review"),
+                propertyId: row.id ? String(row.id) : undefined,
+              });
             }
           }
         )
@@ -143,12 +188,22 @@ export function useAdminDashboardData() {
           "postgres_changes",
           { event: "*", schema: "public", table: "bookings" },
           (payload) => {
-            void loadLiveAdminData();
+            void loadLiveAdminData({ silent: true });
             const row = payload.new as Record<string, unknown> | undefined;
-            if (payload.eventType === "INSERT") {
-              triggerToast("New reservation booked on Guest platform!");
+            if (payload.eventType === "INSERT" && row) {
+              pushLiveAlert({
+                kind: "booking",
+                title: "New Guest Booking",
+                subtitle: `Ref ${String(row.booking_reference || "")} • ${Number(row.total_price || 0).toFixed(0)} SAR`,
+                bookingId: row.id ? String(row.id) : undefined,
+              });
             } else if (payload.eventType === "UPDATE" && row?.status === "confirmed") {
-              triggerToast(`Booking ${String(row.booking_reference || "")} confirmed!`);
+              pushLiveAlert({
+                kind: "booking",
+                title: "Booking Confirmed & Paid",
+                subtitle: `Ref ${String(row.booking_reference || "")} • Click to inspect`,
+                bookingId: row.id ? String(row.id) : undefined,
+              });
             }
           }
         )
@@ -170,7 +225,7 @@ export function useAdminDashboardData() {
       }
       clearInterval(interval);
     };
-  }, [loadLiveAdminData]);
+  }, [loadLiveAdminData, pushLiveAlert]);
 
   const updatePropertyStatus = async (
     id: string,
@@ -394,6 +449,8 @@ export function useAdminDashboardData() {
     setShowBatchMenu,
     toastMsg,
     triggerToast,
+    liveAlerts,
+    dismissLiveAlert,
     metrics,
     properties,
     bookings,
