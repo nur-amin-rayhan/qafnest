@@ -56,11 +56,38 @@ export async function GET(
     });
 
     // 1. Fetch verified confirmed/completed bookings + helpline SADAD holds (never block calendars for abandoned online checkouts)
-    const { data: bookings } = await supabase
+    type AvailBookingRow = {
+      id: string;
+      check_in: string;
+      check_out: string;
+      checkin_time?: string | null;
+      checkout_time?: string | null;
+      status: string;
+      payment_status?: string | null;
+      auth_subject?: string | null;
+      booking_reference?: string | null;
+      created_at?: string | null;
+    };
+
+    const primaryBookingsQuery = await supabase
       .from("bookings")
       .select("id, check_in, check_out, checkin_time, checkout_time, status, payment_status, auth_subject, booking_reference, created_at")
       .eq("property_id", resolvedId)
       .in("status", ["confirmed", "completed", "pending"]);
+
+    let bookings = primaryBookingsQuery.data as AvailBookingRow[] | null;
+    if (
+      primaryBookingsQuery.error &&
+      (primaryBookingsQuery.error.code === "42703" ||
+        /checkin_time|checkout_time|column .* does not exist/i.test(primaryBookingsQuery.error.message || ""))
+    ) {
+      const legacyBookingsQuery = await supabase
+        .from("bookings")
+        .select("id, check_in, check_out, status, payment_status, auth_subject, booking_reference, created_at")
+        .eq("property_id", resolvedId)
+        .in("status", ["confirmed", "completed", "pending"]);
+      bookings = legacyBookingsQuery.data as AvailBookingRow[] | null;
+    }
 
     const bookedDates = new Set<string>();
     const checkoutDates = new Set<string>();

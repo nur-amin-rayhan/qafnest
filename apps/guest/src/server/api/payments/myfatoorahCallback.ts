@@ -111,11 +111,43 @@ async function handleCallback(request: NextRequest) {
           }
 
           const callbackLockOutcome = await acquirePropertyBookingLock([initialBooking.property_id], async () => {
-            const { data: existingBooking } = await dbClient
+            const primaryBookingQuery = await dbClient
               .from("bookings")
               .select("id, property_id, status, payment_status, total_price, smart_lock_pin, check_in, check_out, checkin_time, checkout_time, guest_id, auth_subject")
               .eq("booking_reference", bookingRef)
               .maybeSingle();
+
+            let existingBooking: Record<string, unknown> | null = primaryBookingQuery.data as Record<string, unknown> | null;
+            let bookingFetchError = primaryBookingQuery.error;
+
+            if (
+              bookingFetchError &&
+              (bookingFetchError.code === "42703" ||
+                /checkin_time|checkout_time|column .* does not exist/i.test(bookingFetchError.message || ""))
+            ) {
+              const legacyBookingQuery = await dbClient
+                .from("bookings")
+                .select("id, property_id, status, payment_status, total_price, smart_lock_pin, check_in, check_out, guest_id, auth_subject")
+                .eq("booking_reference", bookingRef)
+                .maybeSingle();
+              existingBooking = legacyBookingQuery.data as Record<string, unknown> | null;
+              bookingFetchError = legacyBookingQuery.error;
+            }
+
+            if (bookingFetchError) {
+              console.error("[PAYMENT ERROR] Failed to load booking inside callback lock:", {
+                bookingRef,
+                code: bookingFetchError.code,
+                message: bookingFetchError.message,
+              });
+              return {
+                redirect: buildSafeCallbackRedirect(canonicalOrigin, rawPropertyId, {
+                  payment_error: "booking_confirmation_error",
+                  message: "Could not verify booking record in database. Please contact support with your booking reference.",
+                  bookingRef,
+                }),
+              };
+            }
 
             if (!existingBooking) {
               return {
@@ -126,9 +158,24 @@ async function handleCallback(request: NextRequest) {
               };
             }
 
-            if (existingBooking.status === "confirmed" && existingBooking.payment_status === "success") {
+            const bookingRecord = existingBooking as {
+              id: string;
+              property_id: string;
+              status: string;
+              payment_status: string;
+              total_price: number;
+              smart_lock_pin?: string | null;
+              check_in: string;
+              check_out: string;
+              checkin_time?: string | null;
+              checkout_time?: string | null;
+              guest_id?: string | null;
+              auth_subject?: string | null;
+            };
+
+            if (bookingRecord.status === "confirmed" && bookingRecord.payment_status === "success") {
               try {
-                const guestIdentifier = existingBooking.guest_id || (existingBooking as { auth_subject?: string }).auth_subject;
+                const guestIdentifier = bookingRecord.guest_id || bookingRecord.auth_subject;
                 if (guestIdentifier) {
                   const primaryTx = (invoiceData.InvoiceTransactions?.[0] || {}) as Record<string, unknown>;
                   await autoSaveCardFromInvoiceTransaction({
@@ -151,31 +198,46 @@ async function handleCallback(request: NextRequest) {
               };
             }
 
-            if (existingBooking.status === "cancelled") {
-              const { data: candidateConflicts } = await dbClient
+            if (bookingRecord.status === "cancelled") {
+              const primaryConflicts = await dbClient
                 .from("bookings")
                 .select("id, check_in, check_out, checkin_time, checkout_time")
-                .eq("property_id", existingBooking.property_id)
+                .eq("property_id", bookingRecord.property_id)
                 .in("status", ["confirmed", "completed"])
-                .neq("id", existingBooking.id)
-                .lte("check_in", existingBooking.check_out)
-                .gte("check_out", existingBooking.check_in);
+                .neq("id", bookingRecord.id)
+                .lte("check_in", bookingRecord.check_out)
+                .gte("check_out", bookingRecord.check_in);
 
-              const eMeta = existingBooking as Record<string, unknown>;
+              let candidateConflicts = primaryConflicts.data as Array<Record<string, unknown>> | null;
+              if (
+                primaryConflicts.error &&
+                (primaryConflicts.error.code === "42703" ||
+                  /checkin_time|checkout_time|column .* does not exist/i.test(primaryConflicts.error.message || ""))
+              ) {
+                const legacyConflicts = await dbClient
+                  .from("bookings")
+                  .select("id, check_in, check_out")
+                  .eq("property_id", bookingRecord.property_id)
+                  .in("status", ["confirmed", "completed"])
+                  .neq("id", bookingRecord.id)
+                  .lte("check_in", bookingRecord.check_out)
+                  .gte("check_out", bookingRecord.check_in);
+                candidateConflicts = legacyConflicts.data as Array<Record<string, unknown>> | null;
+              }
+
               const hasSlotConflict = (candidateConflicts || []).some((c) => {
-                const cMeta = c as Record<string, unknown>;
                 return doTimeSlotsOverlap(
                   {
-                    checkIn: existingBooking.check_in,
-                    checkOut: existingBooking.check_out,
-                    checkinTime: eMeta.checkin_time ? String(eMeta.checkin_time).slice(0, 5) : DEFAULT_CHECKIN_TIME,
-                    checkoutTime: eMeta.checkout_time ? String(eMeta.checkout_time).slice(0, 5) : DEFAULT_CHECKOUT_TIME,
+                    checkIn: bookingRecord.check_in,
+                    checkOut: bookingRecord.check_out,
+                    checkinTime: bookingRecord.checkin_time ? String(bookingRecord.checkin_time).slice(0, 5) : DEFAULT_CHECKIN_TIME,
+                    checkoutTime: bookingRecord.checkout_time ? String(bookingRecord.checkout_time).slice(0, 5) : DEFAULT_CHECKOUT_TIME,
                   },
                   {
-                    checkIn: c.check_in,
-                    checkOut: c.check_out,
-                    checkinTime: cMeta.checkin_time ? String(cMeta.checkin_time).slice(0, 5) : DEFAULT_CHECKIN_TIME,
-                    checkoutTime: cMeta.checkout_time ? String(cMeta.checkout_time).slice(0, 5) : DEFAULT_CHECKOUT_TIME,
+                    checkIn: String(c.check_in || ""),
+                    checkOut: String(c.check_out || ""),
+                    checkinTime: c.checkin_time ? String(c.checkin_time).slice(0, 5) : DEFAULT_CHECKIN_TIME,
+                    checkoutTime: c.checkout_time ? String(c.checkout_time).slice(0, 5) : DEFAULT_CHECKOUT_TIME,
                   }
                 );
               });
@@ -192,7 +254,7 @@ async function handleCallback(request: NextRequest) {
               }
             }
 
-            const expectedAmount = Number(existingBooking.total_price);
+            const expectedAmount = Number(bookingRecord.total_price);
             const paymentVerification = await verifyAndSettleBookingPaymentAmount({
               bookingRef,
               expectedBookingTotal: expectedAmount,
@@ -212,7 +274,7 @@ async function handleCallback(request: NextRequest) {
             confirmedAmount = paymentVerification.totalConfirmedAmount;
             confirmedGateway = paymentVerification.effectiveGatewayLabel;
 
-            const assignedPin = existingBooking.smart_lock_pin || null;
+            const assignedPin = bookingRecord.smart_lock_pin || null;
             const { data: rpcData, error: rpcError } = await dbClient.rpc("confirm_verified_booking", {
               p_booking_ref: bookingRef,
               p_payment_id: String(paymentId),
@@ -287,18 +349,18 @@ async function handleCallback(request: NextRequest) {
                 const { data: propData } = await dbClient
                   .from("properties")
                   .select("host_id, title")
-                  .eq("id", existingBooking.property_id)
+                  .eq("id", bookingRecord.property_id)
                   .single();
 
                 if (propData?.title) resolvedPropTitle = String(propData.title);
                 if (propData && propData.host_id) {
                   await dbClient.from("host_notifications").insert({
                     host_id: propData.host_id,
-                    property_id: existingBooking.property_id,
-                    booking_id: existingBooking.id,
+                    property_id: bookingRecord.property_id,
+                    booking_id: bookingRecord.id,
                     event_type: "booking_confirmed",
                     title: "حجز جديد مؤكد! 🎉",
-                    body: `تم تأكيد حجز جديد لـ ${propData.title} بقيمة ${existingBooking.total_price} ر.س للفترة من ${existingBooking.check_in} إلى ${existingBooking.check_out}.`,
+                    body: `تم تأكيد حجز جديد لـ ${propData.title} بقيمة ${bookingRecord.total_price} ر.س للفترة من ${bookingRecord.check_in} إلى ${bookingRecord.check_out}.`,
                     is_read: false,
                   });
                 }
@@ -306,8 +368,8 @@ async function handleCallback(request: NextRequest) {
                 console.warn("Could not insert host notification:", notifErr);
               }
 
-              const finSnap = getBookingFinancialSnapshot(bookingRef) || getBookingFinancialSnapshot(existingBooking.id);
-              const guestIdentifier = existingBooking.guest_id || (existingBooking as { auth_subject?: string }).auth_subject;
+              const finSnap = getBookingFinancialSnapshot(bookingRef) || getBookingFinancialSnapshot(bookingRecord.id);
+              const guestIdentifier = bookingRecord.guest_id || bookingRecord.auth_subject;
 
               if (finSnap?.promoCode) {
                 await recordCouponUsage(
@@ -345,7 +407,7 @@ async function handleCallback(request: NextRequest) {
               }
 
               await dispatchBookingZatcaInvoice({
-                bookingId: existingBooking.id,
+                bookingId: bookingRecord.id,
                 bookingRef,
                 totalWithVat: paymentVerification.totalConfirmedAmount,
                 taxableAmount: finSnap?.taxableSubtotalSar,
@@ -356,16 +418,16 @@ async function handleCallback(request: NextRequest) {
               });
 
               try {
-                if (existingBooking.check_in && existingBooking.check_out && existingBooking.property_id) {
-                  const startMs = Date.parse(`${existingBooking.check_in}T00:00:00.000Z`);
-                  const endMs = Date.parse(`${existingBooking.check_out}T00:00:00.000Z`);
+                if (bookingRecord.check_in && bookingRecord.check_out && bookingRecord.property_id) {
+                  const startMs = Date.parse(`${bookingRecord.check_in}T00:00:00.000Z`);
+                  const endMs = Date.parse(`${bookingRecord.check_out}T00:00:00.000Z`);
                   const numNights = Math.round((endMs - startMs) / 86_400_000);
                   if (numNights > 0) {
                     const rowsToUpsert = [];
                     for (let i = 0; i < numNights; i++) {
                       const dayDate = new Date(startMs + i * 86_400_000).toISOString().slice(0, 10);
                       rowsToUpsert.push({
-                        property_id: existingBooking.property_id,
+                        property_id: bookingRecord.property_id,
                         date: dayDate,
                         is_available: false,
                         updated_at: new Date().toISOString(),

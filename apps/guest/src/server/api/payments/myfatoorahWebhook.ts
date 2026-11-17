@@ -139,19 +139,64 @@ export async function POST(request: NextRequest) {
     // 4. Process State Transition atomically under property lock
     if (isPaid && invoiceData) {
       return await acquirePropertyBookingLock([initialBooking.property_id], async () => {
-        const { data: existingBooking } = await dbClient
+        const primaryBookingQuery = await dbClient
           .from("bookings")
           .select("id, status, payment_status, property_id, total_price, check_in, check_out, checkin_time, checkout_time, smart_lock_pin, booking_reference, guest_id, auth_subject")
           .eq("id", initialBooking.id)
           .maybeSingle();
 
-        if (!existingBooking) {
+        let existingBookingRaw: Record<string, unknown> | null = primaryBookingQuery.data as Record<string, unknown> | null;
+        let bookingFetchError = primaryBookingQuery.error;
+
+        if (
+          bookingFetchError &&
+          (bookingFetchError.code === "42703" ||
+            /checkin_time|checkout_time|column .* does not exist/i.test(bookingFetchError.message || ""))
+        ) {
+          const legacyBookingQuery = await dbClient
+            .from("bookings")
+            .select("id, status, payment_status, property_id, total_price, check_in, check_out, smart_lock_pin, booking_reference, guest_id, auth_subject")
+            .eq("id", initialBooking.id)
+            .maybeSingle();
+          existingBookingRaw = legacyBookingQuery.data as Record<string, unknown> | null;
+          bookingFetchError = legacyBookingQuery.error;
+        }
+
+        if (bookingFetchError) {
+          console.error("Webhook booking lookup DB error inside lock:", {
+            bookingRef,
+            code: bookingFetchError.code,
+            message: bookingFetchError.message,
+          });
+          return NextResponse.json(
+            { code: "booking_fetch_error", message: bookingFetchError.message },
+            { status: 500 }
+          );
+        }
+
+        if (!existingBookingRaw) {
           return NextResponse.json({ code: "booking_not_found" }, { status: 404 });
         }
 
+        const existingBooking = existingBookingRaw as {
+          id: string;
+          status: string;
+          payment_status: string;
+          property_id: string;
+          total_price: number;
+          check_in: string;
+          check_out: string;
+          checkin_time?: string | null;
+          checkout_time?: string | null;
+          smart_lock_pin?: string | null;
+          booking_reference?: string | null;
+          guest_id?: string | null;
+          auth_subject?: string | null;
+        };
+
         if (existingBooking.status === "confirmed" && existingBooking.payment_status === "success") {
           try {
-            const guestIdentifier = existingBooking.guest_id || (existingBooking as { auth_subject?: string }).auth_subject;
+            const guestIdentifier = existingBooking.guest_id || existingBooking.auth_subject;
             if (guestIdentifier) {
               const gatewayName = invoiceData.InvoiceTransactions?.[0]?.PaymentGateway || "MyFatoorah";
               const primaryTx = (invoiceData.InvoiceTransactions?.[0] || {}) as Record<string, unknown>;
@@ -167,7 +212,7 @@ export async function POST(request: NextRequest) {
         }
 
         if (existingBooking.status === "cancelled") {
-          const { data: candidateConflicts } = await dbClient
+          const primaryConflicts = await dbClient
             .from("bookings")
             .select("id, check_in, check_out, checkin_time, checkout_time")
             .eq("property_id", existingBooking.property_id)
@@ -176,21 +221,36 @@ export async function POST(request: NextRequest) {
             .lte("check_in", existingBooking.check_out)
             .gte("check_out", existingBooking.check_in);
 
-          const eMeta = existingBooking as Record<string, unknown>;
+          let candidateConflicts = primaryConflicts.data as Array<Record<string, unknown>> | null;
+          if (
+            primaryConflicts.error &&
+            (primaryConflicts.error.code === "42703" ||
+              /checkin_time|checkout_time|column .* does not exist/i.test(primaryConflicts.error.message || ""))
+          ) {
+            const legacyConflicts = await dbClient
+              .from("bookings")
+              .select("id, check_in, check_out")
+              .eq("property_id", existingBooking.property_id)
+              .in("status", ["confirmed", "completed"])
+              .neq("id", existingBooking.id)
+              .lte("check_in", existingBooking.check_out)
+              .gte("check_out", existingBooking.check_in);
+            candidateConflicts = legacyConflicts.data as Array<Record<string, unknown>> | null;
+          }
+
           const hasSlotConflict = (candidateConflicts || []).some((c) => {
-            const cMeta = c as Record<string, unknown>;
             return doTimeSlotsOverlap(
               {
                 checkIn: existingBooking.check_in,
                 checkOut: existingBooking.check_out,
-                checkinTime: eMeta.checkin_time ? String(eMeta.checkin_time).slice(0, 5) : DEFAULT_CHECKIN_TIME,
-                checkoutTime: eMeta.checkout_time ? String(eMeta.checkout_time).slice(0, 5) : DEFAULT_CHECKOUT_TIME,
+                checkinTime: existingBooking.checkin_time ? String(existingBooking.checkin_time).slice(0, 5) : DEFAULT_CHECKIN_TIME,
+                checkoutTime: existingBooking.checkout_time ? String(existingBooking.checkout_time).slice(0, 5) : DEFAULT_CHECKOUT_TIME,
               },
               {
-                checkIn: c.check_in,
-                checkOut: c.check_out,
-                checkinTime: cMeta.checkin_time ? String(cMeta.checkin_time).slice(0, 5) : DEFAULT_CHECKIN_TIME,
-                checkoutTime: cMeta.checkout_time ? String(cMeta.checkout_time).slice(0, 5) : DEFAULT_CHECKOUT_TIME,
+                checkIn: String(c.check_in || ""),
+                checkOut: String(c.check_out || ""),
+                checkinTime: c.checkin_time ? String(c.checkin_time).slice(0, 5) : DEFAULT_CHECKIN_TIME,
+                checkoutTime: c.checkout_time ? String(c.checkout_time).slice(0, 5) : DEFAULT_CHECKOUT_TIME,
               }
             );
           });

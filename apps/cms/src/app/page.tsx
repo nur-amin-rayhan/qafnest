@@ -20,10 +20,6 @@ import type { CmsLocale, CmsMediaRecord, CmsTab, CmsWorkspaceData } from "@/type
 
 const GLOBAL_TABS: GlobalKind[] = [
   "home-hero",
-  "features",
-  "fleet-capabilities",
-  "coverage-network",
-  "industries",
   "contact-us",
   "site-seo",
   "google-tag-manager",
@@ -34,7 +30,6 @@ const COLLECTION_TABS = [
   "categories",
   "faqs",
   "home-popups",
-  "business-pages",
   "legal-pages",
   "navigation-links",
   "social-links",

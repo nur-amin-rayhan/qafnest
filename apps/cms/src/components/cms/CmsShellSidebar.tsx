@@ -12,11 +12,6 @@ import {
   HelpCircle,
   Megaphone,
   Sparkles,
-  Layers,
-  Truck,
-  Globe,
-  Building2,
-  Briefcase,
   Scale,
   Link2,
   Share2,
@@ -71,12 +66,9 @@ export function CmsShellSidebar({
 
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({
     collections: true,
-    home: true,
-    business: true,
-    legal: true,
+    website: true,
     global: true,
     seo: true,
-    about: true,
     compliance: false,
   });
 
@@ -90,41 +82,23 @@ export function CmsShellSidebar({
       titleEn: "Collections",
       titleAr: "المجموعات",
       items: [
-        { id: "users", labelEn: "Users", labelAr: "المستخدمون", icon: Users, badge: counts.users },
-        { id: "media", labelEn: "Media", labelAr: "الوسائط", icon: ImageIcon, badge: counts.media },
-        { id: "categories", labelEn: "Categories", labelAr: "التصنيفات", icon: FolderTree, badge: counts.categories },
         { id: "blogs", labelEn: "Blogs", labelAr: "المقالات", icon: FileText, badge: counts.blogs },
-        { id: "roles", labelEn: "Roles", labelAr: "الأدوار والصلاحيات", icon: ShieldCheck, badge: counts.roles },
+        { id: "categories", labelEn: "Categories", labelAr: "التصنيفات", icon: FolderTree, badge: counts.categories },
+        { id: "media", labelEn: "Media", labelAr: "الوسائط", icon: ImageIcon, badge: counts.media },
         { id: "faqs", labelEn: "FAQs", labelAr: "الأسئلة الشائعة", icon: HelpCircle, badge: counts.faqs },
+        { id: "users", labelEn: "Users", labelAr: "المستخدمون", icon: Users, badge: counts.users },
+        { id: "roles", labelEn: "Roles", labelAr: "الأدوار والصلاحيات", icon: ShieldCheck, badge: counts.roles },
       ],
     },
     {
-      key: "home",
-      titleEn: "Home",
-      titleAr: "الصفحة الرئيسية",
+      key: "website",
+      titleEn: "Website & Pages",
+      titleAr: "الموقع والصفحات",
       items: [
-        { id: "home-popups", labelEn: "Home Popups", labelAr: "النوافذ المنبثقة", icon: Megaphone, badge: counts["home-popups"] },
         { id: "home-hero", labelEn: "Home Hero", labelAr: "القسم الرئيسي", icon: Sparkles },
-        { id: "features", labelEn: "Features", labelAr: "المميزات", icon: Layers },
-        { id: "fleet-capabilities", labelEn: "Fleet Capabilities", labelAr: "قدرات التشغيل", icon: Truck },
-        { id: "coverage-network", labelEn: "Coverage Network", labelAr: "شبكة التغطية", icon: Globe },
-        { id: "industries", labelEn: "Industries", labelAr: "القطاعات", icon: Building2 },
-      ],
-    },
-    {
-      key: "business",
-      titleEn: "Business",
-      titleAr: "الأعمال",
-      items: [
-        { id: "business-pages", labelEn: "Business Pages", labelAr: "صفحات الأعمال", icon: Briefcase, badge: counts["business-pages"] },
-      ],
-    },
-    {
-      key: "legal",
-      titleEn: "Legal",
-      titleAr: "القانونية",
-      items: [
+        { id: "home-popups", labelEn: "Home Popups", labelAr: "النوافذ المنبثقة", icon: Megaphone, badge: counts["home-popups"] },
         { id: "legal-pages", labelEn: "Legal Pages", labelAr: "الصفحات القانونية", icon: Scale, badge: counts["legal-pages"] },
+        { id: "about-us", labelEn: "About Us", labelAr: "من نحن", icon: Info },
       ],
     },
     {
@@ -147,14 +121,6 @@ export function CmsShellSidebar({
       ],
     },
     {
-      key: "about",
-      titleEn: "About",
-      titleAr: "عن المنصة",
-      items: [
-        { id: "about-us", labelEn: "About Us", labelAr: "من نحن", icon: Info },
-      ],
-    },
-    {
       key: "compliance",
       titleEn: "KSA Compliance",
       titleAr: "الامتثال السعودي",
@@ -167,7 +133,7 @@ export function CmsShellSidebar({
 
   const baseBg = darkMode
     ? "bg-[#11131A] border-[#222634] text-slate-200"
-    : "bg-[#F8F9FA] border-[#E5E7EB] text-[#111827]";
+    : "bg-white border-[#E5E7EB] text-[#111827]";
 
   if (collapsed) {
     return (
@@ -182,7 +148,7 @@ export function CmsShellSidebar({
         <button
           onClick={onOpenSearch}
           className={`w-9 h-9 rounded-lg flex items-center justify-center transition ${
-            darkMode ? "hover:bg-white/10 text-slate-400" : "hover:bg-gray-200/70 text-gray-500"
+            darkMode ? "hover:bg-white/10 text-slate-400" : "hover:bg-gray-100 text-gray-500"
           }`}
           title="Search (Ctrl+K)"
         >
@@ -195,7 +161,7 @@ export function CmsShellSidebar({
               ? "bg-[#2563EB]/10 text-[#2563EB]"
               : darkMode
               ? "hover:bg-white/10 text-slate-400"
-              : "hover:bg-gray-200/70 text-gray-600"
+              : "hover:bg-gray-100 text-gray-600"
           }`}
           title="Dashboard"
         >
@@ -216,7 +182,7 @@ export function CmsShellSidebar({
                     ? "bg-[#2563EB] text-white shadow-sm"
                     : darkMode
                     ? "text-slate-400 hover:bg-white/10 hover:text-white"
-                    : "text-gray-600 hover:bg-gray-200/70 hover:text-gray-900"
+                    : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
                 }`}
               >
                 <Icon className="w-4 h-4" />
@@ -234,7 +200,7 @@ export function CmsShellSidebar({
       <div className={`px-4 py-3.5 border-b flex items-center justify-between ${darkMode ? "border-[#222634]" : "border-[#E5E7EB]"}`}>
         <button
           onClick={() => onSelectTab("dashboard")}
-          className="flex items-center gap-2.5 text-left group"
+          className="flex items-center gap-2.5 text-left"
         >
           <div className="w-8 h-8 rounded-lg bg-[#2563EB] text-white font-extrabold text-xs tracking-wider flex items-center justify-center shadow-sm">
             QN
@@ -244,7 +210,7 @@ export function CmsShellSidebar({
               QafNest
             </div>
             <div className={`text-[10px] font-medium uppercase tracking-widest ${darkMode ? "text-slate-400" : "text-slate-500"}`}>
-              {isAr ? "نظام إدارة المحتوى" : "Content Studio"}
+              {isAr ? "نظام إدارة المحتوى" : "CMS Studio"}
             </div>
           </div>
         </button>
@@ -257,7 +223,7 @@ export function CmsShellSidebar({
           className={`w-full flex items-center justify-between px-3 py-2 rounded-lg border text-xs transition ${
             darkMode
               ? "bg-[#181B24] border-[#2A2F3E] text-slate-400 hover:border-slate-500"
-              : "bg-white border-[#E5E7EB] text-gray-500 hover:border-gray-300 shadow-[0_1px_2px_rgba(0,0,0,0.03)]"
+              : "bg-[#F9FAFB] border-[#E5E7EB] text-gray-500 hover:border-gray-300"
           }`}
         >
           <span className="flex items-center gap-2">
@@ -266,7 +232,7 @@ export function CmsShellSidebar({
           </span>
           <kbd
             className={`px-1.5 py-0.5 rounded text-[10px] font-mono ${
-              darkMode ? "bg-white/10 text-slate-300" : "bg-gray-100 text-gray-500 border border-gray-200"
+              darkMode ? "bg-white/10 text-slate-300" : "bg-white text-gray-500 border border-gray-200"
             }`}
           >
             Ctrl K
@@ -276,7 +242,6 @@ export function CmsShellSidebar({
 
       {/* Scrollable Navigation */}
       <nav className="flex-1 overflow-y-auto px-3 pb-4 space-y-3 dropdown-scroll">
-        {/* Dashboard Link */}
         <button
           onClick={() => onSelectTab("dashboard")}
           className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[13px] font-medium transition ${
@@ -286,14 +251,13 @@ export function CmsShellSidebar({
                 : "bg-[#EFF6FF] text-[#2563EB] font-semibold"
               : darkMode
               ? "text-slate-300 hover:bg-white/5"
-              : "text-[#374151] hover:bg-gray-200/60"
+              : "text-[#374151] hover:bg-gray-100"
           }`}
         >
           <LayoutDashboard className="w-4 h-4 shrink-0" />
           <span>{isAr ? "لوحة التحكم" : "Dashboard"}</span>
         </button>
 
-        {/* Groups */}
         {groups.map((group) => {
           const isOpen = openGroups[group.key] !== false;
           return (
@@ -324,7 +288,7 @@ export function CmsShellSidebar({
                               : "bg-[#EFF6FF] text-[#2563EB] font-semibold"
                             : darkMode
                             ? "text-slate-300 hover:bg-white/5 hover:text-white"
-                            : "text-[#374151] hover:bg-gray-200/60 hover:text-[#111827]"
+                            : "text-[#374151] hover:bg-gray-100 hover:text-[#111827]"
                         }`}
                       >
                         <span className="flex items-center gap-2.5 truncate">
@@ -340,7 +304,7 @@ export function CmsShellSidebar({
                                   : "bg-[#DBEAFE] text-[#1D4ED8]"
                                 : darkMode
                                 ? "bg-white/10 text-slate-400"
-                                : "bg-gray-200/80 text-gray-600"
+                                : "bg-gray-100 text-gray-600"
                             }`}
                           >
                             {item.badge}
@@ -357,7 +321,7 @@ export function CmsShellSidebar({
       </nav>
 
       {/* Footer User Info */}
-      <div className={`px-3.5 py-2.5 border-t text-xs flex items-center gap-2.5 ${darkMode ? "border-[#222634] bg-[#0D0F15]" : "border-[#E5E7EB] bg-white"}`}>
+      <div className={`px-3.5 py-2.5 border-t text-xs flex items-center gap-2.5 ${darkMode ? "border-[#222634] bg-[#0D0F15]" : "border-[#E5E7EB] bg-[#F9FAFB]"}`}>
         <div className="w-7 h-7 rounded-full bg-[#2563EB] text-white font-semibold text-xs flex items-center justify-center shrink-0">
           {(userEmail?.[0] || "A").toUpperCase()}
         </div>

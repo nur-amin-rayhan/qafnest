@@ -9,15 +9,10 @@ import {
   ShieldCheck,
   HelpCircle,
   Megaphone,
-  Briefcase,
   Scale,
   Link2,
   Share2,
   Sparkles,
-  Layers,
-  Truck,
-  Globe,
-  Building2,
   PhoneCall,
   SearchCheck,
   Code2,
@@ -67,17 +62,16 @@ export function CmsDashboardView({
     icon: React.ComponentType<{ className?: string }>;
     color: string;
   }> = [
-    { tab: "users", titleEn: "Users", titleAr: "المستخدمون", count: workspace.users.length, trend: "+12%", icon: Users, color: "#2563EB" },
-    { tab: "media", titleEn: "Media", titleAr: "الوسائط", count: workspace.media.length, trend: "+24%", icon: ImageIcon, color: "#0EA5E9" },
-    { tab: "categories", titleEn: "Categories", titleAr: "التصنيفات", count: workspace.categories.length, trend: "+4%", icon: FolderTree, color: "#8B5CF6" },
-    { tab: "blogs", titleEn: "Blogs", titleAr: "المقالات", count: blogsCount, trend: "+18%", icon: FileText, color: "#10B981" },
-    { tab: "roles", titleEn: "Roles", titleAr: "الأدوار والصلاحيات", count: workspace.roles.length, trend: "Active", icon: ShieldCheck, color: "#6366F1" },
-    { tab: "faqs", titleEn: "FAQs", titleAr: "الأسئلة الشائعة", count: workspace.faqs.length, trend: "+8%", icon: HelpCircle, color: "#F59E0B" },
-    { tab: "home-popups", titleEn: "Home Popups", titleAr: "النوافذ المنبثقة", count: workspace.homePopups.length, trend: "Live", icon: Megaphone, color: "#EC4899" },
-    { tab: "business-pages", titleEn: "Business Pages", titleAr: "صفحات الأعمال", count: workspace.businessPages.length, trend: "CMS", icon: Briefcase, color: "#14B8A6" },
+    { tab: "blogs", titleEn: "Blogs", titleAr: "المقالات", count: blogsCount, trend: "Live", icon: FileText, color: "#10B981" },
+    { tab: "categories", titleEn: "Categories", titleAr: "التصنيفات", count: workspace.categories.length, trend: "Active", icon: FolderTree, color: "#8B5CF6" },
+    { tab: "media", titleEn: "Media", titleAr: "الوسائط", count: workspace.media.length, trend: "Library", icon: ImageIcon, color: "#0EA5E9" },
+    { tab: "faqs", titleEn: "FAQs", titleAr: "الأسئلة الشائعة", count: workspace.faqs.length, trend: "Published", icon: HelpCircle, color: "#F59E0B" },
+    { tab: "home-popups", titleEn: "Home Popups", titleAr: "النوافذ المنبثقة", count: workspace.homePopups.length, trend: "Banners", icon: Megaphone, color: "#EC4899" },
     { tab: "legal-pages", titleEn: "Legal Pages", titleAr: "الصفحات القانونية", count: workspace.legalPages.length, trend: "Synced", icon: Scale, color: "#64748B" },
     { tab: "navigation-links", titleEn: "Navigation Links", titleAr: "روابط التنقل", count: workspace.navigationLinks.length, trend: "Menu", icon: Link2, color: "#3B82F6" },
-    { tab: "social-links", titleEn: "Social Links", titleAr: "روابط التواصل", count: workspace.socialLinks.length, trend: "Active", icon: Share2, color: "#06B6D4" },
+    { tab: "social-links", titleEn: "Social Links", titleAr: "روابط التواصل", count: workspace.socialLinks.length, trend: "Social", icon: Share2, color: "#06B6D4" },
+    { tab: "users", titleEn: "Users", titleAr: "المستخدمون", count: workspace.users.length, trend: "Team", icon: Users, color: "#2563EB" },
+    { tab: "roles", titleEn: "Roles", titleAr: "الأدوار والصلاحيات", count: workspace.roles.length, trend: "RBAC", icon: ShieldCheck, color: "#6366F1" },
   ];
 
   const globalCards: Array<{
@@ -88,35 +82,28 @@ export function CmsDashboardView({
     descAr: string;
     icon: React.ComponentType<{ className?: string }>;
   }> = [
-    { tab: "home-hero", titleEn: "Home Hero", titleAr: "القسم الرئيسي", descEn: "Manage hero banner & CTAs", descAr: "إدارة الواجهة الرئيسية والأزرار", icon: Sparkles },
-    { tab: "features", titleEn: "Features", titleAr: "المميزات", descEn: "Manage section cards & SLA", descAr: "إدارة بطاقات المميزات", icon: Layers },
-    { tab: "fleet-capabilities", titleEn: "Fleet Capabilities", titleAr: "قدرات التشغيل", descEn: "Manage operational capabilities", descAr: "إدارة القدرات التشغيلية", icon: Truck },
-    { tab: "coverage-network", titleEn: "Coverage Network", titleAr: "شبكة التغطية", descEn: "Manage cities & highlights", descAr: "إدارة المدن والإحصائيات", icon: Globe },
-    { tab: "industries", titleEn: "Industries", titleAr: "القطاعات", descEn: "Manage stay categories & sectors", descAr: "إدارة فئات الإقامة والقطاعات", icon: Building2 },
-    { tab: "contact-us", titleEn: "Contact Us", titleAr: "تواصل معنا", descEn: "Manage phone, emails & socials", descAr: "إدارة الهاتف والبريد الإلكتروني", icon: PhoneCall },
-    { tab: "site-seo", titleEn: "Site SEO", titleAr: "سيو الموقع", descEn: "Manage meta tags, OG & robots", descAr: "إدارة الميتا تاج والسيو", icon: SearchCheck },
-    { tab: "google-tag-manager", titleEn: "Google Tag Manager", titleAr: "مدير وسوم جوجل", descEn: "Manage analytics GTM container", descAr: "إدارة تتبع جوجل تاج مانجر", icon: Code2 },
-    { tab: "about-us", titleEn: "About Us", titleAr: "من نحن", descEn: "Manage brand story & SEO", descAr: "إدارة قصة قاف نست والسيو", icon: Info },
+    { tab: "home-hero", titleEn: "Home Hero", titleAr: "القسم الرئيسي", descEn: "Manage homepage hero banner & CTAs", descAr: "إدارة الواجهة الرئيسية والأزرار", icon: Sparkles },
+    { tab: "contact-us", titleEn: "Contact Us", titleAr: "تواصل معنا", descEn: "Manage phone, WhatsApp & support emails", descAr: "إدارة الهاتف وواتساب والبريد", icon: PhoneCall },
+    { tab: "site-seo", titleEn: "Site SEO", titleAr: "سيو الموقع", descEn: "Manage meta tags, Open Graph & robots", descAr: "إدارة الميتا تاج والسيو", icon: SearchCheck },
+    { tab: "google-tag-manager", titleEn: "Google Tag Manager", titleAr: "مدير وسوم جوجل", descEn: "Manage GTM analytics container", descAr: "إدارة تتبع جوجل تاج مانجر", icon: Code2 },
+    { tab: "about-us", titleEn: "About Us", titleAr: "من نحن", descEn: "Manage QafNest brand story & SEO", descAr: "إدارة قصة قاف نست والسيو", icon: Info },
   ];
 
   const cardCls = darkMode
     ? "bg-[#151822] border-[#222634] hover:border-blue-500/60 text-white"
-    : "bg-white border-[#E5E7EB] hover:border-[#2563EB]/60 text-[#111827] shadow-[0_1px_2px_rgba(0,0,0,0.03)] hover:shadow-md";
+    : "bg-white border-[#E5E7EB] hover:border-[#2563EB]/60 text-[#111827] shadow-sm hover:shadow-md";
 
   return (
     <div className="space-y-8">
-      {/* Header */}
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h1 className={`text-2xl font-bold tracking-tight ${darkMode ? "text-white" : "text-[#111827]"}`}>
-            {isAr ? "لوحة التحكم" : "Dashboard"}
-          </h1>
-          <p className={`text-xs mt-1 ${darkMode ? "text-slate-400" : "text-gray-500"}`}>
-            {isAr
-              ? "إدارة جميع مجموعات المحتوى، المقالات، والصفحات العامة لمنصة قاف نست"
-              : "Manage all QafNest collections, blog articles, landing sections, and global SEO configurations"}
-          </p>
-        </div>
+      <div>
+        <h1 className={`text-2xl font-bold tracking-tight ${darkMode ? "text-white" : "text-[#111827]"}`}>
+          {isAr ? "لوحة التحكم" : "Dashboard"}
+        </h1>
+        <p className={`text-xs mt-1 ${darkMode ? "text-slate-400" : "text-gray-500"}`}>
+          {isAr
+            ? "إدارة مقالات قاف نست، الوسائط، الأسئلة الشائعة، الصفحات القانونية وإعدادات السيو"
+            : "Manage QafNest blogs, media assets, FAQs, legal pages, navigation, and global SEO"}
+        </p>
       </div>
 
       {/* Collections Grid */}
@@ -144,7 +131,7 @@ export function CmsDashboardView({
                   <div className="flex items-center gap-2.5 min-w-0">
                     <div
                       className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${
-                        darkMode ? "bg-white/5" : "bg-[#F3F4F6]"
+                        darkMode ? "bg-white/5" : "bg-[#EFF6FF]"
                       }`}
                     >
                       <Icon className="w-4 h-4 text-[#2563EB]" />
@@ -154,7 +141,7 @@ export function CmsDashboardView({
                         {isAr ? card.titleAr : card.titleEn}
                       </div>
                       <div className={`text-[11px] ${darkMode ? "text-slate-400" : "text-gray-500"}`}>
-                        {isAr ? "مجموعة محتوى" : "Collection"}
+                        {isAr ? "مجموعة" : "Collection"}
                       </div>
                     </div>
                   </div>

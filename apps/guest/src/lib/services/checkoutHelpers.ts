@@ -215,13 +215,43 @@ export async function checkDatesAndCalculateRate({
   try {
     const fifteenMinutesAgo = new Date(Date.now() - 15 * 60 * 1000).toISOString();
 
-    const { data: candidateBookings } = await supabase
+    type CandidateBookingRow = {
+      id: string;
+      check_in: string;
+      check_out: string;
+      checkin_time?: string | null;
+      checkout_time?: string | null;
+      status: string;
+      payment_status?: string | null;
+      guest_id?: string | null;
+      auth_subject?: string | null;
+      created_at?: string | null;
+      booking_reference?: string | null;
+    };
+
+    const primaryCandidates = await supabase
       .from("bookings")
       .select("id, check_in, check_out, checkin_time, checkout_time, status, payment_status, guest_id, auth_subject, created_at, booking_reference")
       .eq("property_id", resolvedDbPropertyId)
       .lte("check_in", checkOut)
       .gte("check_out", checkIn)
       .or(`status.in.(confirmed,completed),and(status.eq.pending,created_at.gt.${fifteenMinutesAgo})`);
+
+    let candidateBookings = primaryCandidates.data as CandidateBookingRow[] | null;
+    if (
+      primaryCandidates.error &&
+      (primaryCandidates.error.code === "42703" ||
+        /checkin_time|checkout_time|column .* does not exist/i.test(primaryCandidates.error.message || ""))
+    ) {
+      const legacyCandidates = await supabase
+        .from("bookings")
+        .select("id, check_in, check_out, status, payment_status, guest_id, auth_subject, created_at, booking_reference")
+        .eq("property_id", resolvedDbPropertyId)
+        .lte("check_in", checkOut)
+        .gte("check_out", checkIn)
+        .or(`status.in.(confirmed,completed),and(status.eq.pending,created_at.gt.${fifteenMinutesAgo})`);
+      candidateBookings = legacyCandidates.data as CandidateBookingRow[] | null;
+    }
 
     if (candidateBookings && candidateBookings.length > 0) {
       const requestedSlot: TimeSlotBooking = {
@@ -238,7 +268,7 @@ export async function checkDatesAndCalculateRate({
           checkOut: b.check_out,
           checkinTime: bMeta.checkin_time ? String(bMeta.checkin_time).slice(0, 5) : DEFAULT_CHECKIN_TIME,
           checkoutTime: bMeta.checkout_time ? String(bMeta.checkout_time).slice(0, 5) : DEFAULT_CHECKOUT_TIME,
-          bookingRef: b.booking_reference,
+          bookingRef: b.booking_reference || undefined,
           status: b.status,
         };
         if (b.status === "confirmed" || b.status === "completed") {
