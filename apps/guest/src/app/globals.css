@@ -321,3 +321,10 @@ html.light footer {
   background-color: #F0ECF9 !important;
   border-top-color: rgba(147, 51, 234, 0.12) !important;
 }
+
+/* Prevent pre-hydration dark flash on header when light theme is active */
+html.light #navbar {
+  background-color: rgba(255, 255, 255, 0.95) !important;
+  border-bottom-color: rgba(88, 28, 135, 0.08) !important;
+  color: #111827 !important;
+}

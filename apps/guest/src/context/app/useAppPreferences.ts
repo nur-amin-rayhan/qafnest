@@ -18,9 +18,12 @@ export function getRiyadhDate(offsetDays: number) {
     .slice(0, 10);
 }
 
-export function useAppPreferences(initialLang: Language = "en") {
+export function useAppPreferences(
+  initialLang: Language = "en",
+  initialTheme: "light" | "dark" = "dark"
+) {
   const [language, setLanguageState] = useState<Language>(initialLang);
-  const [isDarkTheme, setIsDarkTheme] = useState<boolean>(true);
+  const [isDarkTheme, setIsDarkTheme] = useState<boolean>(initialTheme !== "light");
 
   // Sync language with route prefix, cookie, localStorage & document attributes
   useEffect(() => {
@@ -82,11 +85,13 @@ export function useAppPreferences(initialLang: Language = "en") {
     setLanguage(language === "en" ? "ar" : "en");
   };
 
-  // Sync theme with localStorage & documentElement
+  // Sync theme with localStorage, cookie & documentElement
   useEffect(() => {
     try {
       const stored = localStorage.getItem("qafnest_theme");
-      if (stored === "light") {
+      const resolved =
+        stored === "light" || stored === "dark" ? stored : initialTheme;
+      if (resolved === "light") {
         setIsDarkTheme(false);
         document.documentElement.classList.add("light");
         document.documentElement.classList.remove("dark");
@@ -95,25 +100,26 @@ export function useAppPreferences(initialLang: Language = "en") {
         document.documentElement.classList.add("dark");
         document.documentElement.classList.remove("light");
       }
+      localStorage.setItem("qafnest_theme", resolved);
+      document.cookie = `qafnest_theme=${resolved}; path=/; max-age=31536000; SameSite=Lax`;
     } catch {}
-  }, []);
+  }, [initialTheme]);
 
   const toggleTheme = () => {
     setIsDarkTheme((prev) => {
       const next = !prev;
+      const nextTheme = next ? "dark" : "light";
       if (next) {
         document.documentElement.classList.add("dark");
         document.documentElement.classList.remove("light");
-        try {
-          localStorage.setItem("qafnest_theme", "dark");
-        } catch {}
       } else {
         document.documentElement.classList.add("light");
         document.documentElement.classList.remove("dark");
-        try {
-          localStorage.setItem("qafnest_theme", "light");
-        } catch {}
       }
+      try {
+        localStorage.setItem("qafnest_theme", nextTheme);
+        document.cookie = `qafnest_theme=${nextTheme}; path=/; max-age=31536000; SameSite=Lax`;
+      } catch {}
       return next;
     });
   };

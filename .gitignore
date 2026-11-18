@@ -41,4 +41,5 @@ scratch/
 *.mp4
 .qafnest-*.json
 logs/
+.serena/
 

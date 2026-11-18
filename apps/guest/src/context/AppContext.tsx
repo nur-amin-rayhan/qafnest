@@ -18,9 +18,11 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 export function AppProvider({
   children,
   initialLang = "en",
+  initialTheme = "dark",
 }: {
   children: React.ReactNode;
   initialLang?: Language;
+  initialTheme?: "light" | "dark";
 }) {
   const {
     language,
@@ -30,7 +32,7 @@ export function AppProvider({
     toggleTheme,
     formatPrice,
     formatTabby,
-  } = useAppPreferences(initialLang);
+  } = useAppPreferences(initialLang, initialTheme);
 
   const { wishlist, toggleWishlist } = useWishlistSync();
 

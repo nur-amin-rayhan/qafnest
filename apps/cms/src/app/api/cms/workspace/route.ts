@@ -47,7 +47,10 @@ export async function GET(request: NextRequest) {
       () => createDefaultCmsWorkspace()
     );
     const workspace = mergeWithDefaults(raw);
-    return NextResponse.json({ success: true, workspace });
+    return NextResponse.json(
+      { success: true, workspace },
+      { headers: { "Cache-Control": "no-store, max-age=0" } }
+    );
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Failed to load CMS workspace";
     return NextResponse.json({ error: message }, { status: 500 });
@@ -73,7 +76,10 @@ export async function PUT(request: NextRequest) {
       } as CmsWorkspaceData["globals"],
     });
     await persistSharedJsonFile(WORKSPACE_FILE, merged);
-    return NextResponse.json({ success: true, workspace: merged });
+    return NextResponse.json(
+      { success: true, workspace: merged },
+      { headers: { "Cache-Control": "no-store, max-age=0" } }
+    );
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Failed to save CMS workspace";
     return NextResponse.json({ error: message }, { status: 500 });

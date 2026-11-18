@@ -65,7 +65,7 @@ export default function ContentAndSeoCmsPage() {
 
   const loadWorkspace = useCallback(async () => {
     try {
-      const res = await fetch(cmsPath("/api/cms/workspace"));
+      const res = await fetch(cmsPath("/api/cms/workspace"), { cache: "no-store" });
       if (res.ok) {
         const data = await res.json();
         if (data?.workspace) {
@@ -122,6 +122,8 @@ export default function ContentAndSeoCmsPage() {
         if (res.ok) {
           const data = await res.json();
           if (data?.workspace) setWorkspace(data.workspace);
+        } else {
+          notify("Failed to persist changes");
         }
       } catch {
         notify("Failed to persist changes");

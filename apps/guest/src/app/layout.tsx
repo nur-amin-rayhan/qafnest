@@ -108,9 +108,11 @@ export default async function RootLayout({
   const rawLang = headerLang || cookieStore.get("qafnest_lang")?.value;
   const initialLang: "ar" | "en" = rawLang === "en" ? "en" : "ar";
   const initialDir = initialLang === "ar" ? "rtl" : "ltr";
+  const rawTheme = cookieStore.get("qafnest_theme")?.value;
+  const initialTheme: "light" | "dark" = rawTheme === "light" ? "light" : "dark";
 
   return (
-    <html lang={initialLang} dir={initialDir} className={`${geist.variable} ${dinNext.variable} dark`} suppressHydrationWarning>
+    <html lang={initialLang} dir={initialDir} className={`${geist.variable} ${dinNext.variable} ${initialTheme}`} suppressHydrationWarning>
       <body
         className="font-body relative min-h-screen selection:bg-violet-500/30"
         suppressHydrationWarning
@@ -118,10 +120,10 @@ export default async function RootLayout({
         <script
           id="qafnest-preferences"
           dangerouslySetInnerHTML={{
-            __html: `try { const root = document.documentElement; const p = window.location.pathname; const pathLang = p === '/ar' || p.startsWith('/ar/') ? 'ar' : (p === '/en' || p.startsWith('/en/') ? 'en' : null); const lang = pathLang || localStorage.getItem('qafnest_lang'); const theme = localStorage.getItem('qafnest_theme'); if (lang === 'ar' || lang === 'en') { root.lang = lang; root.dir = lang === 'ar' ? 'rtl' : 'ltr'; root.classList.toggle('rtl', lang === 'ar'); localStorage.setItem('qafnest_lang', lang); } if (theme === 'light') { root.classList.add('light'); root.classList.remove('dark'); } else { root.classList.add('dark'); root.classList.remove('light'); } } catch {}`,
+            __html: `try { const root = document.documentElement; const p = window.location.pathname; const pathLang = p === '/ar' || p.startsWith('/ar/') ? 'ar' : (p === '/en' || p.startsWith('/en/') ? 'en' : null); const lang = pathLang || localStorage.getItem('qafnest_lang'); const theme = localStorage.getItem('qafnest_theme') || (root.classList.contains('light') ? 'light' : 'dark'); if (lang === 'ar' || lang === 'en') { root.lang = lang; root.dir = lang === 'ar' ? 'rtl' : 'ltr'; root.classList.toggle('rtl', lang === 'ar'); localStorage.setItem('qafnest_lang', lang); } if (theme === 'light') { root.classList.add('light'); root.classList.remove('dark'); document.cookie = 'qafnest_theme=light; path=/; max-age=31536000; SameSite=Lax'; } else { root.classList.add('dark'); root.classList.remove('light'); document.cookie = 'qafnest_theme=dark; path=/; max-age=31536000; SameSite=Lax'; } } catch {}`,
           }}
         />
-        <ClientProviders initialLang={initialLang}>
+        <ClientProviders initialLang={initialLang} initialTheme={initialTheme}>
           <DynamicSeoTags />
           {children}
         </ClientProviders>

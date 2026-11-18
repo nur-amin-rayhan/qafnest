@@ -19,6 +19,7 @@ const BookingModal = dynamic(() => import("@/components/modals/BookingModal"), {
 const AppModal = dynamic(() => import("@/components/modals/AppModal"), { ssr: false });
 const AuthModal = dynamic(() => import("@/components/modals/AuthModal"), { ssr: false });
 const SearchModal = dynamic(() => import("@/components/modals/SearchModal"), { ssr: false });
+const HomePromoPopup = dynamic(() => import("@/components/modals/HomePromoPopup"), { ssr: false });
 
 function AuthRequiredHandler() {
   const searchParams = useSearchParams();
@@ -94,6 +95,7 @@ export default function Home() {
       <AppModal />
       <AuthModal />
       <SearchModal />
+      <HomePromoPopup />
     </>
   );
 }

@@ -7,6 +7,7 @@ import * as authSignupGuardRoute from "@/server/api/core/authSignupGuard";
 import * as authWelcomeBonusRoute from "@/server/api/core/authWelcomeBonus";
 import * as cmsBlogsRoute from "@/server/api/core/cmsBlogs";
 import * as cmsPagesRoute from "@/server/api/core/cmsPages";
+import * as cmsPopupsRoute from "@/server/api/core/cmsPopups";
 import * as contactRoute from "@/server/api/core/contact";
 import * as couponsActiveRoute from "@/server/api/core/couponsActive";
 import * as couponsValidateRoute from "@/server/api/core/couponsValidate";
@@ -36,6 +37,7 @@ const CORE_ROUTES: Record<string, RouteModule> = {
   "auth/welcome-bonus": authWelcomeBonusRoute,
   "cms/blogs": cmsBlogsRoute,
   "cms/pages": cmsPagesRoute,
+  "cms/popups": cmsPopupsRoute,
   contact: contactRoute,
   "coupons/active": couponsActiveRoute,
   "coupons/validate": couponsValidateRoute,

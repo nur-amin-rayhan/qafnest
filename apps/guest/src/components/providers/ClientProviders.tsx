@@ -7,13 +7,17 @@ import { AuthProvider } from "@/context/AuthContext";
 export default function ClientProviders({
   children,
   initialLang = "en",
+  initialTheme = "dark",
 }: {
   children: React.ReactNode;
   initialLang?: Language;
+  initialTheme?: "light" | "dark";
 }) {
   return (
     <AuthProvider>
-      <AppProvider initialLang={initialLang}>{children}</AppProvider>
+      <AppProvider initialLang={initialLang} initialTheme={initialTheme}>
+        {children}
+      </AppProvider>
     </AuthProvider>
   );
 }
