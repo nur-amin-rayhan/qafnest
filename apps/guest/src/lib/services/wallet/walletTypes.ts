@@ -73,6 +73,7 @@ export interface UserWalletData {
   loyaltyTier: "Bronze" | "Silver" | "Gold" | "Platinum";
   transactions: WalletTransaction[];
   savedCards?: SavedCard[];
+  updatedAt?: string;
   welcomeBonusCredited?: boolean;
   welcomeBonusBalance?: number;
   welcomeBonusTotalAwarded?: number;

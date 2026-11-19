@@ -266,6 +266,14 @@ export function AdminDashboardShell({ initialTab = "dashboard-overview" }: Admin
         onRequestRevisions={(prop) => {
           setPropertyReviewModalTarget(prop);
         }}
+        onReviewDeletionRequest={async (params) => {
+          const res = await reviewDeletionRequest(params);
+          if (res.ok && params.action === "approve") {
+            setSelectedPropertyForDetail(null);
+            clearUrlQueryParam("propertyId");
+          }
+          return res;
+        }}
       />
 
       {/* Property Review & Reject Feedback Modal */}

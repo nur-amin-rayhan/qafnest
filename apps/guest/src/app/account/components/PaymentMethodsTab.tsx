@@ -43,6 +43,8 @@ export default function PaymentMethodsTab({ t }: PaymentMethodsTabProps) {
   const [isSaving, setIsSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [formSuccess, setFormSuccess] = useState<string | null>(null);
+  const [cardActionError, setCardActionError] = useState<string | null>(null);
+  const [settingDefaultId, setSettingDefaultId] = useState<string | null>(null);
 
   const fetchCards = useCallback(async () => {
     try {
@@ -137,12 +139,28 @@ export default function PaymentMethodsTab({ t }: PaymentMethodsTabProps) {
       }
 
       setFormSuccess(t("Card saved successfully!", "تم حفظ البطاقة بنجاح!"));
+      setCardActionError(null);
+      if (Array.isArray(data.cards)) {
+        setSavedCards(data.cards);
+      } else if (data.card) {
+        setSavedCards((prev) => {
+          const next = data.card.isDefault
+            ? prev.map((c) => ({ ...c, isDefault: false }))
+            : [...prev];
+          const existingIdx = next.findIndex((c) => c.id === data.card.id);
+          if (existingIdx >= 0) {
+            next[existingIdx] = data.card;
+            return next;
+          }
+          return [...next, data.card];
+        });
+      }
       setCardholderName("");
       setCardNumber("");
       setExpiry("");
       setCvv("");
       setAddCardModalOpen(false);
-      fetchCards();
+      void fetchCards();
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Error saving card";
       setFormError(msg);
@@ -151,18 +169,83 @@ export default function PaymentMethodsTab({ t }: PaymentMethodsTabProps) {
     }
   };
 
-  const handleDeleteCard = async (cardId: string) => {
+  const handleSetDefaultCard = async (cardId: string) => {
+    setCardActionError(null);
+    setFormSuccess(null);
+    setSettingDefaultId(cardId);
     try {
       const headers = await getGuestAuthorizationHeaders(session);
-      const res = await fetch(`/api/wallet/cards?cardId=${encodeURIComponent(cardId)}`, {
+      const res = await fetch("/api/wallet/cards", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", ...headers },
+        body: JSON.stringify({ cardId }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data.success) {
+        if (Array.isArray(data.cards)) {
+          setSavedCards(data.cards);
+        } else {
+          setSavedCards((prev) => prev.map((c) => ({ ...c, isDefault: c.id === cardId })));
+        }
+        setFormSuccess(t("Default card updated.", "تم تحديث البطاقة الافتراضية."));
+      } else {
+        setCardActionError(
+          data.error || t("Could not update default card.", "تعذر تحديث البطاقة الافتراضية.")
+        );
+      }
+    } catch {
+      setCardActionError(t("Network error updating default card.", "خطأ في الاتصال أثناء تحديث البطاقة."));
+    } finally {
+      setSettingDefaultId(null);
+    }
+  };
+
+  const handleDeleteCard = async (card: SavedCard) => {
+    setCardActionError(null);
+    setFormSuccess(null);
+
+    if (savedCards.length <= 1) {
+      setCardActionError(
+        t(
+          "You must keep at least one default card saved. Add another card first before deleting this one.",
+          "يجب الإبقاء على بطاقة افتراضية واحدة على الأقل. أضف بطاقة أخرى أولاً قبل حذف هذه البطاقة."
+        )
+      );
+      return;
+    }
+
+    if (card.isDefault) {
+      setCardActionError(
+        t(
+          "Set another card as your Default card first before deleting this default card.",
+          "عيّن بطاقة أخرى كبطاقة افتراضية أولاً قبل حذف البطاقة الافتراضية الحالية."
+        )
+      );
+      return;
+    }
+
+    try {
+      const headers = await getGuestAuthorizationHeaders(session);
+      const res = await fetch(`/api/wallet/cards?cardId=${encodeURIComponent(card.id)}`, {
         method: "DELETE",
         headers,
       });
-      if (res.ok) {
-        setSavedCards((prev) => prev.filter((c) => c.id !== cardId));
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data.success) {
+        if (Array.isArray(data.cards)) {
+          setSavedCards(data.cards);
+        } else {
+          setSavedCards((prev) => prev.filter((c) => c.id !== card.id));
+        }
+        setFormSuccess(t("Card removed successfully.", "تم حذف البطاقة بنجاح."));
+      } else {
+        setCardActionError(
+          t(data.error || "Unable to delete card.", data.messageAr || data.error || "تعذر حذف البطاقة.")
+        );
       }
     } catch (err) {
       console.warn("Notice: Error deleting card:", err);
+      setCardActionError(t("Network error while deleting card.", "خطأ في الاتصال أثناء حذف البطاقة."));
     }
   };
 
@@ -196,11 +279,17 @@ export default function PaymentMethodsTab({ t }: PaymentMethodsTabProps) {
         </button>
       </div>
 
-      {/* Success Notification Alert */}
+      {/* Success / Error Notification Alerts */}
       {formSuccess && (
         <div className="flex items-center gap-3 p-4 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-500/20 text-emerald-800 dark:text-emerald-300 text-sm font-semibold">
           <CheckCircle2 size={18} className="text-emerald-600 shrink-0" />
           <span>{formSuccess}</span>
+        </div>
+      )}
+      {cardActionError && (
+        <div className="flex items-center gap-3 p-4 rounded-2xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-500/20 text-rose-800 dark:text-rose-300 text-sm font-semibold">
+          <AlertCircle size={18} className="text-rose-600 shrink-0" />
+          <span>{cardActionError}</span>
         </div>
       )}
 
@@ -254,13 +343,24 @@ export default function PaymentMethodsTab({ t }: PaymentMethodsTabProps) {
                   key={card.id}
                   className={`relative overflow-hidden rounded-2xl p-5 text-white shadow-lg bg-gradient-to-tr ${brandColor} flex flex-col justify-between min-h-[170px] border border-white/15`}
                 >
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between gap-2">
                     <OfficialPaymentIcon name={card.brand} heightClass="h-7" />
-                    {card.isDefault && (
-                      <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-400 text-slate-950 text-[10px] font-black">
+                    {card.isDefault ? (
+                      <span className="flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-400 text-slate-950 text-[10px] font-black">
                         <Check size={12} />
                         {t("Default", "الافتراضية")}
                       </span>
+                    ) : (
+                      <button
+                        type="button"
+                        disabled={settingDefaultId === card.id}
+                        onClick={() => handleSetDefaultCard(card.id)}
+                        className="px-2.5 py-1 rounded-full bg-white/15 hover:bg-white/25 text-white text-[10px] font-bold transition cursor-pointer disabled:opacity-50"
+                      >
+                        {settingDefaultId === card.id
+                          ? t("Setting...", "جاري التعيين...")
+                          : t("Set as Default", "تعيين كافتراضية")}
+                      </button>
                     )}
                   </div>
 
@@ -284,9 +384,25 @@ export default function PaymentMethodsTab({ t }: PaymentMethodsTabProps) {
 
                       <button
                         type="button"
-                        title={t("Delete Card", "حذف البطاقة")}
-                        onClick={() => handleDeleteCard(card.id)}
-                        className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-rose-300 transition-colors cursor-pointer"
+                        title={
+                          card.isDefault
+                            ? savedCards.length <= 1
+                              ? t(
+                                  "At least one default card is required. Add another card first.",
+                                  "يجب الإبقاء على بطاقة افتراضية واحدة على الأقل. أضف بطاقة أخرى أولاً."
+                                )
+                              : t(
+                                  "Set another card as Default before deleting this card.",
+                                  "عيّن بطاقة أخرى كافتراضية أولاً قبل حذف هذه البطاقة."
+                                )
+                            : t("Delete Card", "حذف البطاقة")
+                        }
+                        onClick={() => handleDeleteCard(card)}
+                        className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
+                          card.isDefault
+                            ? "bg-white/5 text-white/35 hover:bg-white/10"
+                            : "bg-white/10 hover:bg-white/20 text-rose-300"
+                        }`}
                       >
                         <Trash2 size={14} />
                       </button>

@@ -5,10 +5,12 @@ import Navbar from "@/components/common/Navbar";
 import Footer from "@/components/common/Footer";
 import { useApp } from "@/context/AppContext";
 import { HelpCircle, ChevronDown, ChevronUp, Search } from "lucide-react";
+import { usePublicCmsWorkspace } from "@/lib/cms/usePublicCmsWorkspace";
 
 export default function FaqPage() {
   const { language } = useApp();
   const label = (en: string, ar: string) => (language === "ar" ? ar : en);
+  const { workspace: cmsWorkspace } = usePublicCmsWorkspace();
 
   const [activeCategory, setActiveCategory] = useState("all");
   const [openItems, setOpenItems] = useState<Record<string, boolean>>({ "faq-1": true });
@@ -140,7 +142,50 @@ export default function FaqPage() {
     },
   ];
 
-  const filteredFaqs = faqs.filter((f) => {
+  const cmsFaqs = (cmsWorkspace?.faqs || [])
+    .filter((f) => f.enabled !== false && (f.question?.en || f.question?.ar))
+    .sort((a, b) => Number(a.order || 0) - Number(b.order || 0))
+    .map((f) => {
+      const qLower = `${f.question?.en || ""} ${f.answer?.en || ""}`.toLowerCase();
+      const inferredCategory = qLower.includes("host") || qLower.includes("payout")
+        ? "hosts"
+        : qLower.includes("cancel") || qLower.includes("refund")
+        ? "cancellations"
+        : qLower.includes("zatca") || qLower.includes("vat") || qLower.includes("payment") || qLower.includes("tabby") || qLower.includes("mada")
+        ? "payments"
+        : qLower.includes("lock") || qLower.includes("pin") || qLower.includes("check-in")
+        ? "smartlock"
+        : qLower.includes("deposit")
+        ? "deposit"
+        : qLower.includes("support") || qLower.includes("contact") || qLower.includes("helpline")
+        ? "helpline"
+        : "booking";
+      return {
+        id: f.id,
+        category: f.category || inferredCategory,
+        qEn: f.question?.en || f.question?.ar || "",
+        qAr: f.question?.ar || f.question?.en || "",
+        aEn: f.answer?.en || f.answer?.ar || "",
+        aAr: f.answer?.ar || f.answer?.en || "",
+      };
+    });
+
+  const combinedFaqs =
+    cmsFaqs.length >= 10
+      ? cmsFaqs
+      : cmsFaqs.length > 0
+      ? [
+          ...cmsFaqs,
+          ...faqs.filter(
+            (df) =>
+              !cmsFaqs.some(
+                (cf) => cf.id === df.id || cf.qEn.toLowerCase() === df.qEn.toLowerCase()
+              )
+          ),
+        ]
+      : faqs;
+
+  const filteredFaqs = combinedFaqs.filter((f) => {
     if (activeCategory !== "all" && f.category !== activeCategory) return false;
     if (!searchTerm.trim()) return true;
     const q = searchTerm.toLowerCase();
@@ -160,7 +205,7 @@ export default function FaqPage() {
     <div className="min-h-screen bg-[#FDFCFE] dark:bg-[#08070D] text-slate-900 dark:text-slate-100 flex flex-col justify-between">
       <Navbar />
 
-      <main className="flex-1 max-w-[1100px] w-full mx-auto px-4 sm:px-6 lg:px-8 pt-24 sm:pt-28 pb-10 sm:pb-14">
+      <main className="flex-1 max-w-[1100px] w-full mx-auto px-4 sm:px-6 lg:px-8 pt-28 sm:pt-32 pb-12 sm:pb-16">
         {/* Header Banner */}
         <div className="rounded-3xl bg-gradient-to-br from-violet-900 via-indigo-900 to-violet-800 text-white p-8 sm:p-12 mb-10 shadow-xl relative overflow-hidden">
           <div className="relative z-10 max-w-2xl">

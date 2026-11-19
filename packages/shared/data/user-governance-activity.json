@@ -1,4 +1,20 @@
 {
   "overrides": {},
-  "events": []
+  "events": [
+    {
+      "id": "act-1795102278769-t1j2o",
+      "timestamp": "2026-11-19T15:31:18.769Z",
+      "userId": "00000000-0000-0000-0000-000000000002",
+      "userName": "Renad Al-Mutairi",
+      "userEmail": "host.dev@qafnest.com",
+      "role": "admin",
+      "category": "property",
+      "action": "property_deletion_approved_autodeleted",
+      "title": "Approved & auto-deleted property Hasan apt",
+      "details": "Reason: Rented Out Under Long-Term Contract — safdafaffrac",
+      "targetId": "8d1f59f6-b915-47d5-aebe-5f7d510dea5a",
+      "targetLabel": "Hasan apt",
+      "actor": "admin@qafnest.com"
+    }
+  ]
 }

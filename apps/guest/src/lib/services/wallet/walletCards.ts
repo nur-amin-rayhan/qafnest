@@ -133,14 +133,47 @@ export async function saveUserCard(
   const cleanCvv = String(cardInput.cvv || "").replace(/\D/g, "");
   const hasValidCvv = /^\d{3,4}$/.test(cleanCvv);
 
+  const cleanMonth = cardInput.expiryMonth.replace(/\D/g, "").slice(-2).padStart(2, "0") || "12";
+  const cleanYear = cardInput.expiryYear.replace(/\D/g, "").slice(-2) || "29";
+
+  // Deduplicate if the same card (last4 + brand + expiry) is already saved
+  const duplicate = cards.find(
+    (c) =>
+      c.last4 === last4 &&
+      c.brand === brand &&
+      c.expiryMonth === cleanMonth &&
+      c.expiryYear === cleanYear
+  );
+  if (duplicate) {
+    duplicate.cardholderName = cardInput.cardholderName.trim() || duplicate.cardholderName;
+    if (shouldBeDefault) {
+      cards.forEach((c) => (c.isDefault = false));
+      duplicate.isDefault = true;
+    }
+    if (hasFullPan) duplicate.cardToken = encryptCardNumber(cleanNumber);
+    if (hasValidCvv) {
+      duplicate.cvvToken = encryptCardNumber(cleanCvv);
+      duplicate.hasSavedCvv = true;
+    }
+    if (cleanGatewayToken) duplicate.gatewayToken = encryptCardNumber(cleanGatewayToken);
+    if (cardInput.panHash?.trim()) duplicate.panHash = cardInput.panHash.trim();
+    if (cardInput.maskedPan?.trim()) duplicate.maskedPan = cardInput.maskedPan.trim();
+    duplicate.supportsDirectCharge = Boolean(
+      duplicate.cardToken || duplicate.gatewayToken || hasFullPan || cleanGatewayToken
+    );
+    wallet.savedCards = cards;
+    await commitUserWallet(wallet);
+    return duplicate;
+  }
+
   const newCard: SavedCard = {
     id: `card-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
     userId,
     cardholderName: cardInput.cardholderName.trim() || "Guest Cardholder",
     brand,
     last4,
-    expiryMonth: cardInput.expiryMonth.replace(/\D/g, "").slice(-2).padStart(2, "0") || "12",
-    expiryYear: cardInput.expiryYear.replace(/\D/g, "").slice(-2) || "29",
+    expiryMonth: cleanMonth,
+    expiryYear: cleanYear,
     isDefault: shouldBeDefault,
     createdAt: new Date().toISOString(),
     cardToken: hasFullPan ? encryptCardNumber(cleanNumber) : undefined,
@@ -252,19 +285,96 @@ export async function autoSaveCardFromInvoiceTransaction(params: {
   });
 }
 
-export async function deleteUserCard(userId: string, cardId: string): Promise<boolean> {
+export async function setDefaultUserCard(
+  userId: string,
+  cardId: string
+): Promise<{ updated: boolean; cards: SavedCard[] }> {
   const wallet = await getUserWallet(userId);
-  if (!wallet.savedCards) return false;
+  const cards = [...(wallet.savedCards || [])];
+  const exists = cards.some((c) => c.id === cardId);
+  if (!exists) {
+    return { updated: false, cards };
+  }
+  for (const c of cards) {
+    c.isDefault = c.id === cardId;
+  }
+  wallet.savedCards = cards;
+  await commitUserWallet(wallet);
+  return { updated: true, cards };
+}
 
-  const initialLen = wallet.savedCards.length;
-  wallet.savedCards = wallet.savedCards.filter((c) => c.id !== cardId);
+export async function attachGatewayTokenToCard(
+  userId: string,
+  cardId: string,
+  gatewayToken: string
+): Promise<void> {
+  const clean = gatewayToken.trim();
+  if (!userId || !cardId || !clean) return;
+  const wallet = await getUserWallet(userId);
+  const cards = [...(wallet.savedCards || [])];
+  const target = cards.find((c) => c.id === cardId);
+  if (!target) return;
+  target.gatewayToken = encryptCardNumber(clean);
+  target.supportsDirectCharge = true;
+  wallet.savedCards = cards;
+  await commitUserWallet(wallet);
+}
+
+export interface DeleteCardResult {
+  removed: boolean;
+  errorCode?: "default_card_required" | "cannot_delete_default_card" | "not_found";
+  message?: string;
+  messageAr?: string;
+  cards: SavedCard[];
+}
+
+export async function deleteUserCard(
+  userId: string,
+  cardId: string
+): Promise<DeleteCardResult> {
+  const wallet = await getUserWallet(userId);
+  const cards = [...(wallet.savedCards || [])];
+  const target = cards.find((c) => c.id === cardId);
+
+  if (!target) {
+    return {
+      removed: false,
+      errorCode: "not_found",
+      message: "Card not found.",
+      messageAr: "البطاقة غير موجودة.",
+      cards,
+    };
+  }
+
+  // Enforce mandatory default card policy: at least one default card must remain saved
+  if (cards.length <= 1) {
+    return {
+      removed: false,
+      errorCode: "default_card_required",
+      message: "You must keep at least one default card saved. Add another card before deleting this one.",
+      messageAr: "يجب الإبقاء على بطاقة افتراضية واحدة على الأقل. أضف بطاقة أخرى قبل حذف هذه البطاقة.",
+      cards,
+    };
+  }
+
+  if (target.isDefault) {
+    return {
+      removed: false,
+      errorCode: "cannot_delete_default_card",
+      message: "Set another saved card as your default card before deleting this default card.",
+      messageAr: "عيّن بطاقة أخرى كبطاقة افتراضية أولاً قبل حذف البطاقة الافتراضية الحالية.",
+      cards,
+    };
+  }
+
+  wallet.savedCards = cards.filter((c) => c.id !== cardId);
   if (wallet.savedCards.length > 0 && !wallet.savedCards.some((c) => c.isDefault)) {
     wallet.savedCards[0].isDefault = true;
   }
 
-  const removed = wallet.savedCards.length < initialLen;
-  if (removed) {
-    await commitUserWallet(wallet);
-  }
-  return removed;
+  await commitUserWallet(wallet);
+  return {
+    removed: true,
+    cards: wallet.savedCards,
+  };
 }

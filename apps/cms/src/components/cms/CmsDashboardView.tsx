@@ -67,6 +67,7 @@ export function CmsDashboardView({
     { tab: "media", titleEn: "Media", titleAr: "الوسائط", count: workspace.media.length, trend: "Library", icon: ImageIcon, color: "#0EA5E9" },
     { tab: "faqs", titleEn: "FAQs", titleAr: "الأسئلة الشائعة", count: workspace.faqs.length, trend: "Published", icon: HelpCircle, color: "#F59E0B" },
     { tab: "home-popups", titleEn: "Home Popups", titleAr: "النوافذ المنبثقة", count: workspace.homePopups.length, trend: "Banners", icon: Megaphone, color: "#EC4899" },
+    { tab: "destinations", titleEn: "Destinations", titleAr: "الوجهات", count: (workspace.destinations || []).length, trend: "Place to Stay", icon: Sparkles, color: "#7C3AED" },
     { tab: "legal-pages", titleEn: "Legal Pages", titleAr: "الصفحات القانونية", count: workspace.legalPages.length, trend: "Synced", icon: Scale, color: "#64748B" },
     { tab: "navigation-links", titleEn: "Navigation Links", titleAr: "روابط التنقل", count: workspace.navigationLinks.length, trend: "Menu", icon: Link2, color: "#3B82F6" },
     { tab: "social-links", titleEn: "Social Links", titleAr: "روابط التواصل", count: workspace.socialLinks.length, trend: "Social", icon: Share2, color: "#06B6D4" },

@@ -22,6 +22,11 @@ interface PropertyFullPagePreviewProps {
   onClose: () => void;
   onApprove?: (id: string) => Promise<void> | void;
   onRequestRevisions?: (property: PropertyItem) => void;
+  onReviewDeletionRequest?: (params: {
+    requestId: string;
+    action: "approve" | "reject";
+    adminNotes?: string;
+  }) => Promise<{ ok: boolean; error?: string }>;
   isStandalonePage?: boolean;
 }
 
@@ -33,10 +38,13 @@ export function PropertyFullPagePreview({
   onClose,
   onApprove,
   onRequestRevisions,
+  onReviewDeletionRequest,
   isStandalonePage: _isStandalonePage = false,
 }: PropertyFullPagePreviewProps) {
   const { lang: adminLang, dir: adminDir } = useAdminAuth();
   const [lang, setLang] = useState<"ar" | "en">(adminLang || "ar");
+  const [deletionBusy, setDeletionBusy] = useState(false);
+  const [deletionError, setDeletionError] = useState<string | null>(null);
 
   useEffect(() => {
     if (adminLang) setLang(adminLang);
@@ -186,6 +194,101 @@ export function PropertyFullPagePreview({
 
       {/* 2. Guest Portal Navbar Simulation */}
       <PreviewHeader cityName={cityName} capacity={capacity} t={t} />
+
+      {/* 2B. Pending Host Listing Removal Request Banner */}
+      {property.pending_deletion_request?.status === "pending" && onReviewDeletionRequest && (
+        <div className="mx-auto max-w-[1360px] px-4 pt-5 sm:px-6 lg:px-8">
+          <div className="rounded-2xl border-2 border-amber-400/80 bg-amber-50 p-4 sm:p-5 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 shadow-sm">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="px-2.5 py-0.5 rounded-full text-[11px] font-black bg-amber-600 text-white uppercase">
+                  {t("طلب حذف عقار من المضيف", "Host Listing Removal Request")}
+                </span>
+                <span className="text-xs font-extrabold text-amber-950">
+                  {lang === "ar"
+                    ? property.pending_deletion_request.reasonLabelAr
+                    : property.pending_deletion_request.reasonLabelEn}
+                </span>
+              </div>
+              <p className="text-xs text-amber-900/90 leading-relaxed">
+                {property.pending_deletion_request.reasonDetails}
+              </p>
+              {!property.pending_deletion_request.eligibleToDelete && (
+                <p className="text-xs font-bold text-rose-700">
+                  {t(
+                    `الحذف محظور مؤقتاً لوجود ${property.pending_deletion_request.activeBookingsCount} حجوزات نشطة أو غير مكتملة.`,
+                    `Auto-delete is blocked while ${property.pending_deletion_request.activeBookingsCount} active or unsettled reservations exist.`
+                  )}
+                </p>
+              )}
+              {deletionError && (
+                <p className="text-xs font-bold text-rose-700">{deletionError}</p>
+              )}
+            </div>
+
+            <div className="flex items-center gap-2.5 shrink-0 flex-wrap">
+              <button
+                type="button"
+                disabled={deletionBusy}
+                onClick={async () => {
+                  const req = property.pending_deletion_request;
+                  if (!req) return;
+                  const reason = window.prompt(
+                    t(
+                      "اكتب سبب رفض طلب الحذف (5 أحرف على الأقل):",
+                      "Enter reason for declining this removal request (min 5 characters):"
+                    )
+                  );
+                  if (!reason || reason.trim().length < 5) return;
+                  setDeletionBusy(true);
+                  setDeletionError(null);
+                  const res = await onReviewDeletionRequest({
+                    requestId: req.id,
+                    action: "reject",
+                    adminNotes: reason.trim(),
+                  });
+                  setDeletionBusy(false);
+                  if (!res.ok) setDeletionError(res.error || "Failed to decline request.");
+                }}
+                className="h-9 px-3.5 rounded-xl border border-rose-300 bg-white hover:bg-rose-50 text-rose-700 text-xs font-extrabold transition cursor-pointer disabled:opacity-50"
+              >
+                {t("رفض الطلب", "Decline Request")}
+              </button>
+              <button
+                type="button"
+                disabled={deletionBusy || !property.pending_deletion_request.eligibleToDelete}
+                onClick={async () => {
+                  const req = property.pending_deletion_request;
+                  if (!req) return;
+                  if (
+                    !window.confirm(
+                      t(
+                        `هل تريد الموافقة على حذف العقار "${title}" نهائياً؟`,
+                        `Approve removal request and permanently delete "${title}"?`
+                      )
+                    )
+                  ) {
+                    return;
+                  }
+                  setDeletionBusy(true);
+                  setDeletionError(null);
+                  const res = await onReviewDeletionRequest({
+                    requestId: req.id,
+                    action: "approve",
+                  });
+                  setDeletionBusy(false);
+                  if (!res.ok) setDeletionError(res.error || "Failed to delete property.");
+                }}
+                className="h-9 px-4 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-extrabold transition cursor-pointer disabled:opacity-45 disabled:cursor-not-allowed shadow-xs"
+              >
+                {deletionBusy
+                  ? t("جاري الحذف...", "Deleting...")
+                  : t("موافقة وحذف العقار نهائياً", "Approve & Delete Property")}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 3. Main Guest Portal Canvas */}
       <main className="mx-auto max-w-[1360px] px-4 pb-24 pt-6 sm:px-6 lg:px-8">

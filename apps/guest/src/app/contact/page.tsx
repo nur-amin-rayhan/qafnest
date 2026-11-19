@@ -6,6 +6,7 @@ import Footer from "@/components/common/Footer";
 import { useApp } from "@/context/AppContext";
 import { PhoneCall, MessageCircle, Mail, MapPin, Send, CheckCircle2, AlertCircle, ChevronDown } from "lucide-react";
 import { QAFNEST_SUPPORT_CONTACT, type CmsPageRecord } from "@qafnest/shared";
+import { usePublicCmsWorkspace } from "@/lib/cms/usePublicCmsWorkspace";
 
 function toTelHref(raw: string): string {
   const cleaned = raw.replace(/[^\d+]/g, "");
@@ -40,9 +41,10 @@ export default function ContactUsPage() {
   const [ticketNumber, setTicketNumber] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [cmsPage, setCmsPage] = useState<CmsPageRecord | null>(null);
+  const { workspace: cmsWorkspace } = usePublicCmsWorkspace();
 
   useEffect(() => {
-    fetch("/api/cms/pages?id=contact")
+    fetch("/api/cms/pages?id=contact", { cache: "no-store" })
       .then((r) => (r.ok ? r.json() : null))
       .then((data) => {
         if (data && data.titleEn) setCmsPage(data);
@@ -50,19 +52,29 @@ export default function ContactUsPage() {
       .catch(() => {});
   }, []);
 
+  const cmsContact = cmsWorkspace?.globals?.contactUs;
   const contactInfo = cmsPage?.contactInfo;
-  const phoneDisplay = contactInfo?.phone?.trim() || QAFNEST_SUPPORT_CONTACT.displayPhone;
-  const whatsappDisplay = contactInfo?.whatsapp?.trim() || phoneDisplay;
+  const phoneDisplay =
+    cmsContact?.phone?.trim() ||
+    contactInfo?.phone?.trim() ||
+    QAFNEST_SUPPORT_CONTACT.displayPhone;
+  const whatsappDisplay =
+    cmsContact?.whatsapp?.trim() ||
+    contactInfo?.whatsapp?.trim() ||
+    phoneDisplay;
   const contactEmail = (() => {
-    const raw = contactInfo?.supportEmail?.trim();
+    const raw =
+      cmsContact?.supportEmail?.trim() ||
+      cmsContact?.generalEmail?.trim() ||
+      contactInfo?.supportEmail?.trim();
     if (!raw || raw.toLowerCase() === "support@qafnest.com") {
       return "qafnest@gmail.com";
     }
     return raw;
   })();
   const hqAddress = language === "ar"
-    ? contactInfo?.addressAr?.trim() || QAFNEST_SUPPORT_CONTACT.hqAddressAr
-    : contactInfo?.addressEn?.trim() || QAFNEST_SUPPORT_CONTACT.hqAddressEn;
+    ? cmsContact?.address?.ar?.trim() || contactInfo?.addressAr?.trim() || QAFNEST_SUPPORT_CONTACT.hqAddressAr
+    : cmsContact?.address?.en?.trim() || contactInfo?.addressEn?.trim() || QAFNEST_SUPPORT_CONTACT.hqAddressEn;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

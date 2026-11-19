@@ -8,39 +8,39 @@
   "enableCategoryOverrides": false,
   "categoryOverrides": [
     {
-      "category": "chalet",
-      "labelEn": "Chalets & Resorts",
       "labelAr": "شاليهات ومنتجعات",
-      "ratePercent": 13,
-      "isActive": true
+      "labelEn": "Chalets & Resorts",
+      "category": "chalet",
+      "isActive": true,
+      "ratePercent": 13
     },
     {
-      "category": "villa",
-      "labelEn": "Private Luxury Villas",
       "labelAr": "فلل خاصة فارهة",
-      "ratePercent": 10,
-      "isActive": true
+      "labelEn": "Private Luxury Villas",
+      "category": "villa",
+      "isActive": true,
+      "ratePercent": 10
     },
     {
-      "category": "camp",
-      "labelEn": "Desert Camps & Glamping",
       "labelAr": "مخيمات صحراوية",
-      "ratePercent": 14,
-      "isActive": false
+      "labelEn": "Desert Camps & Glamping",
+      "category": "camp",
+      "isActive": false,
+      "ratePercent": 14
     },
     {
-      "category": "farm",
-      "labelEn": "Rural Farms & Agritourism",
       "labelAr": "مزارع ريفية",
-      "ratePercent": 12,
-      "isActive": false
+      "labelEn": "Rural Farms & Agritourism",
+      "category": "farm",
+      "isActive": false,
+      "ratePercent": 12
     },
     {
-      "category": "penthouse",
-      "labelEn": "Serviced Apartments",
       "labelAr": "شقق مخدومة",
-      "ratePercent": 10,
-      "isActive": false
+      "labelEn": "Serviced Apartments",
+      "category": "penthouse",
+      "isActive": false,
+      "ratePercent": 10
     }
   ],
   "newHostIntroRatePercent": 6,
@@ -50,6 +50,6 @@
   "welcomeBonusAmountSar": 50,
   "welcomeBonusEnabled": true,
   "lastUpdatedBy": "Super Admin (Finance Officer)",
-  "lastUpdatedAt": "2026-11-16T22:05:22.268Z",
+  "lastUpdatedAt": "2026-11-17T20:28:59.798Z",
   "notes": "E2E automated test commission update"
 }

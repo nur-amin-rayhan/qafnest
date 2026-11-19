@@ -7,7 +7,10 @@ import {
   stripBilingualFromSelect,
 } from "@qafnest/shared";
 import { createAdminDataClient, isAdminRequest } from "@/lib/adminApi";
-import { readPropertyDeletionRequests } from "@qafnest/shared/propertyDeletionStore";
+import {
+  hydratePropertyDeletionStore,
+  readPropertyDeletionRequests,
+} from "@qafnest/shared/propertyDeletionStore";
 import { enrichDeletionRequestsWithLiveBookings } from "@/lib/propertyDeletionServer";
 
 const ADMIN_PROPERTY_SELECT =
@@ -175,6 +178,7 @@ export async function GET(request: NextRequest) {
     } catch {}
   }
 
+  await hydratePropertyDeletionStore().catch(() => undefined);
   const deletionRequests = await enrichDeletionRequestsWithLiveBookings(
     supabase,
     readPropertyDeletionRequests()

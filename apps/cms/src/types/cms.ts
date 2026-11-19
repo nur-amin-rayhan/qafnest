@@ -7,6 +7,7 @@ export type CmsTab =
   | "roles"
   | "faqs"
   | "home-popups"
+  | "destinations"
   | "home-hero"
   | "features"
   | "fleet-capabilities"
@@ -85,6 +86,7 @@ export interface CmsRoleRecord {
 
 export interface CmsFaqRecord {
   id: string;
+  category?: string;
   question: LocalizedText;
   answer: LocalizedText;
   enabled: boolean;
@@ -102,6 +104,19 @@ export interface CmsHomePopupRecord {
   startDate: string;
   endDate: string;
   status: "active" | "inactive";
+  updatedAt: string;
+}
+
+export interface CmsDestinationRecord {
+  id: string;
+  city: string;
+  name: LocalizedText;
+  subtitle: LocalizedText;
+  image: string;
+  isMonthly?: boolean;
+  badgeText?: string;
+  enabled: boolean;
+  order: number;
   updatedAt: string;
 }
 
@@ -240,6 +255,8 @@ export interface CmsSiteSeoGlobal {
   robots: {
     noIndex: boolean;
     noFollow: boolean;
+    customRules?: string;
+    sitemapEnabled?: boolean;
   };
 }
 
@@ -265,6 +282,7 @@ export interface CmsWorkspaceData {
   roles: CmsRoleRecord[];
   faqs: CmsFaqRecord[];
   homePopups: CmsHomePopupRecord[];
+  destinations: CmsDestinationRecord[];
   businessPages: CmsBusinessPageRecord[];
   legalPages: CmsLegalPageRecord[];
   navigationLinks: CmsNavLinkRecord[];

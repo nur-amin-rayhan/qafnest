@@ -20,6 +20,11 @@ interface PropertyTableRowProps {
   ) => void | Promise<void>;
   onSelectProperty?: (property: PropertyItem) => void;
   onRequestReject?: (property: PropertyItem) => void;
+  onReviewDeletionRequest?: (params: {
+    requestId: string;
+    action: "approve" | "reject";
+    adminNotes?: string;
+  }) => Promise<{ ok: boolean; error?: string }>;
   t: (ar: string, en: string) => string;
 }
 
@@ -31,8 +36,10 @@ export function PropertyTableRow({
   updatePropertyStatus,
   onSelectProperty,
   onRequestReject,
+  onReviewDeletionRequest,
   t,
 }: PropertyTableRowProps) {
+  const [deletingReq, setDeletingReq] = React.useState(false);
   const isApproved = prop.status === "approved" || prop.is_approved;
   const isPending = prop.status === "pending" || (!prop.is_approved && prop.status !== "rejected");
   const hostKey = (prop.host_id || prop.host_name || "unknown").trim();
@@ -232,6 +239,54 @@ export function PropertyTableRow({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-end gap-1 flex-nowrap">
+          {prop.pending_deletion_request?.status === "pending" && onReviewDeletionRequest && (
+            <button
+              type="button"
+              disabled={deletingReq || !prop.pending_deletion_request.eligibleToDelete}
+              onClick={async () => {
+                const req = prop.pending_deletion_request;
+                if (!req) return;
+                if (
+                  !window.confirm(
+                    t(
+                      `Approve removal request and permanently delete "${displayTitle}"?`,
+                      `هل تريد الموافقة على طلب الحذف وحذف العقار "${displayTitle}" نهائياً؟`
+                    )
+                  )
+                ) {
+                  return;
+                }
+                setDeletingReq(true);
+                try {
+                  await onReviewDeletionRequest({
+                    requestId: req.id,
+                    action: "approve",
+                  });
+                } finally {
+                  setDeletingReq(false);
+                }
+              }}
+              className="h-7 px-2.5 rounded-lg bg-rose-600 hover:bg-rose-700 text-white font-bold text-[11px] flex items-center gap-1 transition-all cursor-pointer shadow-2xs shrink-0 disabled:opacity-45 disabled:cursor-not-allowed"
+              title={
+                prop.pending_deletion_request.eligibleToDelete
+                  ? t(
+                      "Approve host removal request and permanently delete this property",
+                      "اعتماد طلب المضيف وحذف العقار نهائياً"
+                    )
+                  : t(
+                      `Blocked: ${prop.pending_deletion_request.activeBookingsCount} active reservations exist`,
+                      `محظور: يوجد ${prop.pending_deletion_request.activeBookingsCount} حجوزات نشطة`
+                    )
+              }
+            >
+              <span className="material-symbols-outlined text-[14px]">delete_forever</span>
+              <span>
+                {deletingReq
+                  ? t("Deleting...", "جاري الحذف...")
+                  : t("Approve & Delete", "موافقة وحذف")}
+              </span>
+            </button>
+          )}
           <button
             type="button"
             onClick={() => onSelectProperty?.(prop)}

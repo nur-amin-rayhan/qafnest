@@ -473,7 +473,7 @@ export function CmsRolesModule({
     {
       key: "updatedAt",
       label: "Updated At",
-      render: (r) => <span className="text-gray-500">{new Date(r.updatedAt).toLocaleDateString()}</span>,
+      render: (r) => <span className="text-gray-500" suppressHydrationWarning>{r.updatedAt ? String(r.updatedAt).slice(0, 10) : "—"}</span>,
     },
   ];
 

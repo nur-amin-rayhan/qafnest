@@ -197,6 +197,7 @@ export async function commitUserWallet(
   wallet: UserWalletData,
   metadataPatch?: Record<string, unknown>
 ): Promise<void> {
+  wallet.updatedAt = new Date().toISOString();
   const store = loadWalletStore();
   store.wallets[wallet.userId] = wallet;
   saveWalletStore(store);

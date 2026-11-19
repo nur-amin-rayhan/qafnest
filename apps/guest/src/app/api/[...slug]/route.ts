@@ -8,6 +8,7 @@ import * as authWelcomeBonusRoute from "@/server/api/core/authWelcomeBonus";
 import * as cmsBlogsRoute from "@/server/api/core/cmsBlogs";
 import * as cmsPagesRoute from "@/server/api/core/cmsPages";
 import * as cmsPopupsRoute from "@/server/api/core/cmsPopups";
+import * as cmsWorkspaceRoute from "@/server/api/core/cmsWorkspace";
 import * as contactRoute from "@/server/api/core/contact";
 import * as couponsActiveRoute from "@/server/api/core/couponsActive";
 import * as couponsValidateRoute from "@/server/api/core/couponsValidate";
@@ -38,6 +39,7 @@ const CORE_ROUTES: Record<string, RouteModule> = {
   "cms/blogs": cmsBlogsRoute,
   "cms/pages": cmsPagesRoute,
   "cms/popups": cmsPopupsRoute,
+  "cms/workspace": cmsWorkspaceRoute,
   contact: contactRoute,
   "coupons/active": couponsActiveRoute,
   "coupons/validate": couponsValidateRoute,
@@ -92,6 +94,13 @@ export async function POST(
 }
 
 export async function PUT(
+  request: NextRequest,
+  context: { params: { slug?: string[] } }
+) {
+  return handleCoreApiRoute(request, context);
+}
+
+export async function PATCH(
   request: NextRequest,
   context: { params: { slug?: string[] } }
 ) {

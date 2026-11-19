@@ -21,6 +21,7 @@ import {
   Info,
   BadgeCheck,
   Receipt,
+  Globe,
   ChevronDown,
   ChevronRight,
 } from "lucide-react";
@@ -96,6 +97,7 @@ export function CmsShellSidebar({
       titleAr: "الموقع والصفحات",
       items: [
         { id: "home-hero", labelEn: "Home Hero", labelAr: "القسم الرئيسي", icon: Sparkles },
+        { id: "destinations", labelEn: "Destinations (Place to Stay)", labelAr: "الوجهات (أماكن الإقامة)", icon: Globe, badge: counts.destinations },
         { id: "home-popups", labelEn: "Home Popups", labelAr: "النوافذ المنبثقة", icon: Megaphone, badge: counts["home-popups"] },
         { id: "legal-pages", labelEn: "Legal Pages", labelAr: "الصفحات القانونية", icon: Scale, badge: counts["legal-pages"] },
         { id: "about-us", labelEn: "About Us", labelAr: "من نحن", icon: Info },

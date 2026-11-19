@@ -10,6 +10,11 @@ export interface PropertyDetailDrawerProps {
   onClose: () => void;
   onApprove: (id: string) => Promise<void> | void;
   onRequestRevisions: (property: PropertyItem) => void;
+  onReviewDeletionRequest?: (params: {
+    requestId: string;
+    action: "approve" | "reject";
+    adminNotes?: string;
+  }) => Promise<{ ok: boolean; error?: string }>;
 }
 
 /**
@@ -22,6 +27,7 @@ export function PropertyDetailDrawer({
   onClose,
   onApprove,
   onRequestRevisions,
+  onReviewDeletionRequest,
 }: PropertyDetailDrawerProps) {
   if (!isOpen || !property) return null;
 
@@ -32,6 +38,7 @@ export function PropertyDetailDrawer({
       onClose={onClose}
       onApprove={onApprove}
       onRequestRevisions={onRequestRevisions}
+      onReviewDeletionRequest={onReviewDeletionRequest}
     />
   );
 }

@@ -7,11 +7,21 @@ import Footer from "@/components/common/Footer";
 import { useApp } from "@/context/AppContext";
 import { QAFNEST_SUPPORT_CONTACT } from "@qafnest/shared";
 import { ShieldCheck } from "lucide-react";
+import { findCmsLegalPage, usePublicCmsWorkspace } from "@/lib/cms/usePublicCmsWorkspace";
+import { CmsRichContentCard } from "@/components/legal/CmsLegalHtmlSection";
 
 export default function PrivacyPolicyPage() {
   const { language } = useApp();
   const label = (en: string, ar: string) => (language === "ar" ? ar : en);
   const [activeSection, setActiveSection] = useState("overview");
+  const { workspace } = usePublicCmsWorkspace();
+  const cmsLegal = findCmsLegalPage(workspace, ["privacy-policy", "privacy"]);
+  const cmsHtml = cmsLegal
+    ? (language === "ar" ? cmsLegal.content.ar || cmsLegal.content.en : cmsLegal.content.en || cmsLegal.content.ar)
+    : "";
+  const pageTitle = cmsLegal
+    ? (language === "ar" ? cmsLegal.title.ar || cmsLegal.title.en : cmsLegal.title.en || cmsLegal.title.ar)
+    : label("Privacy Policy & Data Protection", "سياسة الخصوصية وحماية البيانات");
 
   const sections = [
     { id: "overview", titleEn: "1. Privacy Notice, PDPL & SDAIA", titleAr: "١. إشعار الخصوصية ونظام حماية البيانات" },
@@ -37,7 +47,7 @@ export default function PrivacyPolicyPage() {
               {label("Saudi PDPL Compliance", "نظام حماية البيانات الشخصية بالمملكة")}
             </span>
             <h1 className="text-2xl sm:text-4xl font-extrabold tracking-tight">
-              {label("Privacy Policy & Data Protection", "سياسة الخصوصية وحماية البيانات")}
+              {pageTitle}
             </h1>
             <p className="mt-3 text-sm sm:text-base text-emerald-100 leading-relaxed">
               {label(
@@ -53,7 +63,17 @@ export default function PrivacyPolicyPage() {
           </div>
         </div>
 
-        {/* Layout Grid */}
+        {/* Live CMS-Managed Privacy Content (falls back to built-in sections if CMS unavailable) */}
+        {cmsLegal && cmsHtml.trim() ? (
+          <CmsRichContentCard
+            html={cmsHtml}
+            metaTitle={language === "ar" ? cmsLegal.metaTitle?.ar : cmsLegal.metaTitle?.en}
+            metaDescription={language === "ar" ? cmsLegal.metaDescription?.ar : cmsLegal.metaDescription?.en}
+            updatedAt={cmsLegal.updatedAt}
+            language={language}
+            accent="emerald"
+          />
+        ) : (
         <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-8 items-start">
           {/* Sticky Nav Sidebar */}
           <aside className="hidden lg:block sticky top-24 rounded-2xl border border-slate-200 dark:border-white/10 bg-white dark:bg-[#12101a] p-3 shadow-xs">
@@ -290,6 +310,7 @@ export default function PrivacyPolicyPage() {
             </section>
           </div>
         </div>
+        )}
       </main>
 
       <Footer />

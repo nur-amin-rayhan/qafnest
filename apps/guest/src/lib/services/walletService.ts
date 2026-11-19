@@ -10,12 +10,14 @@ export type {
 } from "./wallet/walletTypes";
 export { determineTier } from "./wallet/walletStore";
 export {
+  attachGatewayTokenToCard,
   autoSaveCardFromInvoiceTransaction,
   decryptCardNumber,
   deleteUserCard,
   encryptCardNumber,
   getUserSavedCards,
   saveUserCard,
+  setDefaultUserCard,
   toPublicSavedCard,
 } from "./wallet/walletCards";
 export {

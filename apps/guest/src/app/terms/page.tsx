@@ -5,11 +5,21 @@ import Navbar from "@/components/common/Navbar";
 import Footer from "@/components/common/Footer";
 import { useApp } from "@/context/AppContext";
 import { FileText, Shield, Clock, AlertTriangle } from "lucide-react";
+import { findCmsLegalPage, usePublicCmsWorkspace } from "@/lib/cms/usePublicCmsWorkspace";
+import { CmsRichContentCard } from "@/components/legal/CmsLegalHtmlSection";
 
 export default function TermsPage() {
   const { language } = useApp();
   const label = (en: string, ar: string) => (language === "ar" ? ar : en);
   const [activeSection, setActiveSection] = useState("overview");
+  const { workspace } = usePublicCmsWorkspace();
+  const cmsLegal = findCmsLegalPage(workspace, ["terms-and-conditions", "terms"]);
+  const cmsHtml = cmsLegal
+    ? (language === "ar" ? cmsLegal.content.ar || cmsLegal.content.en : cmsLegal.content.en || cmsLegal.content.ar)
+    : "";
+  const pageTitle = cmsLegal
+    ? (language === "ar" ? cmsLegal.title.ar || cmsLegal.title.en : cmsLegal.title.en || cmsLegal.title.ar)
+    : label("Terms and Conditions of Use", "الشروط والأحكام العامة للمنصة");
 
   const sections = [
     { id: "overview", titleEn: "1. Binding Agreement & Platform Role", titleAr: "١. الاتفاقية ودور المنصة الوسيط" },
@@ -37,7 +47,7 @@ export default function TermsPage() {
               {label("Official Regulatory Agreement", "وثيقة الشروط والأحكام الرسمية")}
             </span>
             <h1 className="text-2xl sm:text-4xl font-extrabold tracking-tight">
-              {label("Terms and Conditions of Use", "الشروط والأحكام العامة للمنصة")}
+              {pageTitle}
             </h1>
             <p className="mt-3 text-sm sm:text-base text-violet-100 leading-relaxed">
               {label(
@@ -53,7 +63,17 @@ export default function TermsPage() {
           </div>
         </div>
 
-        {/* Layout Grid: Sidebar Navigation + Main Content */}
+        {/* Live CMS-Managed Terms Content */}
+        {cmsLegal && cmsHtml.trim() ? (
+          <CmsRichContentCard
+            html={cmsHtml}
+            metaTitle={language === "ar" ? cmsLegal.metaTitle?.ar : cmsLegal.metaTitle?.en}
+            metaDescription={language === "ar" ? cmsLegal.metaDescription?.ar : cmsLegal.metaDescription?.en}
+            updatedAt={cmsLegal.updatedAt}
+            language={language}
+            accent="purple"
+          />
+        ) : (
         <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-8 items-start">
           {/* Sticky Nav Sidebar */}
           <aside className="hidden lg:block sticky top-24 rounded-2xl border border-slate-200 dark:border-white/10 bg-white dark:bg-[#12101a] p-3 shadow-xs">
@@ -359,6 +379,7 @@ export default function TermsPage() {
             </section>
           </div>
         </div>
+        )}
       </main>
 
       <Footer />

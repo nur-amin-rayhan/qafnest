@@ -13,6 +13,7 @@ import {
 import { cmsPath } from "@/lib/cmsUrl";
 import { MediaPickerField } from "./MediaPickerField";
 import { RichVisualEditor } from "./RichVisualEditor";
+import { CmsSeoMonitorPanel } from "./CmsSeoMonitorPanel";
 import type {
   CmsFeatureCard,
   CmsFeaturesGlobal,
@@ -892,6 +893,22 @@ export function CmsGlobalsModule({
             </label>
           </div>
         </div>
+
+        {/* Dynamic robots.txt & sitemap.xml Monitor */}
+        <CmsSeoMonitorPanel
+          darkMode={darkMode}
+          cardCls={cardCls}
+          inputCls={inputCls}
+          sitemapEnabled={seo.robots.sitemapEnabled !== false}
+          customRules={seo.robots.customRules || ""}
+          onChangeSitemapEnabled={(enabled) =>
+            patchSeo({ robots: { ...seo.robots, sitemapEnabled: enabled } })
+          }
+          onChangeCustomRules={(rules) =>
+            patchSeo({ robots: { ...seo.robots, customRules: rules } })
+          }
+          onSaveGlobals={handleSave}
+        />
       </div>
     );
   }
@@ -899,21 +916,35 @@ export function CmsGlobalsModule({
   // ==================== 6. GOOGLE TAG MANAGER (Screenshot 21) ====================
   if (kind === "google-tag-manager") {
     const gtm = globals.gtm;
+    const trimmedGtmId = gtm.gtmId.trim();
+    const isValidGtm = /^GTM-[A-Z0-9]+$/i.test(trimmedGtmId);
+    const isActiveLive = Boolean(gtm.enabled && isValidGtm);
     return (
       <div className="space-y-5 max-w-3xl">
-        <HeaderBar title="Google Tag Manager" subtitle="Manage GTM analytics container injection across public pages" />
+        <HeaderBar title="Google Tag Manager" subtitle="Manage live GTM analytics container injection across all public QafNest pages" />
         <div className={cardCls}>
-          <label className="flex items-center gap-2.5 text-xs font-semibold cursor-pointer">
-            <input
-              type="checkbox"
-              checked={gtm.enabled}
-              onChange={(e) =>
-                setGlobals((g) => ({ ...g, gtm: { ...g.gtm, enabled: e.target.checked } }))
-              }
-              className="w-4 h-4 accent-[#2563EB]"
-            />
-            <span>Enable Google Tag Manager</span>
-          </label>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <label className="flex items-center gap-2.5 text-xs font-semibold cursor-pointer">
+              <input
+                type="checkbox"
+                checked={gtm.enabled}
+                onChange={(e) =>
+                  setGlobals((g) => ({ ...g, gtm: { ...g.gtm, enabled: e.target.checked } }))
+                }
+                className="w-4 h-4 accent-[#2563EB]"
+              />
+              <span>Enable Google Tag Manager</span>
+            </label>
+            <span
+              className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold ${
+                isActiveLive
+                  ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
+                  : "bg-gray-500/15 text-gray-500"
+              }`}
+            >
+              {isActiveLive ? "Synced & Active on qafnest.com" : "Inactive"}
+            </span>
+          </div>
           <div className="space-y-1.5">
             <label className="text-xs font-medium">GTM Container ID</label>
             <input
@@ -924,8 +955,13 @@ export function CmsGlobalsModule({
               placeholder="GTM-XXXXXXX"
               className={`${inputCls} font-mono`}
             />
+            {trimmedGtmId && !isValidGtm && (
+              <p className="text-[11px] font-semibold text-rose-500">
+                Invalid format. Container ID must start with GTM- followed by letters/numbers (e.g. GTM-ABC1234).
+              </p>
+            )}
             <p className="text-[11px] text-gray-500">
-              Format: GTM-XXXXXXX. When enabled, the container snippet is automatically loaded in production.
+              Format: GTM-XXXXXXX. When enabled and saved, QafNest injects both the &lt;head&gt; script, &lt;noscript&gt; fallback, and automatic SPA page_view events into window.dataLayer.
             </p>
           </div>
         </div>

@@ -32,6 +32,7 @@ const SEARCH_ENTRIES: QuickSearchEntry[] = [
   { tab: "users", titleEn: "Users", titleAr: "المستخدمون", groupEn: "Collections", groupAr: "المجموعات" },
   { tab: "roles", titleEn: "Roles", titleAr: "الأدوار والصلاحيات", groupEn: "Collections", groupAr: "المجموعات" },
   { tab: "home-hero", titleEn: "Home Hero", titleAr: "القسم الرئيسي", groupEn: "Website & Pages", groupAr: "الموقع" },
+  { tab: "destinations", titleEn: "Destinations (Place to Stay)", titleAr: "الوجهات (أماكن الإقامة)", groupEn: "Website & Pages", groupAr: "الموقع" },
   { tab: "home-popups", titleEn: "Home Popups", titleAr: "النوافذ المنبثقة", groupEn: "Website & Pages", groupAr: "الموقع" },
   { tab: "legal-pages", titleEn: "Legal Pages", titleAr: "الصفحات القانونية", groupEn: "Website & Pages", groupAr: "الموقع" },
   { tab: "about-us", titleEn: "About Us", titleAr: "من نحن", groupEn: "Website & Pages", groupAr: "الموقع" },

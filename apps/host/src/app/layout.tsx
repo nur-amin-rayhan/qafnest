@@ -102,11 +102,19 @@ export default async function HostRootLayout({
   const prePaintLocaleScript = `(function(){try{var p=window.location.pathname||"";var m=p.match(/^\\/(ar|en)(?:\\/|$)/);if(m){var l=m[1];document.documentElement.lang=l;document.documentElement.dir=l==="ar"?"rtl":"ltr";localStorage.setItem("qafnest_host_lang",l);}}catch(e){}})();`;
 
   return (
-    <html lang={initialLang} dir={initialDir} className={`${geist.variable} ${dinNext.variable} light`}>
+    <html
+      lang={initialLang}
+      dir={initialDir}
+      className={`${geist.variable} ${dinNext.variable} light`}
+      suppressHydrationWarning
+    >
       <head>
         <script dangerouslySetInnerHTML={{ __html: prePaintLocaleScript }} />
       </head>
-      <body className="font-body relative min-h-screen bg-white text-slate-900 selection:bg-violet-200">
+      <body
+        className="font-body relative min-h-screen bg-white text-slate-900 selection:bg-violet-200"
+        suppressHydrationWarning
+      >
         <HostAuthProvider initialLang={initialLang}>
           <DynamicHostSeoTags lang={initialLang} />
           {children}

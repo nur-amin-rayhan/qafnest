@@ -3,6 +3,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useAdminAuth } from "@/context/AdminAuthContext";
 import type {
+  AdminSavedCardRecord,
   ManagedGuestUser,
   ManagedHostUser,
   UserActivityFeedItem,
@@ -23,9 +24,11 @@ interface UsersApiPayload {
     suspendedHosts: number;
     totalActivities: number;
     activitiesLast24h: number;
+    totalSavedCards?: number;
   };
   guests: ManagedGuestUser[];
   hosts: ManagedHostUser[];
+  savedCards?: AdminSavedCardRecord[];
   activities: UserActivityFeedItem[];
   securityAlertsCount: number;
 }
@@ -61,7 +64,7 @@ function formatDateTime(iso?: string | null): string {
 export function UserManagementTab({ triggerToast }: UserManagementTabProps) {
   const { dir, t } = useAdminAuth();
 
-  const [subTab, setSubTab] = useState<"guests" | "hosts" | "activity">("guests");
+  const [subTab, setSubTab] = useState<"guests" | "hosts" | "cards" | "activity">("guests");
   const [data, setData] = useState<UsersApiPayload | null>(null);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -357,6 +360,20 @@ export function UserManagementTab({ triggerToast }: UserManagementTabProps) {
             >
               <span className="material-symbols-outlined text-[16px]">real_estate_agent</span>
               <span>{t("Host Management", "إدارة المضيفين")} ({data?.hosts.length || 0})</span>
+            </button>
+
+            <button
+              type="button"
+              data-testid="users-tab-cards"
+              onClick={() => setSubTab("cards")}
+              className={`px-4 py-2 rounded-lg text-xs font-extrabold transition cursor-pointer flex items-center gap-1.5 ${
+                subTab === "cards"
+                  ? "bg-primary-container text-on-primary shadow-xs"
+                  : "text-on-surface-variant hover:text-on-surface"
+              }`}
+            >
+              <span className="material-symbols-outlined text-[16px]">credit_card</span>
+              <span>{t("Saved Cards", "البطاقات المحفوظة")} ({data?.savedCards?.length || 0})</span>
             </button>
 
             <button
@@ -691,7 +708,108 @@ export function UserManagementTab({ triggerToast }: UserManagementTabProps) {
           </div>
         )}
 
-        {/* TABLE 3: LIVE ACTIVITY LOG */}
+        {/* TABLE 3: SAVED GUEST CARDS (PCI-DSS MASKED) */}
+        {subTab === "cards" && (() => {
+          const q = searchQuery.trim().toLowerCase();
+          const cardsList = (data?.savedCards || []).filter((c) => {
+            if (!q) return true;
+            return (
+              c.guestName.toLowerCase().includes(q) ||
+              c.guestEmail.toLowerCase().includes(q) ||
+              c.guestPhone.toLowerCase().includes(q) ||
+              c.cardholderName.toLowerCase().includes(q) ||
+              c.brand.toLowerCase().includes(q) ||
+              c.last4.includes(q)
+            );
+          });
+          return (
+            <div className="space-y-3">
+              <div className="rounded-xl border border-purple-200 bg-purple-50/70 px-4 py-2.5 text-xs text-purple-900 flex items-center gap-2">
+                <span className="material-symbols-outlined text-[16px] text-purple-700">verified_user</span>
+                <span>
+                  {t(
+                    "PCI-DSS Compliant Vault View: Only masked card numbers (last 4 digits), brand, cardholder name, and expiry are displayed. Full PAN & CVV remain encrypted.",
+                    "عرض متوافق مع PCI-DSS: يتم عرض آخر 4 أرقام فقط مع نوع البطاقة واسم الحامل وتاريخ الانتهاء، وتبقى الأرقام الكاملة ورمز CVV مشفرة."
+                  )}
+                </span>
+              </div>
+              <div className="overflow-x-auto">
+                {cardsList.length === 0 ? (
+                  <div className="p-8 text-center text-sm text-outline bg-surface-container-low rounded-xl">
+                    {loading
+                      ? t("Loading saved cards...", "جاري تحميل البطاقات...")
+                      : t("No saved guest cards found.", "لا توجد بطاقات محفوظة للضيوف.")}
+                  </div>
+                ) : (
+                  <table className="w-full text-start border-collapse min-w-[760px]">
+                    <thead>
+                      <tr className="border-b border-surface-container text-[11px] font-extrabold uppercase tracking-wider text-outline bg-surface-container-low/60">
+                        <th className="py-3 px-4 text-start">{t("Guest", "الضيف")}</th>
+                        <th className="py-3 px-4 text-start">{t("Cardholder Name", "اسم حامل البطاقة")}</th>
+                        <th className="py-3 px-4 text-start">{t("Card Brand & Masked Number", "البطاقة (مشفرة)")}</th>
+                        <th className="py-3 px-4 text-start">{t("Expiry", "الانتهاء")}</th>
+                        <th className="py-3 px-4 text-start">{t("Status", "الحالة")}</th>
+                        <th className="py-3 px-4 text-end">{t("Saved At", "تاريخ الحفظ")}</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-surface-container/60 text-xs">
+                      {cardsList.map((card) => (
+                        <tr key={`${card.userId}-${card.id}`} className="hover:bg-surface-container-low/40 transition">
+                          <td className="py-3 px-4">
+                            <div className="font-bold text-on-surface">{card.guestName}</div>
+                            <div className="text-[11px] text-on-surface-variant">{card.guestEmail}</div>
+                            {card.guestPhone && card.guestPhone !== "—" && (
+                              <div className="text-[11px] font-mono text-outline">{card.guestPhone}</div>
+                            )}
+                          </td>
+                          <td className="py-3 px-4 font-bold text-on-surface">{card.cardholderName}</td>
+                          <td className="py-3 px-4">
+                            <div className="flex items-center gap-2">
+                              <span className="px-2 py-0.5 rounded bg-primary/10 text-primary font-black uppercase text-[10px]">
+                                {card.brand}
+                              </span>
+                              <span className="font-mono font-bold text-on-surface" dir="ltr">
+                                {card.maskedNumber}
+                              </span>
+                            </div>
+                          </td>
+                          <td className="py-3 px-4 font-mono font-bold text-on-surface">
+                            {card.expiryMonth}/{card.expiryYear}
+                          </td>
+                          <td className="py-3 px-4">
+                            <div className="flex flex-wrap items-center gap-1.5">
+                              {card.isDefault && (
+                                <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-black">
+                                  {t("Default", "افتراضية")}
+                                </span>
+                              )}
+                              <span
+                                className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                                  card.supportsDirectCharge
+                                    ? "bg-violet-100 text-violet-800"
+                                    : "bg-slate-100 text-slate-700"
+                                }`}
+                              >
+                                {card.supportsDirectCharge
+                                  ? t("1-Click Vault", "محفظة فورية")
+                                  : t("Gateway Ref", "مرجع بوابة")}
+                              </span>
+                            </div>
+                          </td>
+                          <td className="py-3 px-4 text-end font-mono text-on-surface-variant">
+                            {formatDateTime(card.createdAt)}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+            </div>
+          );
+        })()}
+
+        {/* TABLE 4: LIVE ACTIVITY LOG */}
         {subTab === "activity" && (
           <div className="space-y-2.5 max-h-[650px] overflow-y-auto pe-1">
             {filteredActivities.length === 0 ? (

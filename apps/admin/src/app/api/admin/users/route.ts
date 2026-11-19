@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { createAdminDataClient, getAdminSession, isAdminRequest } from "@/lib/adminApi";
 import { getSignupSecurityOverview } from "@qafnest/shared/signupSecurityStore";
+import { hydrateRootJsonFile } from "@qafnest/shared/serverJsonStore";
 import {
   readUserGovernanceStore,
   recordUserActivity,
@@ -10,6 +12,23 @@ import {
   getServerPlatformFeeConfig,
 } from "@qafnest/shared/platformFeeStore";
 import { resolveBookingSettlement } from "@qafnest/shared/bookingFinancialsStore";
+
+export interface AdminSavedCardRecord {
+  id: string;
+  userId: string;
+  guestName: string;
+  guestEmail: string;
+  guestPhone: string;
+  cardholderName: string;
+  brand: string;
+  last4: string;
+  maskedNumber: string;
+  expiryMonth: string;
+  expiryYear: string;
+  isDefault: boolean;
+  supportsDirectCharge: boolean;
+  createdAt: string;
+}
 
 export const dynamic = "force-dynamic";
 
@@ -661,6 +680,90 @@ export async function GET(request: NextRequest) {
 
     activities.sort((a, b) => b.timestamp.localeCompare(a.timestamp));
 
+    // 8. PCI-DSS Safe Saved Guest Cards Directory (masked PAN only — never exposes full PAN or CVV)
+    const savedCardsMap = new Map<string, AdminSavedCardRecord>();
+    const guestById = new Map(guests.map((g) => [g.id, g]));
+
+    const collectWalletCards = (userId: string, rawCards: unknown) => {
+      if (!Array.isArray(rawCards)) return;
+      const g = guestById.get(userId);
+      for (const entry of rawCards) {
+        if (!entry || typeof entry !== "object") continue;
+        const c = entry as Record<string, unknown>;
+        const id = String(c.id || "").trim();
+        const last4 = String(c.last4 || "").replace(/\D/g, "").slice(-4);
+        if (!id || !last4) continue;
+        const key = `${userId}:${id}`;
+        if (savedCardsMap.has(key)) continue;
+        savedCardsMap.set(key, {
+          id,
+          userId,
+          guestName: g?.name || guestLookup.get(userId) || String(c.cardholderName || "Guest"),
+          guestEmail: g?.email || "—",
+          guestPhone: g?.phone || "—",
+          cardholderName: String(c.cardholderName || g?.name || "Guest Cardholder"),
+          brand: String(c.brand || "card").toLowerCase(),
+          last4,
+          maskedNumber: `•••• •••• •••• ${last4}`,
+          expiryMonth: String(c.expiryMonth || "--").padStart(2, "0"),
+          expiryYear: String(c.expiryYear || "--"),
+          isDefault: Boolean(c.isDefault),
+          supportsDirectCharge: Boolean(c.supportsDirectCharge || c.gatewayToken || c.cardToken),
+          createdAt: String(c.createdAt || ""),
+        });
+      }
+    };
+
+    try {
+      const rootWallets = await hydrateRootJsonFile<{
+        wallets?: Record<string, { userId?: string; savedCards?: unknown[] }>;
+      }>(".qafnest-wallets.json", () => ({ wallets: {} }));
+      if (rootWallets?.wallets && typeof rootWallets.wallets === "object") {
+        for (const [uid, wallet] of Object.entries(rootWallets.wallets)) {
+          collectWalletCards(wallet?.userId || uid, wallet?.savedCards);
+        }
+      }
+    } catch {
+      // Non-fatal fallback
+    }
+
+    try {
+      const sbClient = supabase as SupabaseClient;
+      const { data: walletFiles } = await sbClient.storage
+        .from("qafnest-private-state")
+        .list("wallets", { limit: 100 });
+      if (Array.isArray(walletFiles) && walletFiles.length > 0) {
+        await Promise.all(
+          walletFiles
+            .filter((f) => f.name && f.name.endsWith(".json"))
+            .slice(0, 60)
+            .map(async (f) => {
+              try {
+                const { data: blob } = await sbClient.storage
+                  .from("qafnest-private-state")
+                  .download(`wallets/${f.name}`);
+                if (!blob) return;
+                const parsed = JSON.parse(await blob.text()) as {
+                  userId?: string;
+                  savedCards?: unknown[];
+                };
+                if (parsed?.userId && Array.isArray(parsed.savedCards)) {
+                  collectWalletCards(parsed.userId, parsed.savedCards);
+                }
+              } catch {
+                // ignore malformed storage object
+              }
+            })
+        );
+      }
+    } catch {
+      // Non-fatal when bucket not created yet
+    }
+
+    const savedCards = Array.from(savedCardsMap.values()).sort((a, b) =>
+      (b.createdAt || "").localeCompare(a.createdAt || "")
+    );
+
     const now24hCutoff = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
 
     return NextResponse.json({
@@ -674,9 +777,11 @@ export async function GET(request: NextRequest) {
         suspendedHosts: hosts.filter((h) => h.isSuspended).length,
         totalActivities: activities.length,
         activitiesLast24h: activities.filter((a) => a.timestamp >= now24hCutoff).length,
+        totalSavedCards: savedCards.length,
       },
       guests,
       hosts,
+      savedCards,
       activities: activities.slice(0, 300),
       securityAlertsCount: securityOverview.alerts.length,
     });

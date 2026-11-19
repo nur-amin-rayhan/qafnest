@@ -5,10 +5,20 @@ import Navbar from "@/components/common/Navbar";
 import Footer from "@/components/common/Footer";
 import { useApp } from "@/context/AppContext";
 import { Cookie, ShieldCheck, Info, Settings } from "lucide-react";
+import { findCmsLegalPage, usePublicCmsWorkspace } from "@/lib/cms/usePublicCmsWorkspace";
+import { CmsRichContentCard } from "@/components/legal/CmsLegalHtmlSection";
 
 export default function CookiesPolicyPage() {
   const { language } = useApp();
   const label = (en: string, ar: string) => (language === "ar" ? ar : en);
+  const { workspace } = usePublicCmsWorkspace();
+  const cmsLegal = findCmsLegalPage(workspace, ["cookies-policy", "cookie-policy", "cookies"]);
+  const cmsHtml = cmsLegal
+    ? (language === "ar" ? cmsLegal.content.ar || cmsLegal.content.en : cmsLegal.content.en || cmsLegal.content.ar)
+    : "";
+  const pageTitle = cmsLegal
+    ? (language === "ar" ? cmsLegal.title.ar || cmsLegal.title.en : cmsLegal.title.en || cmsLegal.title.ar)
+    : label("Cookies Policy", "سياسة ملفات تعريف الارتباط (الكوكيز)");
 
   const cookieTypes = [
     {
@@ -54,7 +64,7 @@ export default function CookiesPolicyPage() {
               {label("Transparency & User Control", "الشفافية والتحكم للمستخدم")}
             </span>
             <h1 className="text-2xl sm:text-4xl font-extrabold tracking-tight">
-              {label("Cookies Policy", "سياسة ملفات تعريف الارتباط (الكوكيز)")}
+              {pageTitle}
             </h1>
             <p className="mt-3 text-sm sm:text-base text-amber-100 leading-relaxed">
               {label(
@@ -65,7 +75,17 @@ export default function CookiesPolicyPage() {
           </div>
         </div>
 
-        {/* Content Box */}
+        {/* Live CMS-Managed Cookies Content */}
+        {cmsLegal && cmsHtml.trim() ? (
+          <CmsRichContentCard
+            html={cmsHtml}
+            metaTitle={language === "ar" ? cmsLegal.metaTitle?.ar : cmsLegal.metaTitle?.en}
+            metaDescription={language === "ar" ? cmsLegal.metaDescription?.ar : cmsLegal.metaDescription?.en}
+            updatedAt={cmsLegal.updatedAt}
+            language={language}
+            accent="amber"
+          />
+        ) : (
         <div className="rounded-3xl border border-slate-200/80 dark:border-white/10 bg-white dark:bg-[#12101a] p-6 sm:p-10 shadow-xs space-y-8">
           <section className="space-y-3">
             <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
@@ -127,6 +147,7 @@ export default function CookiesPolicyPage() {
             </p>
           </section>
         </div>
+        )}
       </main>
 
       <Footer />

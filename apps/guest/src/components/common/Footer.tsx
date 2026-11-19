@@ -6,12 +6,54 @@ import { Award, MessageCircle, PhoneCall } from "lucide-react";
 import { useApp } from "@/context/AppContext";
 import { ECOSYSTEM_URLS, QAFNEST_SUPPORT_CONTACT } from "@qafnest/shared";
 import { localizePath, stripLocaleFromPathname } from "@/lib/localization/localeHelper";
+import { usePublicCmsWorkspace } from "@/lib/cms/usePublicCmsWorkspace";
 import { PAYMENT_METHODS, PaymentMark, SocialMark } from "./footer/FooterMarks";
 
 export default function Footer() {
   const { setSelectedCategory, language, t } = useApp();
   const pathname = usePathname();
   const router = useRouter();
+  const { workspace: cmsWorkspace } = usePublicCmsWorkspace();
+
+  const cmsContact = cmsWorkspace?.globals?.contactUs;
+  const displayPhone = cmsContact?.phone?.trim() || QAFNEST_SUPPORT_CONTACT.displayPhone;
+  const telHref = (() => {
+    const clean = displayPhone.replace(/[^\d+]/g, "");
+    if (!clean) return QAFNEST_SUPPORT_CONTACT.telHref;
+    if (clean.startsWith("+")) return `tel:${clean}`;
+    if (clean.startsWith("05") && clean.length === 10) return `tel:+966${clean.slice(1)}`;
+    return `tel:${clean}`;
+  })();
+  const whatsappHref = (() => {
+    const raw = cmsContact?.whatsapp?.trim() || "";
+    if (!raw) return QAFNEST_SUPPORT_CONTACT.whatsappHref;
+    if (/^https?:\/\//i.test(raw)) return raw;
+    const digits = raw.replace(/\D/g, "");
+    if (!digits) return QAFNEST_SUPPORT_CONTACT.whatsappHref;
+    return `https://wa.me/${digits.startsWith("05") && digits.length === 10 ? `966${digits.slice(1)}` : digits}`;
+  })();
+
+  const cmsFooterNavLinks = (cmsWorkspace?.navigationLinks || [])
+    .filter((n) => n.showInFooter && n.link)
+    .sort((a, b) => Number(a.order || 0) - Number(b.order || 0));
+
+  const cmsSocials = (cmsWorkspace?.socialLinks || []).filter(
+    (s) => s.enabled !== false && s.platform && s.url
+  );
+
+  const extraLegalPages = (cmsWorkspace?.legalPages || []).filter((p) => {
+    if (p.showSection === false || !p.slug) return false;
+    const slug = p.slug.trim().toLowerCase();
+    return ![
+      "privacy",
+      "privacy-policy",
+      "terms",
+      "terms-and-conditions",
+      "cookies",
+      "cookie-policy",
+      "cookies-policy",
+    ].includes(slug);
+  });
 
   const browseCategory = (value: string) => {
     setSelectedCategory(value);
@@ -98,17 +140,17 @@ export default function Footer() {
 
               <div className="mt-3 flex flex-wrap items-center gap-2.5 text-[13px]">
                 <a
-                  href={QAFNEST_SUPPORT_CONTACT.telHref}
+                  href={telHref}
                   className="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-gray-50/70 px-3 py-1.5 font-semibold text-[#1f2937] transition hover:border-[#4F2396] hover:text-[#4F2396] dark:border-white/10 dark:bg-white/5 dark:text-gray-200 dark:hover:text-violet-300"
                 >
                   <PhoneCall className="h-3.5 w-3.5 text-[#4F2396] dark:text-violet-300" />
                   <span>{label("Support:", "الدعم:")}</span>
                   <span dir="ltr" className="font-bold">
-                    {QAFNEST_SUPPORT_CONTACT.displayPhone}
+                    {displayPhone}
                   </span>
                 </a>
                 <a
-                  href={QAFNEST_SUPPORT_CONTACT.whatsappHref}
+                  href={whatsappHref}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50/70 px-3 py-1.5 font-semibold text-emerald-700 transition hover:bg-emerald-100 dark:border-emerald-500/20 dark:bg-emerald-950/30 dark:text-emerald-300"
@@ -164,6 +206,14 @@ export default function Footer() {
                 </li>
                 <li>
                   <Link
+                    href={localizePath("/about", language)}
+                    className="transition hover:text-[#4F2396] dark:hover:text-violet-300"
+                  >
+                    {label("About Us", "من نحن")}
+                  </Link>
+                </li>
+                <li>
+                  <Link
                     href={localizePath("/faq", language)}
                     className="transition hover:text-[#4F2396] dark:hover:text-violet-300"
                   >
@@ -178,6 +228,60 @@ export default function Footer() {
                     {label("Contact Us", "تواصل معنا")}
                   </Link>
                 </li>
+                {extraLegalPages.map((leg) => (
+                  <li key={leg.id}>
+                    <Link
+                      href={localizePath(`/legal/${encodeURIComponent(leg.slug)}`, language)}
+                      className="transition hover:text-[#4F2396] dark:hover:text-violet-300"
+                    >
+                      {language === "ar" ? leg.title.ar || leg.title.en : leg.title.en || leg.title.ar}
+                    </Link>
+                  </li>
+                ))}
+                {cmsFooterNavLinks
+                  .filter((n) => {
+                    const clean = n.link.trim().toLowerCase();
+                    return ![
+                      "/",
+                      "/search",
+                      "/blog",
+                      "/blogs",
+                      "/about",
+                      "/contact",
+                      "/faq",
+                      "/terms",
+                      "/privacy",
+                      "/cookies",
+                    ].includes(clean);
+                  })
+                  .map((nav) => {
+                    const isExternal = /^https?:\/\//i.test(nav.link);
+                    const titleText =
+                      language === "ar"
+                        ? nav.title.ar || nav.title.en
+                        : nav.title.en || nav.title.ar;
+                    return (
+                      <li key={nav.id}>
+                        {isExternal || nav.openInNewTab ? (
+                          <a
+                            href={isExternal ? nav.link : localizePath(nav.link, language)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="transition hover:text-[#4F2396] dark:hover:text-violet-300"
+                          >
+                            {titleText}
+                          </a>
+                        ) : (
+                          <Link
+                            href={localizePath(nav.link, language)}
+                            className="transition hover:text-[#4F2396] dark:hover:text-violet-300"
+                          >
+                            {titleText}
+                          </Link>
+                        )}
+                      </li>
+                    );
+                  })}
                 <li>
                   <a
                     href={`${hostPortalUrl}/?lang=${language}`}
@@ -217,10 +321,18 @@ export default function Footer() {
             className="flex w-full items-center justify-center gap-2.5 border-b border-gray-200 pb-4 dark:border-white/10 sm:w-auto sm:justify-end sm:border-b-0 sm:pb-0"
             aria-label={label("Social media", "وسائل التواصل الاجتماعي")}
           >
-            <SocialMark name="Facebook" />
-            <SocialMark name="X" />
-            <SocialMark name="Instagram" />
-            <SocialMark name="YouTube" />
+            {cmsSocials.length > 0 ? (
+              cmsSocials.map((soc) => (
+                <SocialMark key={soc.id} name={soc.platform} href={soc.url} />
+              ))
+            ) : (
+              <>
+                <SocialMark name="Facebook" />
+                <SocialMark name="X" />
+                <SocialMark name="Instagram" />
+                <SocialMark name="YouTube" />
+              </>
+            )}
           </div>
         </div>
       </div>

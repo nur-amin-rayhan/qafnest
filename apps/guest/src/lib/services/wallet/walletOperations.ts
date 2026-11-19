@@ -57,8 +57,28 @@ export async function getUserWallet(userId: string): Promise<UserWalletData> {
   const localWallet = store.wallets[userId];
   const cloudWallet = await loadCloudUserWallet(userId);
 
-  let userWallet = cloudWallet || localWallet;
-  const dirty = Boolean(cloudWallet);
+  let userWallet: UserWalletData | undefined;
+  let dirty = false;
+
+  if (cloudWallet && localWallet) {
+    const cloudTs = cloudWallet.updatedAt ? Date.parse(cloudWallet.updatedAt) : 0;
+    const localTs = localWallet.updatedAt ? Date.parse(localWallet.updatedAt) : 0;
+    if (localTs > cloudTs) {
+      userWallet = localWallet;
+    } else if (cloudTs > localTs) {
+      userWallet = cloudWallet;
+      dirty = true;
+    } else {
+      // Same/missing timestamps: preserve whichever has more saved cards or transactions
+      const localCards = localWallet.savedCards?.length || 0;
+      const cloudCards = cloudWallet.savedCards?.length || 0;
+      userWallet = localCards > cloudCards ? localWallet : cloudWallet;
+      dirty = userWallet === cloudWallet;
+    }
+  } else {
+    userWallet = cloudWallet || localWallet;
+    dirty = Boolean(cloudWallet);
+  }
 
   if (!userWallet) {
     userWallet = {

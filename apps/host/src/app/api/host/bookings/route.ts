@@ -134,10 +134,32 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ code: "db_error", message: bookErr.message }, { status: 500 });
     }
 
-    // Exclude unverified in-flight gateway checkouts so hosts never see abandoned sessions as pending approvals
-    const rawList = (bookingData || []).filter(
-      (b) => !(b.status === "pending" && b.payment_status === "initiated")
-    );
+    // Exclude uncompleted checkout sessions and technical failed transactions.
+    // Hosts strictly see:
+    // 1. Confirmed or completed bookings.
+    // 2. Previously paid bookings that were cancelled or refunded post-confirmation.
+    // All failed, initiated, or unfulfilled checkout attempts belong exclusively to the Admin audit logs.
+    const rawList = (bookingData || []).filter((b) => {
+      if (
+        b.payment_status === "failed" ||
+        b.payment_status === "initiated" ||
+        b.payment_status === "abandoned"
+      ) {
+        return false;
+      }
+      if (b.status === "pending") {
+        return false;
+      }
+      if (b.status === "cancelled") {
+        // Only show cancelled bookings if payment was actually successful / refunded (i.e. confirmed reservation was cancelled)
+        return (
+          b.payment_status === "paid" ||
+          b.payment_status === "success" ||
+          b.payment_status === "refunded"
+        );
+      }
+      return b.status === "confirmed" || b.status === "completed";
+    });
     const guestIds = Array.from(new Set(rawList.map((b) => b.guest_id).filter(Boolean)));
     const profileMap = new Map<string, { full_name?: string; phone?: string; is_verified?: boolean; national_id?: string; iqama?: string }>();
     if (guestIds.length > 0) {

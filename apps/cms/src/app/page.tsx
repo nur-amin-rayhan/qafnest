@@ -30,6 +30,7 @@ const COLLECTION_TABS = [
   "categories",
   "faqs",
   "home-popups",
+  "destinations",
   "legal-pages",
   "navigation-links",
   "social-links",
@@ -42,6 +43,37 @@ export default function ContentAndSeoCmsPage() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<CmsTab>("dashboard");
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const initialParam = new URLSearchParams(window.location.search).get("tab") as CmsTab | null;
+    if (initialParam) {
+      setActiveTab(initialParam);
+    }
+  }, []);
+
+  const handleSelectTab = useCallback((nextTab: CmsTab) => {
+    setActiveTab(nextTab);
+    if (typeof window !== "undefined") {
+      const url = new URL(window.location.href);
+      if (nextTab === "dashboard") {
+        url.searchParams.delete("tab");
+      } else {
+        url.searchParams.set("tab", nextTab);
+      }
+      window.history.pushState(null, "", `${url.pathname}${url.search}`);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const onPopState = () => {
+      const p = (new URLSearchParams(window.location.search).get("tab") as CmsTab | null) || "dashboard";
+      setActiveTab(p);
+    };
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
+  }, []);
 
   const [workspace, setWorkspace] = useState<CmsWorkspaceData>(() => createDefaultCmsWorkspace());
   const [blogs, setBlogs] = useState<SharedBlogPost[]>([]);
@@ -167,6 +199,7 @@ export default function ContentAndSeoCmsPage() {
     roles: workspace.roles.length,
     faqs: workspace.faqs.length,
     "home-popups": workspace.homePopups.length,
+    destinations: (workspace.destinations || []).length,
     "business-pages": workspace.businessPages.length,
     "legal-pages": workspace.legalPages.length,
     "navigation-links": workspace.navigationLinks.length,
@@ -186,7 +219,7 @@ export default function ContentAndSeoCmsPage() {
       {/* Left Navigation Sidebar */}
       <CmsShellSidebar
         activeTab={activeTab}
-        onSelectTab={setActiveTab}
+        onSelectTab={handleSelectTab}
         onOpenSearch={() => setSearchOpen(true)}
         locale={locale}
         darkMode={darkMode}
@@ -207,7 +240,7 @@ export default function ContentAndSeoCmsPage() {
           setCollapsed={setSidebarCollapsed}
           userEmail={user?.email}
           onSignOut={signOut}
-          onSelectTab={setActiveTab}
+          onSelectTab={handleSelectTab}
           searchOpen={searchOpen}
           setSearchOpen={setSearchOpen}
         />
@@ -219,7 +252,7 @@ export default function ContentAndSeoCmsPage() {
               blogsCount={blogs.length}
               locale={locale}
               darkMode={darkMode}
-              onSelectTab={setActiveTab}
+              onSelectTab={handleSelectTab}
             />
           )}
 

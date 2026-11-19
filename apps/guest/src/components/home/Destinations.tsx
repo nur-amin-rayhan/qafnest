@@ -1,18 +1,44 @@
 "use client";
 
-import { useRef } from "react";
+import { useRef, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import Image from "next/image";
 import { MapPin, ChevronLeft, ChevronRight, CalendarDays } from "lucide-react";
 import { DESTINATIONS, Destination, normalizeCityId } from "@/data/properties";
 import { useApp } from "@/context/AppContext";
 import { useProperties } from "@/hooks/useProperties";
 import { CITY_NAMES_AR } from "@/data/translations";
+import { usePublicCmsWorkspace } from "@/lib/cms/usePublicCmsWorkspace";
+
+interface ResolvedDestination extends Destination {
+  nameAr?: string;
+  badgeText?: string;
+}
 
 export default function Destinations() {
   const { selectedCity, setSelectedCity, rentMode, setRentMode, language, t } = useApp();
   const { properties } = useProperties();
+  const { workspace: cmsWorkspace } = usePublicCmsWorkspace();
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  const visibleDestinations: ResolvedDestination[] = useMemo(() => {
+    if (cmsWorkspace?.destinations && cmsWorkspace.destinations.length > 0) {
+      return [...cmsWorkspace.destinations]
+        .filter((d) => d.enabled !== false)
+        .sort((a, b) => Number(a.order || 0) - Number(b.order || 0))
+        .map((d) => ({
+          id: d.id,
+          city: (d.city || "all").toLowerCase(),
+          name: d.name?.en || d.name?.ar || d.city,
+          nameAr: d.name?.ar || CITY_NAMES_AR[d.city] || d.name?.en || d.city,
+          subtitle: d.subtitle?.en || d.subtitle?.ar || "",
+          count: 0,
+          image: d.image || "",
+          isMonthly: Boolean(d.isMonthly),
+          badgeText: d.badgeText || "-35%",
+        }));
+    }
+    return DESTINATIONS;
+  }, [cmsWorkspace]);
 
   const scroll = (direction: "left" | "right") => {
     if (scrollRef.current) {
@@ -36,6 +62,8 @@ export default function Destinations() {
       router.push(`/search?city=${dest.city}`);
     }
   };
+
+  if (visibleDestinations.length === 0) return null;
 
   return (
     <section id="destinations" className="pt-2 pb-3 sm:pb-4 relative z-10">
@@ -82,7 +110,7 @@ export default function Destinations() {
           ref={scrollRef}
           className="flex items-start gap-4 sm:gap-6 overflow-x-auto no-scrollbar scroll-smooth py-3 px-1"
         >
-          {DESTINATIONS.map((dest) => {
+          {visibleDestinations.map((dest) => {
             const isMonthlySelected = dest.isMonthly && rentMode === "monthly";
             const isCitySelected = !dest.isMonthly && selectedCity === dest.city;
             const isSelected = isMonthlySelected || isCitySelected;
@@ -108,19 +136,25 @@ export default function Destinations() {
                       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.3)_0%,_transparent_70%)]" />
                       <CalendarDays className="w-6 h-6 mb-0.5 text-white drop-shadow" />
                       <span className="text-[9px] font-extrabold uppercase tracking-tight bg-black/40 px-1.5 py-0.5 rounded-full border border-white/20">
-                        -35%
+                        {dest.badgeText || "-35%"}
                       </span>
                     </div>
                   ) : (
-                    /* Standard City Photo Avatar */
-                    <div className="w-full h-full rounded-full overflow-hidden relative">
-                      <Image
-                        src={dest.image}
-                        alt={dest.name}
-                        fill
-                        className="object-cover group-hover:scale-110 transition-transform duration-500"
-                        sizes="80px"
-                      />
+                    /* Standard City Photo Avatar (supports uploaded CMS / Supabase / external URLs) */
+                    <div className="w-full h-full rounded-full overflow-hidden relative bg-purple-100 dark:bg-purple-950/40">
+                      {dest.image ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={dest.image}
+                          alt={language === "ar" ? (dest.nameAr || dest.name) : dest.name}
+                          loading="lazy"
+                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-purple-600 font-bold text-xs">
+                          {dest.name.slice(0, 2).toUpperCase()}
+                        </div>
+                      )}
                       <div className="absolute inset-0 bg-black/15 group-hover:bg-black/5 transition-colors" />
                     </div>
                   )}
@@ -139,7 +173,7 @@ export default function Destinations() {
                       : "text-gray-900 dark:text-white/90 group-hover:text-violet-600 dark:group-hover:text-violet-300"
                   }`}
                 >
-                  {language === "ar" ? (CITY_NAMES_AR[dest.city] || dest.name) : dest.name}
+                  {language === "ar" ? (dest.nameAr || CITY_NAMES_AR[dest.city] || dest.name) : dest.name}
                 </span>
 
                 {/* Live Stays Count / Subtitle */}

@@ -1,29 +1,4 @@
 {
-  "configs": {
-    "6749e740-8753-4514-bd4c-5eb3815f3cb8": {
-      "propertyId": "6749e740-8753-4514-bd4c-5eb3815f3cb8",
-      "slug": "rayhan-chalet-dc66af87",
-      "enableStandard4pmTo12pm": true,
-      "enableTwelveHour12amTo12pm": true,
-      "twelveHourPrice": null,
-      "hostBlockedDates": [],
-      "dateSlotOverrides": {},
-      "updatedBy": "host",
-      "updatedAt": "2026-11-15T15:57:45.288Z"
-    },
-    "rayhan-chalet-dc66af87": {
-      "propertyId": "6749e740-8753-4514-bd4c-5eb3815f3cb8",
-      "slug": "rayhan-chalet-dc66af87",
-      "enableStandard4pmTo12pm": true,
-      "enableTwelveHour12amTo12pm": true,
-      "twelveHourPrice": null,
-      "hostBlockedDates": [],
-      "dateSlotOverrides": {},
-      "updatedBy": "host",
-      "updatedAt": "2026-11-15T15:57:45.288Z"
-    }
-  },
-  "slugToPropertyId": {
-    "rayhan-chalet-dc66af87": "6749e740-8753-4514-bd4c-5eb3815f3cb8"
-  }
+  "configs": {},
+  "slugToPropertyId": {}
 }

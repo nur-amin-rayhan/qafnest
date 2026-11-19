@@ -13,6 +13,7 @@ import { toMyFatoorahMobile } from "@qafnest/shared/phone";
 import { cancelInitiatedBooking } from "@/lib/services/bookingReconciliation";
 import { maskPii } from "@/lib/services/piiSanitizer";
 import {
+  attachGatewayTokenToCard,
   decryptCardNumber,
   clearPendingWalletSplit,
   SavedCard,
@@ -117,7 +118,12 @@ export async function processGatewayPayment({
     locale: resolvedLocale,
   });
 
-  // 1. Saved Card Checkout (DirectPayment when tokenized/direct-enabled, else pre-selected MyFatoorah gateway)
+  const revertInitiated = async () => {
+    await clearPendingWalletSplit(bookingRef);
+    await cancelInitiatedBooking(dbClient, bookingRef);
+  };
+
+  // 1. Saved Card Checkout (DirectPayment when enabled on MyFatoorah account, else pre-selected MyFatoorah gateway)
   if (selectedMethod === "card" && savedCard) {
     const gatewayToken = savedCard.gatewayToken ? decryptCardNumber(savedCard.gatewayToken) : "";
     const fullCardNumber = savedCard.cardToken ? decryptCardNumber(savedCard.cardToken) : "";
@@ -130,8 +136,15 @@ export async function processGatewayPayment({
     if (canTryDirectCharge) {
       try {
         const config = getMyFatoorahConfig();
+        const directMethodTarget: MyFatoorahHostedMethod =
+          savedCard.brand === "mada" ? "mada" : "card";
+        const resolvedMethodId = await resolveMyFatoorahPaymentMethodId(
+          directMethodTarget,
+          chargeAmount,
+          "SAR"
+        );
         const mfResponse = await executeMyFatoorahPayment({
-          paymentMethodId: savedCard.brand === "mada" ? 6 : savedCard.brand === "amex" ? 3 : 2,
+          paymentMethodId: resolvedMethodId,
           invoiceValue: chargeAmount,
           customerName: guestName || "QafNest Guest",
           customerMobile: toMyFatoorahMobile(guestPhone),
@@ -145,41 +158,109 @@ export async function processGatewayPayment({
         });
 
         if (mfResponse.IsSuccess && mfResponse.Data?.PaymentURL) {
-          const u = new URL(mfResponse.Data.PaymentURL);
-          const invKey = u.searchParams.get("invoiceKey");
-          const pgId = u.searchParams.get("paymentGatewayId");
-          if (invKey && pgId) {
-            const directEndpoint = `${config.baseUrl}/DirectPayment/${invKey}/${pgId}`;
-            const directPayload = gatewayToken
-              ? {
-                  PaymentType: "token",
-                  Token: gatewayToken,
-                  SecurityCode: effectiveCvv,
-                  Bypass3DS: false,
-                }
-              : {
-                  PaymentType: "card",
-                  Bypass3DS: false,
-                  SaveToken: false,
-                  Card: {
-                    Number: fullCardNumber,
-                    ExpiryMonth: savedCard.expiryMonth,
-                    ExpiryYear: savedCard.expiryYear,
+          const paymentUrl = mfResponse.Data.PaymentURL;
+          let directEndpoint = "";
+          if (/\/DirectPayment\//i.test(paymentUrl)) {
+            directEndpoint = paymentUrl;
+          } else {
+            const u = new URL(paymentUrl);
+            const invKey = u.searchParams.get("invoiceKey");
+            const pgId = u.searchParams.get("paymentGatewayId");
+            if (invKey && pgId) {
+              directEndpoint = `${config.baseUrl}/DirectPayment/${invKey}/${pgId}`;
+            }
+          }
+
+          if (directEndpoint) {
+            const callDirect = async (saveToken: boolean) => {
+              const directPayload = gatewayToken
+                ? {
+                    PaymentType: "token",
+                    Token: gatewayToken,
                     SecurityCode: effectiveCvv,
-                    HolderName: savedCard.cardholderName,
-                  },
-                };
-            const directRes = await fetch(directEndpoint, {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${config.apiKey}`,
-              },
-              body: JSON.stringify(directPayload),
-            });
-            const directData = (await directRes.json()) as { IsSuccess?: boolean; Data?: { PaymentURL?: string } };
+                    Bypass3DS: false,
+                  }
+                : {
+                    PaymentType: "card",
+                    Bypass3DS: false,
+                    SaveToken: saveToken,
+                    Card: {
+                      Number: fullCardNumber,
+                      ExpiryMonth: savedCard.expiryMonth,
+                      ExpiryYear: savedCard.expiryYear,
+                      SecurityCode: effectiveCvv,
+                      HolderName: savedCard.cardholderName,
+                    },
+                  };
+              const directRes = await fetch(directEndpoint, {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: `Bearer ${config.apiKey}`,
+                },
+                body: JSON.stringify(directPayload),
+              });
+              return (await directRes.json()) as {
+                IsSuccess?: boolean;
+                Message?: string;
+                ValidationErrors?: Array<{ Name?: string; Error?: string }>;
+                Data?: { PaymentURL?: string; Token?: string };
+              };
+            };
+
+            let directData = await callDirect(!gatewayToken);
+            // Retry without SaveToken if merchant has DirectPayment enabled without SaveToken
+            if (
+              !directData.IsSuccess &&
+              !gatewayToken &&
+              directData.ValidationErrors?.some((e) =>
+                /save\s*token/i.test(`${e.Name || ""} ${e.Error || ""}`)
+              ) &&
+              !directData.ValidationErrors?.some((e) =>
+                /direct\s*payment\s*is\s*not\s*enabled/i.test(e.Error || "")
+              )
+            ) {
+              directData = await callDirect(false);
+            }
+
             if (directData.IsSuccess && directData.Data?.PaymentURL) {
-              return buildGatewayRedirectResponse(directData.Data.PaymentURL, mfResponse.Data.InvoiceId);
+              if (directData.Data.Token && savedCard.userId) {
+                await attachGatewayTokenToCard(
+                  savedCard.userId,
+                  savedCard.id,
+                  directData.Data.Token
+                ).catch(() => undefined);
+              }
+              return buildGatewayRedirectResponse(
+                directData.Data.PaymentURL,
+                mfResponse.Data.InvoiceId
+              );
+            }
+
+            const errText = [
+              directData.Message || "",
+              ...(directData.ValidationErrors || []).map((e) => `${e.Name || ""}: ${e.Error || ""}`),
+            ].join(" ");
+            const isAccountFeatureDisabled = /direct\s*payment\s*is\s*not\s*enabled|not\s*allowed|not\s*enabled/i.test(
+              errText
+            );
+            if (!isAccountFeatureDisabled) {
+              // Real card decline / invalid card details: let user immediately switch to another card
+              console.warn("Saved card DirectPayment declined:", maskPii(directData));
+              await revertInitiated();
+              return NextResponse.json(
+                {
+                  code: "saved_card_declined",
+                  provider: "MyFatoorah",
+                  message:
+                    directData.Message ||
+                    "Your saved card was declined. Please choose another saved card or pay with a new card.",
+                  messageAr:
+                    "تم رفض البطاقة المحفوظة. يرجى اختيار بطاقة أخرى أو الدفع ببطاقة جديدة.",
+                  errors: directData.ValidationErrors || [],
+                },
+                { status: 400 }
+              );
             }
           }
         }
@@ -188,11 +269,6 @@ export async function processGatewayPayment({
       }
     }
   }
-
-  const revertInitiated = async () => {
-    await clearPendingWalletSplit(bookingRef);
-    await cancelInitiatedBooking(dbClient, bookingRef);
-  };
 
   // 2. Samsung Pay Web Checkout (requires Samsung Pay Service ID + MyFatoorah v3 SAMSUNG_PAY onboarding)
   if (selectedMethod === "samsung") {

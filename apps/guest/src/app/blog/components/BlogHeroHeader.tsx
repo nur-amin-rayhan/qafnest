@@ -19,8 +19,14 @@ export default function BlogHeroHeader({
     <section className="relative overflow-hidden py-12 sm:py-16 border-b border-purple-500/10">
       <div className="absolute inset-0 bg-radial-glow opacity-30 pointer-events-none" />
       <div className="max-w-[1440px] mx-auto px-5 sm:px-8 lg:px-12 relative z-10 text-center">
-        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-violet-500/30 bg-violet-950/30 text-xs sm:text-sm font-semibold text-fuchsia-400 mb-5 shadow-[0_0_15px_rgba(168,85,247,0.2)]">
-          <Compass className="w-4 h-4 text-fuchsia-400" />
+        <div
+          className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-full border text-xs sm:text-sm font-semibold mb-5 ${
+            isDarkTheme
+              ? "border-violet-500/30 bg-violet-950/30 text-fuchsia-400 shadow-[0_0_15px_rgba(168,85,247,0.2)]"
+              : "border-purple-200 bg-purple-100/90 text-purple-800 shadow-sm"
+          }`}
+        >
+          <Compass className={`w-4 h-4 ${isDarkTheme ? "text-fuchsia-400" : "text-purple-600"}`} />
           <span>
             {language === "ar"
               ? "دليل السفر والسياحة في المملكة العربية السعودية"

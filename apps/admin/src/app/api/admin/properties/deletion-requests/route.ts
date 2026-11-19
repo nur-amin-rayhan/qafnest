@@ -3,6 +3,8 @@ import {
   finalizePropertyDeletionReview,
   getPendingDeletionRequestForProperty,
   getPropertyDeletionRequestById,
+  hydratePropertyDeletionStore,
+  persistPropertyDeletionStore,
   readPropertyDeletionRequests,
 } from "@qafnest/shared/propertyDeletionStore";
 import { recordUserActivity } from "@qafnest/shared/userActivityStore";
@@ -29,13 +31,17 @@ export async function GET(request: NextRequest) {
     );
   }
 
+  await hydratePropertyDeletionStore().catch(() => undefined);
   const allRequests = readPropertyDeletionRequests();
   const requests = await enrichDeletionRequestsWithLiveBookings(supabase, allRequests);
 
-  return NextResponse.json({
-    success: true,
-    requests,
-  });
+  return NextResponse.json(
+    {
+      success: true,
+      requests,
+    },
+    { headers: { "Cache-Control": "no-store" } }
+  );
 }
 
 export async function PATCH(request: NextRequest) {
@@ -70,6 +76,8 @@ export async function PATCH(request: NextRequest) {
         { status: 400 }
       );
     }
+
+    await hydratePropertyDeletionStore().catch(() => undefined);
 
     const requestId = String(body.requestId || "").trim();
     const propertyId = String(body.propertyId || "").trim();
@@ -110,6 +118,7 @@ export async function PATCH(request: NextRequest) {
         reviewedBy: reviewer,
         adminNotes,
       });
+      await persistPropertyDeletionStore().catch(() => undefined);
 
       recordUserActivity({
         userId: targetReq.hostId || targetReq.propertyId,
@@ -156,6 +165,15 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
+    // Clean up non-blocking child records so FK constraints never block deletion of eligible listings
+    for (const childTable of ["property_custom_pricing", "wishlists", "reviews"] as const) {
+      try {
+        await supabase.from(childTable).delete().eq("property_id", targetReq.propertyId);
+      } catch {
+        // Ignore optional/non-existent tables
+      }
+    }
+
     const { error: deleteErr } = await supabase
       .from("properties")
       .delete()
@@ -181,6 +199,7 @@ export async function PATCH(request: NextRequest) {
         "Verified 0 active or unsettled reservations. Approved and auto-deleted listing.",
       autoDeletedAt: nowIso,
     });
+    await persistPropertyDeletionStore().catch(() => undefined);
 
     recordUserActivity({
       userId: targetReq.hostId || targetReq.propertyId,

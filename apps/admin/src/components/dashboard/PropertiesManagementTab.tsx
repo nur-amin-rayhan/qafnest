@@ -226,6 +226,7 @@ export function PropertiesManagementTab({
                     updatePropertyStatus={updatePropertyStatus}
                     onSelectProperty={onSelectProperty}
                     onRequestReject={onRequestReject}
+                    onReviewDeletionRequest={onReviewDeletionRequest}
                     t={t}
                   />
                 ))

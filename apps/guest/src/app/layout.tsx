@@ -1,9 +1,12 @@
 import type { Metadata, Viewport } from "next";
+import { Suspense } from "react";
 import localFont from "next/font/local";
 import { cookies, headers } from "next/headers";
 import ClientProviders from "@/components/providers/ClientProviders";
 import { DynamicSeoTags } from "@/components/common/DynamicSeoTags";
+import { GoogleTagManagerTracker } from "@/components/common/GoogleTagManager";
 import { getSeoAlternates } from "@/lib/localization/localeHelper";
+import { getServerPublicCmsWorkspace } from "@/lib/cms/serverCmsWorkspace";
 import "./globals.css";
 
 const geist = localFont({
@@ -60,40 +63,74 @@ const baseUrl =
     : "http://localhost:3000");
 
 export async function generateMetadata(): Promise<Metadata> {
-  const [cookieStore, reqHeaders] = await Promise.all([cookies(), headers()]);
+  const [cookieStore, reqHeaders, cms] = await Promise.all([
+    cookies(),
+    headers(),
+    getServerPublicCmsWorkspace(),
+  ]);
   const headerLang = reqHeaders.get("x-qafnest-locale");
   const rawLang = headerLang || cookieStore.get("qafnest_lang")?.value;
   const lang: "ar" | "en" = rawLang === "en" ? "en" : "ar";
   const activePathname = reqHeaders.get("x-qafnest-pathname") || "/";
-  const { canonical, alternates } = getSeoAlternates(activePathname, lang, baseUrl);
+  const seo = cms.globals.siteSeo;
+  const resolvedBaseUrl = seo?.openGraph?.url?.trim() || baseUrl;
+  const { canonical, alternates } = getSeoAlternates(activePathname, lang, resolvedBaseUrl);
+
+  const fallbackTitle =
+    lang === "ar"
+      ? "قاف نست · اشعر وكأنك في بيتك. إقامة استثنائية."
+      : "QAFNEST · Feel at Home. Stay Exceptional.";
+  const fallbackDescription =
+    lang === "ar"
+      ? "منصة وساطة لتأجير بيوت العطلات والشاليهات الفاخرة والفلل الخاصة والمزارع والمخيمات الصحراوية في المملكة العربية السعودية. مرخصة من وزارة السياحة."
+      : "Peer-to-peer vacation rental platform for luxury chalets, private villas, country farms, and desert camps across Saudi Arabia. Licensed by the Ministry of Tourism.";
+
+  const title = seo?.defaultTitle?.[lang]?.trim() || fallbackTitle;
+  const description = seo?.defaultDescription?.[lang]?.trim() || fallbackDescription;
+  const keywords =
+    seo?.keywords?.[lang]?.trim() ||
+    "QafNest, chalets in Riyadh, villas in Jeddah, AlUla glamping, vacation rental Saudi Arabia, luxury chalets, Tabby installment stays, Ministry of Tourism licensed";
+  const ogTitle = seo?.openGraph?.title?.[lang]?.trim() || title;
+  const ogDescription = seo?.openGraph?.description?.[lang]?.trim() || description;
+  const ogImage = seo?.openGraph?.image?.trim() || "";
+  const siteName = seo?.siteName?.[lang]?.trim() || "QAFNEST";
+  const twitterHandle = seo?.twitter?.handle?.trim() || undefined;
+  const twitterCard =
+    seo?.twitter?.card === "summary" ? "summary" : "summary_large_image";
+
+  let safeMetadataBase: URL;
+  try {
+    safeMetadataBase = new URL(resolvedBaseUrl);
+  } catch {
+    safeMetadataBase = new URL(baseUrl);
+  }
 
   return {
-    metadataBase: new URL(baseUrl),
+    metadataBase: safeMetadataBase,
     alternates,
-    title:
-      lang === "ar"
-        ? "قاف نست · اشعر وكأنك في بيتك. إقامة استثنائية."
-        : "QAFNEST · Feel at Home. Stay Exceptional.",
-    description:
-      lang === "ar"
-        ? "منصة وساطة لتأجير بيوت العطلات والشاليهات الفاخرة والفلل الخاصة والمزارع والمخيمات الصحراوية في المملكة العربية السعودية. مرخصة من وزارة السياحة."
-        : "Peer-to-peer vacation rental platform for luxury chalets, private villas, country farms, and desert camps across Saudi Arabia. Licensed by the Ministry of Tourism.",
-    keywords:
-      "QafNest, chalets in Riyadh, villas in Jeddah, AlUla glamping, vacation rental Saudi Arabia, luxury chalets, Tabby installment stays, Ministry of Tourism licensed",
+    title,
+    description,
+    keywords,
     authors: [{ name: "QafNest Hospitality Group" }],
+    robots: {
+      index: !seo?.robots?.noIndex,
+      follow: !seo?.robots?.noFollow,
+    },
     openGraph: {
-      title:
-        lang === "ar"
-          ? "قاف نست · اشعر وكأنك في بيتك. إقامة استثنائية."
-          : "QAFNEST · Feel at Home. Stay Exceptional.",
-      description:
-        lang === "ar"
-          ? "احجز شاليهات موثوقة وفلل خاصة ومخيمات صحراوية في جميع أنحاء المملكة العربية السعودية مع تسجيل دخول فوري بالرمز الذكي وتقسيط ميسر بدون فوائد."
-          : "Book verified chalets, private villas, and desert camps across Saudi Arabia with instant smart lock check-in and 4 interest-free installments.",
+      title: ogTitle,
+      description: ogDescription,
       url: canonical,
-      siteName: "QAFNEST",
+      siteName,
       locale: lang === "ar" ? "ar_SA" : "en_US",
       type: "website",
+      ...(ogImage ? { images: [{ url: ogImage }] } : {}),
+    },
+    twitter: {
+      card: twitterCard,
+      title: seo?.twitter?.title?.[lang]?.trim() || ogTitle,
+      description: seo?.twitter?.description?.[lang]?.trim() || ogDescription,
+      ...(twitterHandle ? { site: twitterHandle, creator: twitterHandle } : {}),
+      ...(ogImage ? { images: [ogImage] } : {}),
     },
   };
 }
@@ -103,20 +140,67 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const [cookieStore, reqHeaders] = await Promise.all([cookies(), headers()]);
+  const [cookieStore, reqHeaders, cms] = await Promise.all([
+    cookies(),
+    headers(),
+    getServerPublicCmsWorkspace(),
+  ]);
   const headerLang = reqHeaders.get("x-qafnest-locale");
   const rawLang = headerLang || cookieStore.get("qafnest_lang")?.value;
   const initialLang: "ar" | "en" = rawLang === "en" ? "en" : "ar";
   const initialDir = initialLang === "ar" ? "rtl" : "ltr";
   const rawTheme = cookieStore.get("qafnest_theme")?.value;
   const initialTheme: "light" | "dark" = rawTheme === "light" ? "light" : "dark";
+  const gtmId = cms.globals.gtm?.enabled ? cms.globals.gtm.gtmId : "";
+
+  const sameAs = Array.from(
+    new Set([
+      ...Object.values(cms.globals.siteSeo?.socialProfiles || {}),
+      ...cms.socialLinks.filter((s) => s.enabled).map((s) => s.url),
+    ])
+  ).filter((u) => typeof u === "string" && /^https?:\/\//i.test(u.trim()));
+
+  const orgJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    name: cms.globals.siteSeo?.siteName?.en || "QafNest",
+    url: cms.globals.siteSeo?.openGraph?.url || baseUrl,
+    ...(cms.globals.siteSeo?.openGraph?.image
+      ? { logo: cms.globals.siteSeo.openGraph.image }
+      : {}),
+    ...(sameAs.length > 0 ? { sameAs } : {}),
+  };
 
   return (
     <html lang={initialLang} dir={initialDir} className={`${geist.variable} ${dinNext.variable} ${initialTheme}`} suppressHydrationWarning>
+      <head>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(orgJsonLd) }}
+        />
+        {gtmId && (
+          <script
+            id="qafnest-gtm-head"
+            dangerouslySetInnerHTML={{
+              __html: `(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer','${gtmId}');`,
+            }}
+          />
+        )}
+      </head>
       <body
         className="font-body relative min-h-screen selection:bg-violet-500/30"
         suppressHydrationWarning
       >
+        {gtmId && (
+          <noscript>
+            <iframe
+              src={`https://www.googletagmanager.com/ns.html?id=${encodeURIComponent(gtmId)}`}
+              height="0"
+              width="0"
+              style={{ display: "none", visibility: "hidden" }}
+            />
+          </noscript>
+        )}
         <script
           id="qafnest-preferences"
           dangerouslySetInnerHTML={{
@@ -125,6 +209,11 @@ export default async function RootLayout({
         />
         <ClientProviders initialLang={initialLang} initialTheme={initialTheme}>
           <DynamicSeoTags />
+          {gtmId && (
+            <Suspense fallback={null}>
+              <GoogleTagManagerTracker gtmId={gtmId} />
+            </Suspense>
+          )}
           {children}
         </ClientProviders>
       </body>
