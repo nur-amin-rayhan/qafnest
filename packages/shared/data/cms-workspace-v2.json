@@ -599,7 +599,7 @@
   ],
   "globals": {
     "gtm": {
-      "gtmId": "GTM-QAFNEST1",
+      "gtmId": "GTM-TRLJXWXD",
       "enabled": true
     },
     "aboutUs": {
@@ -652,7 +652,7 @@
       "openGraph": {
         "url": "https://qafnest.com",
         "type": "website",
-        "image": "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1200&q=80",
+        "image": "",
         "title": {
           "ar": "قاف نست - إقامات خاصة مختارة في جميع أنحاء المملكة",
           "en": "QafNest - Curated Private Stays Across Saudi Arabia"

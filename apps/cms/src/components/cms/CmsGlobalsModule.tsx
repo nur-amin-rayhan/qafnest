@@ -188,6 +188,7 @@ export function CmsGlobalsModule({
           </div>
           <MediaPickerField
             label="Hero Image"
+            helperText={isAr ? "الأبعاد المثالية: 1920 × 1080 بكسل (16:9) بجودة عالية للواجهة الرئيسية (JPG, PNG, WebP)" : "Recommended: 1920 × 1080 px (16:9 aspect ratio) | High-definition landscape (JPG, PNG, WebP, max 3MB)"}
             value={hero.heroImage}
             onChange={(url) => patchHero({ heroImage: url })}
             mediaLibrary={workspace.media}
@@ -814,7 +815,8 @@ export function CmsGlobalsModule({
             />
           </div>
           <MediaPickerField
-            label="Open Graph Default Image"
+            label="Open Graph Default Image (Facebook, WhatsApp, LinkedIn, X)"
+            helperText={isAr ? "الأبعاد المثالية: 1200 × 630 بكسل (نسبة 1.91:1) | صورة واضحة عالية الدقة لمشاركة الروابط على واتساب وفيسبوك وإكس ولينكدإن (JPG, PNG, WebP حتى 2MB)" : "Recommended: 1200 × 630 px (1.91:1 aspect ratio) | Perfect for WhatsApp, Facebook, X, and LinkedIn preview cards (JPG, PNG, WebP up to 2MB)"}
             value={seo.openGraph.image}
             onChange={(url) => patchSeo({ openGraph: { ...seo.openGraph, image: url } })}
             mediaLibrary={workspace.media}
@@ -1033,6 +1035,7 @@ export function CmsGlobalsModule({
 
         <MediaPickerField
           label="Open Graph Image"
+          helperText={isAr ? "الأبعاد المثالية: 1200 × 630 بكسل (1.91:1) لمشاركة صفحة من نحن على الشبكات الاجتماعية" : "Recommended: 1200 × 630 px (1.91:1 aspect ratio) for social sharing"}
           value={about.ogImage}
           onChange={(url) => patchAbout({ ogImage: url })}
           mediaLibrary={workspace.media}
