@@ -37,7 +37,14 @@ export interface CmsUserRecord {
   firstName: string;
   lastName: string;
   role: string;
+  phone?: string;
+  status?: "active" | "suspended" | "pending";
+  password?: string;
+  forcePasswordChange?: boolean;
+  lastLoginAt?: string;
+  createdAt?: string;
   updatedAt: string;
+  notes?: string;
 }
 
 export interface CmsMediaRecord {

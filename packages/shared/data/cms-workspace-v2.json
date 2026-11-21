@@ -1,4 +1,279 @@
 {
+  "users": [
+    {
+      "id": "usr-1",
+      "role": "Editor",
+      "email": "team@qafnest.com",
+      "lastName": "Team",
+      "firstName": "QafNest",
+      "updatedAt": "2026-11-17T19:32:16.510Z",
+      "status": "active",
+      "createdAt": "2026-11-17T19:32:16.510Z"
+    },
+    {
+      "id": "usr-2",
+      "role": "Editor",
+      "email": "info@qafnest.com",
+      "lastName": "Amin",
+      "firstName": "Nur",
+      "updatedAt": "2026-11-17T19:32:16.510Z",
+      "status": "active",
+      "createdAt": "2026-11-17T19:32:16.510Z"
+    },
+    {
+      "id": "usr-3",
+      "role": "Admin",
+      "email": "cms.dev@qafnest.com",
+      "lastName": "Admin",
+      "firstName": "CMS",
+      "updatedAt": "2026-11-17T19:32:16.510Z",
+      "status": "active",
+      "createdAt": "2026-11-17T19:32:16.510Z"
+    },
+    {
+      "id": "usr-4",
+      "role": "Super Admin",
+      "email": "admin@qafnest.com",
+      "lastName": "Super Admin",
+      "firstName": "QafNest",
+      "updatedAt": "2026-11-17T19:32:16.510Z",
+      "status": "active",
+      "createdAt": "2026-11-17T19:32:16.510Z"
+    }
+  ],
+  "media": [],
+  "categories": [
+    {
+      "id": "cat-1",
+      "name": {
+        "ar": "شاليهات وإقامة ذكية",
+        "en": "Chalets & Smart Living"
+      },
+      "slug": "chalet",
+      "updatedAt": "2026-11-17T19:32:16.510Z",
+      "description": {
+        "ar": "شاليهات خاصة حديثة بأقفال ذكية ومسابح في جميع أنحاء المملكة.",
+        "en": "Modern private chalets with smart locks and pools across KSA."
+      }
+    },
+    {
+      "id": "cat-2",
+      "name": {
+        "ar": "ملاذات فاخرة وفلل",
+        "en": "Luxury Escapes & Villas"
+      },
+      "slug": "villa",
+      "updatedAt": "2026-11-17T19:32:16.510Z",
+      "description": {
+        "ar": "فلل ومنتجعات عائلية فاخرة مرخصة.",
+        "en": "Licensed VIP family villas and resorts."
+      }
+    },
+    {
+      "id": "cat-3",
+      "name": {
+        "ar": "مزارع ريفية",
+        "en": "Country Farms"
+      },
+      "slug": "farm",
+      "updatedAt": "2026-11-17T19:32:16.510Z",
+      "description": {
+        "ar": "مزارع ريفية خاصة في الدرعية والطائف والأحساء.",
+        "en": "Private greenery escapes in Diriyah, Taif, and Al-Ahsa."
+      }
+    },
+    {
+      "id": "cat-4",
+      "name": {
+        "ar": "مخيمات صحراوية",
+        "en": "Desert Camps"
+      },
+      "slug": "camp",
+      "updatedAt": "2026-11-17T19:32:16.510Z",
+      "description": {
+        "ar": "تجارب تخييم صحراوية فاخرة وأصيلة.",
+        "en": "Authentic Saudi desert glamping experiences."
+      }
+    },
+    {
+      "id": "cat-5",
+      "name": {
+        "ar": "أدلة السياحة السعودية",
+        "en": "Saudi Tourism Guides"
+      },
+      "slug": "guides",
+      "updatedAt": "2026-11-17T19:32:16.510Z",
+      "description": {
+        "ar": "أدلة سفر موسمية للرياض وجدة وأبها والعلا.",
+        "en": "Seasonal travel itineraries for Riyadh, Jeddah, Abha, and AlUla."
+      }
+    },
+    {
+      "id": "cat-6",
+      "name": {
+        "ar": "إرشادات المضيفين والعوائد",
+        "en": "Host Insights & Revenue"
+      },
+      "slug": "host-tips",
+      "updatedAt": "2026-11-17T19:32:16.510Z",
+      "description": {
+        "ar": "تراخيص وزارة السياحة والتسعير والامتثال لهيئة الزكاة والضريبة.",
+        "en": "Ministry of Tourism licensing, pricing, and ZATCA compliance."
+      }
+    }
+  ],
+  "roles": [
+    {
+      "id": "role-1",
+      "name": "Admin",
+      "updatedAt": "2026-11-17T19:32:16.510Z",
+      "description": "Manage content, collections, SEO, and editorial operations.",
+      "permissions": {
+        "blogs": {
+          "read": true,
+          "create": true,
+          "delete": true,
+          "update": true
+        },
+        "media": {
+          "read": true,
+          "create": true,
+          "delete": true,
+          "update": true
+        },
+        "roles": {
+          "read": true,
+          "create": false,
+          "delete": false,
+          "update": false
+        },
+        "users": {
+          "read": true,
+          "create": true,
+          "delete": false,
+          "update": true
+        },
+        "categories": {
+          "read": true,
+          "create": true,
+          "delete": true,
+          "update": true
+        },
+        "legalPages": {
+          "read": true,
+          "create": true,
+          "delete": true,
+          "update": true
+        },
+        "businessPages": {
+          "read": true,
+          "create": true,
+          "delete": true,
+          "update": true
+        }
+      }
+    },
+    {
+      "id": "role-2",
+      "name": "Editor",
+      "updatedAt": "2026-11-17T19:32:16.510Z",
+      "description": "Create and edit blogs, categories, media, and FAQs.",
+      "permissions": {
+        "blogs": {
+          "read": true,
+          "create": true,
+          "delete": false,
+          "update": true
+        },
+        "media": {
+          "read": true,
+          "create": true,
+          "delete": false,
+          "update": true
+        },
+        "roles": {
+          "read": true,
+          "create": false,
+          "delete": false,
+          "update": false
+        },
+        "users": {
+          "read": true,
+          "create": false,
+          "delete": false,
+          "update": false
+        },
+        "categories": {
+          "read": true,
+          "create": true,
+          "delete": false,
+          "update": true
+        },
+        "legalPages": {
+          "read": true,
+          "create": false,
+          "delete": false,
+          "update": false
+        },
+        "businessPages": {
+          "read": true,
+          "create": true,
+          "delete": false,
+          "update": true
+        }
+      }
+    },
+    {
+      "id": "role-3",
+      "name": "Super Admin",
+      "updatedAt": "2026-11-17T19:32:16.510Z",
+      "description": "Full access to the entire system.",
+      "permissions": {
+        "blogs": {
+          "read": true,
+          "create": true,
+          "delete": true,
+          "update": true
+        },
+        "media": {
+          "read": true,
+          "create": true,
+          "delete": true,
+          "update": true
+        },
+        "roles": {
+          "read": true,
+          "create": true,
+          "delete": true,
+          "update": true
+        },
+        "users": {
+          "read": true,
+          "create": true,
+          "delete": true,
+          "update": true
+        },
+        "categories": {
+          "read": true,
+          "create": true,
+          "delete": true,
+          "update": true
+        },
+        "legalPages": {
+          "read": true,
+          "create": true,
+          "delete": true,
+          "update": true
+        },
+        "businessPages": {
+          "read": true,
+          "create": true,
+          "delete": true,
+          "update": true
+        }
+      }
+    }
+  ],
   "faqs": [
     {
       "id": "faq-1",
@@ -211,838 +486,7 @@
       "updatedAt": "2026-03-31T00:00:00.000Z"
     }
   ],
-  "media": [],
-  "roles": [
-    {
-      "id": "role-1",
-      "name": "Admin",
-      "updatedAt": "2026-11-17T19:32:16.510Z",
-      "description": "Manage content, collections, SEO, and editorial operations.",
-      "permissions": {
-        "blogs": {
-          "read": true,
-          "create": true,
-          "delete": true,
-          "update": true
-        },
-        "media": {
-          "read": true,
-          "create": true,
-          "delete": true,
-          "update": true
-        },
-        "roles": {
-          "read": true,
-          "create": false,
-          "delete": false,
-          "update": false
-        },
-        "users": {
-          "read": true,
-          "create": true,
-          "delete": false,
-          "update": true
-        },
-        "categories": {
-          "read": true,
-          "create": true,
-          "delete": true,
-          "update": true
-        },
-        "legalPages": {
-          "read": true,
-          "create": true,
-          "delete": true,
-          "update": true
-        },
-        "businessPages": {
-          "read": true,
-          "create": true,
-          "delete": true,
-          "update": true
-        }
-      }
-    },
-    {
-      "id": "role-2",
-      "name": "Editor",
-      "updatedAt": "2026-11-17T19:32:16.510Z",
-      "description": "Create and edit blogs, categories, media, and FAQs.",
-      "permissions": {
-        "blogs": {
-          "read": true,
-          "create": true,
-          "delete": false,
-          "update": true
-        },
-        "media": {
-          "read": true,
-          "create": true,
-          "delete": false,
-          "update": true
-        },
-        "roles": {
-          "read": true,
-          "create": false,
-          "delete": false,
-          "update": false
-        },
-        "users": {
-          "read": true,
-          "create": false,
-          "delete": false,
-          "update": false
-        },
-        "categories": {
-          "read": true,
-          "create": true,
-          "delete": false,
-          "update": true
-        },
-        "legalPages": {
-          "read": true,
-          "create": false,
-          "delete": false,
-          "update": false
-        },
-        "businessPages": {
-          "read": true,
-          "create": true,
-          "delete": false,
-          "update": true
-        }
-      }
-    },
-    {
-      "id": "role-3",
-      "name": "Super Admin",
-      "updatedAt": "2026-11-17T19:32:16.510Z",
-      "description": "Full access to the entire system.",
-      "permissions": {
-        "blogs": {
-          "read": true,
-          "create": true,
-          "delete": true,
-          "update": true
-        },
-        "media": {
-          "read": true,
-          "create": true,
-          "delete": true,
-          "update": true
-        },
-        "roles": {
-          "read": true,
-          "create": true,
-          "delete": true,
-          "update": true
-        },
-        "users": {
-          "read": true,
-          "create": true,
-          "delete": true,
-          "update": true
-        },
-        "categories": {
-          "read": true,
-          "create": true,
-          "delete": true,
-          "update": true
-        },
-        "legalPages": {
-          "read": true,
-          "create": true,
-          "delete": true,
-          "update": true
-        },
-        "businessPages": {
-          "read": true,
-          "create": true,
-          "delete": true,
-          "update": true
-        }
-      }
-    }
-  ],
-  "users": [
-    {
-      "id": "usr-1",
-      "role": "Editor",
-      "email": "team@qafnest.com",
-      "lastName": "Team",
-      "firstName": "QafNest",
-      "updatedAt": "2026-11-17T19:32:16.510Z"
-    },
-    {
-      "id": "usr-2",
-      "role": "Editor",
-      "email": "info@qafnest.com",
-      "lastName": "Amin",
-      "firstName": "Nur",
-      "updatedAt": "2026-11-17T19:32:16.510Z"
-    },
-    {
-      "id": "usr-3",
-      "role": "Admin",
-      "email": "cms.dev@qafnest.com",
-      "lastName": "Admin",
-      "firstName": "CMS",
-      "updatedAt": "2026-11-17T19:32:16.510Z"
-    },
-    {
-      "id": "usr-4",
-      "role": "Super Admin",
-      "email": "admin@qafnest.com",
-      "lastName": "Super Admin",
-      "firstName": "QafNest",
-      "updatedAt": "2026-11-17T19:32:16.510Z"
-    }
-  ],
-  "globals": {
-    "gtm": {
-      "gtmId": "GTM-TRLJXWXD",
-      "enabled": true
-    },
-    "aboutUs": {
-      "content": {
-        "ar": "<p><strong>الملف التعريفي · شريك الضيافة في رؤية السعودية 2030</strong></p><h2>نعيد تعريف تجربة الإقامات الخاصة في المملكة العربية السعودية</h2><p>انطلاقاً من مقرها الرئيسي في الرياض، تقدم <strong>قاف نست</strong> منصة ضيافة تقنية رائدة تربط العائلات والمسافرين بأفضل الشاليهات والفلل والمزارع والمخيمات المرخصة في جميع مناطق المملكة.</p><h3>مرخصة 100% من وزارة السياحة</h3><p>تخضع كل وحدة لمراجعة دقيقة لضمان أعلى معايير الجودة والأمان.</p>",
-        "en": "<p><strong>Corporate Profile · Saudi Vision 2030 Hospitality Partner</strong></p><h2>Redefining Private Vacation Stays Across Saudi Arabia</h2><p>Headquartered in Riyadh, <strong>QafNest</strong> is a premier technology-driven hospitality marketplace connecting families and travelers with verified chalets, luxury villas, private farms, and desert camps across all 13 Saudi provinces.</p><h3>100% Ministry of Tourism Licensed</h3><p>Every property is reviewed and verified for compliance and quality.</p><h3>24/7 Smart Hospitality</h3><p>Instant booking confirmation, smart lock PIN codes, and bilingual concierge support.</p>"
-      },
-      "noIndex": false,
-      "ogImage": "",
-      "keywords": {
-        "ar": "قاف نست، عن قاف نست، منصة الضيافة السعودية، السياحة السعودية",
-        "en": "QafNest, about QafNest, Saudi hospitality platform, Vision 2030 tourism"
-      },
-      "metaTitle": {
-        "ar": "عن قاف نست | منصة حجز الشاليهات والفلل في السعودية",
-        "en": "About QafNest | Tech-Driven Vacation Rentals in KSA"
-      },
-      "canonicalUrl": "https://qafnest.com/en/about",
-      "metaDescription": {
-        "ar": "تعرف على قاف نست، المنصة السعودية الرائدة لحجز الشاليهات والفلل والمنتجعات الخاصة.",
-        "en": "Learn about QafNest, Saudi Arabia's leading verified vacation rental platform for chalets, villas, and resorts."
-      }
-    },
-    "siteSeo": {
-      "robots": {
-        "noIndex": false,
-        "noFollow": false,
-        "customRules": "User-Agent: *\nAllow: /\nAllow: /ar/\nAllow: /en/\nDisallow: /api/\nDisallow: /auth/\nDisallow: /my-bookings\nDisallow: /ar/my-bookings\nDisallow: /en/my-bookings\nDisallow: /account\nDisallow: /ar/account\nDisallow: /en/account\nDisallow: /wishlist\nDisallow: /ar/wishlist\nDisallow: /en/wishlist\nDisallow: /*?*payment=*\n\nSitemap: https://www.qafnest.com/sitemap.xml"
-      },
-      "twitter": {
-        "card": "summary_large_image",
-        "title": {
-          "ar": "قاف نست للضيافة السعودية",
-          "en": "QafNest Saudi Hospitality"
-        },
-        "handle": "@qafnest",
-        "description": {
-          "ar": "حجز فوري لأفضل الشاليهات والفلل في المملكة.",
-          "en": "Instant booking for private chalets and villas across KSA."
-        }
-      },
-      "keywords": {
-        "ar": "قاف نست، شاليهات الرياض، فلل جدة، منتجعات السعودية، حجز شاليهات، دخول ذاتي",
-        "en": "QafNest, Saudi chalets, Riyadh villas, Jeddah resorts, vacation rentals KSA, smart self check-in"
-      },
-      "siteName": {
-        "ar": "قاف نست",
-        "en": "QafNest"
-      },
-      "openGraph": {
-        "url": "https://qafnest.com",
-        "type": "website",
-        "image": "",
-        "title": {
-          "ar": "قاف نست - إقامات خاصة مختارة في جميع أنحاء المملكة",
-          "en": "QafNest - Curated Private Stays Across Saudi Arabia"
-        },
-        "description": {
-          "ar": "ضيافة سعودية موثقة مع حجز فوري ودخول ذكي ودفع عبر مدى و Apple Pay.",
-          "en": "Verified Saudi hospitality with instant booking, smart check-in, and Mada/Apple Pay."
-        }
-      },
-      "defaultTitle": {
-        "ar": "قاف نست - حجز الشاليهات والفلل والمنتجعات الفاخرة في السعودية",
-        "en": "QafNest - Luxury Chalets, Villas & Vacation Stays in Saudi Arabia"
-      },
-      "socialProfiles": {
-        "tiktok": "https://www.tiktok.com/@qafnest",
-        "twitter": "https://x.com/qafnest",
-        "youtube": "https://youtube.com/@qafnest",
-        "facebook": "https://www.facebook.com/qafnest.sa",
-        "linkedin": "https://linkedin.com/company/qafnest",
-        "instagram": "https://www.instagram.com/qafnest",
-        "pinterest": "https://pinterest.com/qafnest"
-      },
-      "defaultDescription": {
-        "ar": "احجز أفضل الشاليهات الخاصة والفلل والمنتجعات والمخيمات المرخصة في الرياض وجدة وأبها والطائف والعلا مع تأكيد فوري عبر قاف نست.",
-        "en": "Book verified private chalets, villas, resorts, and desert camps across Riyadh, Jeddah, Abha, Taif, and AlUla with instant confirmation on QafNest."
-      }
-    },
-    "features": {
-      "cards": [
-        {
-          "id": "feat-1",
-          "icon": "sparkles",
-          "badge": {
-            "ar": "تقنية",
-            "en": "TECH"
-          },
-          "title": {
-            "ar": "حجز فوري ودخول ذاتي ذكي",
-            "en": "Instant Book & Smart Lock PIN"
-          },
-          "metaIcon": "bell",
-          "metaText": {
-            "ar": "دخول فوري بلا انتظار",
-            "en": "Zero Waiting Time"
-          },
-          "description": {
-            "ar": "أكّد حجزك خلال ثوانٍ واستلم رمز الدخول الذكي تلقائياً مع إشعارات فورية.",
-            "en": "Confirm your stay in seconds and receive an automated smart lock access code with WhatsApp notifications."
-          }
-        },
-        {
-          "id": "feat-2",
-          "icon": "globe",
-          "badge": {
-            "ar": "التغطية",
-            "en": "NETWORK"
-          },
-          "title": {
-            "ar": "تغطية شاملة لمدن المملكة",
-            "en": "Comprehensive KSA Destinations"
-          },
-          "metaIcon": "map",
-          "metaText": {
-            "ar": "13 منطقة سعودية",
-            "en": "13 Saudi Provinces"
-          },
-          "description": {
-            "ar": "وحدات مختارة بعناية في الرياض وجدة والخبر وأبها والطائف والعلا ومكة والمدينة.",
-            "en": "Handpicked retreats across Riyadh, Jeddah, Al-Khobar, Abha, Taif, AlUla, Makkah, and Madinah."
-          }
-        },
-        {
-          "id": "feat-3",
-          "icon": "shield",
-          "badge": {
-            "ar": "الموثوقية",
-            "en": "TRUST"
-          },
-          "title": {
-            "ar": "مرخصة 100% ومتوافقة ضريبياً",
-            "en": "100% Tourism Licensed & ZATCA"
-          },
-          "metaIcon": "check",
-          "metaText": {
-            "ar": "امتثال معتمد",
-            "en": "Verified Compliance"
-          },
-          "description": {
-            "ar": "كل عقار يحمل تصريحاً سارياً من وزارة السياحة مع فواتير ضريبية فورية معتمدة.",
-            "en": "Every property holds an active Ministry of Tourism permit with instant ZATCA Phase 2 VAT invoicing."
-          }
-        },
-        {
-          "id": "feat-4",
-          "icon": "credit-card",
-          "badge": {
-            "ar": "المدفوعات",
-            "en": "PAYMENTS"
-          },
-          "title": {
-            "ar": "مدى و Apple Pay والدفع المقسط",
-            "en": "Mada, Apple Pay & Split Payments"
-          },
-          "metaIcon": "lock",
-          "metaText": {
-            "ar": "دفع آمن ومشفر",
-            "en": "PCI-DSS Secured"
-          },
-          "description": {
-            "ar": "دفع آمن يدعم مدى وبطاقات الائتمان و Apple Pay مع مكافآت المحفظة الفورية.",
-            "en": "Secure local checkout supporting Mada, Visa/Mastercard, Apple Pay, and instant wallet cashback rewards."
-          }
-        }
-      ],
-      "title": {
-        "ar": "لماذا تختار قاف نست؟",
-        "en": "WHY CHOOSE QAFNEST?"
-      },
-      "slaBadge": {
-        "ar": "وحدات مرخصة وموثقة",
-        "en": "Licensed & Verified Stays"
-      },
-      "subtitle": {
-        "ar": "معيار الضيافة المبتكر للعائلات والمسافرين في المملكة",
-        "en": "The hospitality standard engineered for Saudi families and travelers"
-      },
-      "showSection": true
-    },
-    "homeHero": {
-      "badge": {
-        "ar": "ضيافة سعودية موثقة · رؤية 2030",
-        "en": "Verified Saudi Hospitality · Vision 2030"
-      },
-      "heroImage": "",
-      "titleLine1": {
-        "ar": "إقامات خاصة استثنائية",
-        "en": "Curated Private Stays"
-      },
-      "titleLine2": {
-        "ar": "مصممة لتجارب لا تُنسى",
-        "en": "Built for Memorable Getaways"
-      },
-      "description": {
-        "ar": "قاف نست هي المنصة الرائدة لحجز الشاليهات والفلل والمنتجعات الخاصة المرخصة في المملكة العربية السعودية بتجربة حجز فوري ودخول ذاتي ذكي.",
-        "en": "QafNest is Saudi Arabia's premier tech-enabled vacation rental platform offering licensed chalets, villas, farms, and smart self-check-in retreats across the Kingdom."
-      },
-      "contactButton": {
-        "url": "/contact",
-        "label": {
-          "ar": "تواصل معنا",
-          "en": "Contact Us"
-        },
-        "openInNewTab": false
-      },
-      "profileButton": {
-        "url": "/search",
-        "label": {
-          "ar": "استكشف الوجهات",
-          "en": "Explore Destinations"
-        },
-        "openInNewTab": false
-      }
-    },
-    "contactUs": {
-      "phone": "+966500000000",
-      "address": {
-        "ar": "الرياض (المقر الرئيسي) وجدة، المملكة العربية السعودية",
-        "en": "Riyadh (HQ) & Jeddah Hubs, Kingdom of Saudi Arabia"
-      },
-      "facebook": "https://www.facebook.com/qafnest.sa",
-      "whatsapp": "+966500000000",
-      "instagram": "https://www.instagram.com/qafnest/",
-      "generalEmail": "info@qafnest.com",
-      "supportEmail": "support@qafnest.com",
-      "businessEmail": "hosts@qafnest.com"
-    },
-    "industries": {
-      "cards": [
-        {
-          "id": "ind-1",
-          "icon": "heart",
-          "badge": {
-            "ar": "العائلات",
-            "en": "FAMILY"
-          },
-          "title": {
-            "ar": "عطلات العائلات الأسبوعية",
-            "en": "Weekend Family Retreats"
-          },
-          "metaIcon": "star",
-          "metaText": {
-            "ar": "الأكثر طلباً",
-            "en": "Most Popular"
-          },
-          "description": {
-            "ar": "منتجعات آمنة وخاصة مع مناطق ألعاب أطفال ومسابح مستقلة.",
-            "en": "Safe, private compounds with kids' play areas and private pools."
-          }
-        },
-        {
-          "id": "ind-2",
-          "icon": "briefcase",
-          "badge": {
-            "ar": "الأعمال",
-            "en": "CORPORATE"
-          },
-          "title": {
-            "ar": "إقامات رجال الأعمال",
-            "en": "Executive & Bleisure Stays"
-          },
-          "metaIcon": "check",
-          "metaText": {
-            "ar": "فواتير ضريبية فورية",
-            "en": "ZATCA Ready"
-          },
-          "description": {
-            "ar": "إنترنت فائق السرعة ومساحات عمل وفواتير ضريبية فورية للشركات.",
-            "en": "High-speed fiber Wi-Fi, workspaces, and instant ZATCA company tax invoices."
-          }
-        }
-      ],
-      "title": {
-        "ar": "فئات الإقامة والتجارب",
-        "en": "STAY SEGMENTS & EXPERIENCES"
-      },
-      "slaBadge": {
-        "ar": "لجميع المناسبات",
-        "en": "All Occasions"
-      },
-      "subtitle": {
-        "ar": "مجموعات إقامة مخصصة لكل مسافر ومناسبة",
-        "en": "Tailored accommodation collections for every traveler and occasion"
-      },
-      "showSection": true
-    },
-    "coverageNetwork": {
-      "badge": {
-        "ar": "توافر فوري مباشر",
-        "en": "Live Instant Availability"
-      },
-      "title": {
-        "ar": "شبكة الإقامات في جميع أنحاء المملكة",
-        "en": "KINGDOM-WIDE STAY NETWORK"
-      },
-      "description": {
-        "ar": "وصول سلس إلى أفضل الشاليهات والفلل والوجهات الموسمية في المملكة العربية السعودية",
-        "en": "Seamless access to verified chalets, villas, and seasonal destinations across Saudi Arabia"
-      },
-      "showSection": true,
-      "highlightCards": [
-        {
-          "id": "hl-1",
-          "label": {
-            "ar": "منطقة سعودية",
-            "en": "Saudi Regions"
-          },
-          "value": "13",
-          "description": {
-            "ar": "تغطية شاملة من الرياض وجدة حتى أبها والعلا",
-            "en": "Complete coverage from Riyadh and Jeddah to Abha and AlUla"
-          }
-        },
-        {
-          "id": "hl-2",
-          "label": {
-            "ar": "وحدات مرخصة",
-            "en": "Licensed Units"
-          },
-          "value": "100%",
-          "description": {
-            "ar": "وحدات معتمدة من وزارة السياحة بأسعار شفافة",
-            "en": "Ministry of Tourism verified listings with transparent pricing"
-          }
-        },
-        {
-          "id": "hl-3",
-          "label": {
-            "ar": "دعم على مدار الساعة",
-            "en": "Concierge Support"
-          },
-          "value": "24/7",
-          "description": {
-            "ar": "فريق دعم متخصص للضيوف والمضيفين باللغتين العربية والإنجليزية",
-            "en": "Dedicated bilingual guest and host helpline team"
-          }
-        },
-        {
-          "id": "hl-4",
-          "label": {
-            "ar": "تحويل أرباح المضيف",
-            "en": "Host Settlement"
-          },
-          "value": "24h",
-          "description": {
-            "ar": "تسوية آلية سريعة إلى الحساب البنكي للمضيف",
-            "en": "Automated Saudi IBAN payouts after guest check-in"
-          }
-        }
-      ],
-      "showSecondaryCards": true
-    },
-    "fleetCapabilities": {
-      "cards": [
-        {
-          "id": "cap-1",
-          "icon": "home",
-          "badge": {
-            "ar": "شاليهات",
-            "en": "CHALETS"
-          },
-          "title": {
-            "ar": "شاليهات بمسابح خاصة مدفأة",
-            "en": "Private Heated Pool Chalets"
-          },
-          "metaIcon": "check",
-          "metaText": {
-            "ar": "خصوصية تامة",
-            "en": "Family Privacy"
-          },
-          "description": {
-            "ar": "خصوصية عائلية كاملة مع مجالس خارجية ومسابح مدفأة.",
-            "en": "Complete family privacy with outdoor majlis, BBQ zones, and climate-controlled pools."
-          }
-        },
-        {
-          "id": "cap-2",
-          "icon": "building",
-          "badge": {
-            "ar": "فلل",
-            "en": "VILLAS"
-          },
-          "title": {
-            "ar": "فلل فاخرة متعددة الغرف",
-            "en": "Luxury Multi-Bedroom Villas"
-          },
-          "metaIcon": "users",
-          "metaText": {
-            "ar": "تتسع للعائلات الكبيرة",
-            "en": "Up to 20 Guests"
-          },
-          "description": {
-            "ar": "فلل واسعة مثالية للتجمعات العائلية وإجازات نهاية الأسبوع.",
-            "en": "Spacious designer villas ideal for gatherings, Eid holidays, and weekend retreats."
-          }
-        }
-      ],
-      "title": {
-        "ar": "معايير الوحدات والمرافق",
-        "en": "PROPERTY STANDARDS & AMENITIES"
-      },
-      "slaBadge": {
-        "ar": "جودة مفحوصة",
-        "en": "Quality Inspected"
-      },
-      "subtitle": {
-        "ar": "فئات متنوعة مفحوصة للخصوصية والنظافة والراحة القصوى",
-        "en": "Curated categories inspected for privacy, cleanliness, and comfort"
-      },
-      "showSection": true
-    }
-  },
-  "categories": [
-    {
-      "id": "cat-1",
-      "name": {
-        "ar": "شاليهات وإقامة ذكية",
-        "en": "Chalets & Smart Living"
-      },
-      "slug": "chalet",
-      "updatedAt": "2026-11-17T19:32:16.510Z",
-      "description": {
-        "ar": "شاليهات خاصة حديثة بأقفال ذكية ومسابح في جميع أنحاء المملكة.",
-        "en": "Modern private chalets with smart locks and pools across KSA."
-      }
-    },
-    {
-      "id": "cat-2",
-      "name": {
-        "ar": "ملاذات فاخرة وفلل",
-        "en": "Luxury Escapes & Villas"
-      },
-      "slug": "villa",
-      "updatedAt": "2026-11-17T19:32:16.510Z",
-      "description": {
-        "ar": "فلل ومنتجعات عائلية فاخرة مرخصة.",
-        "en": "Licensed VIP family villas and resorts."
-      }
-    },
-    {
-      "id": "cat-3",
-      "name": {
-        "ar": "مزارع ريفية",
-        "en": "Country Farms"
-      },
-      "slug": "farm",
-      "updatedAt": "2026-11-17T19:32:16.510Z",
-      "description": {
-        "ar": "مزارع ريفية خاصة في الدرعية والطائف والأحساء.",
-        "en": "Private greenery escapes in Diriyah, Taif, and Al-Ahsa."
-      }
-    },
-    {
-      "id": "cat-4",
-      "name": {
-        "ar": "مخيمات صحراوية",
-        "en": "Desert Camps"
-      },
-      "slug": "camp",
-      "updatedAt": "2026-11-17T19:32:16.510Z",
-      "description": {
-        "ar": "تجارب تخييم صحراوية فاخرة وأصيلة.",
-        "en": "Authentic Saudi desert glamping experiences."
-      }
-    },
-    {
-      "id": "cat-5",
-      "name": {
-        "ar": "أدلة السياحة السعودية",
-        "en": "Saudi Tourism Guides"
-      },
-      "slug": "guides",
-      "updatedAt": "2026-11-17T19:32:16.510Z",
-      "description": {
-        "ar": "أدلة سفر موسمية للرياض وجدة وأبها والعلا.",
-        "en": "Seasonal travel itineraries for Riyadh, Jeddah, Abha, and AlUla."
-      }
-    },
-    {
-      "id": "cat-6",
-      "name": {
-        "ar": "إرشادات المضيفين والعوائد",
-        "en": "Host Insights & Revenue"
-      },
-      "slug": "host-tips",
-      "updatedAt": "2026-11-17T19:32:16.510Z",
-      "description": {
-        "ar": "تراخيص وزارة السياحة والتسعير والامتثال لهيئة الزكاة والضريبة.",
-        "en": "Ministry of Tourism licensing, pricing, and ZATCA compliance."
-      }
-    }
-  ],
   "homePopups": [],
-  "legalPages": [
-    {
-      "id": "leg-1",
-      "slug": "privacy-policy",
-      "title": {
-        "ar": "سياسة الخصوصية وحماية البيانات",
-        "en": "Privacy Policy & Data Protection"
-      },
-      "content": {
-        "ar": "<h2>١. إشعار الخصوصية والإطار النظامي (PDPL وسدايا)</h2>\n<p>تلتزم منصة قاف نست بحماية خصوصية مستخدميها ومعالجة بياناتهم وفق أحكام نظام حماية البيانات الشخصية الصادر بالمرسوم الملكي رقم (م/19) ولائحته التنفيذية الصادرة عن الهيئة السعودية للبيانات والذكاء الاصطناعي (سدايا)، وضوابط الهيئة الوطنية للأمن السيبراني في المملكة العربية السعودية.</p>\n<p>نلتزم بمبدأ تقليل البيانات وتحديد الغرض؛ حيث نقتصر في جمع البيانات الشخصية على الحد الأدنى اللازم لتقديم خدمات حجز مرافق الضيافة، وتسوية المدفوعات، والوفاء بالالتزامات النظامية.</p>\n<h2>٢. البيانات الشخصية التي نجمعها</h2>\n<ul>\n<li><strong>بيانات التحقق والهوية:</strong> الاسم الكامل، وبيانات الهوية الوطنية أو الإقامة أو جواز السفر الموثقة عبر القنوات الوطنية المعتمدة (نفاذ ويقين) وفق متطلبات وزارة السياحة.</li>\n<li><strong>بيانات التواصل والحساب:</strong> رقم الجوال الموثق، البريد الإلكتروني، اللغة المفضلة، وتفضيلات الإشعارات.</li>\n<li><strong>بيانات الحجز والمدفوعات:</strong> سجل الحجوزات وتواريخ الإقامة، فواتير ضريبة القيمة المضافة المتوافقة مع هيئة الزكاة والضريبة والجمارك، مراجع البطاقات المشفرة (آخر 4 أرقام فقط عبر بوابات PCI-DSS)، وبيانات الآيبان السعودي للمضيفين.</li>\n<li><strong>البيانات التقنية والأمنية:</strong> عنوان IP، وبصمة الجهاز، وسجلات الأمان لمنع الاحتيال والوصول غير المصرح به.</li>\n</ul>\n<h2>٣. المسوغات والأغراض النظامية للمعالجة</h2>\n<ul>\n<li>تنفيذ عقود الإقامة والحجز بين الضيوف والمضيفين المرخصين.</li>\n<li>الامتثال للأنظمة السعودية الإلزامية (تصاريح وزارة السياحة، الفوترة الإلكترونية لزاتكا، وضوابط البنك المركزي السعودي).</li>\n<li>تقديم الدعم الفني على مدار الساعة، وتسليم رموز الدخول الذكي، وحل النزاعات، وتسوية المدفوعات والمستحقات.</li>\n<li>تحسين أداء المنصة ودقة البحث ومنع الاحتيال.</li>\n</ul>\n<h2>٤. مشاركة البيانات والإفصاح المحدود</h2>\n<p>لا تقوم قاف نست ببيع البيانات الشخصية نهائياً. تقتصر المشاركة المحدودة على: (أ) المضيف المؤكد لديه الحجز بالقدر اللازم لإتمام الاستضافة، (ب) مزودي خدمات الدفع المرخصين (ماي فاتورة، مدى، أبل باي، STC Pay، تابي، تمارا)، (ج) الجهات الحكومية والتنظيمية المختصة (وزارة السياحة، زاتكا، سدايا، نفاذ) عند الطلب النظامي.</p>\n<h2>٥. التخزين السيادي والتشفير وفترات الاحتفاظ</h2>\n<p>يتم تشفير كافة البيانات أثناء النقل (TLS 1.3) وأثناء التخزين (AES-256-GCM). ويُحتفظ بالفواتير الضريبية والسجلات المالية للمدة النظامية المقررة من هيئة الزكاة والضريبة والجمارك، ثم تُتلف أو تُجهّل البيانات غير المطلوبة نظامياً بأمان.</p>\n<h2>٦. ملفات تعريف الارتباط والتقنيات المشابهة</h2>\n<p>نستخدم ملفات تعريف الارتباط الضرورية للأمان وتسجيل الدخول، وتفضيلات اللغة والمظهر، وتحليلات الأداء المجمعة كما هو موضح في سياسة الكوكيز.</p>\n<h2>٧. حقوقك النظامية وفق نظام حماية البيانات الشخصية</h2>\n<p>لك الحق في العلم، والوصول إلى بياناتك الشخصية، وطلب تصحيحها أو تحديثها، وطلب إتلاف ما لم يعد مطلوباً نظامياً، وسحب الموافقة على الرسائل التسويقية. وفي حال عدم معالجة شكواك يمكنك التصعيد لدى هيئة سدايا.</p>\n<h2>٨. مسؤول حماية البيانات وتحديث السياسة</h2>\n<p>لممارسة حقوقك أو التواصل مع مسؤول حماية البيانات، راسلنا عبر <strong>qafnest@gmail.com</strong> أو تواصل مع خدمة العملاء على مدار الساعة.</p>",
-        "en": "<h2>1. Privacy Notice, PDPL &amp; SDAIA Framework</h2>\n<p>QafNest treats personal privacy as a core responsibility. We operate in strict compliance with the Saudi Personal Data Protection Law (PDPL) enacted under Royal Decree No. (M/19), its Implementing Regulations issued by the Saudi Data and Artificial Intelligence Authority (SDAIA), and National Cybersecurity Authority (NCA) standards.</p>\n<p>Applying data minimization and purpose limitation principles, QafNest collects and processes only the personal information strictly required to deliver secure vacation rental bookings, host settlements, and regulatory verification.</p>\n<h2>2. Personal Data We Collect</h2>\n<ul>\n<li><strong>Identity Verification Data:</strong> Full legal name, Saudi National ID / Iqama / Passport details verified through authorized national channels (Nafath &amp; Elm Yaqeen) as required by the Ministry of Tourism.</li>\n<li><strong>Contact &amp; Account Details:</strong> Verified mobile number, email address, preferred language, and communication preferences.</li>\n<li><strong>Booking &amp; Financial Records:</strong> Reservation history, stay dates, ZATCA Phase 2 VAT invoices, masked card references (last 4 digits via PCI-DSS Level 1 gateways — full PAN &amp; CVV are never exposed), and host Saudi IBAN settlement details.</li>\n<li><strong>Technical &amp; Security Metadata:</strong> IP address, device fingerprint, session logs, and anti-fraud diagnostics to prevent unauthorized access and account abuse.</li>\n</ul>\n<h2>3. Legal Basis &amp; Processing Purpose</h2>\n<ul>\n<li>Executing accommodation booking contracts between Guests and licensed Hosts.</li>\n<li>Fulfilling mandatory Saudi regulatory compliance (Ministry of Tourism permits, ZATCA e-invoicing, SAMA payment rules, and public safety verification).</li>\n<li>Providing 24/7 customer support, dispute resolution, smart-lock check-in delivery, and refund/payout settlements.</li>\n<li>Improving platform performance, search accuracy, and fraud prevention under legitimate interest and explicit user consent.</li>\n</ul>\n<h2>4. Data Sharing &amp; Permitted Disclosure</h2>\n<p>QafNest never sells personal data. Limited, purpose-bound sharing occurs strictly with: (a) the booked Host (name, verified check-in details, and guest count after reservation confirmation), (b) licensed payment &amp; installment providers (MyFatoorah, Mada, Apple Pay, STC Pay, Tabby, Tamara), (c) authorized identity &amp; tax authorities (SDAIA, Ministry of Tourism, ZATCA, Nafath/Elm) when mandated by Saudi law.</p>\n<h2>5. Storage, Encryption &amp; Retention</h2>\n<p>All sensitive records are encrypted in transit (TLS 1.3) and at rest (AES-256-GCM). Tax invoices and settlement ledgers are retained for the statutory period mandated by ZATCA and Saudi commercial regulations, after which non-statutory personal data is securely anonymized or purged.</p>\n<h2>6. Cookies &amp; Browser Technologies</h2>\n<p>We use strictly necessary session cookies, language/theme preference storage, and optional performance analytics. Full details are published in our Cookies Policy.</p>\n<h2>7. PDPL Rights &amp; SDAIA Escalation</h2>\n<p>Under the Saudi PDPL, you hold the right to be informed, access your personal data, request correction or updating, request destruction of data no longer legally required, and withdraw consent for optional marketing communications. Unresolved privacy complaints may be escalated to SDAIA.</p>\n<h2>8. Data Protection Officer &amp; Updates</h2>\n<p>To exercise your PDPL rights or contact our Data Protection Officer, email <strong>qafnest@gmail.com</strong> or call our 24/7 support desk. Material updates to this notice are published here with a revised effective date.</p>"
-      },
-      "metaTitle": {
-        "ar": "سياسة الخصوصية | قاف نست",
-        "en": "Privacy Policy | QafNest"
-      },
-      "updatedAt": "2026-11-17T19:32:16.510Z",
-      "showSection": true,
-      "canonicalUrl": "https://qafnest.com/en/privacy-policy",
-      "metaDescription": {
-        "ar": "تعرف على كيفية حماية قاف نست لبياناتك الشخصية وفق نظام حماية البيانات الشخصية وضوابط سدايا.",
-        "en": "Learn how QafNest protects your personal data under Saudi PDPL and SDAIA regulations."
-      }
-    },
-    {
-      "id": "leg-2",
-      "slug": "terms-and-conditions",
-      "title": {
-        "ar": "الشروط والأحكام العامة للمنصة",
-        "en": "Terms and Conditions of Use"
-      },
-      "content": {
-        "ar": "<h2>١. الاتفاقية الملزمة ودور المنصة الوسيط</h2>\n<p>يُعد دخولك إلى منصة قاف نست أو تصفحك أو تسجيلك فيها موافقةً تامة ودون قيد أو شرط على هذه الشروط والأحكام وسياسة الخصوصية وجميع السياسات المكملة المنشورة على المنصة.</p>\n<p>تعمل منصة قاف نست كوسيط إلكتروني تقني مرخص من وزارة السياحة في المملكة العربية السعودية (ترخيص رقم 73102999) يربط بين المضيفين المرخصين والضيوف لحجز الشاليهات والفلل والاستراحات والشقق والمزارع والمخيمات.</p>\n<h2>٢. الأهلية وحسابات الضيف والمضيف</h2>\n<p>يشترط ألا يقل عمر المستخدم عن 18 عاماً وأن يتمتع بالأهلية النظامية، مع الالتزام بتوثيق الهوية الوطنية أو الإقامة أو جواز السفر (عبر نفاذ ويقين) ورقم الجوال قبل تأكيد الحجز أو تفعيل الإعلان.</p>\n<h2>٣. تأكيد الحجز وقواعد الإقامة</h2>\n<p>لا يصبح الحجز مؤكداً إلا بعد إتمام السداد الإلكتروني عبر قنوات الدفع المعتمدة في المنصة، ويلتزم الضيف بمواعيد الدخول والخروج والحد الأقصى للنزلاء وقواعد الذوق العام والهدوء.</p>\n<h2>٤. مبلغ التأمين والدخول الذاتي</h2>\n<p>تُعرض تفاصيل مبلغ التأمين بوضوح قبل الدفع متى ما وُجد، وفي وحدات الدخول الذاتي يتم تسليم رمز القفل الذكي بأمان داخل صفحة «حجوزاتي» بعد تأكيد السداد.</p>\n<h2>٥. سياسة الإلغاء والتعديل والاسترداد</h2>\n<p>تخضع الحجوزات المؤكدة لسياسة الإلغاء المعلنة في صفحة العقار قبل السداد. وفي حالات تعذر تسليم الوحدة من قِبل المضيف أو عدم مطابقتها الجوهرية، تتدخل إدارة العمليات فوراً لحماية حقوق الضيف.</p>\n<h2>٦. رسوم الخدمة والمستحقات وضريبة القيمة المضافة ١٥٪</h2>\n<p>تُعرض رسوم الخدمة وضريبة القيمة المضافة (١٥٪) بشفافية تامة قبل الدفع، وتصدر فاتورة إلكترونية معتمدة ومتوافقة مع المرحلة الثانية لزاتكا. وتُحول صافي مستحقات المضيف عبر نظام سريع خلال ٢٤ ساعة من تسجيل الدخول.</p>\n<h2>٧. معايير المضيف وبرنامج حماية المضيف</h2>\n<p>يضمن المضيف سريان تصريح وزارة السياحة ودقة الصور والمواصفات وجاهزية الوحدة، ويُغطى أي ضرر موثق يسببه النزيل وفق إجراءات برنامج حماية المضيف.</p>\n<h2>٨. التزامات الضيف والمسؤولية عن الأضرار</h2>\n<p>يتحمل الضيف مسؤولية المحافظة على العقار ومحتوياته والامتناع عن التجمعات المخالفة أو التأجير من الباطن، وتعويض أي تلفيات مباشرة موثقة.</p>\n<h2>٩. الملكية الفكرية</h2>\n<p>جميع العلامات التجارية والتصاميم والبرمجيات والمحتوى مملوكة حصرياً لمجموعة قاف نست للضيافة ويُحظر نسخها أو استغلالها دون إذن خطي مسبق.</p>\n<h2>١٠. النظام الحاكم وتسوية النزاعات</h2>\n<p>تخضع هذه الشروط لأنظمة المملكة العربية السعودية، وتختص المحاكم المختصة في مدينة الرياض بالفصل في أي نزاع لم يُحل ودياً.</p>",
-        "en": "<h2>1. Binding Agreement &amp; Platform Role</h2>\n<p>Accessing, browsing, or registering on QafNest constitutes your unconditional agreement to these Terms, our Privacy Policy, and all supplemental policies published on the Platform.</p>\n<p>QafNest operates strictly as an electronic hospitality intermediary licensed by the Saudi Ministry of Tourism (License #73102999), connecting licensed Hosts with Guests across chalets, private villas, resorts (istirahat), apartments, farms, and desert camps.</p>\n<h2>2. Eligibility, Guest &amp; Host Accounts</h2>\n<p>Users must be at least 18 years old with valid legal capacity. Mandatory identity verification via National ID / Iqama / Passport (Nafath &amp; Elm Yaqeen) and OTP mobile verification applies prior to booking confirmation or listing activation.</p>\n<h2>3. Booking Confirmation &amp; Stay Rules</h2>\n<p>Reservations become legally confirmed only upon successful electronic payment through QafNest's approved channels. Guests must adhere to stated check-in/out times, maximum occupancy, family-only designations, and neighborhood quiet hours.</p>\n<h2>4. Security Deposit &amp; Self Check-In</h2>\n<p>Where a listing specifies a security deposit, terms are displayed transparently prior to checkout. For keyless self check-in stays, Smart Lock access codes are delivered securely inside My Bookings after payment verification.</p>\n<h2>5. Cancellation &amp; Modification Policy</h2>\n<p>Unless explicitly stated otherwise on the listing page, confirmed bookings follow the property's published cancellation tier. Verified Host-side unavailability or material misrepresentation is resolved directly by QafNest Operations with full protection for the Guest.</p>\n<h2>6. Service Fees, Payouts &amp; 15% VAT</h2>\n<p>All service fees and 15% ZATCA Value Added Tax (VAT) are itemized transparently before payment. Every confirmed booking issues a ZATCA Phase 2 compliant e-invoice with QR code. Net Host payouts are disbursed to verified Saudi IBAN accounts via SAMA SARIE within 24 hours of check-in.</p>\n<h2>7. Host Standards &amp; Protection</h2>\n<p>Hosts warrant that every listed unit holds an active Ministry of Tourism permit, accurate photos/amenities, and safe habitable conditions. Verified guest-caused physical damages are covered under QafNest's documented Host Protection assessment process.</p>\n<h2>8. Guest Conduct &amp; Damage Liability</h2>\n<p>Guests are responsible for preserving property condition, refraining from unauthorized parties or commercial subleasing, and compensating verified direct damages incurred during their stay.</p>\n<h2>9. Intellectual Property &amp; Indemnification</h2>\n<p>All QafNest trademarks, interface designs, software, and content remain the exclusive intellectual property of QafNest Hospitality Group. Unauthorized scraping, copying, or impersonation is strictly prohibited.</p>\n<h2>10. Governing Law &amp; Dispute Resolution</h2>\n<p>These Terms are governed by the laws and regulations of the Kingdom of Saudi Arabia. Any unresolved dispute shall fall under the jurisdiction of the competent courts in Riyadh, Kingdom of Saudi Arabia.</p>"
-      },
-      "metaTitle": {
-        "ar": "الشروط والأحكام | قاف نست",
-        "en": "Terms and Conditions | QafNest"
-      },
-      "updatedAt": "2026-11-17T19:32:16.510Z",
-      "showSection": true,
-      "canonicalUrl": "https://qafnest.com/en/terms-and-conditions",
-      "metaDescription": {
-        "ar": "الشروط والأحكام الرسمية لاستخدام منصة قاف نست وحجز العقارات والامتثال لوزارة السياحة.",
-        "en": "Official QafNest platform terms, booking rules, VAT invoicing, and Ministry of Tourism compliance."
-      }
-    },
-    {
-      "id": "leg-3",
-      "slug": "cancellation-refund-policy",
-      "title": {
-        "ar": "سياسة الإلغاء والاسترداد",
-        "en": "Cancellation & Refund Policy"
-      },
-      "content": {
-        "ar": "<h2>سياسة الإلغاء والاسترداد</h2>\n<p>تعرض منصة قاف نست سياسة الإلغاء الدقيقة في صفحة كل عقار قبل الدفع. وفي حالات الاسترداد المؤهلة أو تعذر تسليم الوحدة من قِبل المضيف، يُعاد المبلغ تلقائياً إلى محفظة قاف نست أو البطاقة الأصلية وفق المدد النظامية للبنك المركزي السعودي.</p>",
-        "en": "<h2>Cancellation &amp; Refund Policy</h2>\n<p>QafNest displays the exact cancellation tier on every property page before checkout. Once payment is completed on non-refundable stays, reservations are final. For eligible cancellations or verified Host-side unavailability, refunds are returned automatically to your QafNest Wallet or original Mada/Visa/Mastercard within SAMA settlement windows.</p>"
-      },
-      "metaTitle": {
-        "ar": "سياسة الإلغاء والاسترداد | قاف نست",
-        "en": "Cancellation & Refund Policy | QafNest"
-      },
-      "updatedAt": "2026-11-17T19:32:16.510Z",
-      "showSection": true,
-      "canonicalUrl": "https://qafnest.com/en/cancellation-refund-policy",
-      "metaDescription": {
-        "ar": "تعرف على سياسات الإلغاء والاسترداد التلقائي في قاف نست.",
-        "en": "Understand QafNest cancellation and automatic refund settlement policies."
-      }
-    },
-    {
-      "id": "leg-4",
-      "slug": "host-compliance-policy",
-      "title": {
-        "ar": "سياسة تراخيص المضيفين والامتثال",
-        "en": "Host Licensing & Compliance Policy"
-      },
-      "content": {
-        "ar": "<h2>سياسة تراخيص المضيفين والامتثال</h2>\n<p>يجب أن تحمل جميع وحدات الضيافة المدرجة على قاف نست تصريحاً سارياً من وزارة السياحة السعودية، وأن تجتاز التحقق من الهوية عبر نفاذ، مع الالتزام بدقة الصور والأسعار ومعايير السلامة والذوق العام.</p>",
-        "en": "<h2>Host Licensing &amp; Compliance Policy</h2>\n<p>All short-term rentals listed on QafNest must hold a valid Saudi Ministry of Tourism accommodation permit, pass identity verification via Nafath, maintain accurate listing media and pricing, and comply with local municipal safety and quiet-hour codes.</p>"
-      },
-      "metaTitle": {
-        "ar": "سياسة امتثال المضيفين | قاف نست",
-        "en": "Host Compliance Policy | QafNest"
-      },
-      "updatedAt": "2026-11-17T19:32:16.510Z",
-      "showSection": true,
-      "canonicalUrl": "https://qafnest.com/en/host-compliance-policy",
-      "metaDescription": {
-        "ar": "إرشادات تراخيص وزارة السياحة لمضيفي قاف نست.",
-        "en": "Saudi Ministry of Tourism licensing guidelines for QafNest hosts."
-      }
-    },
-    {
-      "id": "leg-3",
-      "slug": "cookies-policy",
-      "title": {
-        "ar": "سياسة ملفات تعريف الارتباط (الكوكيز)",
-        "en": "Cookies Policy"
-      },
-      "content": {
-        "ar": "<h2>ما هي ملفات تعريف الارتباط؟</h2>\n<p>ملفات تعريف الارتباط هي ملفات نصية صغيرة تُحفظ على متصفحك أو جهازك عند زيارة الموقع، وتمكّن منصة قاف نست من حفظ جلستك وتفضيلاتك لتقديم تجربة حجز سريعة وآمنة.</p>\n<h2>تصنيف ملفات الكوكيز في المنصة</h2>\n<ul>\n<li><strong>١. ملفات تعريف الارتباط الأساسية (إلزامي):</strong> ضرورية لتأمين المنصة، تسجيل الدخول، الحماية من CSRF، واستقرار خطوات الدفع والحجز.</li>\n<li><strong>٢. ملفات التفضيلات واللغة والمظهر (اختياري):</strong> تحفظ اختيارك للغة (العربية / الإنجليزية)، ونمط العرض (فاتح / داكن)، وآخر مدن وفئات البحث.</li>\n<li><strong>٣. ملفات قياس الأداء والتحليلات التشغيلية (اختياري):</strong> تجمع مؤشرات إحصائية مجهولة الهوية لتحسين سرعة التصفح والبحث وعرض الخرائط.</li>\n<li><strong>٤. ملفات الحماية ومكافحة الاحتيال (إلزامي):</strong> تحمي حسابات الضيوف والمضيفين من محاولات الدخول غير المصرح بها والتلاعب بعمليات السداد.</li>\n</ul>\n<h2>إدارة وتعطيل ملفات الكوكيز</h2>\n<p>يمكنك إدارة أو مسح ملفات الكوكيز في أي وقت من إعدادات متصفحك، مع مراعاة أن تعطيل الملفات الأساسية قد يؤثر على تسجيل الدخول أو إتمام الحجز.</p>",
-        "en": "<h2>What Are Cookies?</h2>\n<p>Cookies are small data files stored on your browser or device when you visit websites. They allow QafNest to remember your sessions, security tokens, and preferences for a fast, seamless booking experience.</p>\n<h2>How We Categorize Our Cookies</h2>\n<ul>\n<li><strong>1. Strictly Necessary Cookies (Mandatory):</strong> Essential for platform security, account authentication, anti-CSRF protection, booking checkout continuity, and PDPL consent state tracking.</li>\n<li><strong>2. Preference &amp; Localization Cookies (Optional):</strong> Preserve your selected language (English / Arabic), display theme (Light / Dark), and recent Saudi city/category filters.</li>\n<li><strong>3. Performance &amp; Diagnostic Analytics (Optional):</strong> Gather aggregated, non-identifying metrics on page speed, map loading, and search reliability across Saudi Arabia.</li>\n<li><strong>4. Security &amp; Anti-Fraud Protection (Mandatory):</strong> Safeguard Guest and Host accounts from automated scraping, rate abuse, and payment tampering.</li>\n</ul>\n<h2>Managing and Disabling Cookies</h2>\n<p>You may manage or delete cookies anytime from your browser settings. Note that disabling strictly necessary cookies may prevent sign-in or checkout completion.</p>"
-      },
-      "metaTitle": {
-        "ar": "سياسة ملفات تعريف الارتباط | قاف نست",
-        "en": "Cookies Policy | QafNest"
-      },
-      "updatedAt": "2026-11-18T16:56:00.851Z",
-      "showSection": true,
-      "canonicalUrl": "https://qafnest.com/en/cookies",
-      "metaDescription": {
-        "ar": "تعرف على كيفية استخدام قاف نست لملفات تعريف الارتباط للأمان والتفضيلات وتحسين الأداء.",
-        "en": "Learn how QafNest uses cookies and browser storage for security, preferences, and analytics."
-      }
-    }
-  ],
-  "socialLinks": [
-    {
-      "id": "soc-1",
-      "url": "https://www.snapchat.com/@qafnest",
-      "enabled": true,
-      "platform": "Snapchat",
-      "updatedAt": "2026-11-17T19:32:16.510Z"
-    },
-    {
-      "id": "soc-2",
-      "url": "https://www.instagram.com/qafnest/",
-      "enabled": true,
-      "platform": "Instagram",
-      "updatedAt": "2026-11-17T19:32:16.510Z"
-    },
-    {
-      "id": "soc-3",
-      "url": "https://www.facebook.com/qafnest.sa",
-      "enabled": true,
-      "platform": "Facebook",
-      "updatedAt": "2026-11-17T19:32:16.510Z"
-    },
-    {
-      "id": "soc-4",
-      "url": "https://wa.me/966500000000",
-      "enabled": true,
-      "platform": "WhatsApp",
-      "updatedAt": "2026-11-17T19:32:16.510Z"
-    }
-  ],
   "destinations": [
     {
       "id": "monthly",
@@ -1240,6 +684,123 @@
     }
   ],
   "businessPages": [],
+  "legalPages": [
+    {
+      "id": "leg-1",
+      "slug": "privacy-policy",
+      "title": {
+        "ar": "سياسة الخصوصية وحماية البيانات",
+        "en": "Privacy Policy & Data Protection"
+      },
+      "content": {
+        "ar": "<h2>١. إشعار الخصوصية والإطار النظامي (PDPL وسدايا)</h2>\n<p>تلتزم منصة قاف نست بحماية خصوصية مستخدميها ومعالجة بياناتهم وفق أحكام نظام حماية البيانات الشخصية الصادر بالمرسوم الملكي رقم (م/19) ولائحته التنفيذية الصادرة عن الهيئة السعودية للبيانات والذكاء الاصطناعي (سدايا)، وضوابط الهيئة الوطنية للأمن السيبراني في المملكة العربية السعودية.</p>\n<p>نلتزم بمبدأ تقليل البيانات وتحديد الغرض؛ حيث نقتصر في جمع البيانات الشخصية على الحد الأدنى اللازم لتقديم خدمات حجز مرافق الضيافة، وتسوية المدفوعات، والوفاء بالالتزامات النظامية.</p>\n<h2>٢. البيانات الشخصية التي نجمعها</h2>\n<ul>\n<li><strong>بيانات التحقق والهوية:</strong> الاسم الكامل، وبيانات الهوية الوطنية أو الإقامة أو جواز السفر الموثقة عبر القنوات الوطنية المعتمدة (نفاذ ويقين) وفق متطلبات وزارة السياحة.</li>\n<li><strong>بيانات التواصل والحساب:</strong> رقم الجوال الموثق، البريد الإلكتروني، اللغة المفضلة، وتفضيلات الإشعارات.</li>\n<li><strong>بيانات الحجز والمدفوعات:</strong> سجل الحجوزات وتواريخ الإقامة، فواتير ضريبة القيمة المضافة المتوافقة مع هيئة الزكاة والضريبة والجمارك، مراجع البطاقات المشفرة (آخر 4 أرقام فقط عبر بوابات PCI-DSS)، وبيانات الآيبان السعودي للمضيفين.</li>\n<li><strong>البيانات التقنية والأمنية:</strong> عنوان IP، وبصمة الجهاز، وسجلات الأمان لمنع الاحتيال والوصول غير المصرح به.</li>\n</ul>\n<h2>٣. المسوغات والأغراض النظامية للمعالجة</h2>\n<ul>\n<li>تنفيذ عقود الإقامة والحجز بين الضيوف والمضيفين المرخصين.</li>\n<li>الامتثال للأنظمة السعودية الإلزامية (تصاريح وزارة السياحة، الفوترة الإلكترونية لزاتكا، وضوابط البنك المركزي السعودي).</li>\n<li>تقديم الدعم الفني على مدار الساعة، وتسليم رموز الدخول الذكي، وحل النزاعات، وتسوية المدفوعات والمستحقات.</li>\n<li>تحسين أداء المنصة ودقة البحث ومنع الاحتيال.</li>\n</ul>\n<h2>٤. مشاركة البيانات والإفصاح المحدود</h2>\n<p>لا تقوم قاف نست ببيع البيانات الشخصية نهائياً. تقتصر المشاركة المحدودة على: (أ) المضيف المؤكد لديه الحجز بالقدر اللازم لإتمام الاستضافة، (ب) مزودي خدمات الدفع المرخصين (ماي فاتورة، مدى، أبل باي، STC Pay، تابي، تمارا)، (ج) الجهات الحكومية والتنظيمية المختصة (وزارة السياحة، زاتكا، سدايا، نفاذ) عند الطلب النظامي.</p>\n<h2>٥. التخزين السيادي والتشفير وفترات الاحتفاظ</h2>\n<p>يتم تشفير كافة البيانات أثناء النقل (TLS 1.3) وأثناء التخزين (AES-256-GCM). ويُحتفظ بالفواتير الضريبية والسجلات المالية للمدة النظامية المقررة من هيئة الزكاة والضريبة والجمارك، ثم تُتلف أو تُجهّل البيانات غير المطلوبة نظامياً بأمان.</p>\n<h2>٦. ملفات تعريف الارتباط والتقنيات المشابهة</h2>\n<p>نستخدم ملفات تعريف الارتباط الضرورية للأمان وتسجيل الدخول، وتفضيلات اللغة والمظهر، وتحليلات الأداء المجمعة كما هو موضح في سياسة الكوكيز.</p>\n<h2>٧. حقوقك النظامية وفق نظام حماية البيانات الشخصية</h2>\n<p>لك الحق في العلم، والوصول إلى بياناتك الشخصية، وطلب تصحيحها أو تحديثها، وطلب إتلاف ما لم يعد مطلوباً نظامياً، وسحب الموافقة على الرسائل التسويقية. وفي حال عدم معالجة شكواك يمكنك التصعيد لدى هيئة سدايا.</p>\n<h2>٨. مسؤول حماية البيانات وتحديث السياسة</h2>\n<p>لممارسة حقوقك أو التواصل مع مسؤول حماية البيانات، راسلنا عبر <strong>qafnest@gmail.com</strong> أو تواصل مع خدمة العملاء على مدار الساعة.</p>",
+        "en": "<h2>1. Privacy Notice, PDPL &amp; SDAIA Framework</h2>\n<p>QafNest treats personal privacy as a core responsibility. We operate in strict compliance with the Saudi Personal Data Protection Law (PDPL) enacted under Royal Decree No. (M/19), its Implementing Regulations issued by the Saudi Data and Artificial Intelligence Authority (SDAIA), and National Cybersecurity Authority (NCA) standards.</p>\n<p>Applying data minimization and purpose limitation principles, QafNest collects and processes only the personal information strictly required to deliver secure vacation rental bookings, host settlements, and regulatory verification.</p>\n<h2>2. Personal Data We Collect</h2>\n<ul>\n<li><strong>Identity Verification Data:</strong> Full legal name, Saudi National ID / Iqama / Passport details verified through authorized national channels (Nafath &amp; Elm Yaqeen) as required by the Ministry of Tourism.</li>\n<li><strong>Contact &amp; Account Details:</strong> Verified mobile number, email address, preferred language, and communication preferences.</li>\n<li><strong>Booking &amp; Financial Records:</strong> Reservation history, stay dates, ZATCA Phase 2 VAT invoices, masked card references (last 4 digits via PCI-DSS Level 1 gateways — full PAN &amp; CVV are never exposed), and host Saudi IBAN settlement details.</li>\n<li><strong>Technical &amp; Security Metadata:</strong> IP address, device fingerprint, session logs, and anti-fraud diagnostics to prevent unauthorized access and account abuse.</li>\n</ul>\n<h2>3. Legal Basis &amp; Processing Purpose</h2>\n<ul>\n<li>Executing accommodation booking contracts between Guests and licensed Hosts.</li>\n<li>Fulfilling mandatory Saudi regulatory compliance (Ministry of Tourism permits, ZATCA e-invoicing, SAMA payment rules, and public safety verification).</li>\n<li>Providing 24/7 customer support, dispute resolution, smart-lock check-in delivery, and refund/payout settlements.</li>\n<li>Improving platform performance, search accuracy, and fraud prevention under legitimate interest and explicit user consent.</li>\n</ul>\n<h2>4. Data Sharing &amp; Permitted Disclosure</h2>\n<p>QafNest never sells personal data. Limited, purpose-bound sharing occurs strictly with: (a) the booked Host (name, verified check-in details, and guest count after reservation confirmation), (b) licensed payment &amp; installment providers (MyFatoorah, Mada, Apple Pay, STC Pay, Tabby, Tamara), (c) authorized identity &amp; tax authorities (SDAIA, Ministry of Tourism, ZATCA, Nafath/Elm) when mandated by Saudi law.</p>\n<h2>5. Storage, Encryption &amp; Retention</h2>\n<p>All sensitive records are encrypted in transit (TLS 1.3) and at rest (AES-256-GCM). Tax invoices and settlement ledgers are retained for the statutory period mandated by ZATCA and Saudi commercial regulations, after which non-statutory personal data is securely anonymized or purged.</p>\n<h2>6. Cookies &amp; Browser Technologies</h2>\n<p>We use strictly necessary session cookies, language/theme preference storage, and optional performance analytics. Full details are published in our Cookies Policy.</p>\n<h2>7. PDPL Rights &amp; SDAIA Escalation</h2>\n<p>Under the Saudi PDPL, you hold the right to be informed, access your personal data, request correction or updating, request destruction of data no longer legally required, and withdraw consent for optional marketing communications. Unresolved privacy complaints may be escalated to SDAIA.</p>\n<h2>8. Data Protection Officer &amp; Updates</h2>\n<p>To exercise your PDPL rights or contact our Data Protection Officer, email <strong>qafnest@gmail.com</strong> or call our 24/7 support desk. Material updates to this notice are published here with a revised effective date.</p>"
+      },
+      "metaTitle": {
+        "ar": "سياسة الخصوصية | قاف نست",
+        "en": "Privacy Policy | QafNest"
+      },
+      "updatedAt": "2026-11-17T19:32:16.510Z",
+      "showSection": true,
+      "canonicalUrl": "https://qafnest.com/en/privacy-policy",
+      "metaDescription": {
+        "ar": "تعرف على كيفية حماية قاف نست لبياناتك الشخصية وفق نظام حماية البيانات الشخصية وضوابط سدايا.",
+        "en": "Learn how QafNest protects your personal data under Saudi PDPL and SDAIA regulations."
+      }
+    },
+    {
+      "id": "leg-2",
+      "slug": "terms-and-conditions",
+      "title": {
+        "ar": "الشروط والأحكام العامة للمنصة",
+        "en": "Terms and Conditions of Use"
+      },
+      "content": {
+        "ar": "<h2>١. الاتفاقية الملزمة ودور المنصة الوسيط</h2>\n<p>يُعد دخولك إلى منصة قاف نست أو تصفحك أو تسجيلك فيها موافقةً تامة ودون قيد أو شرط على هذه الشروط والأحكام وسياسة الخصوصية وجميع السياسات المكملة المنشورة على المنصة.</p>\n<p>تعمل منصة قاف نست كوسيط إلكتروني تقني مرخص من وزارة السياحة في المملكة العربية السعودية (ترخيص رقم 73102999) يربط بين المضيفين المرخصين والضيوف لحجز الشاليهات والفلل والاستراحات والشقق والمزارع والمخيمات.</p>\n<h2>٢. الأهلية وحسابات الضيف والمضيف</h2>\n<p>يشترط ألا يقل عمر المستخدم عن 18 عاماً وأن يتمتع بالأهلية النظامية، مع الالتزام بتوثيق الهوية الوطنية أو الإقامة أو جواز السفر (عبر نفاذ ويقين) ورقم الجوال قبل تأكيد الحجز أو تفعيل الإعلان.</p>\n<h2>٣. تأكيد الحجز وقواعد الإقامة</h2>\n<p>لا يصبح الحجز مؤكداً إلا بعد إتمام السداد الإلكتروني عبر قنوات الدفع المعتمدة في المنصة، ويلتزم الضيف بمواعيد الدخول والخروج والحد الأقصى للنزلاء وقواعد الذوق العام والهدوء.</p>\n<h2>٤. مبلغ التأمين والدخول الذاتي</h2>\n<p>تُعرض تفاصيل مبلغ التأمين بوضوح قبل الدفع متى ما وُجد، وفي وحدات الدخول الذاتي يتم تسليم رمز القفل الذكي بأمان داخل صفحة «حجوزاتي» بعد تأكيد السداد.</p>\n<h2>٥. سياسة الإلغاء والتعديل والاسترداد</h2>\n<p>تخضع الحجوزات المؤكدة لسياسة الإلغاء المعلنة في صفحة العقار قبل السداد. وفي حالات تعذر تسليم الوحدة من قِبل المضيف أو عدم مطابقتها الجوهرية، تتدخل إدارة العمليات فوراً لحماية حقوق الضيف.</p>\n<h2>٦. رسوم الخدمة والمستحقات وضريبة القيمة المضافة ١٥٪</h2>\n<p>تُعرض رسوم الخدمة وضريبة القيمة المضافة (١٥٪) بشفافية تامة قبل الدفع، وتصدر فاتورة إلكترونية معتمدة ومتوافقة مع المرحلة الثانية لزاتكا. وتُحول صافي مستحقات المضيف عبر نظام سريع خلال ٢٤ ساعة من تسجيل الدخول.</p>\n<h2>٧. معايير المضيف وبرنامج حماية المضيف</h2>\n<p>يضمن المضيف سريان تصريح وزارة السياحة ودقة الصور والمواصفات وجاهزية الوحدة، ويُغطى أي ضرر موثق يسببه النزيل وفق إجراءات برنامج حماية المضيف.</p>\n<h2>٨. التزامات الضيف والمسؤولية عن الأضرار</h2>\n<p>يتحمل الضيف مسؤولية المحافظة على العقار ومحتوياته والامتناع عن التجمعات المخالفة أو التأجير من الباطن، وتعويض أي تلفيات مباشرة موثقة.</p>\n<h2>٩. الملكية الفكرية</h2>\n<p>جميع العلامات التجارية والتصاميم والبرمجيات والمحتوى مملوكة حصرياً لمجموعة قاف نست للضيافة ويُحظر نسخها أو استغلالها دون إذن خطي مسبق.</p>\n<h2>١٠. النظام الحاكم وتسوية النزاعات</h2>\n<p>تخضع هذه الشروط لأنظمة المملكة العربية السعودية، وتختص المحاكم المختصة في مدينة الرياض بالفصل في أي نزاع لم يُحل ودياً.</p>",
+        "en": "<h2>1. Binding Agreement &amp; Platform Role</h2>\n<p>Accessing, browsing, or registering on QafNest constitutes your unconditional agreement to these Terms, our Privacy Policy, and all supplemental policies published on the Platform.</p>\n<p>QafNest operates strictly as an electronic hospitality intermediary licensed by the Saudi Ministry of Tourism (License #73102999), connecting licensed Hosts with Guests across chalets, private villas, resorts (istirahat), apartments, farms, and desert camps.</p>\n<h2>2. Eligibility, Guest &amp; Host Accounts</h2>\n<p>Users must be at least 18 years old with valid legal capacity. Mandatory identity verification via National ID / Iqama / Passport (Nafath &amp; Elm Yaqeen) and OTP mobile verification applies prior to booking confirmation or listing activation.</p>\n<h2>3. Booking Confirmation &amp; Stay Rules</h2>\n<p>Reservations become legally confirmed only upon successful electronic payment through QafNest's approved channels. Guests must adhere to stated check-in/out times, maximum occupancy, family-only designations, and neighborhood quiet hours.</p>\n<h2>4. Security Deposit &amp; Self Check-In</h2>\n<p>Where a listing specifies a security deposit, terms are displayed transparently prior to checkout. For keyless self check-in stays, Smart Lock access codes are delivered securely inside My Bookings after payment verification.</p>\n<h2>5. Cancellation &amp; Modification Policy</h2>\n<p>Unless explicitly stated otherwise on the listing page, confirmed bookings follow the property's published cancellation tier. Verified Host-side unavailability or material misrepresentation is resolved directly by QafNest Operations with full protection for the Guest.</p>\n<h2>6. Service Fees, Payouts &amp; 15% VAT</h2>\n<p>All service fees and 15% ZATCA Value Added Tax (VAT) are itemized transparently before payment. Every confirmed booking issues a ZATCA Phase 2 compliant e-invoice with QR code. Net Host payouts are disbursed to verified Saudi IBAN accounts via SAMA SARIE within 24 hours of check-in.</p>\n<h2>7. Host Standards &amp; Protection</h2>\n<p>Hosts warrant that every listed unit holds an active Ministry of Tourism permit, accurate photos/amenities, and safe habitable conditions. Verified guest-caused physical damages are covered under QafNest's documented Host Protection assessment process.</p>\n<h2>8. Guest Conduct &amp; Damage Liability</h2>\n<p>Guests are responsible for preserving property condition, refraining from unauthorized parties or commercial subleasing, and compensating verified direct damages incurred during their stay.</p>\n<h2>9. Intellectual Property &amp; Indemnification</h2>\n<p>All QafNest trademarks, interface designs, software, and content remain the exclusive intellectual property of QafNest Hospitality Group. Unauthorized scraping, copying, or impersonation is strictly prohibited.</p>\n<h2>10. Governing Law &amp; Dispute Resolution</h2>\n<p>These Terms are governed by the laws and regulations of the Kingdom of Saudi Arabia. Any unresolved dispute shall fall under the jurisdiction of the competent courts in Riyadh, Kingdom of Saudi Arabia.</p>"
+      },
+      "metaTitle": {
+        "ar": "الشروط والأحكام | قاف نست",
+        "en": "Terms and Conditions | QafNest"
+      },
+      "updatedAt": "2026-11-17T19:32:16.510Z",
+      "showSection": true,
+      "canonicalUrl": "https://qafnest.com/en/terms-and-conditions",
+      "metaDescription": {
+        "ar": "الشروط والأحكام الرسمية لاستخدام منصة قاف نست وحجز العقارات والامتثال لوزارة السياحة.",
+        "en": "Official QafNest platform terms, booking rules, VAT invoicing, and Ministry of Tourism compliance."
+      }
+    },
+    {
+      "id": "leg-3",
+      "slug": "cancellation-refund-policy",
+      "title": {
+        "ar": "سياسة الإلغاء والاسترداد",
+        "en": "Cancellation & Refund Policy"
+      },
+      "content": {
+        "ar": "<h2>سياسة الإلغاء والاسترداد</h2>\n<p>تعرض منصة قاف نست سياسة الإلغاء الدقيقة في صفحة كل عقار قبل الدفع. وفي حالات الاسترداد المؤهلة أو تعذر تسليم الوحدة من قِبل المضيف، يُعاد المبلغ تلقائياً إلى محفظة قاف نست أو البطاقة الأصلية وفق المدد النظامية للبنك المركزي السعودي.</p>",
+        "en": "<h2>Cancellation &amp; Refund Policy</h2>\n<p>QafNest displays the exact cancellation tier on every property page before checkout. Once payment is completed on non-refundable stays, reservations are final. For eligible cancellations or verified Host-side unavailability, refunds are returned automatically to your QafNest Wallet or original Mada/Visa/Mastercard within SAMA settlement windows.</p>"
+      },
+      "metaTitle": {
+        "ar": "سياسة الإلغاء والاسترداد | قاف نست",
+        "en": "Cancellation & Refund Policy | QafNest"
+      },
+      "updatedAt": "2026-11-17T19:32:16.510Z",
+      "showSection": true,
+      "canonicalUrl": "https://qafnest.com/en/cancellation-refund-policy",
+      "metaDescription": {
+        "ar": "تعرف على سياسات الإلغاء والاسترداد التلقائي في قاف نست.",
+        "en": "Understand QafNest cancellation and automatic refund settlement policies."
+      }
+    },
+    {
+      "id": "leg-4",
+      "slug": "host-compliance-policy",
+      "title": {
+        "ar": "سياسة تراخيص المضيفين والامتثال",
+        "en": "Host Licensing & Compliance Policy"
+      },
+      "content": {
+        "ar": "<h2>سياسة تراخيص المضيفين والامتثال</h2>\n<p>يجب أن تحمل جميع وحدات الضيافة المدرجة على قاف نست تصريحاً سارياً من وزارة السياحة السعودية، وأن تجتاز التحقق من الهوية عبر نفاذ، مع الالتزام بدقة الصور والأسعار ومعايير السلامة والذوق العام.</p>",
+        "en": "<h2>Host Licensing &amp; Compliance Policy</h2>\n<p>All short-term rentals listed on QafNest must hold a valid Saudi Ministry of Tourism accommodation permit, pass identity verification via Nafath, maintain accurate listing media and pricing, and comply with local municipal safety and quiet-hour codes.</p>"
+      },
+      "metaTitle": {
+        "ar": "سياسة امتثال المضيفين | قاف نست",
+        "en": "Host Compliance Policy | QafNest"
+      },
+      "updatedAt": "2026-11-17T19:32:16.510Z",
+      "showSection": true,
+      "canonicalUrl": "https://qafnest.com/en/host-compliance-policy",
+      "metaDescription": {
+        "ar": "إرشادات تراخيص وزارة السياحة لمضيفي قاف نست.",
+        "en": "Saudi Ministry of Tourism licensing guidelines for QafNest hosts."
+      }
+    },
+    {
+      "id": "leg-3",
+      "slug": "cookies-policy",
+      "title": {
+        "ar": "سياسة ملفات تعريف الارتباط (الكوكيز)",
+        "en": "Cookies Policy"
+      },
+      "content": {
+        "ar": "<h2>ما هي ملفات تعريف الارتباط؟</h2>\n<p>ملفات تعريف الارتباط هي ملفات نصية صغيرة تُحفظ على متصفحك أو جهازك عند زيارة الموقع، وتمكّن منصة قاف نست من حفظ جلستك وتفضيلاتك لتقديم تجربة حجز سريعة وآمنة.</p>\n<h2>تصنيف ملفات الكوكيز في المنصة</h2>\n<ul>\n<li><strong>١. ملفات تعريف الارتباط الأساسية (إلزامي):</strong> ضرورية لتأمين المنصة، تسجيل الدخول، الحماية من CSRF، واستقرار خطوات الدفع والحجز.</li>\n<li><strong>٢. ملفات التفضيلات واللغة والمظهر (اختياري):</strong> تحفظ اختيارك للغة (العربية / الإنجليزية)، ونمط العرض (فاتح / داكن)، وآخر مدن وفئات البحث.</li>\n<li><strong>٣. ملفات قياس الأداء والتحليلات التشغيلية (اختياري):</strong> تجمع مؤشرات إحصائية مجهولة الهوية لتحسين سرعة التصفح والبحث وعرض الخرائط.</li>\n<li><strong>٤. ملفات الحماية ومكافحة الاحتيال (إلزامي):</strong> تحمي حسابات الضيوف والمضيفين من محاولات الدخول غير المصرح بها والتلاعب بعمليات السداد.</li>\n</ul>\n<h2>إدارة وتعطيل ملفات الكوكيز</h2>\n<p>يمكنك إدارة أو مسح ملفات الكوكيز في أي وقت من إعدادات متصفحك، مع مراعاة أن تعطيل الملفات الأساسية قد يؤثر على تسجيل الدخول أو إتمام الحجز.</p>",
+        "en": "<h2>What Are Cookies?</h2>\n<p>Cookies are small data files stored on your browser or device when you visit websites. They allow QafNest to remember your sessions, security tokens, and preferences for a fast, seamless booking experience.</p>\n<h2>How We Categorize Our Cookies</h2>\n<ul>\n<li><strong>1. Strictly Necessary Cookies (Mandatory):</strong> Essential for platform security, account authentication, anti-CSRF protection, booking checkout continuity, and PDPL consent state tracking.</li>\n<li><strong>2. Preference &amp; Localization Cookies (Optional):</strong> Preserve your selected language (English / Arabic), display theme (Light / Dark), and recent Saudi city/category filters.</li>\n<li><strong>3. Performance &amp; Diagnostic Analytics (Optional):</strong> Gather aggregated, non-identifying metrics on page speed, map loading, and search reliability across Saudi Arabia.</li>\n<li><strong>4. Security &amp; Anti-Fraud Protection (Mandatory):</strong> Safeguard Guest and Host accounts from automated scraping, rate abuse, and payment tampering.</li>\n</ul>\n<h2>Managing and Disabling Cookies</h2>\n<p>You may manage or delete cookies anytime from your browser settings. Note that disabling strictly necessary cookies may prevent sign-in or checkout completion.</p>"
+      },
+      "metaTitle": {
+        "ar": "سياسة ملفات تعريف الارتباط | قاف نست",
+        "en": "Cookies Policy | QafNest"
+      },
+      "updatedAt": "2026-11-18T16:56:00.851Z",
+      "showSection": true,
+      "canonicalUrl": "https://qafnest.com/en/cookies",
+      "metaDescription": {
+        "ar": "تعرف على كيفية استخدام قاف نست لملفات تعريف الارتباط للأمان والتفضيلات وتحسين الأداء.",
+        "en": "Learn how QafNest uses cookies and browser storage for security, preferences, and analytics."
+      }
+    }
+  ],
   "navigationLinks": [
     {
       "id": "nav-1",
@@ -1301,5 +862,452 @@
       "showInFooter": true,
       "showInNavbar": true
     }
-  ]
+  ],
+  "socialLinks": [
+    {
+      "id": "soc-1",
+      "url": "https://www.snapchat.com/@qafnest",
+      "enabled": true,
+      "platform": "Snapchat",
+      "updatedAt": "2026-11-17T19:32:16.510Z"
+    },
+    {
+      "id": "soc-2",
+      "url": "https://www.instagram.com/qafnest/",
+      "enabled": true,
+      "platform": "Instagram",
+      "updatedAt": "2026-11-17T19:32:16.510Z"
+    },
+    {
+      "id": "soc-3",
+      "url": "https://www.facebook.com/qafnest.sa",
+      "enabled": true,
+      "platform": "Facebook",
+      "updatedAt": "2026-11-17T19:32:16.510Z"
+    },
+    {
+      "id": "soc-4",
+      "url": "https://wa.me/966500000000",
+      "enabled": true,
+      "platform": "WhatsApp",
+      "updatedAt": "2026-11-17T19:32:16.510Z"
+    }
+  ],
+  "globals": {
+    "homeHero": {
+      "badge": {
+        "ar": "ضيافة سعودية موثقة · رؤية 2030",
+        "en": "Verified Saudi Hospitality · Vision 2030"
+      },
+      "heroImage": "",
+      "titleLine1": {
+        "ar": "إقامات خاصة استثنائية",
+        "en": "Curated Private Stays"
+      },
+      "titleLine2": {
+        "ar": "مصممة لتجارب لا تُنسى",
+        "en": "Built for Memorable Getaways"
+      },
+      "description": {
+        "ar": "قاف نست هي المنصة الرائدة لحجز الشاليهات والفلل والمنتجعات الخاصة المرخصة في المملكة العربية السعودية بتجربة حجز فوري ودخول ذاتي ذكي.",
+        "en": "QafNest is Saudi Arabia's premier tech-enabled vacation rental platform offering licensed chalets, villas, farms, and smart self-check-in retreats across the Kingdom."
+      },
+      "contactButton": {
+        "url": "/contact",
+        "label": {
+          "ar": "تواصل معنا",
+          "en": "Contact Us"
+        },
+        "openInNewTab": false
+      },
+      "profileButton": {
+        "url": "/search",
+        "label": {
+          "ar": "استكشف الوجهات",
+          "en": "Explore Destinations"
+        },
+        "openInNewTab": false
+      }
+    },
+    "features": {
+      "cards": [
+        {
+          "id": "feat-1",
+          "icon": "sparkles",
+          "badge": {
+            "ar": "تقنية",
+            "en": "TECH"
+          },
+          "title": {
+            "ar": "حجز فوري ودخول ذاتي ذكي",
+            "en": "Instant Book & Smart Lock PIN"
+          },
+          "metaIcon": "bell",
+          "metaText": {
+            "ar": "دخول فوري بلا انتظار",
+            "en": "Zero Waiting Time"
+          },
+          "description": {
+            "ar": "أكّد حجزك خلال ثوانٍ واستلم رمز الدخول الذكي تلقائياً مع إشعارات فورية.",
+            "en": "Confirm your stay in seconds and receive an automated smart lock access code with WhatsApp notifications."
+          }
+        },
+        {
+          "id": "feat-2",
+          "icon": "globe",
+          "badge": {
+            "ar": "التغطية",
+            "en": "NETWORK"
+          },
+          "title": {
+            "ar": "تغطية شاملة لمدن المملكة",
+            "en": "Comprehensive KSA Destinations"
+          },
+          "metaIcon": "map",
+          "metaText": {
+            "ar": "13 منطقة سعودية",
+            "en": "13 Saudi Provinces"
+          },
+          "description": {
+            "ar": "وحدات مختارة بعناية في الرياض وجدة والخبر وأبها والطائف والعلا ومكة والمدينة.",
+            "en": "Handpicked retreats across Riyadh, Jeddah, Al-Khobar, Abha, Taif, AlUla, Makkah, and Madinah."
+          }
+        },
+        {
+          "id": "feat-3",
+          "icon": "shield",
+          "badge": {
+            "ar": "الموثوقية",
+            "en": "TRUST"
+          },
+          "title": {
+            "ar": "مرخصة 100% ومتوافقة ضريبياً",
+            "en": "100% Tourism Licensed & ZATCA"
+          },
+          "metaIcon": "check",
+          "metaText": {
+            "ar": "امتثال معتمد",
+            "en": "Verified Compliance"
+          },
+          "description": {
+            "ar": "كل عقار يحمل تصريحاً سارياً من وزارة السياحة مع فواتير ضريبية فورية معتمدة.",
+            "en": "Every property holds an active Ministry of Tourism permit with instant ZATCA Phase 2 VAT invoicing."
+          }
+        },
+        {
+          "id": "feat-4",
+          "icon": "credit-card",
+          "badge": {
+            "ar": "المدفوعات",
+            "en": "PAYMENTS"
+          },
+          "title": {
+            "ar": "مدى و Apple Pay والدفع المقسط",
+            "en": "Mada, Apple Pay & Split Payments"
+          },
+          "metaIcon": "lock",
+          "metaText": {
+            "ar": "دفع آمن ومشفر",
+            "en": "PCI-DSS Secured"
+          },
+          "description": {
+            "ar": "دفع آمن يدعم مدى وبطاقات الائتمان و Apple Pay مع مكافآت المحفظة الفورية.",
+            "en": "Secure local checkout supporting Mada, Visa/Mastercard, Apple Pay, and instant wallet cashback rewards."
+          }
+        }
+      ],
+      "title": {
+        "ar": "لماذا تختار قاف نست؟",
+        "en": "WHY CHOOSE QAFNEST?"
+      },
+      "slaBadge": {
+        "ar": "وحدات مرخصة وموثقة",
+        "en": "Licensed & Verified Stays"
+      },
+      "subtitle": {
+        "ar": "معيار الضيافة المبتكر للعائلات والمسافرين في المملكة",
+        "en": "The hospitality standard engineered for Saudi families and travelers"
+      },
+      "showSection": true
+    },
+    "fleetCapabilities": {
+      "cards": [
+        {
+          "id": "cap-1",
+          "icon": "home",
+          "badge": {
+            "ar": "شاليهات",
+            "en": "CHALETS"
+          },
+          "title": {
+            "ar": "شاليهات بمسابح خاصة مدفأة",
+            "en": "Private Heated Pool Chalets"
+          },
+          "metaIcon": "check",
+          "metaText": {
+            "ar": "خصوصية تامة",
+            "en": "Family Privacy"
+          },
+          "description": {
+            "ar": "خصوصية عائلية كاملة مع مجالس خارجية ومسابح مدفأة.",
+            "en": "Complete family privacy with outdoor majlis, BBQ zones, and climate-controlled pools."
+          }
+        },
+        {
+          "id": "cap-2",
+          "icon": "building",
+          "badge": {
+            "ar": "فلل",
+            "en": "VILLAS"
+          },
+          "title": {
+            "ar": "فلل فاخرة متعددة الغرف",
+            "en": "Luxury Multi-Bedroom Villas"
+          },
+          "metaIcon": "users",
+          "metaText": {
+            "ar": "تتسع للعائلات الكبيرة",
+            "en": "Up to 20 Guests"
+          },
+          "description": {
+            "ar": "فلل واسعة مثالية للتجمعات العائلية وإجازات نهاية الأسبوع.",
+            "en": "Spacious designer villas ideal for gatherings, Eid holidays, and weekend retreats."
+          }
+        }
+      ],
+      "title": {
+        "ar": "معايير الوحدات والمرافق",
+        "en": "PROPERTY STANDARDS & AMENITIES"
+      },
+      "slaBadge": {
+        "ar": "جودة مفحوصة",
+        "en": "Quality Inspected"
+      },
+      "subtitle": {
+        "ar": "فئات متنوعة مفحوصة للخصوصية والنظافة والراحة القصوى",
+        "en": "Curated categories inspected for privacy, cleanliness, and comfort"
+      },
+      "showSection": true
+    },
+    "coverageNetwork": {
+      "badge": {
+        "ar": "توافر فوري مباشر",
+        "en": "Live Instant Availability"
+      },
+      "title": {
+        "ar": "شبكة الإقامات في جميع أنحاء المملكة",
+        "en": "KINGDOM-WIDE STAY NETWORK"
+      },
+      "description": {
+        "ar": "وصول سلس إلى أفضل الشاليهات والفلل والوجهات الموسمية في المملكة العربية السعودية",
+        "en": "Seamless access to verified chalets, villas, and seasonal destinations across Saudi Arabia"
+      },
+      "showSection": true,
+      "highlightCards": [
+        {
+          "id": "hl-1",
+          "label": {
+            "ar": "منطقة سعودية",
+            "en": "Saudi Regions"
+          },
+          "value": "13",
+          "description": {
+            "ar": "تغطية شاملة من الرياض وجدة حتى أبها والعلا",
+            "en": "Complete coverage from Riyadh and Jeddah to Abha and AlUla"
+          }
+        },
+        {
+          "id": "hl-2",
+          "label": {
+            "ar": "وحدات مرخصة",
+            "en": "Licensed Units"
+          },
+          "value": "100%",
+          "description": {
+            "ar": "وحدات معتمدة من وزارة السياحة بأسعار شفافة",
+            "en": "Ministry of Tourism verified listings with transparent pricing"
+          }
+        },
+        {
+          "id": "hl-3",
+          "label": {
+            "ar": "دعم على مدار الساعة",
+            "en": "Concierge Support"
+          },
+          "value": "24/7",
+          "description": {
+            "ar": "فريق دعم متخصص للضيوف والمضيفين باللغتين العربية والإنجليزية",
+            "en": "Dedicated bilingual guest and host helpline team"
+          }
+        },
+        {
+          "id": "hl-4",
+          "label": {
+            "ar": "تحويل أرباح المضيف",
+            "en": "Host Settlement"
+          },
+          "value": "24h",
+          "description": {
+            "ar": "تسوية آلية سريعة إلى الحساب البنكي للمضيف",
+            "en": "Automated Saudi IBAN payouts after guest check-in"
+          }
+        }
+      ],
+      "showSecondaryCards": true
+    },
+    "industries": {
+      "cards": [
+        {
+          "id": "ind-1",
+          "icon": "heart",
+          "badge": {
+            "ar": "العائلات",
+            "en": "FAMILY"
+          },
+          "title": {
+            "ar": "عطلات العائلات الأسبوعية",
+            "en": "Weekend Family Retreats"
+          },
+          "metaIcon": "star",
+          "metaText": {
+            "ar": "الأكثر طلباً",
+            "en": "Most Popular"
+          },
+          "description": {
+            "ar": "منتجعات آمنة وخاصة مع مناطق ألعاب أطفال ومسابح مستقلة.",
+            "en": "Safe, private compounds with kids' play areas and private pools."
+          }
+        },
+        {
+          "id": "ind-2",
+          "icon": "briefcase",
+          "badge": {
+            "ar": "الأعمال",
+            "en": "CORPORATE"
+          },
+          "title": {
+            "ar": "إقامات رجال الأعمال",
+            "en": "Executive & Bleisure Stays"
+          },
+          "metaIcon": "check",
+          "metaText": {
+            "ar": "فواتير ضريبية فورية",
+            "en": "ZATCA Ready"
+          },
+          "description": {
+            "ar": "إنترنت فائق السرعة ومساحات عمل وفواتير ضريبية فورية للشركات.",
+            "en": "High-speed fiber Wi-Fi, workspaces, and instant ZATCA company tax invoices."
+          }
+        }
+      ],
+      "title": {
+        "ar": "فئات الإقامة والتجارب",
+        "en": "STAY SEGMENTS & EXPERIENCES"
+      },
+      "slaBadge": {
+        "ar": "لجميع المناسبات",
+        "en": "All Occasions"
+      },
+      "subtitle": {
+        "ar": "مجموعات إقامة مخصصة لكل مسافر ومناسبة",
+        "en": "Tailored accommodation collections for every traveler and occasion"
+      },
+      "showSection": true
+    },
+    "contactUs": {
+      "phone": "+966500000000",
+      "address": {
+        "ar": "الرياض (المقر الرئيسي) وجدة، المملكة العربية السعودية",
+        "en": "Riyadh (HQ) & Jeddah Hubs, Kingdom of Saudi Arabia"
+      },
+      "facebook": "https://www.facebook.com/qafnest.sa",
+      "whatsapp": "+966500000000",
+      "instagram": "https://www.instagram.com/qafnest/",
+      "generalEmail": "info@qafnest.com",
+      "supportEmail": "support@qafnest.com",
+      "businessEmail": "hosts@qafnest.com"
+    },
+    "siteSeo": {
+      "siteName": {
+        "ar": "قاف نست",
+        "en": "QafNest"
+      },
+      "defaultTitle": {
+        "ar": "قاف نست - حجز الشاليهات والفلل والمنتجعات الفاخرة في السعودية",
+        "en": "QafNest - Luxury Chalets, Villas & Vacation Stays in Saudi Arabia"
+      },
+      "defaultDescription": {
+        "ar": "احجز أفضل الشاليهات الخاصة والفلل والمنتجعات والمخيمات المرخصة في الرياض وجدة وأبها والطائف والعلا مع تأكيد فوري عبر قاف نست.",
+        "en": "Book verified private chalets, villas, resorts, and desert camps across Riyadh, Jeddah, Abha, Taif, and AlUla with instant confirmation on QafNest."
+      },
+      "keywords": {
+        "ar": "قاف نست، شاليهات الرياض، فلل جدة، منتجعات السعودية، حجز شاليهات، دخول ذاتي",
+        "en": "QafNest, Saudi chalets, Riyadh villas, Jeddah resorts, vacation rentals KSA, smart self check-in"
+      },
+      "openGraph": {
+        "url": "https://qafnest.com",
+        "type": "website",
+        "image": "",
+        "title": {
+          "ar": "قاف نست - إقامات خاصة مختارة في جميع أنحاء المملكة",
+          "en": "QafNest - Curated Private Stays Across Saudi Arabia"
+        },
+        "description": {
+          "ar": "ضيافة سعودية موثقة مع حجز فوري ودخول ذكي ودفع عبر مدى و Apple Pay.",
+          "en": "Verified Saudi hospitality with instant booking, smart check-in, and Mada/Apple Pay."
+        }
+      },
+      "twitter": {
+        "card": "summary_large_image",
+        "title": {
+          "ar": "قاف نست للضيافة السعودية",
+          "en": "QafNest Saudi Hospitality"
+        },
+        "handle": "@qafnest",
+        "description": {
+          "ar": "حجز فوري لأفضل الشاليهات والفلل في المملكة.",
+          "en": "Instant booking for private chalets and villas across KSA."
+        }
+      },
+      "socialProfiles": {
+        "tiktok": "https://www.tiktok.com/@qafnest",
+        "twitter": "https://x.com/qafnest",
+        "youtube": "https://youtube.com/@qafnest",
+        "facebook": "https://www.facebook.com/qafnest.sa",
+        "linkedin": "https://linkedin.com/company/qafnest",
+        "instagram": "https://www.instagram.com/qafnest",
+        "pinterest": "https://pinterest.com/qafnest"
+      },
+      "robots": {
+        "noIndex": false,
+        "noFollow": false,
+        "customRules": "User-Agent: *\nAllow: /\nAllow: /ar/\nAllow: /en/\nDisallow: /api/\nDisallow: /auth/\nDisallow: /my-bookings\nDisallow: /ar/my-bookings\nDisallow: /en/my-bookings\nDisallow: /account\nDisallow: /ar/account\nDisallow: /en/account\nDisallow: /wishlist\nDisallow: /ar/wishlist\nDisallow: /en/wishlist\nDisallow: /*?*payment=*\n\nSitemap: https://www.qafnest.com/sitemap.xml"
+      }
+    },
+    "gtm": {
+      "gtmId": "GTM-TRLJXWXD",
+      "enabled": true
+    },
+    "aboutUs": {
+      "content": {
+        "ar": "<p><strong>الملف التعريفي · شريك الضيافة في رؤية السعودية 2030</strong></p><h2>نعيد تعريف تجربة الإقامات الخاصة في المملكة العربية السعودية</h2><p>انطلاقاً من مقرها الرئيسي في الرياض، تقدم <strong>قاف نست</strong> منصة ضيافة تقنية رائدة تربط العائلات والمسافرين بأفضل الشاليهات والفلل والمزارع والمخيمات المرخصة في جميع مناطق المملكة.</p><h3>مرخصة 100% من وزارة السياحة</h3><p>تخضع كل وحدة لمراجعة دقيقة لضمان أعلى معايير الجودة والأمان.</p>",
+        "en": "<p><strong>Corporate Profile · Saudi Vision 2030 Hospitality Partner</strong></p><h2>Redefining Private Vacation Stays Across Saudi Arabia</h2><p>Headquartered in Riyadh, <strong>QafNest</strong> is a premier technology-driven hospitality marketplace connecting families and travelers with verified chalets, luxury villas, private farms, and desert camps across all 13 Saudi provinces.</p><h3>100% Ministry of Tourism Licensed</h3><p>Every property is reviewed and verified for compliance and quality.</p><h3>24/7 Smart Hospitality</h3><p>Instant booking confirmation, smart lock PIN codes, and bilingual concierge support.</p>"
+      },
+      "noIndex": false,
+      "ogImage": "",
+      "keywords": {
+        "ar": "قاف نست، عن قاف نست، منصة الضيافة السعودية، السياحة السعودية",
+        "en": "QafNest, about QafNest, Saudi hospitality platform, Vision 2030 tourism"
+      },
+      "metaTitle": {
+        "ar": "عن قاف نست | منصة حجز الشاليهات والفلل في السعودية",
+        "en": "About QafNest | Tech-Driven Vacation Rentals in KSA"
+      },
+      "canonicalUrl": "https://qafnest.com/en/about",
+      "metaDescription": {
+        "ar": "تعرف على قاف نست، المنصة السعودية الرائدة لحجز الشاليهات والفلل والمنتجعات الخاصة.",
+        "en": "Learn about QafNest, Saudi Arabia's leading verified vacation rental platform for chalets, villas, and resorts."
+      }
+    }
+  }
 }

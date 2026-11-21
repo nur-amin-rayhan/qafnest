@@ -63,6 +63,24 @@ function upgradeLegacyFaqs(
   });
 }
 
+function deduplicateUsers(users: CmsWorkspaceData["users"]): CmsWorkspaceData["users"] {
+  const seenEmails = new Set<string>();
+  const clean: CmsWorkspaceData["users"] = [];
+  for (const u of users) {
+    if (!u || !u.email) continue;
+    const normEmail = u.email.trim().toLowerCase();
+    if (seenEmails.has(normEmail)) continue;
+    seenEmails.add(normEmail);
+    clean.push({
+      ...u,
+      email: normEmail,
+      status: (u as any).status || "active",
+      createdAt: (u as any).createdAt || u.updatedAt || new Date().toISOString(),
+    });
+  }
+  return clean;
+}
+
 function mergeWithDefaults(partial: Partial<CmsWorkspaceData> | null | undefined): CmsWorkspaceData {
   const defaults = createDefaultCmsWorkspace();
   if (!partial || typeof partial !== "object") return defaults;
@@ -77,9 +95,10 @@ function mergeWithDefaults(partial: Partial<CmsWorkspaceData> | null | undefined
       : defaults.destinations;
 
   const media = Array.isArray(partial.media) ? partial.media : [];
+  const rawUsers = Array.isArray(partial.users) ? partial.users : defaults.users;
 
   return {
-    users: Array.isArray(partial.users) ? partial.users : defaults.users,
+    users: deduplicateUsers(rawUsers),
     media,
     categories: Array.isArray(partial.categories) ? partial.categories : defaults.categories,
     roles: Array.isArray(partial.roles) ? partial.roles : defaults.roles,
