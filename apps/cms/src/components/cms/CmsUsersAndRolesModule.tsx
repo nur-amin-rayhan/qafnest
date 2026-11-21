@@ -194,8 +194,8 @@ export function CmsUsersModule({
   };
 
   const toggleUserStatus = async (user: CmsUserRecord) => {
-    const nextStatus = (user.status || "active") === "active" ? "suspended" : "active";
-    const updated = deduplicatedUsers.map((u) =>
+    const nextStatus: "active" | "suspended" = (user.status || "active") === "active" ? "suspended" : "active";
+    const updated: CmsUserRecord[] = deduplicatedUsers.map((u) =>
       u.id === user.id ? { ...u, status: nextStatus, updatedAt: new Date().toISOString() } : u
     );
     await onUsersChange(updated);
