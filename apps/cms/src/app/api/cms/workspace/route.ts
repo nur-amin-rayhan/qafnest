@@ -63,32 +63,6 @@ function upgradeLegacyFaqs(
   });
 }
 
-function syncDestinationMedia(
-  existingMedia: CmsWorkspaceData["media"],
-  destinations: CmsWorkspaceData["destinations"],
-  nowIso: string
-): CmsWorkspaceData["media"] {
-  const seenUrls = new Set(existingMedia.map((m) => m.url.trim()));
-  const merged = [...existingMedia];
-  for (const d of destinations) {
-    if (!d.image || seenUrls.has(d.image.trim())) continue;
-    seenUrls.add(d.image.trim());
-    const label = d.name?.en || d.city || "Destination";
-    merged.push({
-      id: `med-dest-${d.id}`,
-      filename: `${d.city || d.id}-destination.webp`,
-      alt: `QafNest ${label} Destination Photo`,
-      url: d.image.trim(),
-      mimeType: "image/webp",
-      sizeKb: 180,
-      width: 400,
-      height: 400,
-      createdAt: d.updatedAt || nowIso,
-    });
-  }
-  return merged;
-}
-
 function mergeWithDefaults(partial: Partial<CmsWorkspaceData> | null | undefined): CmsWorkspaceData {
   const defaults = createDefaultCmsWorkspace();
   if (!partial || typeof partial !== "object") return defaults;
@@ -102,9 +76,7 @@ function mergeWithDefaults(partial: Partial<CmsWorkspaceData> | null | undefined
       ? partial.destinations
       : defaults.destinations;
 
-  const nowIso = new Date().toISOString();
-  const rawMedia = Array.isArray(partial.media) ? partial.media : defaults.media;
-  const media = syncDestinationMedia(rawMedia, destinations, nowIso);
+  const media = Array.isArray(partial.media) ? partial.media : [];
 
   return {
     users: Array.isArray(partial.users) ? partial.users : defaults.users,

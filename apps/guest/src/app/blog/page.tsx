@@ -21,28 +21,32 @@ export default function BlogPage() {
     fetch("/api/cms/blogs")
       .then((r) => (r.ok ? r.json() : null))
       .then((data) => {
-        if (Array.isArray(data) && data.length > 0) {
-          // Adapt CMS shared posts to BlogPost shape
-          const adapted: BlogPost[] = data.map((b) => ({
-            id: b.id,
-            slug: b.slug,
-            titleEn: b.titleEn,
-            titleAr: b.titleAr,
-            excerptEn: b.excerptEn,
-            excerptAr: b.excerptAr,
-            category: b.category,
-            categoryNameEn: b.categoryNameEn || "General",
-            categoryNameAr: b.categoryNameAr || "عام",
-            readTimeEn: b.readTimeEn || "4 min",
-            readTimeAr: b.readTimeAr || "٤ دقائق",
-            date: b.date || b.createdAt?.split("T")[0] || "2026-11-12",
-            image: b.coverImage || b.image,
-            author: b.author || "QafNest",
-            authorRoleEn: b.authorRoleEn || "Specialist",
-            authorRoleAr: b.authorRoleAr || "مختص",
-            featured: Boolean(b.featured),
-          }));
-          setPosts(adapted);
+        if (Array.isArray(data)) {
+          if (data.length > 0) {
+            // Adapt CMS shared posts to BlogPost shape
+            const adapted: BlogPost[] = data.map((b) => ({
+              id: b.id,
+              slug: b.slug,
+              titleEn: b.titleEn,
+              titleAr: b.titleAr,
+              excerptEn: b.excerptEn,
+              excerptAr: b.excerptAr,
+              category: b.category,
+              categoryNameEn: b.categoryNameEn || "General",
+              categoryNameAr: b.categoryNameAr || "عام",
+              readTimeEn: b.readTimeEn || "4 min",
+              readTimeAr: b.readTimeAr || "٤ دقائق",
+              date: b.date || b.createdAt?.split("T")[0] || "2026-11-12",
+              image: b.coverImage || b.image,
+              author: b.author || "QafNest",
+              authorRoleEn: b.authorRoleEn || "Specialist",
+              authorRoleAr: b.authorRoleAr || "مختص",
+              featured: Boolean(b.featured),
+            }));
+            setPosts(adapted);
+          } else {
+            setPosts([]);
+          }
         }
       })
       .catch(() => {});
