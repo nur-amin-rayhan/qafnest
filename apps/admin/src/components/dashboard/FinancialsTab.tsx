@@ -195,7 +195,7 @@ export function FinancialsTab({}: FinancialsTabProps) {
       </div>
 
       {/* 5 KPI Metric Cards */}
-      <FinancialsKpiStrip metrics={metrics} />
+      <FinancialsKpiStrip metrics={metrics} loading={loading} />
 
       {/* 24-Hour Host Payout SLA & Live Reminders Center (visible in payouts section) */}
       {activeSection === "payouts" && (
