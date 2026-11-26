@@ -79,7 +79,10 @@ function normalizeLoyaltyStoreState(parsed: unknown): LoyaltyStoreState {
     return {
       ...candidate,
       wallets: candidate.wallets || {},
-      activeOffers: Array.isArray(candidate.activeOffers) ? candidate.activeOffers : [],
+      activeOffers:
+        Array.isArray(candidate.activeOffers) && candidate.activeOffers.length > 0
+          ? candidate.activeOffers
+          : DEFAULT_OFFERS,
       loyaltySettings: candidate.loyaltySettings || DEFAULT_LOYALTY_SETTINGS,
       pendingSplits:
         candidate.pendingSplits && typeof candidate.pendingSplits === "object"

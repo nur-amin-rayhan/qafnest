@@ -249,10 +249,6 @@ export async function getLiveAdminInvoices(): Promise<AdminTaxInvoiceRecord[]> {
     }
   }
 
-  if (process.env.NODE_ENV !== "production" && !results.some((i) => i.id === DEFAULT_TEST_ADMIN_INVOICE.id)) {
-    results.push(DEFAULT_TEST_ADMIN_INVOICE);
-  }
-
   return results;
 }
 
