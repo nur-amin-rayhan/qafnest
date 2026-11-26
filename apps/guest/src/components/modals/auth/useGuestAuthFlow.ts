@@ -149,7 +149,7 @@ export function useGuestAuthFlow({
         turnstileContainerRef.current.innerHTML = "";
         const id = turnstile.render(turnstileContainerRef.current, {
           sitekey: siteKey,
-          size: "invisible",
+          size: "flexible",
           callback: (token: string) => setTurnstileToken(token),
           "expired-callback": () => setTurnstileToken(""),
           "error-callback": () => setTurnstileToken(""),

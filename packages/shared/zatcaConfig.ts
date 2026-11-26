@@ -88,8 +88,8 @@ export const DEFAULT_ZATCA_CONFIG: ZatcaConfig = {
   deviceUuid: "9d48b11a-8210-482a-bc92-748291048291",
   egsSerialNumber: "QAFNEST-EGS-RIYADH-01",
   autoReport: true,
-  currentIcv: 42,
-  latestPih: "NWZlY2ViNjZmZmM4NmYzOGQ5NTI3ODZjNmQ2OTZjNzljMjRiNWRjNmE2ZjBlMGE3",
-  totalReportedCount: 38,
+  currentIcv: 0,
+  latestPih: "NWZlY2ViNjZmZmM4NmYzOGQ5NTI3ODZjNmQ2OTZjNzljMmRiYzIzOWRkNGU5MWI0NjcyOWQ3M2EyN2ZiNTdlOQ==",
+  totalReportedCount: 0,
   lastReportingTimestamp: "2026-11-09T20:30:00Z",
 };

@@ -1,1 +1,13 @@
-{}
+{
+  "00000000-0000-0000-0000-000000000001": {
+    "phone": "+966500000001",
+    "idType": "national_id",
+    "userId": "00000000-0000-0000-0000-000000000001",
+    "idNumber": "1000000008",
+    "provider": "sandbox",
+    "authority": "Nafath / Elm Yaqeen Sandbox Gateway · Saudi NIC",
+    "reference": "NAFATH-SA-MWXQOB1I",
+    "verifiedAt": "2026-11-26T16:00:32.742Z",
+    "verifiedFullName": "عبدالله بن فهد العتيبي"
+  }
+}

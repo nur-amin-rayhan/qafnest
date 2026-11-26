@@ -44,7 +44,21 @@ const DEFAULT_LOYALTY_SETTINGS: LoyaltySettings = {
   redemptionRateSAR: 10,
 };
 
-const DEFAULT_OFFERS: LoyaltyOffer[] = [];
+const DEFAULT_OFFERS: LoyaltyOffer[] = [
+  {
+    id: "camp-riyadh-season-2x",
+    titleEn: "Riyadh Season Double Points",
+    titleAr: "موسم الرياض - نقاط مضاعفة 2x",
+    descriptionEn: "Earn 2x loyalty points on all luxury chalets and private villas in Riyadh.",
+    descriptionAr: "احصل على ضعف نقاط الولاء (2x) عند حجز الشاليهات والفلل الفاخرة في الرياض.",
+    multiplier: 2.0,
+    bonusPoints: 100,
+    badgeEn: "2x Points",
+    badgeAr: "نقاط مضاعفة 2x",
+    validUntil: "2027-03-31T23:59:59.000Z",
+    isActive: true,
+  },
+];
 
 const WALLET_STORE_FILE = ".qafnest-wallets.json";
 

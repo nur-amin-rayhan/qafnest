@@ -42,112 +42,11 @@ export interface HostPayoutStoreData {
 const PAYOUT_STORE_FILE = "host-payouts.json";
 
 function buildInitialBaselinePayouts(): SharedHostPayoutRecord[] {
-  if (process.env.NODE_ENV === "production") {
-    return [];
-  }
-  return [
-    {
-      id: "pay-002",
-      reference: "SARIE-QAF-PAY002",
-      bookingId: "00000000-0000-0000-0000-000000000002",
-      hostId: "00000000-0000-0000-0000-000000000002",
-      hostName: "Renad Al-Mutairi",
-      hostPhone: "+966500000002",
-      propertyTitle: "Rayhan Chalet",
-      bankName: "Alinma Bank / مصرف الإنماء",
-      iban: "SA4405000000000000000000",
-      staysCount: 1,
-      grossAmount: 500,
-      commissionRate: 0.13,
-      commissionAmount: 65,
-      vatAmount: 84.75,
-      netPayoutAmount: 435,
-      guestPaidTotal: 649.75,
-      guestServiceFeeAmount: 65,
-      promoDiscountAmount: 0,
-      welcomeBonusSubsidyAmount: 0,
-      platformNetRevenue: 130,
-      settlementVersion: 2,
-      status: "pending",
-      earnedAt: "2026-11-10T10:00:00.000Z",
-      slaDeadlineAt: "2026-11-11T10:00:00.000Z",
-      scheduledDate: "2026-11-11",
-      payoutRail: "sarie_bank",
-      checkInDate: "2026-11-05",
-      checkOutDate: "2026-11-08",
-      bookingStatus: "confirmed",
-      payoutRequestStatus: "none",
-      bookings: [
-        {
-          id: "00000000-0000-0000-0000-000000000002",
-          reference: "QAF-PAY002",
-          guestName: "Sarah Al-Ghamdi",
-          checkIn: "2026-11-05",
-          checkOut: "2026-11-08",
-          nights: 3,
-          total: 500,
-        },
-      ],
-      source: "booking",
-      created_at: "2026-11-10T10:00:00.000000+00:00",
-    },
-    {
-      id: "pay-003",
-      reference: "SARIE-QAF-PAY003",
-      bookingId: "00000000-0000-0000-0000-000000000003",
-      hostId: "00000000-0000-0000-0000-000000000002",
-      hostName: "Renad Al-Mutairi",
-      hostPhone: "+966500000002",
-      propertyTitle: "Rayhan Chalet",
-      bankName: "Alinma Bank / مصرف الإنماء",
-      iban: "SA4405000000000000000000",
-      staysCount: 1,
-      grossAmount: 800,
-      commissionRate: 0.13,
-      commissionAmount: 104,
-      vatAmount: 135.6,
-      netPayoutAmount: 696,
-      guestPaidTotal: 1039.6,
-      guestServiceFeeAmount: 104,
-      promoDiscountAmount: 0,
-      welcomeBonusSubsidyAmount: 0,
-      platformNetRevenue: 208,
-      settlementVersion: 2,
-      status: "pending",
-      earnedAt: "2026-11-10T11:00:00.000Z",
-      slaDeadlineAt: "2026-11-11T11:00:00.000Z",
-      scheduledDate: "2026-11-11",
-      payoutRail: "sarie_bank",
-      checkInDate: "2026-11-06",
-      checkOutDate: "2026-11-09",
-      bookingStatus: "confirmed",
-      payoutRequestStatus: "none",
-      bookings: [
-        {
-          id: "00000000-0000-0000-0000-000000000003",
-          reference: "QAF-PAY003",
-          guestName: "Khaled Al-Harbi",
-          checkIn: "2026-11-06",
-          checkOut: "2026-11-09",
-          nights: 3,
-          total: 800,
-        },
-      ],
-      source: "booking",
-      created_at: "2026-11-10T11:00:00.000000+00:00",
-    },
-  ];
+  return [];
 }
 
 function mergeWithBaselinePayouts(existing: SharedHostPayoutRecord[] = []): SharedHostPayoutRecord[] {
-  const map = new Map<string, SharedHostPayoutRecord>();
-  for (const b of buildInitialBaselinePayouts()) {
-    map.set(b.id, b);
-  }
-  for (const e of existing) {
-    map.set(e.id, e);
-  }
-  return Array.from(map.values());
+  return existing;
 }
 
 function readStore(): HostPayoutStoreData {

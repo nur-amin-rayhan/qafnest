@@ -318,15 +318,18 @@ export async function GET(request: NextRequest) {
 
     // Build Guest directory from registered users + profiles + distinct helpline callers
     const guestIdSet = new Set<string>();
+    const ADMIN_EMAILS = new Set(["admin@qafnest.com", "cms.dev@qafnest.com"]);
     for (const p of profiles) {
-      if (!hostIds.has(String(p.id))) guestIdSet.add(String(p.id));
+      if (p.role === "admin" || hostIds.has(String(p.id))) continue;
+      guestIdSet.add(String(p.id));
     }
     for (const u of authUsers) {
       const uid = String(u.id);
+      const emailLower = String(u.email || "").toLowerCase();
       const uMeta = (u.user_metadata || {}) as Record<string, unknown>;
       const aMeta = (u.app_metadata || {}) as Record<string, unknown>;
       const role = String(uMeta.role || aMeta.role || "").toLowerCase();
-      if (!hostIds.has(uid) && role !== "admin") {
+      if (!hostIds.has(uid) && role !== "admin" && !ADMIN_EMAILS.has(emailLower)) {
         guestIdSet.add(uid);
       }
     }
