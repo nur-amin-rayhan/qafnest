@@ -7,6 +7,7 @@ import { OfficialPaymentIcon } from "@/components/common/OfficialPaymentIcon";
 import type { SavedCard } from "@/lib/services/walletService";
 import { useAuth } from "@/context/AuthContext";
 import { getGuestAuthorizationHeaders } from "@/lib/auth/clientAuthHeaders";
+import { dispatchOpenIdentityModal } from "@/components/modals/GuestIdentityGateModal";
 import type { GatewayCapabilitiesResponse, PaymentMethod } from "./types";
 import {
   GooglePayBrandMark,
@@ -68,7 +69,8 @@ export default function ReservationPaymentMethods({
   cardCvv,
   setCardCvv,
 }: ReservationPaymentMethodsProps) {
-  const { session } = useAuth();
+  const { session, profile, user: authUser } = useAuth();
+  const identityVerified = !user || Boolean(profile?.is_verified || authUser?.app_metadata?.is_verified);
   const [splitMethodsOpen, setSplitMethodsOpen] = useState(false);
   const [savedCards, setSavedCards] = useState<SavedCard[]>([]);
   const hasInitializedRef = React.useRef(false);
@@ -76,7 +78,8 @@ export default function ReservationPaymentMethods({
   const appleAvailable = methods?.apple?.available !== false;
   const googleAvailable = methods?.google?.available !== false;
   const stcpayAvailable = methods?.stcpay?.available !== false;
-  const cardAvailable = methods?.card?.available !== false || methods?.mada?.available !== false;
+  const madaAvailable = methods?.mada?.available !== false;
+  const cardAvailable = methods?.card?.available !== false;
   const samsungAvailable = Boolean(methods?.samsung?.available);
 
   useEffect(() => {
@@ -106,7 +109,7 @@ export default function ReservationPaymentMethods({
 
   useEffect(() => {
     const active = savedCards.find((c) => c.id === selectedCardId);
-    setSelectedCardRequiresCvv?.(Boolean(active?.supportsDirectCharge && !active?.hasSavedCvv));
+    setSelectedCardRequiresCvv?.(Boolean(active?.supportsDirectCharge));
   }, [savedCards, selectedCardId, setSelectedCardRequiresCvv]);
 
   const selectMethod = (next: PaymentMethod) => {
@@ -117,40 +120,56 @@ export default function ReservationPaymentMethods({
   return (
     <section
       id="payment-methods"
-      className="mt-6 scroll-mt-28 rounded-3xl border border-violet-200/85 bg-white p-5 shadow-[0_12px_35px_rgba(109,40,217,0.06)] dark:border-violet-500/20 dark:bg-[#12101a] sm:p-6"
+      className="mt-6 scroll-mt-28 rounded-2xl border border-slate-200/85 bg-white p-5 shadow-xs dark:border-slate-800 dark:bg-[#110F18] sm:p-6"
     >
       <div className="flex items-center justify-between gap-3">
         <div>
-          <h2 className="text-lg font-bold text-gray-950 dark:text-white">
+          <h2 className="text-lg font-bold text-slate-900 dark:text-white">
             {label("Payment Methods", "طرق الدفع")}
           </h2>
-          <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
             {label("Choose how you want to pay. Your selection stays on this page.", "اختر طريقة الدفع، وسيبقى اختيارك في هذه الصفحة.")}
           </p>
         </div>
-        <Wallet className="h-5 w-5 shrink-0 text-violet-600 dark:text-violet-300" />
+        <Wallet className="h-5 w-5 shrink-0 text-[#4F2396] dark:text-purple-300" />
       </div>
 
-      {!phoneVerified ? (
-        <div className="mt-5 rounded-2xl border border-dashed border-violet-200 bg-violet-50/50 p-6 text-center dark:border-violet-500/20 dark:bg-violet-950/20">
-          <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-300">
+      {!phoneVerified || !identityVerified ? (
+        <div className="mt-5 rounded-2xl border border-dashed border-slate-300/80 bg-slate-50/60 p-6 text-center dark:border-slate-700/80 dark:bg-slate-900/30">
+          <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-purple-50 text-[#4F2396] dark:bg-purple-950/60 dark:text-purple-300">
             <LockKeyhole className="h-5 w-5" />
           </div>
-          <h3 className="mt-2.5 text-sm font-bold text-gray-900 dark:text-white">
-            {label("Payment Methods are Locked", "طرق الدفع مقفلة")}
+          <h3 className="mt-2.5 text-sm font-semibold text-slate-900 dark:text-white">
+            {!phoneVerified
+              ? label("Payment Methods are Locked", "طرق الدفع مقفلة")
+              : label("Identity Verification Required", "توثيق الهوية مطلوب")}
           </h3>
-          <p className="mt-1 text-xs text-gray-500 dark:text-gray-400 max-w-sm mx-auto">
-            {user
-              ? label("Please verify your mobile number above to unlock payment options and complete booking.", "يرجى التحقق من رقم جوالك في القسم أعلاه لفتح خيارات الدفع وإتمام الحجز.")
-              : label("Please sign in or enter your mobile number above to unlock payment options.", "يرجى تسجيل الدخول أو إدخال رقم جوالك في القسم أعلاه لفتح خيارات الدفع واختيارها.")}
+          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400 max-w-sm mx-auto">
+            {!phoneVerified
+              ? user
+                ? label("Please verify your mobile number above to unlock payment options and complete booking.", "يرجى التحقق من رقم جوالك في القسم أعلاه لفتح خيارات الدفع وإتمام الحجز.")
+                : label("Please sign in or enter your mobile number above to unlock payment options.", "يرجى تسجيل الدخول أو إدخال رقم جوالك في القسم أعلاه لفتح خيارات الدفع واختيارها.")
+              : label(
+                  "Verify your Saudi National ID or Iqama matching your mobile number via Nafath / Elm Yaqeen to unlock payment.",
+                  "وثق الهوية الوطنية أو الإقامة المطابقة لرقم جوالك عبر نفاذ / علم يقين لفتح طرق الدفع وإتمام الحجز."
+                )}
           </p>
+          {phoneVerified && !identityVerified && (
+            <button
+              type="button"
+              onClick={dispatchOpenIdentityModal}
+              className="mt-4 inline-flex items-center justify-center gap-2 rounded-xl bg-[#4F2396] px-4 py-2 text-xs font-semibold text-white transition hover:bg-[#3d1979] cursor-pointer"
+            >
+              {label("Verify via Nafath / Elm Yaqeen", "التوثيق عبر نفاذ / علم يقين")}
+            </button>
+          )}
         </div>
       ) : (
         <>
           <div
             role="radiogroup"
             aria-label={label("Payment method", "طريقة الدفع")}
-            className="mt-4 divide-y divide-gray-200 border-y border-gray-200 dark:divide-white/10 dark:border-white/10"
+            className="mt-4 divide-y divide-slate-200/80 border-y border-slate-200/80 dark:divide-slate-800 dark:border-slate-800"
           >
             {totalAmount > 0 && walletBalance > 0 && walletBalance < totalAmount ? (
               <div className="py-3.5">
@@ -197,11 +216,11 @@ export default function ReservationPaymentMethods({
                 </button>
 
                 {useWalletCredit && (
-                  <div className="mt-2.5 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-violet-200 bg-violet-50/70 px-3.5 py-2.5 text-xs dark:border-violet-500/25 dark:bg-violet-950/30">
-                    <span className="font-semibold text-violet-900 dark:text-violet-200">
+                  <div className="mt-2.5 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-purple-200/80 bg-purple-50/70 px-3.5 py-2.5 text-xs dark:border-purple-900/40 dark:bg-purple-950/30">
+                    <span className="font-semibold text-purple-950 dark:text-purple-200">
                       {label(`Wallet: -${walletBalance.toFixed(2)} SAR · Remaining due:`, `من المحفظة: -${walletBalance.toFixed(2)} ر.س · المبلغ المتبقي:`)}
                     </span>
-                    <span className="font-mono font-black text-violet-700 dark:text-violet-300">
+                    <span className="font-mono font-black text-[#4F2396] dark:text-purple-300">
                       {(totalAmount - walletBalance).toFixed(2)} SAR
                     </span>
                   </div>
@@ -280,16 +299,26 @@ export default function ReservationPaymentMethods({
               />
             )}
 
+            {madaAvailable && (
+              <PaymentRow
+                selected={paymentMethod === "mada"}
+                disabled={false}
+                onSelect={() => selectMethod("mada")}
+                title={label("Mada Card", "بطاقة مدى البنكية")}
+                description={label("Saudi domestic Mada debit cards · Zero surcharge", "بطاقات مدى البنكية السعودية · بدون رسوم إضافية")}
+                marks={<OfficialPaymentIcon name="mada" heightClass="h-6" />}
+              />
+            )}
+
             {cardAvailable && (
               <PaymentRow
                 selected={paymentMethod === "card"}
                 disabled={false}
                 onSelect={() => selectMethod("card")}
-                title={label("Credit or debit card", "بطاقة مدى أو ائتمان")}
-                description={label("Card gateway · Mada, Visa and Mastercard", "بوابة البطاقات · مدى وVisa وMastercard")}
+                title={label("Credit Card (Visa / Mastercard)", "بطاقة ائتمانية (Visa / Mastercard)")}
+                description={label("Credit card gateway · Visa and Mastercard", "بوابة البطاقات الائتمانية · Visa وMastercard")}
                 marks={
                   <span className="inline-flex items-center gap-1.5">
-                    <OfficialPaymentIcon name="mada" heightClass="h-6" />
                     <OfficialPaymentIcon name="visa" heightClass="h-6" />
                     <OfficialPaymentIcon name="mastercard" heightClass="h-6" />
                   </span>
@@ -310,7 +339,7 @@ export default function ReservationPaymentMethods({
             )}
           </div>
 
-          <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-purple-200/60 bg-gradient-to-r from-purple-50/90 to-amber-50/70 p-3.5 dark:border-purple-500/20 dark:from-purple-950/30 dark:to-amber-950/20">
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200/85 bg-slate-50/70 p-3.5 dark:border-slate-800 dark:bg-slate-900/60">
             <div className="flex items-center gap-2.5">
               <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-[#4F2396] text-white">
                 <Gift className="h-4 w-4" />

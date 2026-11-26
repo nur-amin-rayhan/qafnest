@@ -115,9 +115,9 @@ export async function GET() {
       { headers: { "Cache-Control": "no-store, max-age=0" } }
     );
   } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : "Failed to load home popups";
+    console.error("[cmsPopups] load error:", err);
     return NextResponse.json(
-      { popups: [], error: msg },
+      { popups: [], error: "Failed to load home popups." },
       { status: 500, headers: { "Cache-Control": "no-store" } }
     );
   }

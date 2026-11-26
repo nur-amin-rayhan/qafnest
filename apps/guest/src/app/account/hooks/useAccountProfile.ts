@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import type { User, Session, SupabaseClient } from "@supabase/supabase-js";
 import type { Profile } from "@/context/AuthContext";
 import {
@@ -16,6 +16,7 @@ interface UseAccountProfileOptions {
   profile: Profile | null;
   language: string;
   supabase: SupabaseClient;
+  refreshProfile?: (userId?: string) => Promise<void>;
 }
 
 export function useAccountProfile({
@@ -24,6 +25,7 @@ export function useAccountProfile({
   profile,
   language,
   supabase,
+  refreshProfile,
 }: UseAccountProfileOptions) {
   const [editFullName, setEditFullName] = useState("");
   const [editPhone, setEditPhone] = useState("");
@@ -51,10 +53,30 @@ export function useAccountProfile({
   const [savingProfile, setSavingProfile] = useState(false);
   const [profileSavedMsg, setProfileSavedMsg] = useState(false);
 
-  // Sync profile details from auth state and persistent storage
+  // Sync profile details cleanly using refs + primitive field dependencies
+  const latestUserRef = useRef(user);
+  const latestProfileRef = useRef(profile);
+  latestUserRef.current = user;
+  latestProfileRef.current = profile;
+
+  const userId = user?.id || null;
+  const profileFullName = profile?.full_name || null;
+  const profilePhone = profile?.phone || null;
+  const profileVerified = Boolean(profile?.is_verified || user?.app_metadata?.is_verified);
+  const profileNationalId = profile?.national_id || null;
+  const profileIqama = profile?.iqama || null;
+  const profileIdType = profile?.id_type || null;
+  const profileCity = profile?.city || null;
+
   useEffect(() => {
-    if (user || profile) {
-      const initial = extractInitialProfileState({ user, profile, language });
+    const activeUser = latestUserRef.current;
+    const activeProfile = latestProfileRef.current;
+    if (activeUser || activeProfile) {
+      const initial = extractInitialProfileState({
+        user: activeUser,
+        profile: activeProfile,
+        language,
+      });
       setEditFullName(initial.rawFullName);
       setEditPhone(initial.rawPhone);
       setEditEmail(initial.rawEmail);
@@ -66,7 +88,17 @@ export function useAccountProfile({
       setIqamaVerified(initial.iqamaVerified);
       setEmailVerified(initial.emailVerified);
     }
-  }, [user, profile, language]);
+  }, [
+    userId,
+    profileFullName,
+    profilePhone,
+    profileVerified,
+    profileNationalId,
+    profileIqama,
+    profileIdType,
+    profileCity,
+    language,
+  ]);
 
   const displayName = useMemo(() => {
     if (profile?.full_name?.trim()) return profile.full_name;
@@ -104,13 +136,17 @@ export function useAccountProfile({
       type: "national_id",
       rawId: raw,
       fullName: editFullName,
+      phone: editPhone,
       session,
       language,
     });
 
     if (result.success) {
       setNationalIdVerified(true);
+      setIqamaVerified(false);
+      if (result.fullName) setEditFullName(result.fullName);
       setIdVerificationMsg({ type: "success", text: result.message });
+      await refreshProfile?.();
     } else {
       setIdVerificationMsg({ type: "error", text: result.message });
     }
@@ -138,13 +174,17 @@ export function useAccountProfile({
       type: "iqama",
       rawId: raw,
       fullName: editFullName,
+      phone: editPhone,
       session,
       language,
     });
 
     if (result.success) {
       setIqamaVerified(true);
+      setNationalIdVerified(false);
+      if (result.fullName) setEditFullName(result.fullName);
       setIdVerificationMsg({ type: "success", text: result.message });
+      await refreshProfile?.();
     } else {
       setIdVerificationMsg({ type: "error", text: result.message });
     }
@@ -163,13 +203,30 @@ export function useAccountProfile({
 
     setFieldErrors((prev) => ({ ...prev, email: undefined }));
     setVerifyingEmail(true);
-    await new Promise((r) => setTimeout(r, 500));
-    setEmailVerified(true);
-    setVerifyingEmail(false);
-    setIdVerificationMsg({
-      type: "success",
-      text: language === "ar" ? "تم التحقق من البريد الإلكتروني بنجاح" : "Email address verified successfully",
-    });
+    try {
+      const { error } = await supabase.auth.updateUser({ email: raw });
+      if (error) {
+        setIdVerificationMsg({
+          type: "error",
+          text: error.message || (language === "ar" ? "تعذر إرسال رابط التحقق" : "Could not send verification email"),
+        });
+      } else {
+        setIdVerificationMsg({
+          type: "success",
+          text:
+            language === "ar"
+              ? "تم إرسال رابط تأكيد إلى بريدك الإلكتروني. يرجى تأكيده من صندوق الوارد."
+              : "Verification link sent to your email. Please confirm from your inbox.",
+        });
+      }
+    } catch {
+      setIdVerificationMsg({
+        type: "error",
+        text: language === "ar" ? "تعذر إرسال رابط التحقق" : "Could not send verification email",
+      });
+    } finally {
+      setVerifyingEmail(false);
+    }
   };
 
   const handleSaveProfile = async (e: React.FormEvent) => {
@@ -198,11 +255,6 @@ export function useAccountProfile({
     setProfileSavedMsg(false);
 
     try {
-      const isVerified = Boolean(
-        (trimmedNationalId && /^1\d{9}$/.test(trimmedNationalId)) ||
-        (trimmedIqama && /^2\d{9}$/.test(trimmedIqama))
-      );
-
       await persistProfileRecord({
         user,
         session,
@@ -214,17 +266,20 @@ export function useAccountProfile({
         trimmedIqama,
         primaryIdType,
         editCity,
-        nationalIdVerified,
-        iqamaVerified,
-        emailVerified,
-        isVerified,
       });
 
       setProfileSavedMsg(true);
       setTimeout(() => setProfileSavedMsg(false), 4000);
-    } catch {
-      setProfileSavedMsg(true);
-      setTimeout(() => setProfileSavedMsg(false), 3000);
+    } catch (err: unknown) {
+      setIdVerificationMsg({
+        type: "error",
+        text:
+          err instanceof Error
+            ? err.message
+            : language === "ar"
+            ? "تعذر حفظ بيانات الملف الشخصي. يرجى المحاولة مرة أخرى."
+            : "Could not save profile details. Please try again.",
+      });
     } finally {
       setSavingProfile(false);
     }

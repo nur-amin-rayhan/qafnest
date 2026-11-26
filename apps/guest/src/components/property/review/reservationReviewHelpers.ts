@@ -3,6 +3,7 @@ import { propertyDetailHref } from "@/lib/propertyUrls";
 import {
   computeSlotAwareStayRate,
   isSameDayTwelveHourStay,
+  sanitizePropertySlotConfig,
   type PropertyBookingSlotConfig,
 } from "@qafnest/shared";
 import {
@@ -53,6 +54,7 @@ export function calculateStayPricing(
     dateOverrides?: Record<string, number>;
   }
 ) {
+  let isTwelveHour = false;
   let baseStayRate = getStayTotal(property, bookingCheckinDate, nights, {
     dateOverrides: options?.dateOverrides,
   });
@@ -66,6 +68,7 @@ export function calculateStayPricing(
       checkoutTime: options.checkoutTime,
     })
   ) {
+    isTwelveHour = true;
     const weeklyPricing = property.customDayPricing || {
       sunday: property.sundayPrice,
       monday: property.mondayPrice,
@@ -75,6 +78,13 @@ export function calculateStayPricing(
       friday: property.fridayPrice,
       saturday: property.saturdayPrice,
     };
+    const rawEmbedded = (property.customDayPricing as Record<string, unknown>)?.__slotConfig;
+    const embeddedSlotConfig =
+      rawEmbedded && typeof rawEmbedded === "object"
+        ? sanitizePropertySlotConfig(rawEmbedded, property.id, property.slug)
+        : null;
+    const effectiveSlotConfig = options?.slotConfig || embeddedSlotConfig || undefined;
+
     const slotCalc = computeSlotAwareStayRate({
       checkIn: bookingCheckinDate,
       checkOut: options.checkoutDate,
@@ -86,14 +96,16 @@ export function calculateStayPricing(
         weekendPrice: property.weekendPrice,
         dateOverrides: options?.dateOverrides || property.dateOverrides || null,
       },
-      slotConfig: options.slotConfig || undefined,
+      slotConfig: effectiveSlotConfig,
     });
     baseStayRate = slotCalc.baseStayRate;
   }
 
   const total = pricingTotal !== null ? pricingTotal : baseStayRate;
-  const originalTotal = (property.originalPrice || property.basePrice) * nights;
-  const hasDiscount = originalTotal > baseStayRate;
+  const originalTotal = isTwelveHour
+    ? baseStayRate
+    : (property.originalPrice || property.basePrice) * nights;
+  const hasDiscount = isTwelveHour ? false : originalTotal > baseStayRate;
   const installmentAmount = (total / 4).toLocaleString(
     language === "ar" ? "ar-SA" : "en-SA",
     { minimumFractionDigits: 2, maximumFractionDigits: 2 }
@@ -102,7 +114,7 @@ export function calculateStayPricing(
     language === "ar" ? "ر.س" : "SAR"
   }`;
 
-  return { baseStayRate, total, originalTotal, hasDiscount, installmentPrice };
+  return { baseStayRate, total, originalTotal, hasDiscount, installmentPrice, isTwelveHourStay: isTwelveHour };
 }
 
 export function buildEditStayHref(

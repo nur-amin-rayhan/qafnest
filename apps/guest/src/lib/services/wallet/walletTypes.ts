@@ -38,9 +38,6 @@ export interface SavedCard {
   expiryYear: string;
   isDefault: boolean;
   createdAt: string;
-  cardToken?: string;
-  cvvToken?: string;
-  hasSavedCvv?: boolean;
   gatewayToken?: string;
   panHash?: string;
   maskedPan?: string;

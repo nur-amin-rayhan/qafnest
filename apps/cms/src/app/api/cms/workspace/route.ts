@@ -71,11 +71,13 @@ function deduplicateUsers(users: CmsWorkspaceData["users"]): CmsWorkspaceData["u
     const normEmail = u.email.trim().toLowerCase();
     if (seenEmails.has(normEmail)) continue;
     seenEmails.add(normEmail);
+    const { password: _omittedPassword, ...safeUser } = u as CmsWorkspaceData["users"][number] & { password?: string };
+    void _omittedPassword;
     clean.push({
-      ...u,
+      ...safeUser,
       email: normEmail,
-      status: (u as any).status || "active",
-      createdAt: (u as any).createdAt || u.updatedAt || new Date().toISOString(),
+      status: safeUser.status || "active",
+      createdAt: safeUser.createdAt || safeUser.updatedAt || new Date().toISOString(),
     });
   }
   return clean;
@@ -145,8 +147,8 @@ export async function GET(request: NextRequest) {
       { headers: { "Cache-Control": "no-store, max-age=0" } }
     );
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : "Failed to load CMS workspace";
-    return NextResponse.json({ error: message }, { status: 500 });
+    console.error("[cms workspace GET] error:", err);
+    return NextResponse.json({ error: "Failed to load CMS workspace" }, { status: 500 });
   }
 }
 
@@ -174,7 +176,7 @@ export async function PUT(request: NextRequest) {
       { headers: { "Cache-Control": "no-store, max-age=0" } }
     );
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : "Failed to save CMS workspace";
-    return NextResponse.json({ error: message }, { status: 500 });
+    console.error("[cms workspace PUT] error:", err);
+    return NextResponse.json({ error: "Failed to save CMS workspace" }, { status: 500 });
   }
 }

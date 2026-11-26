@@ -20,6 +20,10 @@ import type { CmsLocale, CmsMediaRecord, CmsTab, CmsWorkspaceData } from "@/type
 
 const GLOBAL_TABS: GlobalKind[] = [
   "home-hero",
+  "features",
+  "fleet-capabilities",
+  "coverage-network",
+  "industries",
   "contact-us",
   "site-seo",
   "google-tag-manager",
@@ -31,6 +35,7 @@ const COLLECTION_TABS = [
   "faqs",
   "home-popups",
   "destinations",
+  "business-pages",
   "legal-pages",
   "navigation-links",
   "social-links",
@@ -137,19 +142,18 @@ export default function ContentAndSeoCmsPage() {
 
   const saveWorkspacePatch = useCallback(
     async (patch: Partial<CmsWorkspaceData>) => {
-      const next: CmsWorkspaceData = {
-        ...workspace,
+      setWorkspace((prev) => ({
+        ...prev,
         ...patch,
         globals: patch.globals
-          ? { ...workspace.globals, ...patch.globals }
-          : workspace.globals,
-      };
-      setWorkspace(next);
+          ? { ...prev.globals, ...patch.globals }
+          : prev.globals,
+      }));
       try {
         const res = await fetch(cmsPath("/api/cms/workspace"), {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ workspace: next }),
+          body: JSON.stringify({ workspace: patch }),
         });
         if (res.ok) {
           const data = await res.json();
@@ -161,7 +165,7 @@ export default function ContentAndSeoCmsPage() {
         notify("Failed to persist changes");
       }
     },
-    [workspace, notify]
+    [notify]
   );
 
   const handleMediaUploaded = useCallback((record: CmsMediaRecord) => {
@@ -306,6 +310,7 @@ export default function ContentAndSeoCmsPage() {
 
           {isCollectionTab && (
             <CmsCollectionsModule
+              key={activeTab}
               kind={activeTab as (typeof COLLECTION_TABS)[number]}
               workspace={workspace}
               onSaveWorkspacePatch={saveWorkspacePatch}
@@ -318,6 +323,7 @@ export default function ContentAndSeoCmsPage() {
 
           {isGlobalTab && (
             <CmsGlobalsModule
+              key={activeTab}
               kind={activeTab as GlobalKind}
               workspace={workspace}
               onSaveGlobals={(nextGlobals) => saveWorkspacePatch({ globals: nextGlobals })}

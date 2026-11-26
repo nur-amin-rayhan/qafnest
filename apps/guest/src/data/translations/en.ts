@@ -16,7 +16,7 @@ export const enTranslations = {
     languageToggle: "العربية",
   },
   hero: {
-    badge: "Officially Licensed Vacation Rentals",
+    badge: "Verified Luxury Chalets & Vacation Stays",
     title1: "Feel at Home.",
     title2: "Stay Exceptional.",
     subtitle:
@@ -124,10 +124,10 @@ export const enTranslations = {
     sub: "We support Mada, Apple Pay, Visa, Mastercard, and interest-free installments via Tabby.",
   },
   footer: {
-    desc: "Saudi Arabia's licensed peer-to-peer vacation rental and luxury stays platform. Officially regulated by the Ministry of Tourism.",
-    licensedBy: "Licensed by the Ministry of Tourism",
-    license: "License Number: 73102999",
-    cr: "Ministry of Tourism Approved · CR 1010648921",
+    desc: "Saudi Arabia's modern vacation rental and private luxury stays platform connecting guests and hosts.",
+    licensedBy: "Hospitality & Stays Platform",
+    license: "",
+    cr: "CR 1010648921",
     rights: "All Rights Reserved © 2026 QafNest",
   },
 };

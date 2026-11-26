@@ -17,7 +17,7 @@ interface VatInvoiceModalProps {
   t: (en: string, ar: string) => string;
 }
 
-export function VatInvoiceModal({ invoice, onClose, lang, t }: VatInvoiceModalProps) {
+export function VatInvoiceModal({ invoice, onClose, t }: VatInvoiceModalProps) {
   const [qrDataUrl, setQrDataUrl] = useState<string>("");
 
   useEffect(() => {
@@ -61,13 +61,17 @@ export function VatInvoiceModal({ invoice, onClose, lang, t }: VatInvoiceModalPr
     const serviceFee = parseAmount(invoice.serviceFee);
     const vat = parseAmount(invoice.vat);
     const total = parseAmount(invoice.total);
+    const resolvedVatRate =
+      serviceFee > 0 && vat >= 0
+        ? Math.round((vat / serviceFee) * 10000) / 10000
+        : 0.15;
 
     const xml = generateZatcaUbl21Xml({
       uuid: invoice.id,
       invoiceNumber: invoice.id,
       icv: 1,
       pih: "NWZlY2ViNjZmZmM4NmYzOGQ5NTI3ODZjNmQ2OTZjNzljMjRiNWRjNmE2ZjBlMGE3",
-      issueDate: invoice.date || "2026-11-05",
+      issueDate: invoice.date || new Date().toISOString().slice(0, 10),
       issueTime: "14:00:00",
       type: "simplified",
       sellerNameAr: QAFNEST_ZATCA_DEFAULTS.sellerNameAr,
@@ -79,7 +83,7 @@ export function VatInvoiceModal({ invoice, onClose, lang, t }: VatInvoiceModalPr
           quantity: 1,
           unitPrice: serviceFee,
           subtotal: serviceFee,
-          vatRate: 0.15,
+          vatRate: resolvedVatRate,
           vatAmount: vat,
           total: total,
         },
@@ -149,7 +153,7 @@ export function VatInvoiceModal({ invoice, onClose, lang, t }: VatInvoiceModalPr
                 {t("QafNest Hospitality Platform LLC", "شركة منصة قاف نست للضيافة ذ.م.م")}
               </p>
               <p className="text-[11px] text-slate-400">
-                {t("Ministry of Tourism License: 73102999", "ترخيص وزارة السياحة رقم: 73102999")}
+                {t("Commercial Registration: 0000000000", "السجل التجاري: 0000000000")}
               </p>
               <p className="text-[11px] text-slate-400">
                 {t(

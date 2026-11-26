@@ -28,6 +28,19 @@ export function detectSaudiBank(iban: string): { nameEn: string; nameAr: string 
   return SAUDI_BANKS[bankCode] || { nameEn: "Saudi Commercial Bank", nameAr: "بنك سعودي تجاري" };
 }
 
+function computeIbanMod97(iban: string): number {
+  const rearranged = `${iban.slice(4)}${iban.slice(0, 4)}`;
+  let remainder = 0;
+  for (let i = 0; i < rearranged.length; i++) {
+    const ch = rearranged.charCodeAt(i);
+    const expanded = ch >= 65 && ch <= 90 ? String(ch - 55) : rearranged[i];
+    for (let j = 0; j < expanded.length; j++) {
+      remainder = (remainder * 10 + Number(expanded[j])) % 97;
+    }
+  }
+  return remainder;
+}
+
 export function validateSaudiIban(iban: string): { valid: boolean; errorEn?: string; errorAr?: string } {
   const clean = iban.replace(/\s+/g, "").toUpperCase();
   if (!clean.startsWith("SA")) {
@@ -49,6 +62,13 @@ export function validateSaudiIban(iban: string): { valid: boolean; errorEn?: str
       valid: false,
       errorEn: "IBAN after 'SA' must be 22 numeric digits",
       errorAr: "يجب أن تكون الخانات بعد SA عبارة عن 22 رقماً",
+    };
+  }
+  if (computeIbanMod97(clean) !== 1) {
+    return {
+      valid: false,
+      errorEn: "Invalid Saudi IBAN checksum (ISO 13616 MOD-97 check failed)",
+      errorAr: "رمز التحقق الحسابي للآيبان (MOD-97) غير صحيح",
     };
   }
   return { valid: true };

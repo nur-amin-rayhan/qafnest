@@ -41,7 +41,16 @@ if (apiKey && !firebase.apps.length) {
 
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
-  const urlToOpen = event.notification.data?.url || "/app/bookings";
+  const rawUrl = String(event.notification.data?.url || "/app/reservations").trim();
+  let urlToOpen = "/app/reservations";
+  try {
+    const parsed = new URL(rawUrl, self.location.origin);
+    if (parsed.origin === self.location.origin) {
+      urlToOpen = `${parsed.pathname}${parsed.search}${parsed.hash}`;
+    }
+  } catch {
+    urlToOpen = "/app/reservations";
+  }
 
   event.waitUntil(
     clients.matchAll({ type: "window", includeUncontrolled: true }).then((windowClients) => {

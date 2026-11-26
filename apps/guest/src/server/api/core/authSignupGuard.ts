@@ -1,41 +1,21 @@
 import { NextResponse } from "next/server";
-import { getAdminOrServerClient } from "@/lib/supabase/service";
-import { normalizePhoneInput, normalizeSaudiPhone } from "@qafnest/shared/phone";
+import { checkRateLimit } from "@qafnest/shared/rateLimiter";
 import {
   extractClientIp,
   normalizeDeviceId,
   evaluateAndRecordSignupAttempt,
 } from "@qafnest/shared/signupSecurityStore";
 
-
-async function checkExistingGuestAccount(params: {
-  email?: string | null;
-  phone?: string | null;
-}): Promise<boolean> {
-  try {
-    const supabase = await getAdminOrServerClient();
-    const email = params.email?.trim().toLowerCase();
-    const phoneNormalized = params.phone
-      ? normalizeSaudiPhone(params.phone) || normalizePhoneInput(params.phone)
-      : null;
-
-    if (phoneNormalized) {
-      const { data: phoneRows } = await supabase
-        .from("profiles")
-        .select("id, phone")
-        .eq("phone", phoneNormalized)
-        .limit(1);
-      if (phoneRows && phoneRows.length > 0) {
-        return true;
-      }
-    }
-  } catch {
-    // Fail open only for existence probe; device/IP guard still runs for unverified signups
-  }
-  return false;
-}
-
 export async function POST(request: Request) {
+  const clientIp = extractClientIp(request);
+  const rl = checkRateLimit(`signup-guard:${clientIp}`, 15, 15 * 60_000);
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { allowed: false, code: "rate_limited", message: "Too many signup checks. Please wait." },
+      { status: 429, headers: { "Retry-After": String(rl.retryAfterSeconds) } }
+    );
+  }
+
   try {
     const body = (await request.json().catch(() => ({}))) as {
       deviceId?: string;
@@ -45,20 +25,16 @@ export async function POST(request: Request) {
       mode?: "signup" | "otp";
     };
 
-    const ip = extractClientIp(request);
+    const ip = clientIp;
     const deviceId = normalizeDeviceId(body.deviceId, request.headers.get("user-agent"));
     const fingerprintHash = body.fingerprintHash || null;
 
-    // For OTP login flow, allow returning verified users who already own an account to receive login OTP
+    // Never enumerate whether an arbitrary phone/email already holds a guest account
     if (body.mode === "otp" && body.phone) {
-      const exists = await checkExistingGuestAccount({ phone: body.phone });
-      if (exists) {
-        return NextResponse.json({
-          allowed: true,
-          existingAccount: true,
-          code: "ok",
-        });
-      }
+      return NextResponse.json({
+        allowed: true,
+        code: "ok",
+      });
     }
 
     const result = evaluateAndRecordSignupAttempt({
@@ -90,11 +66,12 @@ export async function POST(request: Request) {
       code: "ok",
     });
   } catch (err: unknown) {
+    console.error("[authSignupGuard] security check error:", err);
     return NextResponse.json(
       {
         allowed: false,
         code: "security_check_error",
-        message: err instanceof Error ? err.message : "Signup security verification failed.",
+        message: "Signup security verification failed.",
       },
       { status: 500 }
     );

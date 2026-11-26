@@ -1,9 +1,10 @@
 "use client";
 
 import React, { useEffect, useState, useCallback } from "react";
+import { Info, CalendarCheck, Home } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useAdminAuth } from "@/context/AdminAuthContext";
-import { getAdminTabHref } from "@/lib/adminRoutes";
+import { getAdminTabHref, resolveAdminSlugToTab } from "@/lib/adminRoutes";
 import AdminSidebar from "@/components/dashboard/AdminSidebar";
 import AdminHeader from "@/components/dashboard/AdminHeader";
 import BookingDrawer from "@/components/dashboard/BookingDrawer";
@@ -43,10 +44,58 @@ export function AdminDashboardShell({ initialTab = "dashboard-overview" }: Admin
   const setActiveTab = useCallback(
     (nextTab: NavTab) => {
       setActiveTabState(nextTab);
-      router.push(getAdminTabHref(nextTab));
+      const href = getAdminTabHref(nextTab);
+      if (typeof window !== "undefined") {
+        window.history.pushState(null, "", href);
+      }
     },
-    [router]
+    []
   );
+
+  useEffect(() => {
+    const handlePopState = () => {
+      if (typeof window !== "undefined") {
+        const pathname = window.location.pathname;
+        const slug = pathname.replace(/^\//, "").split("/")[0];
+        const resolved = resolveAdminSlugToTab(slug) || "dashboard-overview";
+        setActiveTabState(resolved);
+      }
+    };
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, []);
+
+  const [visitedTabs, setVisitedTabs] = useState<Set<NavTab>>(() => new Set([initialTab]));
+
+  useEffect(() => {
+    setVisitedTabs((prev) => {
+      if (prev.has(activeTab)) return prev;
+      const next = new Set(prev);
+      next.add(activeTab);
+      return next;
+    });
+  }, [activeTab]);
+
+  // Pre-warm remaining tabs in background after initial paint for instant 0ms switching
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setVisitedTabs(
+        new Set<NavTab>([
+          "dashboard-overview",
+          "properties-management",
+          "bookings-and-reservations",
+          "helpline-booking",
+          "financials-and-payouts",
+          "promotions-and-coupons",
+          "loyalty-and-rewards",
+          "user-management",
+          "guest-reviews",
+          "settings",
+        ])
+      );
+    }, 500);
+    return () => clearTimeout(timer);
+  }, []);
 
   const [selectedBooking, setSelectedBooking] = useState<SelectedBookingDetail | null>(null);
   const [selectedPropertyForDetail, setSelectedPropertyForDetail] = useState<PropertyItem | null>(null);
@@ -180,15 +229,15 @@ export function AdminDashboardShell({ initialTab = "dashboard-overview" }: Admin
   }, [activeTab, bookings, properties, selectedBooking?.dbId, selectedPropertyForDetail?.id, t]);
 
   return (
-    <div dir={dir} className="bg-surface font-body-md text-body-md text-on-surface antialiased min-h-screen w-full max-w-full overflow-x-hidden">
+    <div dir={dir} className="bg-[#FAFAFB] dark:bg-[#09080F] text-slate-900 dark:text-slate-100 antialiased min-h-screen w-full max-w-full overflow-x-hidden font-sans">
       {/* Toast Notification */}
       <div
-        className={`fixed bottom-6 end-6 transform transition-all duration-300 pointer-events-none z-50 bg-inverse-surface text-inverse-on-surface px-4 py-3 rounded-xl shadow-xl flex items-center gap-3 ${
+        className={`fixed bottom-6 end-6 transform transition-all duration-300 pointer-events-none z-50 bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 px-4 py-3 rounded-xl shadow-xl flex items-center gap-3 border border-slate-800 dark:border-slate-200 ${
           toastMsg ? "translate-y-0 opacity-100" : "translate-y-24 opacity-0"
         }`}
       >
-        <span className="material-symbols-outlined text-[20px] text-status-emerald">info</span>
-        <span className="font-body-sm text-body-sm font-medium">{toastMsg}</span>
+        <Info size={18} className="text-emerald-500 shrink-0" />
+        <span className="text-xs sm:text-sm font-medium">{toastMsg}</span>
       </div>
 
       {/* Clickable Slide-In Side Realtime Notification Popups */}
@@ -197,7 +246,7 @@ export function AdminDashboardShell({ initialTab = "dashboard-overview" }: Admin
           {liveAlerts.map((alert) => (
             <div
               key={alert.id}
-              className="rounded-xl border border-[#E5E7EB] bg-white shadow-xl p-3.5 flex items-start gap-3 transition-all hover:border-[#2563EB]"
+              className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0E0D16] shadow-xl p-3.5 flex items-start gap-3 transition-all hover:border-[#4F2396]"
             >
               <button
                 type="button"
@@ -218,20 +267,22 @@ export function AdminDashboardShell({ initialTab = "dashboard-overview" }: Admin
                 <span
                   className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
                     alert.kind === "booking"
-                      ? "bg-emerald-50 text-emerald-600"
-                      : "bg-blue-50 text-[#2563EB]"
+                      ? "bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400"
+                      : "bg-purple-50 dark:bg-purple-950/60 text-[#4F2396] dark:text-purple-300"
                   }`}
                 >
-                  <span className="material-symbols-outlined text-[18px]">
-                    {alert.kind === "booking" ? "calendar_check" : "villa"}
-                  </span>
+                  {alert.kind === "booking" ? (
+                    <CalendarCheck size={16} />
+                  ) : (
+                    <Home size={16} />
+                  )}
                 </span>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center justify-between gap-2">
-                    <span className="text-xs font-bold text-[#111827] truncate">{alert.title}</span>
-                    <span className="text-[10px] text-gray-400 shrink-0">{alert.timestamp}</span>
+                    <span className="text-xs font-bold text-slate-900 dark:text-slate-100 truncate">{alert.title}</span>
+                    <span className="text-[10px] text-slate-400 dark:text-slate-500 shrink-0">{alert.timestamp}</span>
                   </div>
-                  <p className="text-[11px] text-gray-600 mt-0.5 truncate">{alert.subtitle}</p>
+                  <p className="text-xs text-slate-600 dark:text-slate-400 mt-0.5 truncate">{alert.subtitle}</p>
                   <span className="inline-block text-[10px] font-semibold text-[#2563EB] mt-1">
                     {t("Click to open →", "اضغط للفتح ←")}
                   </span>
@@ -324,7 +375,7 @@ export function AdminDashboardShell({ initialTab = "dashboard-overview" }: Admin
         />
 
         {/* Main Canvas */}
-        <main className="w-full min-w-0 max-w-full min-h-screen pt-20 sm:pt-24 pb-12 flex-1 bg-[#F8F9FA] px-4 sm:px-6 lg:px-8">
+        <main className="w-full min-w-0 max-w-full min-h-screen pt-20 sm:pt-24 pb-12 flex-1 bg-[#F8FAFC] dark:bg-[#0A0910] text-slate-900 dark:text-slate-100 px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col w-full max-w-[1600px] mx-auto space-y-6">
             {errorMsg && (
               <div className="p-3.5 rounded-xl bg-error/10 border border-error/20 text-error text-xs font-bold">
@@ -363,107 +414,133 @@ export function AdminDashboardShell({ initialTab = "dashboard-overview" }: Admin
             ) : (
               <>
                 {/* TAB 1: DASHBOARD OVERVIEW */}
-            {activeTab === "dashboard-overview" && (
-              <DashboardOverviewTab
-                metrics={metrics}
-                properties={properties}
-                bookings={bookings}
-                payoutReminders={payoutReminders}
-                urgentPayoutQueue={urgentPayoutQueue}
-                onInspectPayout={(payoutId) =>
-                  handleOpenNotificationTarget("financials-and-payouts", { payoutId })
-                }
-                onQuickDisbursePayout={quickDisbursePayout}
-                onSendPayoutReminders={sendOverviewPayoutReminders}
-                updatePropertyStatus={handleUpdatePropertyStatus}
-                setActiveTab={setActiveTab}
-                setSelectedBooking={setSelectedBooking}
-                onSelectProperty={(prop) => setSelectedPropertyForDetail(prop)}
-                onRequestReject={(prop) => setPropertyReviewModalTarget(prop)}
-              />
-            )}
+                {visitedTabs.has("dashboard-overview") && (
+                  <div className={activeTab === "dashboard-overview" ? "block" : "hidden"}>
+                    <DashboardOverviewTab
+                      metrics={metrics}
+                      properties={properties}
+                      bookings={bookings}
+                      payoutReminders={payoutReminders}
+                      urgentPayoutQueue={urgentPayoutQueue}
+                      onInspectPayout={(payoutId) =>
+                        handleOpenNotificationTarget("financials-and-payouts", { payoutId })
+                      }
+                      onQuickDisbursePayout={quickDisbursePayout}
+                      onSendPayoutReminders={sendOverviewPayoutReminders}
+                      updatePropertyStatus={handleUpdatePropertyStatus}
+                      setActiveTab={setActiveTab}
+                      setSelectedBooking={setSelectedBooking}
+                      onSelectProperty={(prop) => setSelectedPropertyForDetail(prop)}
+                      onRequestReject={(prop) => setPropertyReviewModalTarget(prop)}
+                    />
+                  </div>
+                )}
 
-            {/* TAB 2: PROPERTIES & CHALETS */}
-            {activeTab === "properties-management" && (
-              <PropertiesManagementTab
-                properties={properties}
-                filteredProperties={filteredProperties}
-                propertyStatusFilter={propertyStatusFilter}
-                setPropertyStatusFilter={setPropertyStatusFilter}
-                propertyCityFilter={propertyCityFilter}
-                setPropertyCityFilter={setPropertyCityFilter}
-                propertyTypeFilter={propertyTypeFilter}
-                setPropertyTypeFilter={setPropertyTypeFilter}
-                searchQuery={searchQuery}
-                setSearchQuery={setSearchQuery}
-                selectedPropertyIds={selectedPropertyIds}
-                togglePropSelection={togglePropSelection}
-                selectAllProps={selectAllProps}
-                showBatchMenu={showBatchMenu}
-                setShowBatchMenu={setShowBatchMenu}
-                handleBulkPublish={handleBulkPublish}
-                handleBulkSuspend={handleBulkSuspend}
-                setSelectedPropertyIds={setSelectedPropertyIds}
-                updatePropertyStatus={handleUpdatePropertyStatus}
-                triggerToast={triggerToast}
-                onSelectProperty={(prop) => setSelectedPropertyForDetail(prop)}
-                onRequestReject={(prop) => setPropertyReviewModalTarget(prop)}
-                deletionRequests={deletionRequests}
-                onReviewDeletionRequest={reviewDeletionRequest}
-              />
-            )}
+                {/* TAB 2: PROPERTIES & CHALETS */}
+                {visitedTabs.has("properties-management") && (
+                  <div className={activeTab === "properties-management" ? "block" : "hidden"}>
+                    <PropertiesManagementTab
+                      properties={properties}
+                      filteredProperties={filteredProperties}
+                      propertyStatusFilter={propertyStatusFilter}
+                      setPropertyStatusFilter={setPropertyStatusFilter}
+                      propertyCityFilter={propertyCityFilter}
+                      setPropertyCityFilter={setPropertyCityFilter}
+                      propertyTypeFilter={propertyTypeFilter}
+                      setPropertyTypeFilter={setPropertyTypeFilter}
+                      searchQuery={searchQuery}
+                      setSearchQuery={setSearchQuery}
+                      selectedPropertyIds={selectedPropertyIds}
+                      togglePropSelection={togglePropSelection}
+                      selectAllProps={selectAllProps}
+                      showBatchMenu={showBatchMenu}
+                      setShowBatchMenu={setShowBatchMenu}
+                      handleBulkPublish={handleBulkPublish}
+                      handleBulkSuspend={handleBulkSuspend}
+                      setSelectedPropertyIds={setSelectedPropertyIds}
+                      updatePropertyStatus={handleUpdatePropertyStatus}
+                      triggerToast={triggerToast}
+                      onSelectProperty={(prop) => setSelectedPropertyForDetail(prop)}
+                      onRequestReject={(prop) => setPropertyReviewModalTarget(prop)}
+                      deletionRequests={deletionRequests}
+                      onReviewDeletionRequest={reviewDeletionRequest}
+                    />
+                  </div>
+                )}
 
-            {/* TAB 3: BOOKINGS & SCHEDULE */}
-            {activeTab === "bookings-and-reservations" && (
-              <BookingsTab
-                bookings={bookings}
-                filteredBookings={filteredBookings}
-                properties={properties}
-                bookingStatusFilter={bookingStatusFilter}
-                setBookingStatusFilter={setBookingStatusFilter}
-                bookingSearch={bookingSearch}
-                setBookingSearch={setBookingSearch}
-                setSelectedBooking={setSelectedBooking}
-                onRefresh={loadLiveAdminData}
-                triggerToast={triggerToast}
-              />
-            )}
+                {/* TAB 3: BOOKINGS & SCHEDULE */}
+                {visitedTabs.has("bookings-and-reservations") && (
+                  <div className={activeTab === "bookings-and-reservations" ? "block" : "hidden"}>
+                    <BookingsTab
+                      bookings={bookings}
+                      filteredBookings={filteredBookings}
+                      properties={properties}
+                      bookingStatusFilter={bookingStatusFilter}
+                      setBookingStatusFilter={setBookingStatusFilter}
+                      bookingSearch={bookingSearch}
+                      setBookingSearch={setBookingSearch}
+                      setSelectedBooking={setSelectedBooking}
+                      onRefresh={loadLiveAdminData}
+                      triggerToast={triggerToast}
+                    />
+                  </div>
+                )}
 
-            {/* TAB 3B: DEDICATED HELPLINE BOOKING WORKSPACE */}
-            {activeTab === "helpline-booking" && (
-              <HelplineBookingTab
-                properties={properties}
-                bookings={bookings}
-                onRefresh={loadLiveAdminData}
-                setSelectedBooking={setSelectedBooking}
-                onSelectProperty={(prop) => setSelectedPropertyForDetail(prop)}
-                triggerToast={triggerToast}
-              />
-            )}
+                {/* TAB 3B: DEDICATED HELPLINE BOOKING WORKSPACE */}
+                {visitedTabs.has("helpline-booking") && (
+                  <div className={activeTab === "helpline-booking" ? "block" : "hidden"}>
+                    <HelplineBookingTab
+                      properties={properties}
+                      bookings={bookings}
+                      onRefresh={loadLiveAdminData}
+                      setSelectedBooking={setSelectedBooking}
+                      onSelectProperty={(prop) => setSelectedPropertyForDetail(prop)}
+                      triggerToast={triggerToast}
+                    />
+                  </div>
+                )}
 
-            {/* TAB 3C: USER MANAGEMENT (GUESTS, HOSTS & ACTIVITY) */}
-            {activeTab === "user-management" && (
-              <UserManagementTab triggerToast={triggerToast} />
-            )}
+                {/* TAB 3C: USER MANAGEMENT (GUESTS, HOSTS & ACTIVITY) */}
+                {visitedTabs.has("user-management") && (
+                  <div className={activeTab === "user-management" ? "block" : "hidden"}>
+                    <UserManagementTab triggerToast={triggerToast} />
+                  </div>
+                )}
 
-            {/* TAB: PROMOTIONS & COUPONS */}
-            {activeTab === "promotions-and-coupons" && (
-              <PromotionsTab triggerToast={triggerToast} />
-            )}
+                {/* TAB: PROMOTIONS & COUPONS */}
+                {visitedTabs.has("promotions-and-coupons") && (
+                  <div className={activeTab === "promotions-and-coupons" ? "block" : "hidden"}>
+                    <PromotionsTab triggerToast={triggerToast} />
+                  </div>
+                )}
 
-            {/* TAB: LOYALTY & REWARDS */}
-            {activeTab === "loyalty-and-rewards" && (
-              <LoyaltyTab triggerToast={triggerToast} />
-            )}
+                {/* TAB: LOYALTY & REWARDS */}
+                {visitedTabs.has("loyalty-and-rewards") && (
+                  <div className={activeTab === "loyalty-and-rewards" ? "block" : "hidden"}>
+                    <LoyaltyTab triggerToast={triggerToast} />
+                  </div>
+                )}
 
-            {/* TAB 4: FINANCIALS & PAYOUTS */}
-            {activeTab === "financials-and-payouts" && <FinancialsTab metrics={metrics} />}
+                {/* TAB 4: FINANCIALS & PAYOUTS */}
+                {visitedTabs.has("financials-and-payouts") && (
+                  <div className={activeTab === "financials-and-payouts" ? "block" : "hidden"}>
+                    <FinancialsTab metrics={metrics} />
+                  </div>
+                )}
 
-            {/* TAB 5: GUEST REVIEWS */}
-            {activeTab === "guest-reviews" && <GuestReviewsTab triggerToast={triggerToast} />}
+                {/* TAB 5: GUEST REVIEWS */}
+                {visitedTabs.has("guest-reviews") && (
+                  <div className={activeTab === "guest-reviews" ? "block" : "hidden"}>
+                    <GuestReviewsTab triggerToast={triggerToast} />
+                  </div>
+                )}
 
-            {/* TAB 6: SETTINGS */}
-            {activeTab === "settings" && <SettingsTab />}
+                {/* TAB 6: SETTINGS */}
+                {visitedTabs.has("settings") && (
+                  <div className={activeTab === "settings" ? "block" : "hidden"}>
+                    <SettingsTab />
+                  </div>
+                )}
               </>
             )}
           </div>

@@ -190,9 +190,9 @@ export default function Navbar() {
                   >
                     <span className="whitespace-nowrap">{label}</span>
                     {item.isActive && (
-                      <motion.div
+                      <motion.span
                         layoutId="activeNavPill"
-                        className="absolute bottom-0 left-3 right-3 h-[2px] bg-gradient-to-r from-violet-500 to-fuchsia-400 rounded-full"
+                        className="block absolute bottom-0 left-3 right-3 h-[2px] bg-gradient-to-r from-violet-500 to-fuchsia-400 rounded-full"
                         transition={{ type: "spring", stiffness: 380, damping: 30 }}
                       />
                     )}
@@ -267,8 +267,8 @@ export default function Navbar() {
           {/* Language Selection */}
           <button
             onClick={toggleLanguage}
-            aria-label="Switch Language"
-            className="group relative inline-flex items-center gap-1 sm:gap-1.5 px-2 py-1.5 sm:px-4 sm:py-2 rounded-xl text-[11px] sm:text-[13px] font-bold text-white bg-gradient-to-r from-violet-600 via-purple-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 shadow-[0_0_15px_rgba(168,85,247,0.3)] transition-all duration-200 cursor-pointer shrink-0 active:scale-95"
+            aria-label={language === "en" ? "العربية - تغيير اللغة" : "English - Switch Language"}
+            className="group relative inline-flex items-center gap-1 sm:gap-1.5 px-2.5 py-1.5 sm:px-4 sm:py-2 rounded-xl text-[11px] sm:text-[13px] font-bold text-white bg-[#4F2396] hover:bg-[#3d1979] shadow-sm transition-all duration-200 cursor-pointer shrink-0 active:scale-95"
           >
             <Globe className="w-3.5 h-3.5 text-white group-hover:rotate-45 transition-transform duration-300" />
             <span>{language === "en" ? "العربية" : "English"}</span>

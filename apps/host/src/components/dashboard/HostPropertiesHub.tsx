@@ -27,7 +27,6 @@ export default function HostPropertiesHub({
   properties,
   lang,
   t,
-  onNavigateTab,
   onRefresh,
   onDeleteProperty,
 }: HostPropertiesHubProps) {

@@ -11,7 +11,10 @@ import {
   getPropertyLiveDailyStatus,
   getRiyadhNowInfo,
 } from "@qafnest/shared";
-import { getServerPropertySlotConfig } from "@qafnest/shared/bookingSlotStore";
+import {
+  getServerPropertySlotConfig,
+  hydrateBookingSlotStore,
+} from "@qafnest/shared/bookingSlotStore";
 
 
 export async function GET(
@@ -26,6 +29,7 @@ export async function GET(
   const { uuid: propertyUuid, slug: propertySlug } = resolvePropertyIdentifier(rawPropertyId);
 
   try {
+    await hydrateBookingSlotStore();
     const supabase = await getAdminOrServerClient();
 
     // Resolve property UUID and checkout time

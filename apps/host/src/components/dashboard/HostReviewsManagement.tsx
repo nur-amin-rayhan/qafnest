@@ -1,6 +1,8 @@
 "use client";
 
 import React, { useState, useEffect, useMemo, useCallback } from "react";
+import { useHostAuth } from "@/context/HostAuthContext";
+import { getHostRequestHeaders } from "@/lib/hostPropertyActions";
 import {
   MessageSquare,
   LoaderCircle,
@@ -21,6 +23,7 @@ interface HostReviewsManagementProps {
 }
 
 export default function HostReviewsManagement({ lang, t }: HostReviewsManagementProps) {
+  const { user } = useHostAuth();
   const [reviews, setReviews] = useState<HostReviewItem[]>([]);
   const [stats, setStats] = useState<HostReviewsStats | null>(null);
   const [loading, setLoading] = useState(true);
@@ -39,7 +42,8 @@ export default function HostReviewsManagement({ lang, t }: HostReviewsManagement
   // Fetch reviews from API
   const fetchReviews = useCallback(async () => {
     try {
-      const res = await fetch("/api/host/reviews", { cache: "no-store" });
+      const headers = await getHostRequestHeaders(user?.id);
+      const res = await fetch("/api/host/reviews", { headers, cache: "no-store" });
       if (!res.ok) throw new Error("Failed to load reviews");
       const data = await res.json();
       if (data.success) {
@@ -51,7 +55,7 @@ export default function HostReviewsManagement({ lang, t }: HostReviewsManagement
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [user?.id]);
 
   useEffect(() => {
     fetchReviews();
@@ -71,8 +75,9 @@ export default function HostReviewsManagement({ lang, t }: HostReviewsManagement
   // Filtered reviews
   const filteredReviews = useMemo(() => {
     return reviews.filter((r) => {
-      if (replyFilter === "replied" && !r.admin_reply) return false;
-      if (replyFilter === "unreplied" && Boolean(r.admin_reply)) return false;
+      const hasReply = Boolean(r.host_reply || r.admin_reply);
+      if (replyFilter === "replied" && !hasReply) return false;
+      if (replyFilter === "unreplied" && hasReply) return false;
       if (selectedPropertyId !== "all" && r.property_id !== selectedPropertyId) return false;
       return true;
     });
@@ -84,9 +89,13 @@ export default function HostReviewsManagement({ lang, t }: HostReviewsManagement
     setReplySubmitting(true);
     setReplySuccessMsg(null);
     try {
+      const authHeaders = await getHostRequestHeaders(user?.id);
       const res = await fetch(`/api/host/reviews/${reviewId}/reply`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...authHeaders,
+        },
         body: JSON.stringify({
           reply: replyText.trim(),
           replyAr: replyText.trim(),
@@ -101,10 +110,12 @@ export default function HostReviewsManagement({ lang, t }: HostReviewsManagement
           r.id === reviewId
             ? {
                 ...r,
-                admin_reply: updatedReview.admin_reply,
-                admin_reply_ar: updatedReview.admin_reply_ar,
-                admin_reply_by: "host",
-                admin_reply_at: updatedReview.admin_reply_at,
+                host_reply: updatedReview.host_reply ?? updatedReview.admin_reply,
+                host_reply_ar: updatedReview.host_reply_ar ?? updatedReview.admin_reply_ar,
+                host_reply_at: updatedReview.host_reply_at ?? updatedReview.admin_reply_at,
+                admin_reply: updatedReview.admin_reply ?? r.admin_reply,
+                admin_reply_ar: updatedReview.admin_reply_ar ?? r.admin_reply_ar,
+                admin_reply_at: updatedReview.admin_reply_at ?? r.admin_reply_at,
               }
             : r
         )

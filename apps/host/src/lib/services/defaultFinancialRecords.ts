@@ -1,6 +1,7 @@
 import type { HostRemittance, HostVatInvoice } from "./hostFinancialsTypes";
 
-export function getDefaultRemittances(hostIban: { bankNameEn: string; bankNameAr: string; iban: string }): HostRemittance[] {
+export function getDefaultRemittances(_hostIban?: { bankNameEn: string; bankNameAr: string; iban: string }): HostRemittance[] {
+  void _hostIban;
   return [];
 }
 

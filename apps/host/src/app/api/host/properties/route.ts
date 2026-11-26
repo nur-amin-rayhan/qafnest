@@ -199,13 +199,14 @@ export async function POST(request: NextRequest) {
 
     if (error) {
       console.error("Property creation error in Supabase:", error);
-      return NextResponse.json({ code: "property_insert_failed", message: error.message }, { status: 500 });
+      return NextResponse.json({ code: "property_insert_failed", message: "Failed to create property." }, { status: 500 });
     }
 
     return NextResponse.json({ success: true, property: data }, { status: 201 });
   } catch (err: unknown) {
+    console.error("[host properties POST] server error:", err);
     return NextResponse.json(
-      { code: "server_error", message: err instanceof Error ? err.message : "Unknown error" },
+      { code: "server_error", message: "Failed to create property." },
       { status: 500 }
     );
   }

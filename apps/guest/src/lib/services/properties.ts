@@ -162,7 +162,7 @@ const BILINGUAL_SELECT_FIELDS =
 const LEGACY_SELECT_FIELDS = stripBilingualFromSelect(BILINGUAL_SELECT_FIELDS);
 
 const PROPS_SESSION_KEY = "qafnest_props_swr_v1";
-const PROPS_SESSION_TTL_MS = 120_000;
+const PROPS_SESSION_TTL_MS = 15_000;
 
 let cachedProperties: Promise<Property[]> | null = null;
 let memorySnapshot: Property[] | null = null;
@@ -218,6 +218,7 @@ export function listProperties(options: { refresh?: boolean } = {}): Promise<Pro
         .from("properties")
         .select(BILINGUAL_SELECT_FIELDS)
         .eq("is_approved", true)
+        .or("status.is.null,status.not.in.(archived,rejected,draft)")
         .order("created_at", { ascending: false });
 
       let data = initial.data as PropertyRow[] | null;
@@ -228,6 +229,7 @@ export function listProperties(options: { refresh?: boolean } = {}): Promise<Pro
           .from("properties")
           .select(LEGACY_SELECT_FIELDS)
           .eq("is_approved", true)
+          .or("status.is.null,status.not.in.(archived,rejected,draft)")
           .order("created_at", { ascending: false });
         data = retry.data as PropertyRow[] | null;
         error = retry.error;
@@ -254,26 +256,50 @@ export async function getPropertyById(id: string): Promise<Property | null> {
   );
   if (match) return match;
 
-  // Fallback for previewing unpublished listings directly by id or slug
+  // Direct fallback for approved, non-archived listings by id or slug
   try {
     const supabase = createClient();
     const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
     const initial = await (isUuid
-      ? supabase.from("properties").select(BILINGUAL_SELECT_FIELDS).eq("id", id).maybeSingle()
-      : supabase.from("properties").select(BILINGUAL_SELECT_FIELDS).eq("slug", id).maybeSingle());
+      ? supabase
+          .from("properties")
+          .select(BILINGUAL_SELECT_FIELDS)
+          .eq("id", id)
+          .eq("is_approved", true)
+          .or("status.is.null,status.not.in.(archived,rejected,draft)")
+          .maybeSingle()
+      : supabase
+          .from("properties")
+          .select(BILINGUAL_SELECT_FIELDS)
+          .eq("slug", id)
+          .eq("is_approved", true)
+          .or("status.is.null,status.not.in.(archived,rejected,draft)")
+          .maybeSingle());
 
     let data = initial.data as PropertyRow | null;
     let error = initial.error;
 
     if (error && isMissingBilingualColumnError(error)) {
       const retry = await (isUuid
-        ? supabase.from("properties").select(LEGACY_SELECT_FIELDS).eq("id", id).maybeSingle()
-        : supabase.from("properties").select(LEGACY_SELECT_FIELDS).eq("slug", id).maybeSingle());
+        ? supabase
+            .from("properties")
+            .select(LEGACY_SELECT_FIELDS)
+            .eq("id", id)
+            .eq("is_approved", true)
+            .or("status.is.null,status.not.in.(archived,rejected,draft)")
+            .maybeSingle()
+        : supabase
+            .from("properties")
+            .select(LEGACY_SELECT_FIELDS)
+            .eq("slug", id)
+            .eq("is_approved", true)
+            .or("status.is.null,status.not.in.(archived,rejected,draft)")
+            .maybeSingle());
       data = retry.data as PropertyRow | null;
       error = retry.error;
     }
 
-    if (data && !error) {
+    if (data && !error && data.is_approved) {
       return fromRow(data as PropertyRow);
     }
   } catch {

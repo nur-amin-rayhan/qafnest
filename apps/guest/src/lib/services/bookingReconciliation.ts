@@ -1,5 +1,18 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
+async function releasePendingWalletHolds(rows: Array<{ booking_reference?: string | null }>) {
+  const refs = rows
+    .map((r) => r.booking_reference?.trim() || "")
+    .filter(Boolean);
+  if (refs.length === 0) return;
+
+  const { clearPendingWalletSplit, refundSettledWalletSplit } = await import("./wallet/walletSplit");
+  for (const ref of refs) {
+    await refundSettledWalletSplit(ref, "Expired or superseded checkout session").catch(() => {});
+    await clearPendingWalletSplit(ref).catch(() => {});
+  }
+}
+
 /** Default timeout after which an unpaid initiated checkout session expires (in minutes).
  * Extended to 30 minutes to prevent premature dropouts during 3DS / Nafath verification.
  */
@@ -39,8 +52,9 @@ export async function reconcileStaleBookings(
       query = query.eq("auth_subject", options.authSubject);
     }
 
-    const { data, error } = await query.select("id, property_id, check_in, check_out");
+    const { data, error } = await query.select("id, property_id, check_in, check_out, booking_reference");
     if (!error && data && data.length > 0) {
+      await releasePendingWalletHolds(data);
       return data.length;
     }
     return 0;
@@ -99,6 +113,7 @@ export async function cancelInitiatedBooking(
       return { success: false, cancelled: false, error: updateErr.message };
     }
 
+    await releasePendingWalletHolds([{ booking_reference: booking.booking_reference || cleanRef }]);
     return { success: true, cancelled: true };
   } catch (err) {
     return {
@@ -141,7 +156,10 @@ export async function cancelPreviousInitiatedGuestBookings(
       query = query.eq("auth_subject", guestSubject);
     }
 
-    await query;
+    const { data: cancelledRows } = await query.select("booking_reference");
+    if (cancelledRows && cancelledRows.length > 0) {
+      await releasePendingWalletHolds(cancelledRows);
+    }
   } catch (err) {
     console.warn("Notice: Failed to cancel previous initiated guest bookings:", err);
   }

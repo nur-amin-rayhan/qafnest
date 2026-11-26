@@ -107,7 +107,8 @@ export async function POST(
     }
 
     if (updateErr) {
-      return NextResponse.json({ code: "update_failed", message: updateErr.message }, { status: 500 });
+      console.error("[host review reply] update failed:", updateErr);
+      return NextResponse.json({ code: "update_failed", message: "Failed to save review reply." }, { status: 500 });
     }
 
     return NextResponse.json({
@@ -115,8 +116,9 @@ export async function POST(
       review: updated,
     });
   } catch (err: unknown) {
+    console.error("[host review reply] server error:", err);
     return NextResponse.json(
-      { code: "server_error", message: err instanceof Error ? err.message : "Unknown error" },
+      { code: "server_error", message: "Failed to save review reply." },
       { status: 500 }
     );
   }

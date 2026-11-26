@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
     const pages = getAllCmsPages();
     return NextResponse.json(pages);
   } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : "Internal error";
-    return NextResponse.json({ error: msg }, { status: 500 });
+    console.error("[cmsPages] load error:", err);
+    return NextResponse.json({ error: "Failed to load CMS pages." }, { status: 500 });
   }
 }

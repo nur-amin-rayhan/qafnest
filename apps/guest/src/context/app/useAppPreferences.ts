@@ -19,7 +19,7 @@ export function getRiyadhDate(offsetDays: number) {
 }
 
 export function useAppPreferences(
-  initialLang: Language = "en",
+  initialLang: Language = "ar",
   initialTheme: "light" | "dark" = "dark"
 ) {
   const [language, setLanguageState] = useState<Language>(initialLang);
@@ -55,12 +55,14 @@ export function useAppPreferences(
 
   const setLanguage = (lang: Language) => {
     setLanguageState(lang);
-    document.documentElement.lang = lang;
-    document.documentElement.dir = lang === "ar" ? "rtl" : "ltr";
-    if (lang === "ar") {
-      document.documentElement.classList.add("rtl");
-    } else {
-      document.documentElement.classList.remove("rtl");
+    if (typeof document !== "undefined") {
+      document.documentElement.lang = lang;
+      document.documentElement.dir = lang === "ar" ? "rtl" : "ltr";
+      if (lang === "ar") {
+        document.documentElement.classList.add("rtl");
+      } else {
+        document.documentElement.classList.remove("rtl");
+      }
     }
     try {
       localStorage.setItem("qafnest_lang", lang);
@@ -72,9 +74,11 @@ export function useAppPreferences(
         searchParams.delete("lang");
         const nextSearch = searchParams.toString();
         const search = nextSearch ? `?${nextSearch}` : "";
-        const nextUrl = targetPath + search;
-        if (nextUrl !== window.location.pathname + window.location.search) {
-          // Keep language switching client-side so EN <-> AR updates URL, RTL, and copy without a reload flash
+        const hash = window.location.hash || "";
+        const nextUrl = targetPath + search + hash;
+
+        // Instantaneous in-memory SPA transition without hard reload lag
+        if (nextUrl !== window.location.pathname + window.location.search + window.location.hash) {
           window.history.replaceState(null, "", nextUrl);
         }
       }

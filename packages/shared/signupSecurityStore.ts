@@ -113,14 +113,22 @@ function writeDoc(doc: SignupSecurityStoreDoc): void {
 }
 
 export function extractClientIp(request: Request): string {
-  const cfIp = request.headers.get("cf-connecting-ip")?.trim();
-  if (cfIp) return cfIp.replace(/^::ffff:/, "");
+  // Only trust edge-injected IP headers from trusted edge runtimes (Cloudflare / Vercel / reverse proxy)
+  if (process.env.TRUST_CF_CONNECTING_IP === "true") {
+    const cfIp = request.headers.get("cf-connecting-ip")?.trim();
+    if (cfIp) return cfIp.replace(/^::ffff:/, "");
+  }
+  const vercelIp = request.headers.get("x-vercel-forwarded-for")?.split(",")[0]?.trim();
+  if (vercelIp) return vercelIp.replace(/^::ffff:/, "");
+
   const realIp = request.headers.get("x-real-ip")?.trim();
   if (realIp) return realIp.replace(/^::ffff:/, "");
+
   const xff = request.headers.get("x-forwarded-for");
   if (xff) {
     const parts = xff.split(",").map((s) => s.trim()).filter(Boolean);
-    const candidate = parts[0];
+    // Use rightmost proxy-appended IP so client-forged leading X-Forwarded-For values cannot bypass IP locks
+    const candidate = parts[parts.length - 1];
     if (candidate) return candidate.replace(/^::ffff:/, "");
   }
   return "127.0.0.1";

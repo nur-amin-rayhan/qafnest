@@ -119,6 +119,7 @@ export function GoogleMapCanvas({
       mapRef.current = mapInstance;
       markerRef.current = markerInstance;
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loadStatus]);
 
   // 3. Keep Marker & Map synchronized when coordinates change externally

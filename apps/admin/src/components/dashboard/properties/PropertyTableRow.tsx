@@ -1,12 +1,23 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import {
-  getLocalizedSaudiCity,
+  CheckCircle2,
+  MapPin,
+  Building2,
+  Eye,
+  Check,
+  Pause,
+  RotateCcw,
+  ExternalLink,
+  Trash2,
+} from "lucide-react";
+import {
   getNumericUnitCode,
   pickBilingualText,
+  getLocalizedSaudiCity,
 } from "@qafnest/shared";
-import { PropertyItem } from "../types";
+import type { PropertyItem } from "../types";
 
 interface PropertyTableRowProps {
   prop: PropertyItem;
@@ -15,17 +26,16 @@ interface PropertyTableRowProps {
   hostPropertyCounts: Record<string, number>;
   updatePropertyStatus: (
     id: string,
-    status: "approved" | "rejected" | "pending",
-    feedback?: string
-  ) => void | Promise<void>;
-  onSelectProperty?: (property: PropertyItem) => void;
-  onRequestReject?: (property: PropertyItem) => void;
+    status: "approved" | "pending" | "rejected"
+  ) => void;
+  onSelectProperty?: (prop: PropertyItem) => void;
+  onRequestReject?: (prop: PropertyItem) => void;
   onReviewDeletionRequest?: (params: {
     requestId: string;
     action: "approve" | "reject";
     adminNotes?: string;
   }) => Promise<{ ok: boolean; error?: string }>;
-  t: (ar: string, en: string) => string;
+  t: (en: string, ar: string) => string;
 }
 
 export function PropertyTableRow({
@@ -39,185 +49,153 @@ export function PropertyTableRow({
   onReviewDeletionRequest,
   t,
 }: PropertyTableRowProps) {
-  const [deletingReq, setDeletingReq] = React.useState(false);
+  const [deletingReq, setDeletingReq] = useState(false);
   const isApproved = prop.status === "approved" || prop.is_approved;
   const isPending = prop.status === "pending" || (!prop.is_approved && prop.status !== "rejected");
   const hostKey = (prop.host_id || prop.host_name || "unknown").trim();
   const hostCount = hostPropertyCounts[hostKey] || 1;
-  const hostLabel = prop.host_name || (prop.host_id ? `Host #${prop.host_id.slice(0, 8)}` : t("Host", "مضيف"));
+  const hostLabel =
+    prop.host_name || (prop.host_id ? `Host #${prop.host_id.slice(0, 8)}` : t("Host", "مضيف"));
   const locale = t("en", "ar") as "en" | "ar";
   const displayTitle = pickBilingualText(locale, prop.title, prop.title_ar, prop.title);
   const displayDistrict = pickBilingualText(locale, prop.district, prop.district_ar);
-  const displayCity = prop.city || prop.city_name ? getLocalizedSaudiCity(prop.city || prop.city_name, locale) : "";
+  const displayCity =
+    prop.city || prop.city_name ? getLocalizedSaudiCity(prop.city || prop.city_name, locale) : "";
   const locationLabel =
     displayDistrict && displayCity && displayDistrict.toLowerCase() !== displayCity.toLowerCase()
       ? `${displayDistrict} · ${displayCity}`
       : displayDistrict || displayCity || "—";
+  const unitCode = getNumericUnitCode(prop.id);
 
   return (
-    <tr className="hover:bg-surface-desert-sand/50 transition-colors group">
-      {/* Column 1: Property & Neighborhood */}
-      <td className="py-3.5 px-4 align-middle">
+    <tr className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors group border-b border-slate-100 dark:border-slate-800">
+      {/* 1. Property Details */}
+      <td className="py-3 px-4 align-middle">
         <div className="flex items-center gap-3 min-w-0">
           <input
             type="checkbox"
             checked={selectedPropertyIds.includes(prop.id)}
             onChange={() => togglePropSelection(prop.id)}
-            className="w-4 h-4 rounded accent-primary-container cursor-pointer shrink-0"
+            className="w-4 h-4 rounded border-slate-300 dark:border-slate-600 text-[#4F2396] focus:ring-[#4F2396] accent-[#4F2396] cursor-pointer shrink-0"
             onClick={(e) => e.stopPropagation()}
             aria-label={`Select ${displayTitle}`}
           />
-          <div className="relative w-14 h-12 rounded-lg overflow-hidden shrink-0 shadow-xs bg-surface-container-high">
+
+          <div className="relative w-12 h-11 rounded-md overflow-hidden shrink-0 bg-slate-100 dark:bg-slate-800 border border-slate-200/70 dark:border-slate-700">
             {prop.images && prop.images[0] ? (
               <img
                 src={prop.images[0]}
                 alt={displayTitle}
-                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
               />
             ) : (
-              <div className="w-full h-full flex items-center justify-center bg-surface-container text-outline">
-                <span className="material-symbols-outlined text-[18px]">villa</span>
+              <div className="w-full h-full flex items-center justify-center text-slate-400">
+                <Building2 size={18} strokeWidth={1.5} />
               </div>
             )}
-            <span className="absolute bottom-0.5 end-0.5 bg-surface/95 backdrop-blur-sm text-[9px] font-mono font-black px-1 rounded text-primary">
-              #{getNumericUnitCode(prop.id)}
-            </span>
           </div>
+
           <div className="flex flex-col min-w-0 flex-1">
             <div className="flex items-center gap-1.5 min-w-0">
-              <span className="font-title-sm text-title-sm text-on-surface font-bold truncate">
+              <span className="text-xs font-semibold text-slate-900 dark:text-slate-100 truncate">
                 {displayTitle}
               </span>
-              {isApproved && (
-                <span className="material-symbols-outlined text-[14px] text-status-sand shrink-0" title="Featured Chalet">
-                  star
-                </span>
-              )}
-            </div>
-            <div className="flex items-center gap-2 text-xs text-on-surface-variant truncate mt-0.5">
-              <span className="flex items-center gap-0.5 truncate">
-                <span className="material-symbols-outlined text-[13px] text-outline shrink-0">
-                  location_on
-                </span>
-                <span className="truncate">{locationLabel}</span>
-              </span>
-              <span className="text-outline-variant">•</span>
-              <span className="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded bg-surface-container text-[11px] font-medium capitalize shrink-0">
-                {prop.category || "—"}
+              <span className="text-[10px] font-mono tabular-nums text-slate-400 dark:text-slate-500 shrink-0">
+                #{unitCode}
               </span>
             </div>
-            <div className="flex items-center gap-2 mt-1 text-[11px] text-outline min-w-0 flex-wrap">
-              <span className="font-mono font-black text-primary bg-primary/10 px-1.5 py-0.2 rounded">
-                Unit #{getNumericUnitCode(prop.id)}
-              </span>
-              <span>•</span>
-              <span className="font-mono truncate max-w-[120px]" title={prop.id}>
-                ID: {prop.id}
-              </span>
-              {prop.tourism_license_number && (
-                <>
-                  <span>•</span>
-                  <span className="font-mono text-on-surface-variant truncate max-w-[130px]">
-                    Lic: {prop.tourism_license_number}
-                  </span>
-                </>
-              )}
+
+            <div className="flex items-center gap-1.5 text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 truncate">
+              <MapPin size={11} strokeWidth={1.5} className="text-slate-400 shrink-0" />
+              <span className="truncate">{locationLabel}</span>
+              <span className="text-slate-300 dark:text-slate-600">•</span>
+              <span className="capitalize">{prop.category || "Chalet"}</span>
             </div>
+
+            {prop.tourism_license_number && (
+              <div className="text-[10px] font-mono text-slate-400 dark:text-slate-500 mt-0.5 truncate">
+                {t("Lic", "ترخيص")}: {prop.tourism_license_number}
+              </div>
+            )}
           </div>
         </div>
       </td>
 
-      {/* Column 2: Host Details & Tracked Portfolio */}
-      <td className="py-3.5 px-4 align-middle">
+      {/* 2. Host & Portfolio */}
+      <td className="py-3 px-4 align-middle">
         <div className="flex items-center gap-2.5 min-w-0">
-          <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-xs uppercase shrink-0 border border-primary/20">
+          <div className="w-7 h-7 rounded-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-700 dark:text-slate-300 text-xs font-medium uppercase shrink-0">
             {(prop.host_name || prop.host_id || "H").slice(0, 2)}
           </div>
-          <div className="flex flex-col min-w-0 flex-1">
+          <div className="flex flex-col min-w-0">
             <div className="flex items-center gap-1 min-w-0">
-              <span className="font-title-sm text-xs font-bold text-on-surface truncate">
-                {hostLabel}
-              </span>
+              <span className="text-xs font-medium text-slate-900 dark:text-slate-100 truncate">{hostLabel}</span>
               {isApproved && prop.tourism_license_number && (
                 <span
-                  className="material-symbols-outlined text-[14px] text-status-emerald shrink-0"
-                  title={t("Tourism License Provided", "الترخيص السياحي مرفق")}
+                  title={t("Tourism license verified", "الترخيص السياحي موثق")}
+                  className="inline-flex shrink-0"
                 >
-                  verified
+                  <CheckCircle2
+                    size={12}
+                    strokeWidth={2}
+                    className="text-emerald-600 dark:text-emerald-400"
+                  />
                 </span>
               )}
             </div>
-            <span className="text-xs text-outline font-mono truncate">
+            <span className="text-[11px] text-slate-400 dark:text-slate-500 font-mono truncate">
               {prop.host_phone || prop.host_email || "—"}
             </span>
-            <div className="mt-1">
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10.5px] font-bold bg-primary/10 text-primary border border-primary/15">
-                <span className="material-symbols-outlined text-[11px]">apartment</span>
-                <span>
-                  {hostCount}{" "}
-                  {hostCount === 1
-                    ? t("Property", "عقار واحد")
-                    : t("Properties", `${hostCount} عقارات`)}
-                </span>
-              </span>
-            </div>
+            <span className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5 font-mono tabular-nums">
+              {hostCount} {hostCount === 1 ? t("unit", "عقار") : t("units", "عقارات")}
+            </span>
           </div>
         </div>
       </td>
 
-      {/* Column 3: Rate & Instant Book */}
-      <td className="py-3.5 px-4 align-middle">
-        <div className="flex flex-col gap-1">
+      {/* 3. Nightly Rate & Booking Mode */}
+      <td className="py-3 px-4 align-middle">
+        <div className="flex flex-col gap-0.5">
           <div className="flex items-baseline gap-1">
-            <span className="font-title-sm text-sm font-bold text-on-surface">
-              SAR {Number(prop.base_price ?? 0).toLocaleString()}
+            <span className="text-xs font-semibold text-slate-900 dark:text-slate-100 font-mono tabular-nums">
+              {Number(prop.base_price ?? 0).toLocaleString()}
             </span>
-            <span className="text-[10px] text-outline uppercase">
-              /{t("nt", "ليلة")}
-            </span>
+            <span className="text-[10px] text-slate-500 dark:text-slate-400">{t("SAR / night", "ر.س / ليلة")}</span>
           </div>
-          <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
-            <button
-              type="button"
-              onClick={() => updatePropertyStatus(prop.id, isApproved ? "rejected" : "approved")}
-              className={`relative inline-flex h-4 w-7 flex-shrink-0 cursor-pointer rounded-full p-0.5 transition-colors focus:outline-none ${
-                isApproved ? "bg-status-emerald" : "bg-outline-variant"
-              }`}
-              title={t("Toggle Instant Bookable", "تبديل الحجز الفوري")}
-              aria-label="Toggle instant bookable"
-            >
-              <span
-                className={`pointer-events-none inline-block h-3 w-3 transform rounded-full bg-surface-container-lowest shadow ring-0 transition duration-200 ${
-                  isApproved ? "translate-x-3 rtl:-translate-x-3" : "translate-x-0"
-                }`}
-              />
-            </button>
-            <span className="text-[10.5px] font-medium text-outline">
-              {isApproved ? t("Instant", "فوري") : t("Manual", "يدوي")}
-            </span>
-          </div>
+          <span
+            className={`inline-flex items-center w-fit text-[10px] font-medium px-1.5 py-0.2 rounded ${
+              isApproved
+                ? "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300"
+                : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400"
+            }`}
+          >
+            {isApproved ? t("Instant", "حجز فوري") : t("Request", "بالموافقة")}
+          </span>
         </div>
       </td>
 
-      {/* Column 4: Status */}
-      <td className="py-3.5 px-4 align-middle text-center">
+      {/* 4. Status Badge */}
+      <td className="py-3 px-4 align-middle text-center">
         <div className="flex flex-col items-center gap-1">
           {isApproved ? (
-            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wide bg-status-emerald/15 text-status-emerald">
-              ● {t("Published", "منشور")}
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200/60 dark:border-emerald-800/60">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+              <span>{t("Published", "منشور")}</span>
             </span>
           ) : isPending ? (
-            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wide bg-status-sand/20 text-status-sand">
-              ⏳ {t("Review", "مراجعة")}
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200/60 dark:border-amber-800/60">
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+              <span>{t("In review", "قيد المراجعة")}</span>
             </span>
           ) : (
             <div className="flex flex-col items-center gap-0.5">
-              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wide bg-status-terracotta/15 text-status-terracotta">
-                ✕ {t("Rejected", "مرفوض")}
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border border-rose-200/60 dark:border-rose-800/60">
+                <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
+                <span>{t("Suspended", "موقوف")}</span>
               </span>
               {prop.admin_feedback && (
                 <span
-                  className="text-[10px] text-status-terracotta font-medium truncate max-w-[100px]"
+                  className="text-[10px] text-rose-600 dark:text-rose-400 font-medium truncate max-w-[110px]"
                   title={prop.admin_feedback}
                 >
                   {prop.admin_feedback}
@@ -225,19 +203,17 @@ export function PropertyTableRow({
               )}
             </div>
           )}
+
           {prop.pending_deletion_request?.status === "pending" && (
-            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-100 text-amber-900 border border-amber-300">
-              {t("Removal Req", "طلب حذف")}
+            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-amber-100 dark:bg-amber-950/60 text-amber-900 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
+              {t("Removal req.", "طلب حذف")}
             </span>
           )}
         </div>
       </td>
 
-      {/* Column 5: Dedicated View Button & Quick Actions */}
-      <td
-        className="py-3.5 px-4 align-middle text-end"
-        onClick={(e) => e.stopPropagation()}
-      >
+      {/* 5. Actions */}
+      <td className="py-3 px-4 align-middle text-end" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-end gap-1 flex-nowrap">
           {prop.pending_deletion_request?.status === "pending" && onReviewDeletionRequest && (
             <button
@@ -249,8 +225,8 @@ export function PropertyTableRow({
                 if (
                   !window.confirm(
                     t(
-                      `Approve removal request and permanently delete "${displayTitle}"?`,
-                      `هل تريد الموافقة على طلب الحذف وحذف العقار "${displayTitle}" نهائياً؟`
+                      `Approve removal request and delete "${displayTitle}"?`,
+                      `هل تريد الموافقة على طلب الحذف وحذف العقار "${displayTitle}"؟`
                     )
                   )
                 ) {
@@ -266,46 +242,39 @@ export function PropertyTableRow({
                   setDeletingReq(false);
                 }
               }}
-              className="h-7 px-2.5 rounded-lg bg-rose-600 hover:bg-rose-700 text-white font-bold text-[11px] flex items-center gap-1 transition-all cursor-pointer shadow-2xs shrink-0 disabled:opacity-45 disabled:cursor-not-allowed"
+              className="h-7 px-2 rounded-md bg-rose-600 hover:bg-rose-700 text-white text-[11px] font-medium flex items-center gap-1 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
               title={
                 prop.pending_deletion_request.eligibleToDelete
-                  ? t(
-                      "Approve host removal request and permanently delete this property",
-                      "اعتماد طلب المضيف وحذف العقار نهائياً"
-                    )
-                  : t(
-                      `Blocked: ${prop.pending_deletion_request.activeBookingsCount} active reservations exist`,
-                      `محظور: يوجد ${prop.pending_deletion_request.activeBookingsCount} حجوزات نشطة`
-                    )
+                  ? t("Approve deletion", "الموافقة على الحذف")
+                  : t("Active bookings block deletion", "توجد حجوزات تمنع الحذف")
               }
             >
-              <span className="material-symbols-outlined text-[14px]">delete_forever</span>
-              <span>
-                {deletingReq
-                  ? t("Deleting...", "جاري الحذف...")
-                  : t("Approve & Delete", "موافقة وحذف")}
-              </span>
+              <Trash2 size={12} strokeWidth={1.5} />
+              <span>{deletingReq ? t("Deleting...", "جاري الحذف...") : t("Delete", "حذف")}</span>
             </button>
           )}
+
+          {/* View Details button */}
           <button
             type="button"
             onClick={() => onSelectProperty?.(prop)}
-            className="h-7 px-2.5 rounded-lg border border-primary/20 bg-primary/5 hover:bg-primary/15 text-primary font-bold text-xs flex items-center gap-1 transition-all cursor-pointer shadow-2xs shrink-0"
-            title={t("View & Inspect Full Listing Details", "معاينة تفاصيل العقار")}
+            className="h-7 px-2.5 rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-medium flex items-center gap-1 transition-colors cursor-pointer shadow-xs"
+            title={t("View details", "عرض التفاصيل")}
           >
-            <span className="material-symbols-outlined text-[15px]">visibility</span>
+            <Eye size={13} strokeWidth={1.5} />
             <span>{t("View", "عرض")}</span>
           </button>
 
+          {/* Status action toggle */}
           {isPending ? (
             <button
               type="button"
               onClick={() => updatePropertyStatus(prop.id, "approved")}
-              className="w-7 h-7 rounded-lg text-status-emerald hover:bg-status-emerald/10 flex items-center justify-center transition-colors cursor-pointer shrink-0"
-              title={t("Review & Approve", "اعتماد العقار")}
+              className="w-7 h-7 rounded-md border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 flex items-center justify-center transition-colors cursor-pointer"
+              title={t("Approve", "اعتماد")}
               aria-label="Approve property"
             >
-              <span className="material-symbols-outlined text-[16px]">fact_check</span>
+              <Check size={14} strokeWidth={2} />
             </button>
           ) : isApproved ? (
             <button
@@ -315,35 +284,36 @@ export function PropertyTableRow({
                   ? onRequestReject(prop)
                   : updatePropertyStatus(prop.id, "rejected")
               }
-              className="w-7 h-7 rounded-lg text-on-surface-variant hover:bg-surface-container hover:text-status-sand flex items-center justify-center transition-colors cursor-pointer shrink-0"
-              title={t("Pause / Suspend", "إيقاف مؤقت")}
-              aria-label="Pause property"
+              className="w-7 h-7 rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 hover:text-amber-700 dark:hover:text-amber-300 flex items-center justify-center transition-colors cursor-pointer"
+              title={t("Suspend", "إيقاف")}
+              aria-label="Suspend property"
             >
-              <span className="material-symbols-outlined text-[16px]">pause</span>
+              <Pause size={13} strokeWidth={1.5} />
             </button>
           ) : (
             <button
               type="button"
               onClick={() => updatePropertyStatus(prop.id, "approved")}
-              className="w-7 h-7 rounded-lg text-primary hover:bg-surface-container flex items-center justify-center transition-colors cursor-pointer shrink-0"
-              title={t("Reactivate Listing", "إعادة التفعيل")}
+              className="w-7 h-7 rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-400 hover:text-[#4F2396] dark:hover:text-purple-300 flex items-center justify-center transition-colors cursor-pointer"
+              title={t("Reactivate", "إعادة تفعيل")}
               aria-label="Reactivate property"
             >
-              <span className="material-symbols-outlined text-[16px]">restart_alt</span>
+              <RotateCcw size={13} strokeWidth={1.5} />
             </button>
           )}
+
+          {/* External link */}
           <a
             href={`/properties/${prop.id}`}
             target="_blank"
             rel="noreferrer"
-            className="w-7 h-7 rounded-lg text-on-surface-variant hover:bg-surface-container hover:text-primary flex items-center justify-center transition-colors cursor-pointer shrink-0"
-            title="Open Full Page Preview in New Tab"
+            className="w-7 h-7 rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 flex items-center justify-center transition-colors cursor-pointer"
+            title={t("Open preview in new tab", "فتح المعاينة في صفحة مستقلة")}
           >
-            <span className="material-symbols-outlined text-[16px]">open_in_new</span>
+            <ExternalLink size={13} strokeWidth={1.5} />
           </a>
         </div>
       </td>
     </tr>
   );
 }
-

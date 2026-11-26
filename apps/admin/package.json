@@ -12,7 +12,6 @@
     "@qafnest/shared": "*",
     "@supabase/ssr": "^0.12.7",
     "@supabase/supabase-js": "^2.118.0",
-    "firebase": "^13.1.0",
     "framer-motion": "^14.7.1",
     "html2canvas": "^1.4.1",
     "jspdf": "^4.2.1",

@@ -28,6 +28,7 @@ interface PricingBreakdownModuleProps {
   fixedFeeAmountSar?: number;
   vatRate?: number;
   category?: string;
+  isTwelveHourStay?: boolean;
 }
 
 export default function PricingBreakdownModule({
@@ -45,6 +46,7 @@ export default function PricingBreakdownModule({
   fixedFeeAmountSar,
   vatRate,
   category,
+  isTwelveHourStay = false,
 }: PricingBreakdownModuleProps) {
   const {
     feeRate: syncedFeeRate,
@@ -103,6 +105,14 @@ export default function PricingBreakdownModule({
   useEffect(() => {
     onPricingChange?.(pricing);
   }, [pricing, onPricingChange]);
+
+  // Auto-apply initial coupon code if provided (e.g. from property page redirect)
+  useEffect(() => {
+    if (initialCouponCode && !appliedCouponDef && !appliedDiscount) {
+      void handleApplyCoupon(initialCouponCode);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialCouponCode]);
 
   const handleApplyCoupon = async (codeToApply?: string) => {
     const targetCode = (codeToApply || couponInput).trim().toUpperCase();
@@ -186,6 +196,7 @@ export default function PricingBreakdownModule({
         language={language}
         onRemoveCoupon={handleRemoveCoupon}
         t={t}
+        isTwelveHourStay={isTwelveHourStay}
       />
 
       {/* 2. Coupon Input Field & Actions */}

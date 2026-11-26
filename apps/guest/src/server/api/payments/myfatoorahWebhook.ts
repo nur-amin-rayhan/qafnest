@@ -10,7 +10,15 @@ import {
   refundSettledWalletSplit,
 } from "@/lib/services/walletService";
 import { dispatchBookingZatcaInvoice } from "@/lib/services/zatcaReportingHelper";
-import { getBookingFinancialSnapshot } from "@qafnest/shared/bookingFinancialsStore";
+import {
+  getBookingFinancialSnapshot,
+  hydrateBookingFinancialsStore,
+} from "@qafnest/shared/bookingFinancialsStore";
+import {
+  createBookingRefundRecord,
+  hydrateBookingRefundStore,
+  persistBookingRefundStore,
+} from "@qafnest/shared/bookingRefundStore";
 import { acquirePropertyBookingLock } from "@qafnest/shared/bookingSlotStore";
 import {
   DEFAULT_CHECKIN_TIME,
@@ -169,7 +177,7 @@ export async function POST(request: NextRequest) {
             message: bookingFetchError.message,
           });
           return NextResponse.json(
-            { code: "booking_fetch_error", message: bookingFetchError.message },
+            { code: "booking_fetch_error", message: "Failed to look up booking." },
             { status: 500 }
           );
         }
@@ -216,7 +224,7 @@ export async function POST(request: NextRequest) {
             .from("bookings")
             .select("id, check_in, check_out, checkin_time, checkout_time")
             .eq("property_id", existingBooking.property_id)
-            .in("status", ["confirmed", "completed"])
+            .in("status", ["confirmed", "checked_in", "completed"])
             .neq("id", existingBooking.id)
             .lte("check_in", existingBooking.check_out)
             .gte("check_out", existingBooking.check_in);
@@ -231,7 +239,7 @@ export async function POST(request: NextRequest) {
               .from("bookings")
               .select("id, check_in, check_out")
               .eq("property_id", existingBooking.property_id)
-              .in("status", ["confirmed", "completed"])
+              .in("status", ["confirmed", "checked_in", "completed"])
               .neq("id", existingBooking.id)
               .lte("check_in", existingBooking.check_out)
               .gte("check_out", existingBooking.check_in);
@@ -255,10 +263,50 @@ export async function POST(request: NextRequest) {
             );
           });
 
-          if (hasSlotConflict) {
-            await clearPendingWalletSplit(existingBooking.booking_reference || bookingRef);
+          let hasBlockedNight = false;
+          if (!hasSlotConflict && existingBooking.check_out > existingBooking.check_in) {
+            const { data: blockedRows } = await dbClient
+              .from("property_availability")
+              .select("date")
+              .eq("property_id", existingBooking.property_id)
+              .eq("is_available", false)
+              .gte("date", existingBooking.check_in)
+              .lt("date", existingBooking.check_out)
+              .limit(1);
+            hasBlockedNight = Boolean(blockedRows && blockedRows.length > 0);
+          }
+
+          if (hasSlotConflict || hasBlockedNight) {
+            const ref = existingBooking.booking_reference || bookingRef;
+            const gatewayPaid = extractPaidAmount(invoiceData);
+            await refundSettledWalletSplit(ref, "Late webhook conflict after reservation timeout");
+            await clearPendingWalletSplit(ref);
+            await hydrateBookingRefundStore();
+            createBookingRefundRecord({
+              bookingRef: ref,
+              guestId: existingBooking.guest_id ? String(existingBooking.guest_id) : undefined,
+              totalBookingPrice: Number(existingBooking.total_price || gatewayPaid),
+              refundAmount: gatewayPaid,
+              refundPercentage: 100,
+              penaltyAmount: 0,
+              cancellationReason: "Automatic refund queued: dates became unavailable before webhook settlement.",
+              actor: "admin",
+              policyTier: "admin_override",
+              refundMethod: "original_card",
+            });
+            await persistBookingRefundStore();
+            try {
+              await dbClient
+                .from("bookings")
+                .update({
+                  status: "refund_requested",
+                  payment_id: String(paymentId),
+                  updated_at: new Date().toISOString(),
+                })
+                .eq("id", existingBooking.id);
+            } catch {}
             return NextResponse.json(
-              { code: "overbooked_refund_required", message: "Property was booked during checkout timeout. Refund required." },
+              { code: "overbooked_refund_required", message: "Property was booked during checkout timeout. Refund queued." },
               { status: 409 }
             );
           }
@@ -277,6 +325,7 @@ export async function POST(request: NextRequest) {
           gatewayName,
         });
         if (!paymentVerification.ok) {
+          await refundSettledWalletSplit(targetRef, paymentVerification.message);
           await clearPendingWalletSplit(targetRef);
           return NextResponse.json(
             { code: paymentVerification.code, message: paymentVerification.message },
@@ -298,10 +347,29 @@ export async function POST(request: NextRequest) {
           if (rpcResult.error === "booking_already_paid") {
             return NextResponse.json({ success: true, message: "Booking already confirmed." });
           }
-          if (paymentVerification.isSplit) {
-            await refundSettledWalletSplit(targetRef, `Webhook confirmation rejected (${rpcResult.error || "conflict"})`);
-          } else {
-            await clearPendingWalletSplit(targetRef);
+          await refundSettledWalletSplit(targetRef, `Webhook confirmation rejected (${rpcResult.error || "conflict"})`);
+          await clearPendingWalletSplit(targetRef);
+          if (rpcResult.error === "booking_slot_overlap" || rpcResult.error === "property_date_blocked") {
+            await hydrateBookingRefundStore();
+            createBookingRefundRecord({
+              bookingRef: targetRef,
+              guestId: existingBooking.guest_id ? String(existingBooking.guest_id) : undefined,
+              totalBookingPrice: Number(existingBooking.total_price || paidAmount),
+              refundAmount: paidAmount,
+              refundPercentage: 100,
+              penaltyAmount: 0,
+              cancellationReason: `Automatic refund queued due to atomic booking conflict (${rpcResult.error}).`,
+              actor: "admin",
+              policyTier: "admin_override",
+              refundMethod: "original_card",
+            });
+            await persistBookingRefundStore();
+            try {
+              await dbClient
+                .from("bookings")
+                .update({ status: "refund_requested", payment_id: String(paymentId), updated_at: new Date().toISOString() })
+                .eq("id", existingBooking.id);
+            } catch {}
           }
           return NextResponse.json(
             { code: rpcResult.error || "confirmation_rejected", message: "Payment verification conflict." },
@@ -328,9 +396,22 @@ export async function POST(request: NextRequest) {
             .maybeSingle();
 
           if (updateErr || !updatedBooking) {
-            if (paymentVerification.isSplit) {
-              await refundSettledWalletSplit(targetRef, "Database confirmation conflict");
-            }
+            await refundSettledWalletSplit(targetRef, "Database confirmation conflict");
+            await clearPendingWalletSplit(targetRef);
+            await hydrateBookingRefundStore();
+            createBookingRefundRecord({
+              bookingRef: targetRef,
+              guestId: existingBooking.guest_id ? String(existingBooking.guest_id) : undefined,
+              totalBookingPrice: Number(existingBooking.total_price || paidAmount),
+              refundAmount: paidAmount,
+              refundPercentage: 100,
+              penaltyAmount: 0,
+              cancellationReason: "Automatic refund queued due to webhook confirmation conflict.",
+              actor: "admin",
+              policyTier: "admin_override",
+              refundMethod: "original_card",
+            });
+            await persistBookingRefundStore();
             return NextResponse.json({ code: "booking_slot_overlap" }, { status: 409 });
           }
 
@@ -338,6 +419,7 @@ export async function POST(request: NextRequest) {
         }
 
         if (wasConfirmedByThisProcess) {
+          await hydrateBookingFinancialsStore().catch(() => undefined);
           const finSnap = getBookingFinancialSnapshot(existingBooking.booking_reference || bookingRef) || getBookingFinancialSnapshot(existingBooking.id);
           const guestIdentifier = existingBooking.guest_id || (existingBooking as { auth_subject?: string }).auth_subject;
 
@@ -395,6 +477,7 @@ export async function POST(request: NextRequest) {
             }
           }
 
+          let resolvedPropTitle = "Vacation Rental Accommodation";
           try {
             const { data: propData } = await dbClient
               .from("properties")
@@ -402,6 +485,7 @@ export async function POST(request: NextRequest) {
               .eq("id", existingBooking.property_id)
               .single();
 
+            if (propData?.title) resolvedPropTitle = String(propData.title);
             if (propData && propData.host_id) {
               await dbClient.from("host_notifications").insert({
                 host_id: propData.host_id,
@@ -422,7 +506,7 @@ export async function POST(request: NextRequest) {
             taxableAmount: finSnap?.taxableSubtotalSar,
             vatAmount: finSnap?.vatAmountSar,
             buyerName: invoiceData.CustomerName || "Valued Guest",
-            propertyTitle: "Vacation Rental Accommodation",
+            propertyTitle: resolvedPropTitle,
             paymentMethod: paymentVerification.effectiveGatewayLabel,
           });
         }
@@ -444,7 +528,9 @@ export async function POST(request: NextRequest) {
         });
       }
 
-      await clearPendingWalletSplit(initialBooking.booking_reference || bookingRef);
+      const targetRef = initialBooking.booking_reference || bookingRef;
+      await refundSettledWalletSplit(targetRef, "Payment gateway failure webhook");
+      await clearPendingWalletSplit(targetRef);
       await dbClient
         .from("bookings")
         .update({
@@ -466,7 +552,7 @@ export async function POST(request: NextRequest) {
   } catch (err: unknown) {
     console.error("MyFatoorah webhook exception:", err);
     return NextResponse.json(
-      { code: "server_error", message: err instanceof Error ? err.message : "Internal error" },
+      { code: "server_error", message: "Failed to process payment webhook." },
       { status: 500 }
     );
   }

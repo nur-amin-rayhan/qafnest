@@ -3,6 +3,7 @@
 import React from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import {
   CalendarDays,
   ChevronLeft,
@@ -15,6 +16,8 @@ import {
 } from "lucide-react";
 import type { Property } from "@/data/properties";
 import PricingBreakdownModule from "@/components/property/PricingBreakdownModule";
+import { useAuth } from "@/context/AuthContext";
+import { dispatchOpenIdentityModal } from "@/components/modals/GuestIdentityGateModal";
 import type { PricingBreakdown } from "@/lib/services/pricing";
 import type { PaymentMethod } from "./types";
 
@@ -35,6 +38,7 @@ interface ReservationSidebarProps {
   baseStayRate: number;
   setPricing: (pricing: PricingBreakdown) => void;
   hasDiscount: boolean;
+  isTwelveHourStay?: boolean;
   formatPrice: (amount: number) => string;
   language: string;
   label: (en: string, ar: string) => string;
@@ -67,6 +71,7 @@ export default function ReservationSidebar({
   baseStayRate,
   setPricing,
   hasDiscount,
+  isTwelveHourStay = false,
   formatPrice,
   language,
   label,
@@ -81,6 +86,11 @@ export default function ReservationSidebar({
   user,
   paymentMessage,
 }: ReservationSidebarProps) {
+  const { profile, user: authUser } = useAuth();
+  const identityVerified = !user || Boolean(profile?.is_verified || authUser?.app_metadata?.is_verified);
+  const searchParams = useSearchParams();
+  const initialCoupon = searchParams?.get("coupon") || null;
+  const nightlyDisplayRate = Math.round((baseStayRate / Math.max(1, nights)) * 100) / 100;
   const previousImage = () =>
     setActiveImageIndex((index) => (index - 1 + images.length) % images.length);
   const nextImage = () =>
@@ -88,7 +98,7 @@ export default function ReservationSidebar({
 
   return (
     <aside className="min-w-0 lg:sticky lg:top-24">
-      <section className="overflow-hidden rounded-3xl border border-violet-200 bg-white shadow-[0_18px_55px_rgba(70,35,130,0.12)] dark:border-violet-400/20 dark:bg-[#12101a] dark:shadow-[0_18px_55px_rgba(0,0,0,0.34)]">
+      <section className="overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-lg dark:border-slate-800 dark:bg-[#110F18]">
         <div className="relative h-52 bg-gray-100">
           <Image
             src={images[activeImageIndex]}
@@ -153,21 +163,21 @@ export default function ReservationSidebar({
         <div className="p-5 sm:p-6">
           <div className="flex items-start justify-between gap-3 border-b border-gray-100 pb-4 dark:border-white/10">
             <div>
-              {hasDiscount && (
+              {hasDiscount && !isTwelveHourStay && (
                 <div className="text-xs sm:text-sm font-bold text-rose-500 dark:text-rose-400 line-through tracking-tight">
                   {formatPrice(property.originalPrice || 0)}
                 </div>
               )}
               <div className="flex items-baseline gap-1.5 mt-0.5">
                 <span className="text-2xl font-black text-gray-950 dark:text-white">
-                  {formatPrice(property.basePrice)}
+                  {formatPrice(isTwelveHourStay ? baseStayRate : nightlyDisplayRate)}
                 </span>
                 <span className="text-xs text-gray-500 dark:text-gray-400">
-                  / {label("night", "ليلة")}
+                  / {isTwelveHourStay ? label("12-Hour Stay", "إقامة 12 ساعة") : label("night", "ليلة")}
                 </span>
               </div>
             </div>
-            {hasDiscount && (
+            {hasDiscount && !isTwelveHourStay && (
               <span className="rounded-xl border border-rose-200/80 bg-rose-50 px-3 py-1 text-xs font-black uppercase text-rose-600 dark:border-rose-500/30 dark:bg-rose-500/20 dark:text-rose-400 shadow-xs">
                 {property.discountPercentage ||
                   Math.round(
@@ -184,42 +194,44 @@ export default function ReservationSidebar({
           <div className="py-4">
             <div className="mb-3 flex items-center justify-between">
               <span className="text-sm font-bold text-gray-900 dark:text-white">
-                {nights} {label(nights === 1 ? "night" : "nights", "ليلة")}
+                {isTwelveHourStay
+                  ? label("12-Hour Stay (12:00 AM – 12:00 PM)", "إقامة 12 ساعة (12:00 ص – 12:00 م)")
+                  : `${nights} ${label(nights === 1 ? "night" : "nights", "ليلة")}`}
               </span>
             </div>
 
-            <div className="grid grid-cols-2 overflow-hidden rounded-2xl border border-violet-200/80 bg-violet-50/35 dark:border-violet-500/20 dark:bg-violet-950/20">
+            <div className="grid grid-cols-2 overflow-hidden rounded-2xl border border-slate-200/85 bg-slate-50/60 dark:border-slate-800 dark:bg-slate-900/40">
               <div className="p-3.5">
-                <span className="flex items-center gap-1.5 text-[10px] font-bold uppercase text-gray-500 dark:text-violet-300/80">
-                  <CalendarDays className="h-3 w-3 text-violet-600 dark:text-violet-400" />
+                <span className="flex items-center gap-1.5 text-[10px] font-bold uppercase text-slate-500 dark:text-slate-400">
+                  <CalendarDays className="h-3.5 w-3.5 text-[#4F2396] dark:text-purple-300" />
                   {label("Check-in", "الوصول")}
                 </span>
                 <p className="mt-2 text-xs font-extrabold text-gray-900 dark:text-white">
                   {bookingCheckinDate}
                 </p>
                 <p className="mt-1 flex items-center gap-1 text-[11px] text-gray-500 dark:text-gray-400">
-                  <Clock3 className="h-3 w-3 text-violet-500" />
+                  <Clock3 className="h-3 w-3 text-slate-400" />
                   {bookingCheckinTime}
                 </p>
               </div>
-              <div className="border-s border-violet-200/80 p-3.5 dark:border-violet-500/20">
-                <span className="flex items-center gap-1.5 text-[10px] font-bold uppercase text-gray-500 dark:text-violet-300/80">
-                  <CalendarDays className="h-3 w-3 text-violet-600 dark:text-violet-400" />
+              <div className="border-s border-slate-200/85 p-3.5 dark:border-slate-800">
+                <span className="flex items-center gap-1.5 text-[10px] font-bold uppercase text-slate-500 dark:text-slate-400">
+                  <CalendarDays className="h-3.5 w-3.5 text-[#4F2396] dark:text-purple-300" />
                   {label("Check-out", "المغادرة")}
                 </span>
                 <p className="mt-2 text-xs font-extrabold text-gray-900 dark:text-white">
                   {bookingCheckoutDate}
                 </p>
                 <p className="mt-1 flex items-center gap-1 text-[11px] text-gray-500 dark:text-gray-400">
-                  <Clock3 className="h-3 w-3 text-violet-500" />
+                  <Clock3 className="h-3 w-3 text-slate-400" />
                   {bookingCheckoutTime}
                 </p>
               </div>
             </div>
 
-            <div className="mt-3 flex items-center justify-between rounded-2xl border border-violet-200/80 bg-violet-50/35 px-4 py-3 text-xs dark:border-violet-500/20 dark:bg-violet-950/20">
+            <div className="mt-3 flex items-center justify-between rounded-2xl border border-slate-200/85 bg-slate-50/60 px-4 py-3 text-xs dark:border-slate-800 dark:bg-slate-900/40">
               <span className="flex items-center gap-2 font-semibold text-gray-700 dark:text-gray-300">
-                <Users className="h-4 w-4 text-violet-600 dark:text-violet-400" />
+                <Users className="h-4 w-4 text-[#4F2396] dark:text-purple-300" />
                 {label("Guests", "الضيوف")}
               </span>
               <span className="font-extrabold text-gray-900 dark:text-white">
@@ -228,7 +240,7 @@ export default function ReservationSidebar({
             </div>
             <Link
               href={editStayHref}
-              className="mt-3 inline-block text-xs font-semibold text-violet-700 hover:underline dark:text-violet-300"
+              className="mt-3 inline-block text-xs font-semibold text-[#4F2396] hover:underline dark:text-purple-300"
             >
               {label("Edit dates, times or guests", "تعديل التواريخ أو الأوقات أو الضيوف")}
             </Link>
@@ -238,13 +250,15 @@ export default function ReservationSidebar({
           <div className="border-t border-gray-100 pt-4 dark:border-white/10">
             <PricingBreakdownModule
               baseRate={baseStayRate}
-              nights={nights}
-              nightlyRate={Math.round((baseStayRate / Math.max(1, nights)) * 100) / 100}
-              originalPrice={property.originalPrice}
+              nights={isTwelveHourStay ? 1 : nights}
+              nightlyRate={isTwelveHourStay ? baseStayRate : nightlyDisplayRate}
+              originalPrice={isTwelveHourStay ? undefined : property.originalPrice}
+              initialCouponCode={initialCoupon}
               category={property.category}
               language={language as "en" | "ar"}
               onPricingChange={(updatedPricing) => setPricing(updatedPricing)}
               showInstallments={false}
+              isTwelveHourStay={isTwelveHourStay}
             />
           </div>
 
@@ -255,7 +269,7 @@ export default function ReservationSidebar({
             className={`mt-5 flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3.5 text-sm font-bold transition ${
               isPayDisabled
                 ? "bg-gray-200 text-gray-400 dark:bg-white/10 dark:text-gray-500 cursor-not-allowed shadow-none"
-                : "bg-violet-700 hover:bg-violet-800 text-white shadow-lg shadow-violet-900/20 cursor-pointer active:scale-[0.99]"
+                : "bg-[#4F2396] hover:bg-[#3d1979] text-white shadow-lg shadow-violet-950/20 cursor-pointer active:scale-[0.99]"
             }`}
           >
             {paymentBusy ? (
@@ -269,6 +283,8 @@ export default function ReservationSidebar({
               ? user
                 ? label("Verify mobile to pay", "تحقق من رقم الجوال للدفع")
                 : label("Sign in to continue to payment", "سجل الدخول للمتابعة إلى الدفع")
+              : !identityVerified
+              ? label("Verify ID via Nafath to pay", "وثق الهوية عبر نفاذ للدفع")
               : !paymentMethod
               ? walletSplitActive
                 ? label("Select gateway for remainder", "اختر وسيلة دفع المتبقي")
@@ -280,6 +296,15 @@ export default function ReservationSidebar({
                 )
               : label("Pay now", "ادفع الآن")}
           </button>
+          {Boolean(user && phoneVerified && !identityVerified) && (
+            <button
+              type="button"
+              onClick={dispatchOpenIdentityModal}
+              className="mt-2.5 w-full rounded-xl border border-purple-200 bg-purple-50/70 px-3.5 py-2 text-xs font-semibold text-[#4F2396] transition hover:bg-purple-100 dark:border-purple-500/30 dark:bg-purple-950/30 dark:text-purple-200 cursor-pointer"
+            >
+              {label("Verify National ID / Iqama Now", "توثيق الهوية الوطنية أو الإقامة الآن")}
+            </button>
+          )}
           <p className="mt-2 text-center text-[10px] leading-5 text-gray-500 dark:text-gray-400">
             {label(
               "OTP and payment stay here. No charge is made until a secure gateway is connected.",

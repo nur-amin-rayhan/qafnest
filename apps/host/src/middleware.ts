@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { getSupabaseConfig, isSupabaseConfigured } from "@/lib/supabase/config";
+import { verifyPortalSessionTokenEdge } from "@qafnest/shared/portalSessionEdge";
 
 import {
   DEFAULT_HOST_LOCALE,
@@ -15,116 +16,6 @@ import {
 
 const PROTECTED_PREFIXES = ["/app", "/properties/new"];
 
-interface JwkCache {
-  keys: Array<Record<string, unknown>>;
-  expiresAt: number;
-}
-let jwkCache: JwkCache | null = null;
-
-async function getGoogleJwksKeys(): Promise<Array<Record<string, unknown>>> {
-  if (jwkCache && Date.now() < jwkCache.expiresAt) {
-    return jwkCache.keys;
-  }
-  try {
-    const res = await fetch(
-      "https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com",
-      { cache: "no-store" }
-    );
-    if (!res.ok) return jwkCache?.keys || [];
-
-    let maxAge = 3600;
-    const cc = res.headers.get("cache-control");
-    if (cc) {
-      const match = cc.match(/max-age=(\d+)/i);
-      if (match && match[1]) maxAge = parseInt(match[1], 10);
-    }
-
-    const data = (await res.json()) as { keys?: Array<Record<string, unknown>> };
-    const keys = Array.isArray(data.keys) ? data.keys : [];
-    jwkCache = {
-      keys,
-      expiresAt: Date.now() + Math.max(300, maxAge) * 1000,
-    };
-    return keys;
-  } catch {
-    return jwkCache?.keys || [];
-  }
-}
-
-function base64UrlToUint8Array(base64Url: string): Uint8Array {
-  const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
-  const padLength = (4 - (base64.length % 4)) % 4;
-  const padded = base64 + "=".repeat(padLength);
-  const binary = atob(padded);
-  const bytes = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i++) {
-    bytes[i] = binary.charCodeAt(i);
-  }
-  return bytes;
-}
-
-async function verifyEdgeFirebaseToken(token?: string | null): Promise<boolean> {
-  if (!token || typeof token !== "string") return false;
-  try {
-    const parts = token.split(".");
-    if (parts.length !== 3) return false;
-
-    const [headerB64, payloadB64, signatureB64] = parts;
-    const headerBytes = base64UrlToUint8Array(headerB64);
-    const payloadBytes = base64UrlToUint8Array(payloadB64);
-
-    const header = JSON.parse(new TextDecoder().decode(headerBytes));
-    const payload = JSON.parse(new TextDecoder().decode(payloadBytes));
-
-    if (header.alg !== "RS256" || !header.kid) return false;
-
-    const nowSec = Math.floor(Date.now() / 1000);
-    if (typeof payload.exp !== "number" || payload.exp < nowSec - 60) return false;
-    if (typeof payload.auth_time !== "number" || payload.auth_time > nowSec + 300) return false;
-
-    const expectedProjectId =
-      process.env.FIREBASE_PROJECT_ID?.trim() ||
-      process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID?.trim();
-    if (!expectedProjectId) {
-      if (process.env.NODE_ENV === "production") {
-        return false;
-      }
-      if (!payload.iss?.startsWith("https://securetoken.google.com/")) {
-        return false;
-      }
-    } else {
-      if (payload.aud !== expectedProjectId) return false;
-      if (payload.iss !== `https://securetoken.google.com/${expectedProjectId}`) return false;
-    }
-
-    if (!payload.sub || typeof payload.sub !== "string") return false;
-
-    const keys = await getGoogleJwksKeys();
-    const jwk = keys.find((k) => k.kid === header.kid);
-    if (!jwk) return false;
-
-    const cryptoKey = await crypto.subtle.importKey(
-      "jwk",
-      jwk,
-      { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" },
-      false,
-      ["verify"]
-    );
-
-    const dataToVerify = new TextEncoder().encode(`${headerB64}.${payloadB64}`);
-    const signatureBytes = base64UrlToUint8Array(signatureB64);
-
-    return await crypto.subtle.verify(
-      "RSASSA-PKCS1-v1_5",
-      cryptoKey,
-      signatureBytes as BufferSource,
-      dataToVerify as BufferSource
-    );
-  } catch {
-    return false;
-  }
-}
-
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
@@ -133,7 +24,8 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith("/_next/") ||
     pathname === "/robots.txt" ||
     pathname === "/sitemap.xml" ||
-    pathname === "/favicon.ico"
+    pathname === "/favicon.ico" ||
+    pathname === "/firebase-messaging-sw.js"
   ) {
     return NextResponse.next();
   }
@@ -198,7 +90,13 @@ export async function middleware(request: NextRequest) {
       // Cryptographically verify Supabase host user session (strictly exclude guests)
       const { data: { user }, error } = await supabase.auth.getUser();
       if (!error && user) {
-        const isGuest = user.user_metadata?.role === "guest" || user.id === "00000000-0000-0000-0000-000000000001";
+        const devGuestId =
+          process.env.NEXT_PUBLIC_DEV_GUEST_ID || "00000000-0000-0000-0000-000000000001";
+        const isGuest =
+          user.app_metadata?.role === "guest" ||
+          user.app_metadata?.role === "admin" ||
+          user.user_metadata?.role === "guest" ||
+          user.id === devGuestId;
         if (!isGuest) {
           isSupabaseVerified = true;
         }
@@ -207,7 +105,7 @@ export async function middleware(request: NextRequest) {
   }
 
   if (isProtected) {
-    let isFirebaseVerified = false;
+    let isHostPortalVerified = false;
     const sessionCookie = request.cookies.get("qafnest_has_host_session")?.value;
 
     // Local dev host bypass in non-production
@@ -216,23 +114,27 @@ export async function middleware(request: NextRequest) {
         sessionCookie === "dev_host_token" ||
         request.cookies.get("qafnest_host_dev")?.value === "1";
       if (isDevHost) {
-        isFirebaseVerified = true;
+        isHostPortalVerified = true;
       }
     }
 
-    // Cryptographically verify token value (never accept plain "1" or arbitrary strings)
-    if (!isFirebaseVerified && sessionCookie && sessionCookie !== "1") {
-      isFirebaseVerified = await verifyEdgeFirebaseToken(sessionCookie);
+    // Cryptographically verify signed HttpOnly host portal cookie
+    if (!isHostPortalVerified && sessionCookie) {
+      const verifiedHostToken = await verifyPortalSessionTokenEdge(sessionCookie, "host");
+      if (verifiedHostToken) {
+        isHostPortalVerified = true;
+      }
     }
 
-    // If neither Supabase nor Firebase token passed cryptographic verification, redirect to login
-    if (!isSupabaseVerified && !isFirebaseVerified) {
+    // If neither Supabase nor signed host portal cookie passed verification, redirect to login
+    if (!isSupabaseVerified && !isHostPortalVerified) {
       const redirectUrl = new URL(localizeHostPath("/login", routeLocale), request.url);
       redirectUrl.searchParams.set("returnUrl", `${pathname}${request.nextUrl.search}`);
       const redirectResponse = NextResponse.redirect(redirectUrl);
 
       // Strip any forged or invalid session cookies
       redirectResponse.cookies.delete("qafnest_has_host_session");
+      redirectResponse.cookies.delete("qafnest_host_dev");
       return redirectResponse;
     }
   }
@@ -269,6 +171,6 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|robots.txt|sitemap.xml|.*\\.(?:svg|png|jpg|jpeg|gif|webp|avif|ico|woff|woff2|ttf|eot)$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|robots.txt|sitemap.xml|firebase-messaging-sw\\.js|.*\\.(?:svg|png|jpg|jpeg|gif|webp|avif|ico|woff|woff2|ttf|eot|js|css)$).*)",
   ],
 };

@@ -123,10 +123,10 @@ export function useReservationCallback({
           }
         } catch {}
 
-        const paymentId = params.get("paymentId");
-        const url = paymentId
-          ? `/api/bookings/${encodeURIComponent(bookingRef)}?paymentId=${encodeURIComponent(
-              paymentId
+        const slip = params.get("slip");
+        const url = slip
+          ? `/api/bookings/${encodeURIComponent(bookingRef)}?slip=${encodeURIComponent(
+              slip
             )}`
           : `/api/bookings/${encodeURIComponent(bookingRef)}`;
 

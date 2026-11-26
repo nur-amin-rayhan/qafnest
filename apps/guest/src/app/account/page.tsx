@@ -12,7 +12,6 @@ import { createClient } from "@/lib/supabase/client";
 import { getGuestAuthorizationHeaders } from "@/lib/auth/clientAuthHeaders";
 
 import type { TabId } from "./components/types";
-import { FAQ_ITEMS } from "./components/types";
 import type { WalletTransaction, LoyaltyOffer } from "@/lib/services/walletService";
 import AccountHeroBanner from "./components/AccountHeroBanner";
 import AccountStatsRow from "./components/AccountStatsRow";
@@ -21,18 +20,15 @@ import ProfileTab from "./components/ProfileTab";
 import WalletTab from "./components/WalletTab";
 import PaymentMethodsTab from "./components/PaymentMethodsTab";
 import InviteFriendsTab from "./components/InviteFriendsTab";
-import ContactSupportTab from "./components/ContactSupportTab";
 import RateAppTab from "./components/RateAppTab";
-import FaqsTab from "./components/FaqsTab";
-import LegalTab from "./components/LegalTab";
 
 import { useAccountBookings } from "./hooks/useAccountBookings";
 import { useAccountProfile } from "./hooks/useAccountProfile";
 
 function GuestAccountPageContent() {
   const searchParams = useSearchParams();
-  const { user, session, profile, openAuthModal, signOut } = useAuth();
-  const { language, toggleLanguage } = useApp();
+  const { user, session, profile, openAuthModal, signOut, refreshProfile } = useAuth();
+  const { language } = useApp();
   const [supabase] = useState(() => createClient());
 
   const [activeTab, setActiveTab] = useState<TabId>("profile");
@@ -47,10 +43,6 @@ function GuestAccountPageContent() {
   const [feedbackCategory, setFeedbackCategory] = useState("speed");
   const [feedbackText, setFeedbackText] = useState("");
   const [feedbackSubmitted, setFeedbackSubmitted] = useState<boolean>(false);
-  const [activeFaq, setActiveFaq] = useState<number | null>(0);
-  const [searchFaq, setSearchFaq] = useState("");
-  const [contactMessage, setContactMessage] = useState("");
-  const [contactSent, setContactSent] = useState(false);
 
   const isRtl = language === "ar";
   const t = useCallback(
@@ -58,9 +50,10 @@ function GuestAccountPageContent() {
     [language]
   );
 
+  const sessionToken = session?.access_token;
   const fetchWalletData = useCallback(async () => {
     try {
-      const headers = await getGuestAuthorizationHeaders(session);
+      const headers = await getGuestAuthorizationHeaders(sessionToken ? session : null);
       const res = await fetch(`/api/wallet?t=${Date.now()}`, { headers, cache: "no-store" });
       if (res.ok) {
         const data = await res.json();
@@ -77,7 +70,7 @@ function GuestAccountPageContent() {
     } catch (err) {
       console.warn("Could not fetch wallet data:", err);
     }
-  }, [session]);
+  }, [sessionToken, session]);
 
   useEffect(() => {
     fetchWalletData();
@@ -86,7 +79,7 @@ function GuestAccountPageContent() {
     };
     window.addEventListener("qafnest:wallet-updated", onWalletUpdated);
     return () => window.removeEventListener("qafnest:wallet-updated", onWalletUpdated);
-  }, [fetchWalletData, user]);
+  }, [fetchWalletData, user?.id]);
 
   const { bookingsCount } = useAccountBookings(supabase, user, session);
   const profileState = useAccountProfile({
@@ -95,29 +88,29 @@ function GuestAccountPageContent() {
     profile,
     language,
     supabase,
+    refreshProfile,
   });
 
-  // Handle URL tabs query parameter (e.g. ?tab=wallet or ?tab=host)
+  const isIdentityVerified =
+    profileState.nationalIdVerified || profileState.iqamaVerified;
+
   useEffect(() => {
     const tabParam = searchParams.get("tab") as TabId | null;
     if (tabParam) {
-      const validTabs: TabId[] = [
-        "profile", "wallet", "payments",
-        "invite", "contact", "rate", "faqs", "terms", "privacy",
-      ];
+      const validTabs: TabId[] = ["profile", "wallet", "payments", "invite", "rate"];
       if (validTabs.includes(tabParam)) setActiveTab(tabParam);
     }
   }, [searchParams]);
 
   const handleCopyInviteCode = () => {
-    const referralCode = `QAF-${user?.id ? user.id.slice(0, 6).toUpperCase() : "INVITE"}`;
+    const referralCode = `QAF-${user?.id ? user.id.slice(0, 6).toUpperCase() : "GUEST"}`;
     navigator.clipboard?.writeText(referralCode);
     setCopiedCode(true);
     setTimeout(() => setCopiedCode(false), 2000);
   };
 
   const handleCopyInviteLink = () => {
-    const referralCode = `QAF-${user?.id ? user.id.slice(0, 6).toUpperCase() : "INVITE"}`;
+    const referralCode = `QAF-${user?.id ? user.id.slice(0, 6).toUpperCase() : "GUEST"}`;
     const origin = typeof window !== "undefined" ? window.location.origin : "https://qafnest.com";
     const link = `${origin}/?ref=${referralCode}`;
     navigator.clipboard?.writeText(link);
@@ -125,18 +118,9 @@ function GuestAccountPageContent() {
     setTimeout(() => setCopiedLink(false), 2000);
   };
 
-  const handleSendFeedback = (e: React.FormEvent) => {
+  const handleSendFeedback = async (e: React.FormEvent) => {
     e.preventDefault();
-    setFeedbackSubmitted(true);
-    setTimeout(() => {
-      setFeedbackSubmitted(false);
-      setFeedbackText("");
-    }, 4000);
-  };
-
-  const handleSendContact = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!contactMessage.trim()) return;
+    if (!feedbackText.trim()) return;
     try {
       const res = await fetch("/api/contact", {
         method: "POST",
@@ -148,46 +132,59 @@ function GuestAccountPageContent() {
             "QafNest Guest",
           phone: (profile?.phone as string | undefined) || user?.phone || "",
           email: user?.email || undefined,
-          subject: "account_support",
-          message: contactMessage.trim(),
+          subject: `account_feedback:${feedbackCategory}`,
+          message: `[rating:${ratingScore}/5] [${feedbackCategory}] ${feedbackText.trim()}`,
           source: "account_support",
           locale: language === "ar" ? "ar" : "en",
         }),
       });
       if (!res.ok) return;
-      setContactSent(true);
-      setContactMessage("");
+      setFeedbackSubmitted(true);
+      setFeedbackText("");
       setTimeout(() => {
-        setContactSent(false);
-      }, 5000);
+        setFeedbackSubmitted(false);
+      }, 4000);
     } catch (err) {
-      console.warn("Could not send support message:", err);
+      console.warn("Could not send feedback:", err);
     }
+  };
+
+  const handlePhoneVerified = (newPhone: string, identityResetRequired: boolean) => {
+    profileState.setEditPhone(newPhone);
+    if (identityResetRequired) {
+      profileState.setIdVerificationMsg({
+        type: "error",
+        text: t(
+          "Mobile changed. Re-verify your National ID or Iqama to match the new number.",
+          "تم تغيير الجوال. يرجى إعادة توثيق الهوية أو الإقامة لمطابقتها مع الرقم الجديد."
+        ),
+      });
+    } else {
+      profileState.setIdVerificationMsg({
+        type: "success",
+        text: t("Mobile number verified and updated.", "تم تحديث وتوثيق رقم الجوال."),
+      });
+    }
+    void refreshProfile();
   };
 
   return (
     <div
       dir={isRtl ? "rtl" : "ltr"}
-      className="min-h-screen bg-[#F8F9FD] dark:bg-[#06060B] text-slate-900 dark:text-white flex flex-col font-body selection:bg-purple-500/20 transition-colors duration-300"
+      className="min-h-screen bg-[#F7F5FC] dark:bg-[#06060B] text-slate-900 dark:text-white flex flex-col font-body"
     >
       <Navbar />
 
-      <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-28 sm:pt-32 pb-24 md:pb-20">
-        {/* Executive Hero Banner */}
+      <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-28 pb-20">
         <AccountHeroBanner
-          user={user}
           displayName={profileState.displayName}
           userInitial={profileState.userInitial}
           editPhone={profileState.editPhone}
           editEmail={profileState.editEmail}
-          language={language}
-          toggleLanguage={toggleLanguage}
-          openAuthModal={openAuthModal}
-          signOut={signOut}
+          isIdentityVerified={isIdentityVerified}
           t={t}
         />
 
-        {/* 4-Metrics Stats Row */}
         <AccountStatsRow
           bookingsCount={bookingsCount}
           walletBalance={walletBalance}
@@ -195,13 +192,12 @@ function GuestAccountPageContent() {
           t={t}
         />
 
-        {/* Executive Dashboard Layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-          {/* Left Navigation Sidebar */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
           <AccountSidebar
             activeTab={activeTab}
             setActiveTab={setActiveTab}
             walletBalance={walletBalance}
+            isIdentityVerified={isIdentityVerified}
             language={language}
             user={user}
             openAuthModal={openAuthModal}
@@ -209,10 +205,10 @@ function GuestAccountPageContent() {
             t={t}
           />
 
-          {/* Right Main Content Panel */}
-          <div className="lg:col-span-8 bg-white dark:bg-[#0E0E1A] rounded-3xl sm:rounded-[32px] border border-slate-200/80 dark:border-white/10 p-6 sm:p-8 lg:p-10 shadow-xs min-h-[580px]">
+          <div className="lg:col-span-8 bg-white dark:bg-[#0E0E1A] rounded-2xl border border-[#E4DFF0] dark:border-white/[0.08] shadow-xs p-6 sm:p-8 min-h-[520px]">
             {activeTab === "profile" && (
               <ProfileTab
+                session={session}
                 nationalIdVerified={profileState.nationalIdVerified}
                 iqamaVerified={profileState.iqamaVerified}
                 emailVerified={profileState.emailVerified}
@@ -232,7 +228,7 @@ function GuestAccountPageContent() {
                 editEmail={profileState.editEmail}
                 setEditEmail={profileState.setEditEmail}
                 editPhone={profileState.editPhone}
-                setEditPhone={profileState.setEditPhone}
+                onPhoneVerified={handlePhoneVerified}
                 editFullName={profileState.editFullName}
                 setEditFullName={profileState.setEditFullName}
                 editCity={profileState.editCity}
@@ -273,16 +269,6 @@ function GuestAccountPageContent() {
               />
             )}
 
-            {activeTab === "contact" && (
-              <ContactSupportTab
-                contactMessage={contactMessage}
-                setContactMessage={setContactMessage}
-                contactSent={contactSent}
-                handleSendContact={handleSendContact}
-                t={t}
-              />
-            )}
-
             {activeTab === "rate" && (
               <RateAppTab
                 feedbackSubmitted={feedbackSubmitted}
@@ -296,22 +282,6 @@ function GuestAccountPageContent() {
                 language={language}
                 t={t}
               />
-            )}
-
-            {activeTab === "faqs" && (
-              <FaqsTab
-                faqItems={FAQ_ITEMS}
-                searchFaq={searchFaq}
-                setSearchFaq={setSearchFaq}
-                activeFaq={activeFaq}
-                setActiveFaq={setActiveFaq}
-                language={language}
-                t={t}
-              />
-            )}
-
-            {(activeTab === "terms" || activeTab === "privacy") && (
-              <LegalTab type={activeTab} t={t} />
             )}
           </div>
         </div>
@@ -327,8 +297,8 @@ export default function GuestAccountPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen bg-[#F8F9FD] dark:bg-[#06060B] flex items-center justify-center">
-          <div className="flex items-center gap-2 text-sm text-slate-500 font-bold">
+        <div className="min-h-screen bg-[#F8F9FA] dark:bg-[#0B0B10] flex items-center justify-center">
+          <div className="flex items-center gap-2 text-sm text-slate-500 font-medium">
             <LoaderCircle className="h-5 w-5 animate-spin text-[#4F2396]" />
             <span>Loading...</span>
           </div>

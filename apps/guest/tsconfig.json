@@ -31,21 +31,6 @@
       "@qafnest/shared/*": [
         "../../packages/shared/*.ts",
         "../../packages/shared/*"
-      ],
-      "auth-providers.js": [
-        "./src/components/providers/auth-providers.ts"
-      ],
-      "auth-providers": [
-        "./src/components/providers/auth-providers.ts"
-      ],
-      "@/components/providers/auth-providers.js": [
-        "./src/components/providers/auth-providers.ts"
-      ],
-      "@/providers/auth-providers.js": [
-        "./src/providers/auth-providers.ts"
-      ],
-      "@/lib/auth-providers.js": [
-        "./src/lib/auth-providers.ts"
       ]
     }
   },

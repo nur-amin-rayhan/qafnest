@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { Award, MessageCircle, PhoneCall } from "lucide-react";
 import { ECOSYSTEM_URLS, QAFNEST_SUPPORT_CONTACT, QAFNEST_ZATCA_DEFAULTS } from "@qafnest/shared";
@@ -161,7 +162,7 @@ export function HostFooter({ t }: HostFooterProps) {
                 </li>
                 <li>
                   <a
-                    href={`${ECOSYSTEM_URLS.guest}/${t("en", "ar")}/account?tab=terms`}
+                    href={`${ECOSYSTEM_URLS.guest}/${t("en", "ar")}/policies#terms-and-conditions`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="transition hover:text-[#4F2396]"
@@ -171,7 +172,7 @@ export function HostFooter({ t }: HostFooterProps) {
                 </li>
                 <li>
                   <a
-                    href={`${ECOSYSTEM_URLS.guest}/${t("en", "ar")}/#faq`}
+                    href={`${ECOSYSTEM_URLS.guest}/${t("en", "ar")}/faq`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="transition hover:text-[#4F2396]"
@@ -204,13 +205,85 @@ export function HostFooter({ t }: HostFooterProps) {
           <h2 className="text-[14px] font-bold text-[#111827]">
             {t("Multiple and secure payout & payment channels", "قنوات دفع وتحويلات مالية متعددة وآمنة")}
           </h2>
-          <ul className="flex flex-wrap items-center justify-center gap-3 text-xs font-extrabold sm:justify-end">
-            <li className="rounded-lg border border-gray-200 px-2.5 py-1 text-slate-900">Apple Pay</li>
-            <li className="rounded-lg border border-gray-200 px-2.5 py-1 text-[#1A1F71]">VISA</li>
-            <li className="rounded-lg border border-gray-200 px-2.5 py-1 text-[#EB001B]">Mastercard</li>
-            <li className="rounded-lg border border-gray-200 px-2.5 py-1 text-[#0074C1]">mada مدى</li>
-            <li className="rounded-lg border border-gray-200 px-2.5 py-1 text-[#4F2396]">STC Pay</li>
-            <li className="rounded-lg border border-gray-200 px-2.5 py-1 text-emerald-700">Saudi IBAN · SARIE</li>
+          <ul className="flex flex-wrap items-center justify-center gap-2.5 sm:justify-end">
+            {/* Apple Pay */}
+            <li title="Apple Pay">
+              <span className="inline-flex h-8 shrink-0 items-center justify-center rounded-md border border-gray-200/85 bg-white px-2 py-0.5 shadow-2xs transition hover:border-gray-400">
+                <Image
+                  src="/apple-pay-mark.svg"
+                  alt="Apple Pay"
+                  width={48}
+                  height={30}
+                  unoptimized
+                  className="h-full w-auto object-contain"
+                />
+              </span>
+            </li>
+
+            {/* VISA */}
+            <li title="VISA">
+              <span className="inline-flex h-8 shrink-0 items-center justify-center rounded-md border border-gray-200/85 bg-white px-2 py-0.5 shadow-2xs transition hover:border-gray-400">
+                <Image
+                  src="/payment-icons/v.png"
+                  alt="VISA"
+                  width={44}
+                  height={28}
+                  unoptimized
+                  className="h-full w-auto object-contain"
+                />
+              </span>
+            </li>
+
+            {/* Mastercard */}
+            <li title="Mastercard">
+              <span className="inline-flex h-8 shrink-0 items-center justify-center overflow-hidden rounded-md border border-gray-200/85 bg-white px-1.5 py-0.5 shadow-2xs transition hover:border-gray-400">
+                <Image
+                  src="/payment-icons/m.png"
+                  alt="Mastercard"
+                  width={44}
+                  height={28}
+                  unoptimized
+                  className="h-full w-auto object-contain"
+                />
+              </span>
+            </li>
+
+            {/* mada */}
+            <li title="mada">
+              <span className="inline-flex h-8 shrink-0 items-center justify-center overflow-hidden rounded-md border border-gray-200/85 bg-white px-1.5 py-0.5 shadow-2xs transition hover:border-gray-400">
+                <Image
+                  src="/payment-icons/md.png"
+                  alt="mada"
+                  width={44}
+                  height={28}
+                  unoptimized
+                  className="h-full w-auto object-contain"
+                />
+              </span>
+            </li>
+
+            {/* STC Pay */}
+            <li title="STC Pay">
+              <span className="inline-flex h-8 shrink-0 items-center justify-center overflow-hidden rounded-md border border-gray-200/85 bg-white px-1.5 py-0.5 shadow-2xs transition hover:border-gray-400">
+                <Image
+                  src="/payment-icons/stc.png"
+                  alt="STC Pay"
+                  width={46}
+                  height={28}
+                  unoptimized
+                  className="h-full w-auto object-contain"
+                />
+              </span>
+            </li>
+
+            {/* Saudi IBAN · SARIE */}
+            <li title="Saudi IBAN · SARIE">
+              <span className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-md border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-emerald-800 shadow-2xs transition hover:border-emerald-300">
+                <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                <span className="text-[11px] font-black tracking-tight text-emerald-900">SARIE · سريع</span>
+                <span className="rounded bg-emerald-200/70 px-1 py-0.5 text-[9px] font-bold text-emerald-800">Saudi IBAN</span>
+              </span>
+            </li>
           </ul>
         </div>
 

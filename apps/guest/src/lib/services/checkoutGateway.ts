@@ -16,9 +16,11 @@ import {
   attachGatewayTokenToCard,
   decryptCardNumber,
   clearPendingWalletSplit,
+  refundSettledWalletSplit,
   SavedCard,
 } from "@/lib/services/walletService";
 import { normalizeAppLocale, type AppLocale } from "@/lib/services/requestLocale";
+import { getCanonicalOrigin } from "@/lib/services/callbackRedirect";
 
 export interface CheckoutGatewayParams {
   request: Request;
@@ -106,9 +108,7 @@ export async function processGatewayPayment({
       },
       method: selectedMethod,
     });
-  const forwardedProto = request.headers.get("x-forwarded-proto") || "http";
-  const host = request.headers.get("host") || "localhost:3000";
-  const requestOrigin = request.headers.get("origin") || (host.startsWith("http") ? host : `${forwardedProto}://${host}`);
+  const requestOrigin = getCanonicalOrigin(request);
 
   const resolvedLocale = normalizeAppLocale(locale) || "ar";
   const { callBackUrl, errorUrl } = resolveCallbackUrls({
@@ -119,18 +119,17 @@ export async function processGatewayPayment({
   });
 
   const revertInitiated = async () => {
+    await refundSettledWalletSplit(bookingRef, "Gateway payment initiation failed");
     await clearPendingWalletSplit(bookingRef);
     await cancelInitiatedBooking(dbClient, bookingRef);
   };
 
-  // 1. Saved Card Checkout (DirectPayment when enabled on MyFatoorah account, else pre-selected MyFatoorah gateway)
+  // 1. Saved Card Checkout (tokenized MyFatoorah DirectPayment, else pre-selected MyFatoorah gateway)
   if (selectedMethod === "card" && savedCard) {
     const gatewayToken = savedCard.gatewayToken ? decryptCardNumber(savedCard.gatewayToken) : "";
-    const fullCardNumber = savedCard.cardToken ? decryptCardNumber(savedCard.cardToken) : "";
-    const savedCvv = savedCard.cvvToken ? decryptCardNumber(savedCard.cvvToken) : "";
-    const effectiveCvv = cardCvv && /^\d{3,4}$/.test(cardCvv.trim()) ? cardCvv.trim() : savedCvv;
+    const effectiveCvv = cardCvv && /^\d{3,4}$/.test(cardCvv.trim()) ? cardCvv.trim() : "";
     const canTryDirectCharge = Boolean(
-      savedCard.supportsDirectCharge && effectiveCvv && (gatewayToken || fullCardNumber)
+      savedCard.supportsDirectCharge && effectiveCvv && gatewayToken
     );
 
     if (canTryDirectCharge) {
@@ -172,56 +171,26 @@ export async function processGatewayPayment({
           }
 
           if (directEndpoint) {
-            const callDirect = async (saveToken: boolean) => {
-              const directPayload = gatewayToken
-                ? {
-                    PaymentType: "token",
-                    Token: gatewayToken,
-                    SecurityCode: effectiveCvv,
-                    Bypass3DS: false,
-                  }
-                : {
-                    PaymentType: "card",
-                    Bypass3DS: false,
-                    SaveToken: saveToken,
-                    Card: {
-                      Number: fullCardNumber,
-                      ExpiryMonth: savedCard.expiryMonth,
-                      ExpiryYear: savedCard.expiryYear,
-                      SecurityCode: effectiveCvv,
-                      HolderName: savedCard.cardholderName,
-                    },
-                  };
-              const directRes = await fetch(directEndpoint, {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                  Authorization: `Bearer ${config.apiKey}`,
-                },
-                body: JSON.stringify(directPayload),
-              });
-              return (await directRes.json()) as {
-                IsSuccess?: boolean;
-                Message?: string;
-                ValidationErrors?: Array<{ Name?: string; Error?: string }>;
-                Data?: { PaymentURL?: string; Token?: string };
-              };
+            const directPayload = {
+              PaymentType: "token",
+              Token: gatewayToken,
+              SecurityCode: effectiveCvv,
+              Bypass3DS: false,
             };
-
-            let directData = await callDirect(!gatewayToken);
-            // Retry without SaveToken if merchant has DirectPayment enabled without SaveToken
-            if (
-              !directData.IsSuccess &&
-              !gatewayToken &&
-              directData.ValidationErrors?.some((e) =>
-                /save\s*token/i.test(`${e.Name || ""} ${e.Error || ""}`)
-              ) &&
-              !directData.ValidationErrors?.some((e) =>
-                /direct\s*payment\s*is\s*not\s*enabled/i.test(e.Error || "")
-              )
-            ) {
-              directData = await callDirect(false);
-            }
+            const directRes = await fetch(directEndpoint, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${config.apiKey}`,
+              },
+              body: JSON.stringify(directPayload),
+            });
+            const directData = (await directRes.json()) as {
+              IsSuccess?: boolean;
+              Message?: string;
+              ValidationErrors?: Array<{ Name?: string; Error?: string }>;
+              Data?: { PaymentURL?: string; Token?: string };
+            };
 
             if (directData.IsSuccess && directData.Data?.PaymentURL) {
               if (directData.Data.Token && savedCard.userId) {
@@ -352,6 +321,7 @@ export async function processGatewayPayment({
     apple: "apple",
     google: "google",
     stcpay: "stcpay",
+    mada: "mada",
   };
   const targetHostedMethod: MyFatoorahHostedMethod =
     hostedMethodMap[selectedMethod] ??

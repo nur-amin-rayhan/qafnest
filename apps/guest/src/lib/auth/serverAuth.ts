@@ -1,6 +1,11 @@
 import crypto from "crypto";
 import { createClient } from "@/lib/supabase/server";
 import { normalizeSaudiPhone, normalizePhoneInput } from "@qafnest/shared/phone";
+import {
+  parseCookieValue,
+  verifyPortalSessionTokenEdge,
+} from "@qafnest/shared/portalSessionEdge";
+import { getRegisteredPortalRole } from "@qafnest/shared/portalRegistryStore";
 
 export interface VerifiedGuestUser {
   id: string;
@@ -117,16 +122,26 @@ export async function verifyFirebaseIdToken(token: string): Promise<VerifiedGues
 export async function verifyGuestSession(request: Request): Promise<VerifiedGuestUser | null> {
   const authHeader = request.headers.get("authorization");
   const bearer = authHeader?.match(/^Bearer\s+(.+)$/i)?.[1]?.trim();
+  const devHostId = process.env.NEXT_PUBLIC_DEV_HOST_ID || "00000000-0000-0000-0000-000000000002";
 
-  if (bearer) {
+  if (bearer && bearer !== "dev_guest_token") {
     const fbUser = await verifyFirebaseIdToken(bearer);
-    if (fbUser) return fbUser;
+    if (fbUser) {
+      const registeredRole = await getRegisteredPortalRole(fbUser.id);
+      if (registeredRole === "host") return null;
+      return fbUser;
+    }
 
     try {
       const supabase = await createClient();
       const { data: { user }, error } = await supabase.auth.getUser(bearer);
       if (!error && user) {
-        const isHost = user.user_metadata?.role === "host" || user.id === "00000000-0000-0000-0000-000000000002";
+        const registeredRole = await getRegisteredPortalRole(user.id);
+        const isHost =
+          registeredRole === "host" ||
+          user.app_metadata?.role === "host" ||
+          user.user_metadata?.role === "host" ||
+          user.id === devHostId;
         if (!isHost) {
           let rawPhone = user.phone || (typeof user.user_metadata?.phone === "string" ? user.user_metadata.phone : null);
           let rawName = (typeof user.user_metadata?.full_name === "string" ? user.user_metadata.full_name : null) || null;
@@ -164,7 +179,12 @@ export async function verifyGuestSession(request: Request): Promise<VerifiedGues
     const supabase = await createClient();
     const { data: { user }, error } = await supabase.auth.getUser();
     if (!error && user) {
-      const isHost = user.user_metadata?.role === "host" || user.id === "00000000-0000-0000-0000-000000000002";
+      const registeredRole = await getRegisteredPortalRole(user.id);
+      const isHost =
+        registeredRole === "host" ||
+        user.app_metadata?.role === "host" ||
+        user.user_metadata?.role === "host" ||
+        user.id === devHostId;
       if (!isHost) {
         let rawPhone = user.phone || (typeof user.user_metadata?.phone === "string" ? user.user_metadata.phone : null);
         let rawName = (typeof user.user_metadata?.full_name === "string" ? user.user_metadata.full_name : null) || null;
@@ -198,20 +218,33 @@ export async function verifyGuestSession(request: Request): Promise<VerifiedGues
   } catch {}
 
   const cookieHeader = request.headers.get("cookie") || "";
-  const sessionCookieMatch = cookieHeader.match(/(?:^|;\s*)qafnest_has_session=([^;]+)/);
-  if (sessionCookieMatch?.[1]) {
-    let cookieToken = sessionCookieMatch[1].trim();
-    try {
-      cookieToken = decodeURIComponent(cookieToken);
-    } catch {}
-    if (cookieToken.split(".").length === 3) {
-      const fbCookieUser = await verifyFirebaseIdToken(cookieToken);
-      if (fbCookieUser) return fbCookieUser;
+  const sessionCookie = parseCookieValue(cookieHeader, "qafnest_has_session");
+  if (sessionCookie) {
+    const signedSession = await verifyPortalSessionTokenEdge(sessionCookie, "guest");
+    if (signedSession) {
+      const registeredRole = await getRegisteredPortalRole(signedSession.sub);
+      if (registeredRole === "host") return null;
+      return {
+        id: signedSession.sub,
+        phone: signedSession.phone,
+        isPhoneVerified: Boolean(signedSession.phone),
+        email: signedSession.email,
+        name: signedSession.name,
+        role: "guest",
+        provider: signedSession.provider === "firebase" ? "firebase" : "supabase",
+      };
     }
-  }
 
-  if (process.env.NODE_ENV !== "production") {
-    if (cookieHeader.includes("qafnest_has_session=dev_guest_token")) {
+    if (sessionCookie.split(".").length === 3) {
+      const fbCookieUser = await verifyFirebaseIdToken(sessionCookie);
+      if (fbCookieUser) {
+        const registeredRole = await getRegisteredPortalRole(fbCookieUser.id);
+        if (registeredRole === "host") return null;
+        return fbCookieUser;
+      }
+    }
+
+    if (process.env.NODE_ENV !== "production" && sessionCookie === "dev_guest_token") {
       const devGuestId = process.env.NEXT_PUBLIC_DEV_GUEST_ID || "00000000-0000-0000-0000-000000000001";
       return {
         id: devGuestId,

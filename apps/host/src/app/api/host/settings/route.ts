@@ -22,8 +22,9 @@ export async function GET(request: NextRequest) {
     const settings = await getHostSettings(authUser.id);
     return NextResponse.json({ success: true, settings });
   } catch (err: unknown) {
+    console.error("[host settings GET] error:", err);
     return NextResponse.json(
-      { code: "server_error", message: err instanceof Error ? err.message : "Error loading settings" },
+      { code: "server_error", message: "Error loading settings." },
       { status: 500 }
     );
   }
@@ -77,7 +78,7 @@ export async function PUT(request: NextRequest) {
     }
 
     if (section === "security") {
-      const { action, password } = data;
+      const { action, password, currentPassword } = data;
       if (action === "update_password") {
         if (!password || password.length < 8) {
           return NextResponse.json(
@@ -85,7 +86,7 @@ export async function PUT(request: NextRequest) {
             { status: 400 }
           );
         }
-        const result = await updateHostPassword(authUser.id, password);
+        const result = await updateHostPassword(authUser.id, password, currentPassword);
         return NextResponse.json({
           success: true,
           message: "Password updated successfully.",
@@ -94,7 +95,11 @@ export async function PUT(request: NextRequest) {
       }
 
       if (action === "terminate_sessions") {
-        const result = await terminateOtherSessions(authUser.id);
+        const authHeader = request.headers.get("authorization") || "";
+        const bearer = authHeader.toLowerCase().startsWith("bearer ")
+          ? authHeader.slice(7).trim()
+          : undefined;
+        const result = await terminateOtherSessions(authUser.id, bearer);
         return NextResponse.json({
           success: true,
           message: "All other sessions have been signed out.",
@@ -108,8 +113,9 @@ export async function PUT(request: NextRequest) {
       { status: 400 }
     );
   } catch (err: unknown) {
+    console.error("[host settings PUT] error:", err);
     return NextResponse.json(
-      { code: "server_error", message: err instanceof Error ? err.message : "Error updating settings" },
+      { code: "server_error", message: "Error updating settings." },
       { status: 500 }
     );
   }

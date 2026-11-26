@@ -65,8 +65,9 @@ export async function GET(request: NextRequest) {
       invoices,
     });
   } catch (err: unknown) {
+    console.error("[admin financials GET] error:", err);
     return NextResponse.json(
-      { code: "server_error", message: err instanceof Error ? err.message : "Error fetching admin financials" },
+      { code: "server_error", message: "Error fetching admin financials." },
       { status: 500 }
     );
   }
@@ -109,12 +110,21 @@ export async function PATCH(request: NextRequest) {
 
     if (action === "process_settlement") {
       let effectiveTxnId = sarieTxnId;
-      const txnCheck = validateLegalTransactionNumber(effectiveTxnId);
+      let txnCheck = validateLegalTransactionNumber(effectiveTxnId);
       if (!txnCheck.valid) {
+        if (process.env.NODE_ENV === "production") {
+          return NextResponse.json(
+            {
+              code: "invalid_sarie_txn_id",
+              message: txnCheck.errorEn || "Valid SARIE / Bank Transaction Reference is required in production.",
+            },
+            { status: 400 }
+          );
+        }
         effectiveTxnId = `SARIE-${Math.floor(10000000 + Math.random() * 90000000)}`;
+        txnCheck = validateLegalTransactionNumber(effectiveTxnId);
       }
-      const verifiedTxn = validateLegalTransactionNumber(effectiveTxnId);
-      const result = processSarieSettlementBatch(verifiedTxn.cleaned);
+      const result = processSarieSettlementBatch(txnCheck.cleaned);
       return NextResponse.json({
         success: true,
         message: `Settled ${result.settledCount} post-checkout payout(s) under Legal Txn #${result.transactionNumber}.${

@@ -63,27 +63,30 @@ export function OverviewAnalyticalCharts({ metrics, bookings = [] }: OverviewAna
   }
 
   return (
-    <div dir={dir} className="grid grid-cols-1 xl:grid-cols-12 gap-space-lg mb-space-lg">
+    <div dir={dir} className="grid grid-cols-1 xl:grid-cols-12 gap-6 mb-6">
       {/* Revenue Velocity Vector Chart */}
-      <div className="xl:col-span-8 flex flex-col rounded-xl bg-surface-container-lowest p-space-lg shadow-sm">
-        <div className="flex flex-wrap items-center justify-between gap-2 pb-space-md">
+      <div className="xl:col-span-8 flex flex-col rounded-xl bg-white dark:bg-[#0E0D16] border border-slate-200/90 dark:border-slate-800 p-5 shadow-xs">
+        <div className="flex flex-wrap items-center justify-between gap-2 pb-4 border-b border-slate-100 dark:border-slate-800">
           <div>
-            <span className="font-label-sm text-primary uppercase font-bold tracking-wider">
+            <span className="text-[11px] font-semibold text-[#4F2396] dark:text-purple-300 uppercase tracking-wider">
               {t("Financial Overview", "نظرة مالية عامة")}
             </span>
-            <h2 className="font-headline-sm text-headline-sm font-bold text-on-surface">
+            <h2 className="text-base font-semibold text-slate-900 dark:text-slate-100 mt-0.5">
               {t("Revenue Velocity & Reservation Volume", "مؤشر الإيرادات وحجم الحجوزات")}
             </h2>
           </div>
-          <div className="flex items-center gap-space-xs bg-surface-container-low p-1 rounded-lg">
-            <button type="button" className="px-3 py-1 text-label-md rounded bg-surface-container-lowest shadow-sm text-primary font-bold">
+          <div className="flex items-center bg-slate-100 dark:bg-slate-800/80 p-0.5 rounded-lg">
+            <button
+              type="button"
+              className="px-2.5 py-1 text-xs rounded-md bg-white dark:bg-slate-900 shadow-xs text-slate-900 dark:text-slate-100 font-medium cursor-pointer"
+            >
               {t("Monthly", "شهري")}
             </button>
           </div>
         </div>
 
         {/* Vector Chart Visual */}
-        <div className="w-full h-64 relative flex items-end" dir="ltr">
+        <div className="w-full h-64 relative flex items-end mt-4" dir="ltr">
           <svg className="w-full h-full overflow-visible" fill="none" preserveAspectRatio="none" viewBox="0 0 700 240">
             <defs>
               <linearGradient id="primaryRevGradient" x1="0" x2="0" y1="0" y2="1">
@@ -95,11 +98,11 @@ export function OverviewAnalyticalCharts({ metrics, bookings = [] }: OverviewAna
                 <stop offset="100%" stopColor="#1B8A5A" stopOpacity="0.4" />
               </linearGradient>
             </defs>
-            <line stroke="#EDEDF8" strokeDasharray="4 4" strokeWidth="1" x1="0" x2="700" y1="20" y2="20" />
-            <line stroke="#EDEDF8" strokeDasharray="4 4" strokeWidth="1" x1="0" x2="700" y1="75" y2="75" />
-            <line stroke="#EDEDF8" strokeDasharray="4 4" strokeWidth="1" x1="0" x2="700" y1="130" y2="130" />
-            <line stroke="#EDEDF8" strokeDasharray="4 4" strokeWidth="1" x1="0" x2="700" y1="185" y2="185" />
-            <line stroke="#EDEDF8" strokeWidth="1" x1="0" x2="700" y1="230" y2="230" />
+            <line className="stroke-slate-200/80 dark:stroke-slate-800" strokeDasharray="4 4" strokeWidth="1" x1="0" x2="700" y1="20" y2="20" />
+            <line className="stroke-slate-200/80 dark:stroke-slate-800" strokeDasharray="4 4" strokeWidth="1" x1="0" x2="700" y1="75" y2="75" />
+            <line className="stroke-slate-200/80 dark:stroke-slate-800" strokeDasharray="4 4" strokeWidth="1" x1="0" x2="700" y1="130" y2="130" />
+            <line className="stroke-slate-200/80 dark:stroke-slate-800" strokeDasharray="4 4" strokeWidth="1" x1="0" x2="700" y1="185" y2="185" />
+            <line className="stroke-slate-200/80 dark:stroke-slate-800" strokeWidth="1" x1="0" x2="700" y1="230" y2="230" />
 
             {hasData ? (
               <>
@@ -108,7 +111,8 @@ export function OverviewAnalyticalCharts({ metrics, bookings = [] }: OverviewAna
                     pt.barH > 0 && (
                       <rect
                         key={pt.idx}
-                        fill={pt.idx === activeMonthIdx ? "url(#emeraldBarGradient)" : "#EDEDF8"}
+                        className={pt.idx === activeMonthIdx ? undefined : "fill-slate-200 dark:fill-slate-800"}
+                        fill={pt.idx === activeMonthIdx ? "url(#emeraldBarGradient)" : undefined}
                         height={pt.barH}
                         rx="3"
                         width="16"
@@ -138,7 +142,8 @@ export function OverviewAnalyticalCharts({ metrics, bookings = [] }: OverviewAna
               <path
                 d="M 30 230 L 668 230"
                 fill="none"
-                stroke="#CBD5E1"
+                stroke="currentColor"
+                className="text-slate-300 dark:text-slate-700"
                 strokeDasharray="4 4"
                 strokeWidth="2"
               />
@@ -146,51 +151,51 @@ export function OverviewAnalyticalCharts({ metrics, bookings = [] }: OverviewAna
           </svg>
         </div>
 
-        <div className="grid grid-cols-12 text-center font-code-sm text-[10px] sm:text-code-sm text-outline mt-2 pt-space-xs" dir="ltr">
+        <div className="grid grid-cols-12 text-center text-[10px] sm:text-xs text-slate-400 dark:text-slate-500 mt-2 font-mono" dir="ltr">
           {MONTHS.map((m, idx) => (
-            <span key={m} className={`truncate ${hasData && idx === activeMonthIdx ? "text-primary font-bold" : ""}`}>
+            <span key={m} className={`truncate ${hasData && idx === activeMonthIdx ? "text-[#4F2396] dark:text-purple-300 font-semibold" : ""}`}>
               {m}
             </span>
           ))}
         </div>
 
-        <div className="flex flex-wrap items-center justify-between gap-2 pt-space-md mt-space-md bg-surface-container-low p-space-sm rounded-lg">
+        <div className="flex flex-wrap items-center justify-between gap-2 p-3 mt-4 bg-slate-50/75 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800 rounded-lg">
           <div className="flex flex-wrap items-center gap-4">
             <div className="flex items-center gap-2">
-              <span className="w-3 h-3 rounded-full bg-primary shrink-0"></span>
-              <span className="font-body-sm text-xs sm:text-sm text-on-surface">
+              <span className="w-2.5 h-2.5 rounded-full bg-[#4F2396] shrink-0"></span>
+              <span className="text-xs text-slate-700 dark:text-slate-300">
                 {t("Revenue Velocity (SAR)", "مؤشر الإيرادات (ر.س)")}
               </span>
             </div>
             <div className="flex items-center gap-2">
-              <span className="w-3 h-3 rounded-full bg-status-emerald shrink-0"></span>
-              <span className="font-body-sm text-xs sm:text-sm text-on-surface">
+              <span className="w-2.5 h-2.5 rounded-full bg-[#1B8A5A] shrink-0"></span>
+              <span className="text-xs text-slate-700 dark:text-slate-300">
                 {t("Bookings Volume", "حجم الحجوزات")}
               </span>
             </div>
           </div>
-          <span className="font-code-sm text-code-sm text-outline font-bold">
+          <span className="font-mono text-xs font-semibold text-slate-900 dark:text-slate-100 tabular-nums">
             {totalYield.toLocaleString("en-US")} {t("SAR Total Yield", "ر.س إجمالي العوائد")}
           </span>
         </div>
       </div>
 
       {/* Demand Analytics (Donut) */}
-      <div className="xl:col-span-4 flex flex-col justify-between rounded-xl bg-surface-container-lowest p-space-lg shadow-sm">
+      <div className="xl:col-span-4 flex flex-col justify-between rounded-xl bg-white dark:bg-[#0E0D16] border border-slate-200/90 dark:border-slate-800 p-5 shadow-xs">
         <div>
-          <span className="font-label-sm text-primary uppercase font-bold tracking-wider">
+          <span className="text-[11px] font-semibold text-[#4F2396] dark:text-purple-300 uppercase tracking-wider">
             {t("Demand Analytics", "تحليلات الطلب")}
           </span>
-          <h2 className="font-headline-sm text-headline-sm font-bold text-on-surface mt-1">
+          <h2 className="text-base font-semibold text-slate-900 dark:text-slate-100 mt-0.5">
             {t("Weekday vs. Weekend", "أيام الأسبوع مقابل عطلة النهاية")}
           </h2>
-          <p className="font-body-sm text-body-sm text-on-surface-variant mt-1">
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
             {t("Saudi staycation and private pool demand distribution.", "توزيع الطلب على الشاليهات والمنتجعات الخاصة.")}
           </p>
 
-          <div className="relative w-44 h-44 mx-auto my-6 flex items-center justify-center">
+          <div className="relative w-40 h-40 mx-auto my-6 flex items-center justify-center">
             <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
-              <circle cx="50" cy="50" fill="transparent" r="40" stroke="#EDEDF8" strokeWidth="14" />
+              <circle cx="50" cy="50" fill="transparent" r="40" className="stroke-slate-100 dark:stroke-slate-800" strokeWidth="14" />
               {bookings.length > 0 && (
                 <>
                   <circle
@@ -217,30 +222,30 @@ export function OverviewAnalyticalCharts({ metrics, bookings = [] }: OverviewAna
               )}
             </svg>
             <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-              <span className="font-display-md text-display-md text-on-surface font-extrabold leading-none">
+              <span className="text-2xl font-bold font-mono text-slate-900 dark:text-slate-100 leading-none">
                 {weekendPct}%
               </span>
-              <span className="font-label-sm text-label-sm text-outline uppercase tracking-wider mt-1">
+              <span className="text-[10px] text-slate-400 dark:text-slate-500 uppercase tracking-wider mt-1 font-medium">
                 {t("Weekend", "نهاية الأسبوع")}
               </span>
             </div>
           </div>
         </div>
 
-        <div className="space-y-2 border-t border-surface-container pt-4">
-          <div className="flex justify-between text-body-sm">
+        <div className="space-y-2 border-t border-slate-100 dark:border-slate-800 pt-3">
+          <div className="flex justify-between text-xs text-slate-600 dark:text-slate-400">
             <span className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-primary shrink-0"></span>
+              <span className="w-2 h-2 rounded-full bg-[#4F2396] shrink-0"></span>
               <span>{t("Thu - Sat Peak Stays", "الخميس - السبت (الذروة)")}</span>
             </span>
-            <span className="font-bold font-mono">{weekendPct}%</span>
+            <span className="font-semibold font-mono text-slate-900 dark:text-slate-100">{weekendPct}%</span>
           </div>
-          <div className="flex justify-between text-body-sm">
+          <div className="flex justify-between text-xs text-slate-600 dark:text-slate-400">
             <span className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-status-emerald shrink-0"></span>
+              <span className="w-2 h-2 rounded-full bg-[#1B8A5A] shrink-0"></span>
               <span>{t("Sun - Wed Midweek Leisure", "الأحد - الأربعاء (وسط الأسبوع)")}</span>
             </span>
-            <span className="font-bold font-mono">{midweekPct}%</span>
+            <span className="font-semibold font-mono text-slate-900 dark:text-slate-100">{midweekPct}%</span>
           </div>
         </div>
       </div>

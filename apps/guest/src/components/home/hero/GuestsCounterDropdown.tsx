@@ -60,7 +60,7 @@ export function GuestsCounterDropdown({
     : selectGuestsLabel;
 
   return (
-    <div className={`relative flex-1 min-w-0 lg:min-w-[160px] transition-all ${isOpen ? "z-50" : "z-10"}`}>
+    <div className={`relative w-full flex-1 min-w-0 lg:min-w-[160px] transition-all ${isOpen ? "z-50" : "z-10"}`}>
       <button
         type="button"
         onClick={onToggle}

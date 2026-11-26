@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { X, CheckCircle2, Clock, Bell, ShieldCheck, DollarSign } from "lucide-react";
+import { X, CheckCircle2, Clock } from "lucide-react";
 import type { HostSettlementSettings } from "@/lib/services/hostFinancialsTypes";
 
 interface SettlementSettingsModalProps {

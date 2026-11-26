@@ -37,10 +37,10 @@ export function ReservationPricingHeader({
         )}
 
         <div className="mt-1 flex items-baseline gap-1.5">
-          <span className="text-3xl font-black tracking-tight text-violet-700 dark:text-violet-300">
+          <span className="text-3xl font-black tracking-tight text-slate-900 dark:text-white">
             {displayPrice}
           </span>
-          <span className="text-sm font-semibold text-gray-500 dark:text-gray-400">
+          <span className="text-sm font-semibold text-slate-500 dark:text-slate-400">
             {language === "ar" ? "ر.س / ليلة" : "SAR / Night"}
           </span>
         </div>

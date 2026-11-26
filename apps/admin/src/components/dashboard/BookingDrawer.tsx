@@ -164,25 +164,25 @@ export default function BookingDrawer({
 
   return (
     <div dir={dir} className="w-full space-y-6 animate-in fade-in duration-200 print:static print:bg-white">
-      <header className="sticky top-16 z-20 rounded-2xl bg-surface-container-lowest/95 backdrop-blur-md border border-surface-container px-4 sm:px-6 py-3 min-h-16 flex flex-wrap items-center justify-between gap-3 shadow-2xs print:hidden">
+      <header className="sticky top-16 z-20 rounded-xl bg-white/95 dark:bg-[#0E0D16]/95 backdrop-blur-md border border-slate-200/90 dark:border-slate-800 px-4 sm:px-6 py-3 min-h-16 flex flex-wrap items-center justify-between gap-3 shadow-xs print:hidden">
         <div className="flex items-center gap-3 min-w-0">
           <button
             type="button"
             onClick={onClose}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-surface-container-high bg-surface-container-low hover:bg-surface-container text-on-surface text-xs font-bold transition cursor-pointer shrink-0"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold transition cursor-pointer shrink-0 shadow-xs"
           >
             <ArrowLeft className={`w-4 h-4 ${dir === "rtl" ? "rotate-180" : ""}`} />
             <span className="hidden sm:inline">{t("Back to Dashboard", "رجوع للوحة التحكم")}</span>
           </button>
           <div className="min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="font-mono text-xs sm:text-sm font-black text-primary">#{selectedBooking.id}</span>
-              <span className="px-2 py-0.5 rounded-full bg-primary/10 text-primary text-[10.5px] font-bold uppercase">
+              <span className="font-mono text-xs sm:text-sm font-bold text-[#4F2396] dark:text-purple-300">#{selectedBooking.id}</span>
+              <span className="px-2 py-0.5 rounded-full bg-purple-50 dark:bg-purple-950/50 text-[#4F2396] dark:text-purple-300 border border-purple-200 dark:border-purple-800 text-[10.5px] font-semibold uppercase">
                 {bookingStatusMap[selectedBooking.status] || selectedBooking.status.replace(/_/g, " ")}
               </span>
-              {createdLabel && <span className="hidden md:inline text-[11px] text-outline">· {createdLabel}</span>}
+              {createdLabel && <span className="hidden md:inline text-[11px] text-slate-400 dark:text-slate-500">· {createdLabel}</span>}
             </div>
-            <h2 className="font-headline-sm text-sm sm:text-base font-black text-on-surface truncate">
+            <h2 className="text-sm sm:text-base font-bold text-slate-900 dark:text-slate-100 truncate">
               {t("Transaction, Guest, Host & Settlement Dossier", "التفاصيل الكاملة للمعاملة والضيف والمضيف والتسوية")}
             </h2>
           </div>
@@ -192,7 +192,7 @@ export default function BookingDrawer({
           <button
             type="button"
             onClick={() => window.print()}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-surface-container-high bg-surface-container-low hover:bg-surface-container text-on-surface text-xs font-bold transition cursor-pointer"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold transition cursor-pointer shadow-xs"
           >
             <Printer className="w-3.5 h-3.5" />
             <span className="hidden sm:inline">{t("Print", "طباعة")}</span>
@@ -201,7 +201,7 @@ export default function BookingDrawer({
             type="button"
             onClick={handleDownloadVoucher}
             disabled={downloadingVoucher}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-primary/25 bg-primary/10 hover:bg-primary/15 text-primary text-xs font-bold transition cursor-pointer disabled:opacity-50"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-purple-200 dark:border-purple-800 bg-purple-50 dark:bg-purple-950/40 hover:bg-purple-100 dark:hover:bg-purple-900/60 text-[#4F2396] dark:text-purple-300 text-xs font-semibold transition cursor-pointer shadow-xs disabled:opacity-50"
           >
             <Download className="w-3.5 h-3.5" />
             <span className="hidden sm:inline">
@@ -212,7 +212,7 @@ export default function BookingDrawer({
             type="button"
             onClick={onClose}
             aria-label={t("Close", "إغلاق")}
-            className="w-9 h-9 rounded-xl border border-surface-container bg-surface-container-low hover:bg-surface-container text-on-surface-variant flex items-center justify-center transition cursor-pointer"
+            className="w-8 h-8 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 flex items-center justify-center transition cursor-pointer shadow-xs"
           >
             <X className="w-4 h-4" />
           </button>
@@ -221,54 +221,54 @@ export default function BookingDrawer({
 
       <div className="space-y-6">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="rounded-2xl bg-surface-container-lowest border border-surface-container p-4 shadow-2xs">
-            <span className="text-[11px] font-bold text-outline uppercase tracking-wider flex items-center gap-1.5">
-              <CreditCard className="w-3.5 h-3.5 text-primary" />
+          <div className="rounded-xl bg-white dark:bg-[#0E0D16] border border-slate-200/90 dark:border-slate-800 p-4 shadow-xs">
+            <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+              <CreditCard className="w-3.5 h-3.5 text-[#4F2396] dark:text-purple-400" />
               {t("Guest Paid Total", "إجمالي مدفوعات الضيف")}
             </span>
-            <p className="font-mono text-xl font-black text-primary mt-1.5">
+            <p className="font-mono text-xl font-bold text-[#4F2396] dark:text-purple-300 mt-1.5">
               {selectedBooking.amount.toFixed(2)} {currencyLabel}
             </p>
-            <span className="text-[11px] text-on-surface-variant block mt-0.5">
-              {t("Method:", "الوسيلة:")} <strong>{selectedBooking.paymentMethod || t("Online Checkout", "دفع إلكتروني")}</strong>
+            <span className="text-[11px] text-slate-500 dark:text-slate-400 block mt-0.5">
+              {t("Method:", "الوسيلة:")} <strong className="text-slate-700 dark:text-slate-200">{selectedBooking.paymentMethod || t("Online Checkout", "دفع إلكتروني")}</strong>
             </span>
           </div>
 
-          <div className="rounded-2xl bg-surface-container-lowest border border-surface-container p-4 shadow-2xs">
-            <span className="text-[11px] font-bold text-outline uppercase tracking-wider flex items-center gap-1.5">
-              <Landmark className="w-3.5 h-3.5 text-status-emerald" />
+          <div className="rounded-xl bg-white dark:bg-[#0E0D16] border border-slate-200/90 dark:border-slate-800 p-4 shadow-xs">
+            <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+              <Landmark className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
               {t("Host Net Entitlement", "صافي مستحق المضيف")}
             </span>
-            <p className="font-mono text-xl font-black text-status-emerald mt-1.5">
+            <p className="font-mono text-xl font-bold text-emerald-600 dark:text-emerald-400 mt-1.5">
               {s.hostNetPayoutSar.toFixed(2)} {currencyLabel}
             </p>
-            <span className="text-[11px] text-on-surface-variant block mt-0.5 truncate">{selectedBooking.payoutStatus}</span>
+            <span className="text-[11px] text-slate-500 dark:text-slate-400 block mt-0.5 truncate">{selectedBooking.payoutStatus}</span>
           </div>
 
-          <div className="rounded-2xl bg-surface-container-lowest border border-surface-container p-4 shadow-2xs">
-            <span className="text-[11px] font-bold text-outline uppercase tracking-wider flex items-center gap-1.5">
-              <ShieldCheck className="w-3.5 h-3.5 text-primary" />
+          <div className="rounded-xl bg-white dark:bg-[#0E0D16] border border-slate-200/90 dark:border-slate-800 p-4 shadow-xs">
+            <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+              <ShieldCheck className="w-3.5 h-3.5 text-[#4F2396] dark:text-purple-400" />
               {t("Platform Revenue & VAT", "إيراد المنصة والضريبة")}
             </span>
-            <p className="font-mono text-xl font-black text-on-surface mt-1.5">
+            <p className="font-mono text-xl font-bold text-slate-900 dark:text-slate-100 mt-1.5">
               {s.platformNetRevenueSar.toFixed(2)} {currencyLabel}
             </p>
-            <span className="text-[11px] text-on-surface-variant block mt-0.5">
+            <span className="text-[11px] text-slate-500 dark:text-slate-400 block mt-0.5">
               {t(`ZATCA VAT (${s.vatRatePercent}%):`, `ضريبة القيمة المضافة (${s.vatRatePercent}%):`)}{" "}
-              <strong className="font-mono">{s.governmentVatRemittanceSar.toFixed(2)} {currencyLabel}</strong>
+              <strong className="font-mono text-slate-700 dark:text-slate-200">{s.governmentVatRemittanceSar.toFixed(2)} {currencyLabel}</strong>
             </span>
           </div>
 
-          <div className="rounded-2xl bg-surface-container-lowest border border-surface-container p-4 shadow-2xs">
-            <span className="text-[11px] font-bold text-outline uppercase tracking-wider flex items-center gap-1.5">
-              <Calendar className="w-3.5 h-3.5 text-primary" />
+          <div className="rounded-xl bg-white dark:bg-[#0E0D16] border border-slate-200/90 dark:border-slate-800 p-4 shadow-xs">
+            <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+              <Calendar className="w-3.5 h-3.5 text-[#4F2396] dark:text-purple-400" />
               {t("Stay & Smart Lock", "فترة الإقامة والقفل الذكي")}
             </span>
-            <p className="font-bold text-sm text-on-surface mt-1.5" dir="ltr">{selectedBooking.dates}</p>
-            <div className="flex items-center justify-between gap-2 text-[11px] text-on-surface-variant mt-1">
+            <p className="font-semibold text-sm text-slate-900 dark:text-slate-100 mt-1.5" dir="ltr">{selectedBooking.dates}</p>
+            <div className="flex items-center justify-between gap-2 text-[11px] text-slate-500 dark:text-slate-400 mt-1">
               <span>{stayNights} {t("nights", "ليالٍ")} · {formattedGuests}</span>
               {selectedBooking.smartLockPin && (
-                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-800 border border-emerald-200 font-mono font-bold">
+                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 font-mono font-semibold">
                   <KeyRound className="w-3 h-3" /> {selectedBooking.smartLockPin}
                 </span>
               )}
@@ -276,35 +276,35 @@ export default function BookingDrawer({
           </div>
         </div>
 
-        <section className="rounded-2xl bg-surface-container-lowest border border-surface-container p-4 sm:p-5 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <section className="rounded-xl bg-white dark:bg-[#0E0D16] border border-slate-200/90 dark:border-slate-800 p-4 sm:p-5 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3.5 min-w-0">
             {selectedBooking.propertyImage ? (
-              <img src={selectedBooking.propertyImage} alt={selectedBooking.propertyTitle} className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl object-cover border border-surface-container shrink-0" />
+              <img src={selectedBooking.propertyImage} alt={selectedBooking.propertyTitle} className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl object-cover border border-slate-200 dark:border-slate-700 shrink-0" />
             ) : (
-              <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
+              <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl bg-purple-50 dark:bg-purple-950/60 text-[#4F2396] dark:text-purple-300 border border-purple-200 dark:border-purple-800 flex items-center justify-center shrink-0">
                 <Building2 className="w-7 h-7" />
               </div>
             )}
             <div className="min-w-0 space-y-1">
               <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-[10.5px] font-bold uppercase tracking-wider text-primary">{t("Booked Property / Purchased Unit", "العقار المحجوز / الوحدة")}</span>
+                <span className="text-[10.5px] font-semibold uppercase tracking-wider text-[#4F2396] dark:text-purple-300">{t("Booked Property / Purchased Unit", "العقار المحجوز / الوحدة")}</span>
                 {selectedBooking.propertyCategory && (
-                  <span className="px-2 py-0.5 rounded-full bg-surface-container text-[10.5px] font-bold text-on-surface-variant capitalize">{selectedBooking.propertyCategory}</span>
+                  <span className="px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-[10.5px] font-semibold text-slate-700 dark:text-slate-300 capitalize">{selectedBooking.propertyCategory}</span>
                 )}
                 {selectedBooking.propertyLicense && (
-                  <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 font-mono text-[10px] font-bold">MOT #{selectedBooking.propertyLicense}</span>
+                  <span className="px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 font-mono text-[10px] font-semibold">MOT #{selectedBooking.propertyLicense}</span>
                 )}
               </div>
-              <h3 className="font-headline-sm text-base sm:text-lg font-black text-on-surface truncate">{selectedBooking.propertyTitle}</h3>
-              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-on-surface-variant">
+              <h3 className="text-base sm:text-lg font-bold text-slate-900 dark:text-slate-100 truncate">{selectedBooking.propertyTitle}</h3>
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500 dark:text-slate-400">
                 <span>{selectedBooking.accommodations}</span>
                 {Boolean(selectedBooking.propertyBasePrice && selectedBooking.propertyBasePrice > 0) && (
-                  <span className="font-mono font-bold text-primary">{Number(selectedBooking.propertyBasePrice).toLocaleString()} {currencyLabel} / {t("night", "ليلة")}</span>
+                  <span className="font-mono font-semibold text-[#4F2396] dark:text-purple-300">{Number(selectedBooking.propertyBasePrice).toLocaleString()} {currencyLabel} / {t("night", "ليلة")}</span>
                 )}
                 {selectedBooking.propertyId && (
                   <span className="inline-flex items-center gap-1.5 font-mono text-[11px]">
-                    <span className="px-2 py-0.5 rounded-full bg-surface-container text-on-surface font-black">#{getNumericUnitCode(selectedBooking.propertyId)}</span>
-                    <span className="text-outline">ID: {selectedBooking.propertyId.slice(0, 8)}…</span>
+                    <span className="px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 font-semibold">#{getNumericUnitCode(selectedBooking.propertyId)}</span>
+                    <span className="text-slate-400 dark:text-slate-500">ID: {selectedBooking.propertyId.slice(0, 8)}…</span>
                   </span>
                 )}
               </div>
@@ -317,7 +317,7 @@ export default function BookingDrawer({
                 <button
                   type="button"
                   onClick={() => onInspectProperty(selectedBooking.propertyId!)}
-                  className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-primary text-on-primary text-xs font-bold shadow hover:bg-primary/90 transition cursor-pointer"
+                  className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-[#4F2396] hover:bg-[#3D1A78] text-white text-xs font-semibold shadow-xs transition cursor-pointer"
                 >
                   <Building2 className="w-3.5 h-3.5" />
                   <span>{t("Inspect Full Property", "عرض تفاصيل العقار")}</span>
@@ -327,7 +327,7 @@ export default function BookingDrawer({
                 href={`/properties/${selectedBooking.propertyId}`}
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-surface-container-high bg-surface-container-low hover:bg-surface-container text-on-surface text-xs font-bold transition"
+                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold transition shadow-xs"
               >
                 <ExternalLink className="w-3.5 h-3.5" />
                 <span>{t("Open Tab", "فتح في تبويب")}</span>
@@ -454,7 +454,7 @@ export default function BookingDrawer({
               </section>
             )}
 
-            <div className="rounded-2xl bg-surface-container-lowest border border-surface-container p-4 flex flex-wrap items-center justify-between gap-3 print:hidden">
+            <div className="rounded-xl bg-white dark:bg-[#0E0D16] border border-slate-200/90 dark:border-slate-800 p-4 flex flex-wrap items-center justify-between gap-3 shadow-xs print:hidden">
               <div className="flex flex-wrap items-center gap-2">
                 {isPending ? (
                   <>
@@ -463,7 +463,7 @@ export default function BookingDrawer({
                       disabled={updatingAction !== null}
                       onClick={() => handleBookingTransition("confirm_payment")}
                       data-testid="drawer-confirm-sadad-btn"
-                      className="py-2.5 px-4 rounded-xl bg-status-emerald text-white text-xs font-bold shadow hover:bg-emerald-700 transition-all cursor-pointer disabled:opacity-50"
+                      className="py-2 px-4 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-xs transition-all cursor-pointer disabled:opacity-50"
                     >
                       {updatingAction === "confirm" ? t("Confirming...", "جاري التأكيد...") : t("Confirm SADAD Payment", "تأكيد سداد")}
                     </button>
@@ -472,7 +472,7 @@ export default function BookingDrawer({
                       disabled={updatingAction !== null}
                       onClick={() => handleBookingTransition("cancel")}
                       data-testid="drawer-cancel-hold-btn"
-                      className="py-2.5 px-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-bold hover:bg-rose-100 transition-all cursor-pointer disabled:opacity-50"
+                      className="py-2 px-4 rounded-lg bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/50 dark:hover:bg-rose-900/60 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300 text-xs font-semibold transition-all cursor-pointer disabled:opacity-50"
                     >
                       {updatingAction === "cancel" ? t("Cancelling...", "جاري الإلغاء...") : t("Cancel Hold", "إلغاء الحجز المؤقت")}
                     </button>
@@ -490,7 +490,7 @@ export default function BookingDrawer({
                           onClose();
                         }
                       }}
-                      className="py-2.5 px-4 rounded-xl bg-primary text-on-primary text-xs font-bold shadow hover:bg-primary/90 transition-all cursor-pointer"
+                      className="py-2 px-4 rounded-lg bg-[#4F2396] hover:bg-[#3D1A78] text-white text-xs font-semibold shadow-xs transition-all cursor-pointer"
                     >
                       {t("Inspect Host Financials & Payouts", "مراجعة مستحقات المضيف")}
                     </button>
@@ -498,7 +498,7 @@ export default function BookingDrawer({
                       type="button"
                       onClick={() => setConfirmCancelPrompt(true)}
                       data-testid="drawer-cancel-confirmed-btn"
-                      className="py-2.5 px-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-bold hover:bg-rose-100 transition-all cursor-pointer"
+                      className="py-2 px-4 rounded-lg bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/50 dark:hover:bg-rose-900/60 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300 text-xs font-semibold transition-all cursor-pointer"
                     >
                       {t("Cancel Booking", "إلغاء الحجز")}
                     </button>
@@ -508,7 +508,7 @@ export default function BookingDrawer({
               <button
                 type="button"
                 onClick={onClose}
-                className="py-2.5 px-4 rounded-xl bg-surface-container-low text-on-surface text-xs font-bold hover:bg-surface-container transition-all cursor-pointer"
+                className="py-2 px-4 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 text-xs font-semibold hover:bg-slate-200 dark:hover:bg-slate-700 transition-all cursor-pointer shadow-xs"
               >
                 {t("Close / Back", "إغلاق / رجوع")}
               </button>

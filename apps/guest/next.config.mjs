@@ -1,5 +1,10 @@
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import {
+  applySharedWebpackConfig,
+  getAllowedImageRemotePatterns,
+  getGlobalSecurityHeaders,
+} from '../../packages/shared/nextConfigSecurity.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -12,7 +17,7 @@ const nextConfig = {
   compress: true,
   transpilePackages: ['@qafnest/shared'],
   experimental: {
-    optimizePackageImports: ['lucide-react', '@supabase/supabase-js'],
+    optimizePackageImports: ['lucide-react', '@supabase/supabase-js', 'framer-motion'],
     outputFileTracingExcludes: {
       '**': [
         '**/.next/cache/**',
@@ -25,16 +30,7 @@ const nextConfig = {
     },
   },
   webpack: (config) => {
-    config.resolve.alias = {
-      ...config.resolve.alias,
-      '@qafnest/shared': path.resolve(__dirname, '../../packages/shared'),
-      'auth-providers.js': path.resolve(__dirname, 'src/components/providers/auth-providers.ts'),
-      'auth-providers': path.resolve(__dirname, 'src/components/providers/auth-providers.ts'),
-      '@/components/providers/auth-providers.js': path.resolve(__dirname, 'src/components/providers/auth-providers.ts'),
-      '@/providers/auth-providers.js': path.resolve(__dirname, 'src/providers/auth-providers.ts'),
-      '@/lib/auth-providers.js': path.resolve(__dirname, 'src/lib/auth-providers.ts'),
-    };
-    return config;
+    return applySharedWebpackConfig(config, path.resolve(__dirname, '../../packages/shared'));
   },
   async rewrites() {
     return [
@@ -49,15 +45,38 @@ const nextConfig = {
       { source: '/en/blog', destination: '/blog' },
     ];
   },
+  async headers() {
+    const isProd = process.env.NODE_ENV === 'production';
+    const globalSecurity = getGlobalSecurityHeaders();
+    const assetCacheHeader = {
+      key: 'Cache-Control',
+      value: isProd ? 'public, max-age=31536000, immutable' : 'no-store, must-revalidate',
+    };
+    return [
+      {
+        source: '/:path*',
+        headers: globalSecurity,
+      },
+      {
+        source: '/_next/static/:path*',
+        headers: [...globalSecurity, assetCacheHeader],
+      },
+      {
+        source: '/payment-icons/:path*',
+        headers: [...globalSecurity, assetCacheHeader],
+      },
+      {
+        source: '/apple-pay-mark.svg',
+        headers: [...globalSecurity, assetCacheHeader],
+      },
+    ];
+  },
   images: {
     formats: ['image/avif', 'image/webp'],
     deviceSizes: [640, 750, 828, 1080, 1200],
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
     minimumCacheTTL: 86400,
-    remotePatterns: [
-      { protocol: 'https', hostname: '**' },
-      { protocol: 'http', hostname: '**' },
-    ],
+    remotePatterns: getAllowedImageRemotePatterns(),
   },
 };
 

@@ -1,3 +1,6 @@
+import crypto from "node:crypto";
+import { createClient as createSupabaseAdmin } from "@supabase/supabase-js";
+import { getSupabaseConfig } from "@/lib/supabase/config";
 import {
   commitUserWallet,
   determineTier,
@@ -19,9 +22,47 @@ import {
   type WalletTransaction,
 } from "./walletTypes";
 
+function getOptionalServiceAdmin() {
+  const key = (process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SECRET_KEY || "").trim();
+  if (!key) return null;
+  const { url } = getSupabaseConfig();
+  if (!url) return null;
+  return createSupabaseAdmin(url, key, {
+    auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+  });
+}
+
+function isRpcMissingError(error: { code?: string; message?: string } | null | undefined): boolean {
+  if (!error) return false;
+  return (
+    error.code === "42883" ||
+    error.code === "PGRST202" ||
+    error.code === "42P01" ||
+    /does not exist|Could not find the function/i.test(error.message || "")
+  );
+}
+
+async function callAtomicWalletRpc<T extends Record<string, unknown>>(
+  fnName: string,
+  params: Record<string, unknown>
+): Promise<{ status: "ok"; data: T } | { status: "missing" } | { status: "error"; message: string }> {
+  const admin = getOptionalServiceAdmin();
+  if (!admin) return { status: "missing" };
+  try {
+    const { data, error } = await admin.rpc(fnName, params);
+    if (error) {
+      if (isRpcMissingError(error)) return { status: "missing" };
+      return { status: "error", message: error.message };
+    }
+    return { status: "ok", data: (data || {}) as T };
+  } catch (err) {
+    return { status: "error", message: err instanceof Error ? err.message : "RPC failed" };
+  }
+}
+
 const walletQueues = new Map<string, Promise<unknown>>();
 
-async function withWalletLock<T>(userId: string, fn: () => Promise<T>): Promise<T> {
+export async function withWalletLock<T>(userId: string, fn: () => Promise<T>): Promise<T> {
   const key = userId || "anon";
   const prev = walletQueues.get(key) || Promise.resolve();
   let release!: () => void;
@@ -105,11 +146,13 @@ export async function topUpWallet({
   amount,
   paymentMethod,
   reference,
+  paymentId,
 }: {
   userId: string;
   amount: number;
   paymentMethod: string;
   reference: string;
+  paymentId?: string;
 }): Promise<UserWalletData> {
   return withWalletLock(userId, async () => {
     const wallet = await getUserWallet(userId);
@@ -119,19 +162,64 @@ export async function topUpWallet({
     }
 
     const roundedAmount = Math.round(amount * 100) / 100;
-    const newBalance = Math.round((wallet.balance + roundedAmount) * 100) / 100;
-
     const topUpOffer = store.activeOffers.find(
       (o) => o.isActive && o.id === "offer-topup-bonus" && roundedAmount >= 500
     );
     const bonusPoints = topUpOffer?.bonusPoints || 0;
+    const titleEn = `Wallet Top-up via ${paymentMethod.toUpperCase()} (Ref: ${reference})`;
+    const titleAr = `شحن رصيد المحفظة عبر ${METHOD_LABELS_AR[paymentMethod] || "البطاقة"} (مرجع: ${reference})`;
+
+    const rpcRes = await callAtomicWalletRpc<{
+      success?: boolean;
+      already_processed?: boolean;
+      balance?: number;
+      loyalty_points?: number;
+      loyalty_tier?: string;
+    }>("credit_wallet_topup_atomic", {
+      p_user_id: userId,
+      p_payment_id: paymentId || reference,
+      p_reference: reference,
+      p_amount: roundedAmount,
+      p_bonus_points: bonusPoints,
+      p_payment_method: paymentMethod,
+      p_title_en: titleEn,
+      p_title_ar: titleAr,
+    });
+
+    if (rpcRes.status === "ok" && rpcRes.data.success) {
+      if (rpcRes.data.already_processed) {
+        return wallet;
+      }
+      const nextBalance = Number(rpcRes.data.balance ?? wallet.balance + roundedAmount);
+      const nextPoints = Number(rpcRes.data.loyalty_points ?? wallet.loyaltyPoints + bonusPoints);
+      wallet.balance = Math.round(nextBalance * 100) / 100;
+      wallet.loyaltyPoints = nextPoints;
+      wallet.loyaltyTier = determineTier(nextPoints);
+      wallet.transactions.unshift({
+        id: `tx-topup-${crypto.randomUUID().slice(0, 12)}`,
+        userId,
+        type: "topup",
+        amount: roundedAmount,
+        points: bonusPoints > 0 ? bonusPoints : undefined,
+        status: "completed",
+        reference,
+        paymentMethod,
+        titleEn,
+        titleAr,
+        createdAt: new Date().toISOString(),
+      });
+      await commitUserWallet(wallet);
+      return wallet;
+    }
+
+    const newBalance = Math.round((wallet.balance + roundedAmount) * 100) / 100;
     const newPoints = wallet.loyaltyPoints + bonusPoints;
 
     wallet.balance = newBalance;
     wallet.loyaltyPoints = newPoints;
     wallet.loyaltyTier = determineTier(newPoints);
     wallet.transactions.unshift({
-      id: `tx-topup-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+      id: `tx-topup-${crypto.randomUUID().slice(0, 12)}`,
       userId,
       type: "topup",
       amount: roundedAmount,
@@ -139,8 +227,8 @@ export async function topUpWallet({
       status: "completed",
       reference,
       paymentMethod,
-      titleEn: `Wallet Top-up via ${paymentMethod.toUpperCase()} (Ref: ${reference})`,
-      titleAr: `شحن رصيد المحفظة عبر ${METHOD_LABELS_AR[paymentMethod] || "البطاقة"} (مرجع: ${reference})`,
+      titleEn,
+      titleAr,
       createdAt: new Date().toISOString(),
     });
 
@@ -179,7 +267,7 @@ export async function awardWelcomeBonus({
     wallet.welcomeBonusAwardedAt = nowIso;
     if (deviceId) wallet.welcomeBonusDeviceId = deviceId;
     wallet.transactions.unshift({
-      id: `tx-welcome-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+      id: `tx-welcome-${crypto.randomUUID().slice(0, 12)}`,
       userId,
       type: "reward",
       amount: cleanAmount,
@@ -216,6 +304,65 @@ export async function deductWalletForBooking({
   return withWalletLock(userId, async () => {
     const wallet = await getUserWallet(userId);
     const roundedAmount = Math.round(amount * 100) / 100;
+    const titleEn = `Booking Payment: ${propertyTitle} (Ref: ${bookingRef})`;
+    const titleAr = `سداد حجز إقامة: ${propertyTitle} (رقم الحجز: ${bookingRef})`;
+
+    if (wallet.transactions.some((tx) => tx.type === "booking_payment" && tx.reference === bookingRef)) {
+      return { success: true, newBalance: wallet.balance, welcomeBonusUsed: 0 };
+    }
+
+    const rpcRes = await callAtomicWalletRpc<{
+      success?: boolean;
+      error?: string;
+      already_deducted?: boolean;
+      new_balance?: number;
+      welcome_bonus_used?: number;
+    }>("reserve_or_deduct_wallet_atomic", {
+      p_user_id: userId,
+      p_amount: roundedAmount,
+      p_reference: bookingRef,
+      p_title_en: titleEn,
+      p_title_ar: titleAr,
+    });
+
+    if (rpcRes.status === "ok") {
+      if (!rpcRes.data.success) {
+        const dbBal = Number(rpcRes.data.new_balance ?? wallet.balance);
+        return {
+          success: false,
+          newBalance: dbBal,
+          welcomeBonusUsed: 0,
+          error:
+            rpcRes.data.error === "insufficient_balance"
+              ? `Insufficient wallet balance. Required: ${roundedAmount} SAR, Available: ${dbBal.toFixed(2)} SAR`
+              : String(rpcRes.data.error || "wallet_deduction_failed"),
+        };
+      }
+      if (rpcRes.data.already_deducted) {
+        return { success: true, newBalance: wallet.balance, welcomeBonusUsed: 0 };
+      }
+      const nextBalance = Math.round(Number(rpcRes.data.new_balance ?? wallet.balance - roundedAmount) * 100) / 100;
+      const welcomeUsed = Math.round(Number(rpcRes.data.welcome_bonus_used ?? 0) * 100) / 100;
+      wallet.balance = nextBalance;
+      wallet.welcomeBonusBalance = Math.max(
+        0,
+        Math.round(((wallet.welcomeBonusBalance || 0) - welcomeUsed) * 100) / 100
+      );
+      wallet.transactions.unshift({
+        id: `tx-book-${crypto.randomUUID().slice(0, 12)}`,
+        userId,
+        type: "booking_payment",
+        amount: -roundedAmount,
+        status: "completed",
+        reference: bookingRef,
+        paymentMethod: "wallet",
+        titleEn,
+        titleAr,
+        createdAt: new Date().toISOString(),
+      });
+      await commitUserWallet(wallet);
+      return { success: true, newBalance: nextBalance, welcomeBonusUsed: welcomeUsed };
+    }
 
     if (wallet.balance < roundedAmount) {
       return {
@@ -234,15 +381,15 @@ export async function deductWalletForBooking({
     wallet.balance = newBalance;
     wallet.welcomeBonusBalance = remainingWelcome;
     wallet.transactions.unshift({
-      id: `tx-book-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+      id: `tx-book-${crypto.randomUUID().slice(0, 12)}`,
       userId,
       type: "booking_payment",
       amount: -roundedAmount,
       status: "completed",
       reference: bookingRef,
       paymentMethod: "wallet",
-      titleEn: `Booking Payment: ${propertyTitle} (Ref: ${bookingRef})`,
-      titleAr: `سداد حجز إقامة: ${propertyTitle} (رقم الحجز: ${bookingRef})`,
+      titleEn,
+      titleAr,
       createdAt: new Date().toISOString(),
     });
 
@@ -275,20 +422,42 @@ export async function refundWalletForBooking({
     const roundedWelcome = Math.round(Math.max(0, welcomeBonusRestore) * 100) / 100;
     if (roundedAmount <= 0) return wallet;
 
-    wallet.balance = Math.round((wallet.balance + roundedAmount) * 100) / 100;
+    const titleEn = `Automatic Wallet Refund (${reason}) · ${bookingRef}`;
+    const titleAr = `استرداد تلقائي إلى المحفظة · ${bookingRef}`;
+
+    const rpcRes = await callAtomicWalletRpc<{
+      success?: boolean;
+      already_refunded?: boolean;
+      balance?: number;
+    }>("refund_wallet_atomic", {
+      p_user_id: userId,
+      p_amount: roundedAmount,
+      p_welcome_restore: roundedWelcome,
+      p_reference: refundRef,
+      p_title_en: titleEn,
+      p_title_ar: titleAr,
+    });
+
+    if (rpcRes.status === "ok" && rpcRes.data.success) {
+      if (rpcRes.data.already_refunded) return wallet;
+      wallet.balance = Math.round(Number(rpcRes.data.balance ?? wallet.balance + roundedAmount) * 100) / 100;
+    } else {
+      wallet.balance = Math.round((wallet.balance + roundedAmount) * 100) / 100;
+    }
+
     if (roundedWelcome > 0) {
       wallet.welcomeBonusBalance = Math.round(((wallet.welcomeBonusBalance || 0) + roundedWelcome) * 100) / 100;
     }
     wallet.transactions.unshift({
-      id: `tx-refund-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+      id: `tx-refund-${crypto.randomUUID().slice(0, 12)}`,
       userId,
       type: "refund",
       amount: roundedAmount,
       status: "completed",
       reference: refundRef,
       paymentMethod: "wallet",
-      titleEn: `Automatic Wallet Refund (${reason}) · ${bookingRef}`,
-      titleAr: `استرداد تلقائي إلى المحفظة · ${bookingRef}`,
+      titleEn,
+      titleAr,
       createdAt: new Date().toISOString(),
     });
 
@@ -390,31 +559,75 @@ export async function awardLoyaltyPoints({
   bookingRef: string;
   isWalletPayment?: boolean;
 }): Promise<UserWalletData> {
-  const wallet = await getUserWallet(userId);
-  const { points, multiplier } = calculateEarnableLoyaltyPoints(amountSpent, isWalletPayment);
-  if (points <= 0) return wallet;
+  return withWalletLock(userId, async () => {
+    const wallet = await getUserWallet(userId);
+    if (wallet.transactions.some((tx) => tx.type === "reward" && tx.reference === bookingRef)) {
+      return wallet;
+    }
 
-  const newPoints = wallet.loyaltyPoints + points;
-  const newTx: WalletTransaction = {
-    id: `tx-reward-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-    userId,
-    type: "reward",
-    amount: 0,
-    points,
-    status: "completed",
-    reference: bookingRef,
-    paymentMethod: "system",
-    titleEn: `Reward Points Earned (${multiplier}X Rate) on Booking ${bookingRef}`,
-    titleAr: `نقاط مكافآت مكتسبة (${multiplier}X) على الحجز ${bookingRef}`,
-    createdAt: new Date().toISOString(),
-  };
+    const { points, multiplier } = calculateEarnableLoyaltyPoints(amountSpent, isWalletPayment);
+    if (points <= 0) return wallet;
 
-  wallet.loyaltyPoints = newPoints;
-  wallet.loyaltyTier = determineTier(newPoints);
-  wallet.transactions.unshift(newTx);
+    const titleEn = `Reward Points Earned (${multiplier}X Rate) on Booking ${bookingRef}`;
+    const titleAr = `نقاط مكافآت مكتسبة (${multiplier}X) على الحجز ${bookingRef}`;
 
-  await commitUserWallet(wallet, { loyalty_points: newPoints, loyalty_tier: wallet.loyaltyTier });
-  return wallet;
+    const rpcRes = await callAtomicWalletRpc<{
+      success?: boolean;
+      already_awarded?: boolean;
+      loyalty_points?: number;
+      loyalty_tier?: string;
+    }>("award_loyalty_points_atomic", {
+      p_user_id: userId,
+      p_points: points,
+      p_reference: bookingRef,
+      p_title_en: titleEn,
+      p_title_ar: titleAr,
+    });
+
+    if (rpcRes.status === "ok" && rpcRes.data.success) {
+      if (rpcRes.data.already_awarded) return wallet;
+      const newPoints = Number(rpcRes.data.loyalty_points ?? wallet.loyaltyPoints + points);
+      wallet.loyaltyPoints = newPoints;
+      wallet.loyaltyTier = determineTier(newPoints);
+      wallet.transactions.unshift({
+        id: `tx-reward-${crypto.randomUUID().slice(0, 12)}`,
+        userId,
+        type: "reward",
+        amount: 0,
+        points,
+        status: "completed",
+        reference: bookingRef,
+        paymentMethod: "system",
+        titleEn,
+        titleAr,
+        createdAt: new Date().toISOString(),
+      });
+      await commitUserWallet(wallet, { loyalty_points: newPoints, loyalty_tier: wallet.loyaltyTier });
+      return wallet;
+    }
+
+    const newPoints = wallet.loyaltyPoints + points;
+    const newTx: WalletTransaction = {
+      id: `tx-reward-${crypto.randomUUID().slice(0, 12)}`,
+      userId,
+      type: "reward",
+      amount: 0,
+      points,
+      status: "completed",
+      reference: bookingRef,
+      paymentMethod: "system",
+      titleEn,
+      titleAr,
+      createdAt: new Date().toISOString(),
+    };
+
+    wallet.loyaltyPoints = newPoints;
+    wallet.loyaltyTier = determineTier(newPoints);
+    wallet.transactions.unshift(newTx);
+
+    await commitUserWallet(wallet, { loyalty_points: newPoints, loyalty_tier: wallet.loyaltyTier });
+    return wallet;
+  });
 }
 
 export async function redeemPointsForCredit({

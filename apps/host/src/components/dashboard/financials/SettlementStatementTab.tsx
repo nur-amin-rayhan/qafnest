@@ -1,7 +1,9 @@
 "use client";
 
 import React, { useState } from "react";
-import { Download, Printer, Settings, ShieldCheck, Clock, AlertTriangle, CheckCircle2, ChevronRight, FileText, Send } from "lucide-react";
+import { Download, Printer, Settings, ShieldCheck, Clock, AlertTriangle, CheckCircle2, Send } from "lucide-react";
+import { useHostAuth } from "@/context/HostAuthContext";
+import { getHostRequestHeaders } from "@/lib/hostPropertyActions";
 import type { HostSettlementSummary, HostSettlementSettings } from "@/lib/services/hostFinancialsTypes";
 import { SettlementSettingsModal } from "./SettlementSettingsModal";
 
@@ -22,7 +24,9 @@ export function SettlementStatementTab({
   lang,
   t,
 }: SettlementStatementTabProps) {
+  const { user } = useHostAuth();
   const [period, setPeriod] = useState<"month" | "last_month" | "ytd">("month");
+  const [downloadingCsv, setDownloadingCsv] = useState(false);
   const [settingsModalOpen, setSettingsModalOpen] = useState(false);
   const feePct = settlement.commissionRatePercent ?? 20;
 
@@ -30,13 +34,31 @@ export function SettlementStatementTab({
     if (typeof window !== "undefined") window.print();
   };
 
-  const handleDownloadCsv = () => {
-    if (typeof window !== "undefined") {
-      const qs =
-        selectedPropertyId && selectedPropertyId !== "all"
-          ? `&propertyId=${encodeURIComponent(selectedPropertyId)}`
-          : "";
-      window.location.href = `/api/host/financials?format=statement_csv${qs}`;
+  const handleDownloadCsv = async () => {
+    if (typeof window === "undefined" || downloadingCsv) return;
+    setDownloadingCsv(true);
+    try {
+      const headers = await getHostRequestHeaders(user?.id);
+      const qs = new URLSearchParams({ format: "statement_csv", period });
+      if (selectedPropertyId && selectedPropertyId !== "all") {
+        qs.set("propertyId", selectedPropertyId);
+      }
+      const res = await fetch(`/api/host/financials?${qs.toString()}`, {
+        headers,
+        cache: "no-store",
+      });
+      if (!res.ok) return;
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `qafnest-settlement-statement-${period}-${new Date().toISOString().slice(0, 10)}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } finally {
+      setDownloadingCsv(false);
     }
   };
 

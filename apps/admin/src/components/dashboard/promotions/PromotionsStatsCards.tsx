@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { Tag, Ticket, Percent, Sparkles } from "lucide-react";
 import type { AdminCoupon } from "../PromotionsTab";
 
 interface PromotionsStatsCardsProps {
@@ -25,72 +26,104 @@ export function PromotionsStatsCards({
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-      <div className="p-4 rounded-2xl bg-surface-container-lowest border border-surface-container/60 shadow-xs flex flex-col justify-between">
-        <span className="font-label-sm text-[11px] uppercase tracking-wider text-outline font-bold">
-          {t("Active Promo Codes", "الأكواد النشطة")}
-        </span>
-        <div className="mt-2 flex items-baseline gap-2">
-          <span className="font-display-sm text-2xl sm:text-3xl font-extrabold text-on-surface">
-            {totalActive}
-          </span>
-          <span className="text-xs text-status-emerald font-bold">
-            {t("of", "من")} {coupons.length} {t("campaigns", "حملة")}
-          </span>
+      {/* 1. Active Promo Codes */}
+      <div className="p-5 rounded-xl bg-white dark:bg-[#0E0D16] border border-slate-200/90 dark:border-slate-800 shadow-xs flex flex-col justify-between">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex flex-col gap-1">
+            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
+              {t("Active Promo Codes", "الأكواد النشطة")}
+            </span>
+            <div className="flex items-baseline gap-2 mt-1">
+              <span className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-slate-100 font-mono tabular-nums">
+                {totalActive}
+              </span>
+              <span className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold">
+                {t("of", "من")} {coupons.length} {t("campaigns", "حملة")}
+              </span>
+            </div>
+          </div>
+          <div className="w-9 h-9 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 flex items-center justify-center text-slate-600 dark:text-slate-400 shrink-0">
+            <Tag size={18} strokeWidth={1.5} />
+          </div>
         </div>
-        <span className="text-[11px] text-outline mt-1">
+        <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 text-xs font-medium text-slate-500 dark:text-slate-400">
           {promotionsEnabled
             ? t("Redemptions enabled", "الاستخدام متاح للنزلاء")
             : t("Engine currently paused", "النظام موقوف حالياً")}
-        </span>
+        </div>
       </div>
 
-      <div className="p-4 rounded-2xl bg-surface-container-lowest border border-surface-container/60 shadow-xs flex flex-col justify-between">
-        <span className="font-label-sm text-[11px] uppercase tracking-wider text-outline font-bold">
-          {t("Total Redemptions", "إجمالي مرات الاستخدام")}
-        </span>
-        <div className="mt-2 flex items-baseline gap-2">
-          <span className="font-display-sm text-2xl sm:text-3xl font-extrabold text-on-surface">
-            {totalRedemptions}
-          </span>
-          <span className="text-xs text-primary font-bold">{t("Bookings", "حجوزات")}</span>
+      {/* 2. Total Redemptions */}
+      <div className="p-5 rounded-xl bg-white dark:bg-[#0E0D16] border border-slate-200/90 dark:border-slate-800 shadow-xs flex flex-col justify-between">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex flex-col gap-1">
+            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
+              {t("Total Redemptions", "إجمالي مرات الاستخدام")}
+            </span>
+            <div className="flex items-baseline gap-2 mt-1">
+              <span className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-slate-100 font-mono tabular-nums">
+                {totalRedemptions}
+              </span>
+              <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">{t("Bookings", "حجوزات")}</span>
+            </div>
+          </div>
+          <div className="w-9 h-9 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 flex items-center justify-center text-slate-600 dark:text-slate-400 shrink-0">
+            <Ticket size={18} strokeWidth={1.5} />
+          </div>
         </div>
-        <span className="text-[11px] text-outline font-semibold mt-1 flex items-center gap-0.5">
+        <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 text-xs font-medium text-slate-500 dark:text-slate-400">
           {totalRedemptions > 0
             ? t("Verified promo redemptions", "عمليات استخدام موثقة للأكواد")
             : t("No coupon redemptions yet", "لا توجد استخدامات للأكواد بعد")}
-        </span>
+        </div>
       </div>
 
-      <div className="p-4 rounded-2xl bg-surface-container-lowest border border-surface-container/60 shadow-xs flex flex-col justify-between">
-        <span className="font-label-sm text-[11px] uppercase tracking-wider text-outline font-bold">
-          {t("Total Guest Discounts", "إجمالي الخصومات الممنوحة")}
-        </span>
-        <div className="mt-2 flex items-baseline gap-2">
-          <span className="font-display-sm text-2xl sm:text-3xl font-extrabold text-status-sand">
-            SAR {totalEstSavings.toLocaleString()}
-          </span>
+      {/* 3. Total Guest Discounts */}
+      <div className="p-5 rounded-xl bg-white dark:bg-[#0E0D16] border border-slate-200/90 dark:border-slate-800 shadow-xs flex flex-col justify-between">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex flex-col gap-1">
+            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
+              {t("Total Guest Discounts", "إجمالي الخصومات الممنوحة")}
+            </span>
+            <div className="flex items-baseline gap-2 mt-1">
+              <span className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-slate-100 font-mono tabular-nums">
+                SAR {totalEstSavings.toLocaleString()}
+              </span>
+            </div>
+          </div>
+          <div className="w-9 h-9 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 flex items-center justify-center text-[#4F2396] dark:text-purple-300 shrink-0">
+            <Sparkles size={18} strokeWidth={1.5} />
+          </div>
         </div>
-        <span className="text-[11px] text-outline mt-1">
+        <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 text-xs font-medium text-slate-500 dark:text-slate-400">
           {coupons.length > 0
             ? t(`${totalActive} active campaign(s)`, `${totalActive} حملة ترويجية نشطة`)
             : t("No promotional campaigns configured", "لم يتم إعداد حملات ترويجية بعد")}
-        </span>
+        </div>
       </div>
 
-      <div className="p-4 rounded-2xl bg-surface-container-lowest border border-surface-container/60 shadow-xs flex flex-col justify-between">
-        <span className="font-label-sm text-[11px] uppercase tracking-wider text-outline font-bold">
-          {t("Avg Discount Value", "متوسط قيمة الخصم")}
-        </span>
-        <div className="mt-2 flex items-baseline gap-2">
-          <span className="font-display-sm text-2xl sm:text-3xl font-extrabold text-on-surface">
-            SAR {avgDiscountPerRedemption.toLocaleString()}
-          </span>
+      {/* 4. Avg Discount Value */}
+      <div className="p-5 rounded-xl bg-white dark:bg-[#0E0D16] border border-slate-200/90 dark:border-slate-800 shadow-xs flex flex-col justify-between">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex flex-col gap-1">
+            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
+              {t("Avg Discount Value", "متوسط قيمة الخصم")}
+            </span>
+            <div className="flex items-baseline gap-2 mt-1">
+              <span className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-slate-100 font-mono tabular-nums">
+                SAR {avgDiscountPerRedemption.toLocaleString()}
+              </span>
+            </div>
+          </div>
+          <div className="w-9 h-9 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 flex items-center justify-center text-slate-600 dark:text-slate-400 shrink-0">
+            <Percent size={18} strokeWidth={1.5} />
+          </div>
         </div>
-        <span className="text-[11px] text-outline font-semibold mt-1">
+        <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 text-xs font-medium text-slate-500 dark:text-slate-400">
           {totalRedemptions > 0
             ? t("Per redeemed reservation", "لكل حجز استخدم كوبون")
             : t("Per redeemed reservation", "لكل استخدام للكوبون")}
-        </span>
+        </div>
       </div>
     </div>
   );

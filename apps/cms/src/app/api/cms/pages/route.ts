@@ -24,8 +24,8 @@ export async function GET(request: NextRequest) {
     const pages = getAllCmsPages();
     return NextResponse.json(pages);
   } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : "Internal error";
-    return NextResponse.json({ error: msg }, { status: 500 });
+    console.error("[cms pages] error:", err);
+    return NextResponse.json({ error: "CMS page operation failed." }, { status: 500 });
   }
 }
 
@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
     await persistSharedJsonFile(PAGES_FILE, getAllCmsPages());
     return NextResponse.json({ success: true, page: body });
   } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : "Internal error";
-    return NextResponse.json({ error: msg }, { status: 500 });
+    console.error("[cms pages] error:", err);
+    return NextResponse.json({ error: "CMS page operation failed." }, { status: 500 });
   }
 }

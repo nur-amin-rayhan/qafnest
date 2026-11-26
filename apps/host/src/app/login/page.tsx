@@ -70,6 +70,13 @@ export default async function HostLoginPage({
 }) {
   const params = await searchParams;
   const lang = await resolveLoginLocale(params.lang);
+  const initialAuthMode = params.mode === "signup" ? "signup" : "signin";
 
-  return <HostLoginForm initialLang={lang} initialReturnUrl={params.returnUrl} />;
+  return (
+    <HostLoginForm
+      initialLang={lang}
+      initialReturnUrl={params.returnUrl}
+      initialAuthMode={initialAuthMode}
+    />
+  );
 }

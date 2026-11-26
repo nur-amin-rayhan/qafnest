@@ -146,9 +146,7 @@ export function HostAuthProvider({
     const isCurrentDevHost = () => {
       if (process.env.NODE_ENV === "production" || typeof window === "undefined") return false;
       const cached = getCachedHostAuth();
-      if (cached?.user?.id === devHostId) return true;
-      if (typeof document !== "undefined" && document.cookie.includes("qafnest_host_dev=1")) return true;
-      return false;
+      return cached?.user?.id === devHostId;
     };
 
     const initializeAuth = async () => {
@@ -163,7 +161,7 @@ export function HostAuthProvider({
         if (!mounted) return;
 
         if (error || !initialSession?.user) {
-          if (!syncFirebaseUser() && !cachedAuth?.user && !isCurrentDevHost()) {
+          if (!syncFirebaseUser() && !isCurrentDevHost()) {
             updateUserAndProfile(null, null);
           }
           setLoading(false);
@@ -171,7 +169,12 @@ export function HostAuthProvider({
         }
 
         // Strictly enforce host portal decoupling: reject guest sessions
-        const isGuest = initialSession.user.user_metadata?.role === "guest" || initialSession.user.id === "00000000-0000-0000-0000-000000000001";
+        const devGuestId = process.env.NEXT_PUBLIC_DEV_GUEST_ID || "00000000-0000-0000-0000-000000000001";
+        const isGuest =
+          initialSession.user.app_metadata?.role === "guest" ||
+          initialSession.user.app_metadata?.role === "admin" ||
+          initialSession.user.user_metadata?.role === "guest" ||
+          initialSession.user.id === devGuestId;
         if (isGuest) {
           await supabase.auth.signOut().catch(() => {});
           updateUserAndProfile(null, null);
@@ -184,8 +187,7 @@ export function HostAuthProvider({
         updateUserAndProfile(initialSession.user, null);
         await fetchProfile(initialSession.user.id, initialSession.user, () => mounted);
       } catch {
-        const cachedAuth = getCachedHostAuth();
-        if (mounted && !syncFirebaseUser() && !cachedAuth?.user && !isCurrentDevHost()) {
+        if (mounted && !syncFirebaseUser() && !isCurrentDevHost()) {
           updateUserAndProfile(null, null);
         }
       } finally {
@@ -206,12 +208,9 @@ export function HostAuthProvider({
             setSession(null);
             updateUserAndProfile(mapped.user, mapped.profile);
           } else if (!hasSupabaseSessionRef.current && !isCurrentDevHost()) {
-            const cached = getCachedHostAuth();
-            if (!cached?.user) {
-              setHostSessionCookie(false);
-              setSession(null);
-              updateUserAndProfile(null, null);
-            }
+            void setHostSessionCookie(false);
+            setSession(null);
+            updateUserAndProfile(null, null);
           }
           setLoading(false);
         });
@@ -225,7 +224,12 @@ export function HostAuthProvider({
         if (!mounted) return;
         if (newSession?.user) {
           // Reject guest accounts on host platform
-          const isGuest = newSession.user.user_metadata?.role === "guest" || newSession.user.id === "00000000-0000-0000-0000-000000000001";
+          const devGuestId = process.env.NEXT_PUBLIC_DEV_GUEST_ID || "00000000-0000-0000-0000-000000000001";
+          const isGuest =
+            newSession.user.app_metadata?.role === "guest" ||
+            newSession.user.app_metadata?.role === "admin" ||
+            newSession.user.user_metadata?.role === "guest" ||
+            newSession.user.id === devGuestId;
           if (isGuest) {
             await supabase.auth.signOut().catch(() => {});
             updateUserAndProfile(null, null);
@@ -237,12 +241,9 @@ export function HostAuthProvider({
           updateUserAndProfile(newSession.user, null);
           await fetchProfile(newSession.user.id, newSession.user, () => mounted);
         } else if (!syncFirebaseUser() && !isCurrentDevHost()) {
-          const cached = getCachedHostAuth();
-          if (!cached?.user) {
-            hasSupabaseSessionRef.current = false;
-            setSession(null);
-            updateUserAndProfile(null, null);
-          }
+          hasSupabaseSessionRef.current = false;
+          setSession(null);
+          updateUserAndProfile(null, null);
         }
         setLoading(false);
       }
@@ -260,23 +261,31 @@ export function HostAuthProvider({
     hasSupabaseSessionRef.current = false;
     updateUserAndProfile(null, null);
     setSession(null);
-    setHostSessionCookie(false);
 
     if (typeof window !== "undefined") {
       try {
         window.localStorage.removeItem(HOST_CACHE_KEY);
         window.sessionStorage.setItem("qafnest_host_is_logging_out", "1");
       } catch {}
-      window.location.replace(localizeHostPath("/login", lang));
     }
 
+    const signOutTasks: Promise<unknown>[] = [setHostSessionCookie(false)];
     try {
-      void supabase.auth.signOut().catch(() => {});
+      signOutTasks.push(supabase.auth.signOut().catch(() => {}));
     } catch {}
     if (isFirebaseConfigured()) {
       try {
-        void firebaseSignOut(getFirebaseAuth()).catch(() => {});
+        signOutTasks.push(firebaseSignOut(getFirebaseAuth()).catch(() => {}));
       } catch {}
+    }
+
+    await Promise.race([
+      Promise.allSettled(signOutTasks),
+      new Promise((resolve) => setTimeout(resolve, 900)),
+    ]);
+
+    if (typeof window !== "undefined") {
+      window.location.replace(localizeHostPath("/login", lang));
     }
   };
 

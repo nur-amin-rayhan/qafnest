@@ -74,6 +74,7 @@ async function resolveVerifiedHostProperty(params: {
 
   const isDevBypass =
     process.env.NODE_ENV !== "production" &&
+    process.env.ALLOW_DEV_HOST_BYPASS === "true" &&
     (authUser.id === "00000000-0000-0000-0000-000000000002" ||
       authUser.id === "11111111-2222-4333-8444-555555555555" ||
       existing.host_id === "00000000-0000-0000-0000-000000000002" ||
@@ -107,8 +108,9 @@ export async function GET(
     String(property.id)
   );
   if (error) {
+    console.error("[host deletion-request GET] eligibility check failed:", error);
     return NextResponse.json(
-      { code: "bookings_check_failed", message: error },
+      { code: "bookings_check_failed", message: "Failed to verify property bookings." },
       { status: 500 }
     );
   }
@@ -147,8 +149,9 @@ export async function POST(
     String(property.id)
   );
   if (error) {
+    console.error("[host deletion-request GET] eligibility check failed:", error);
     return NextResponse.json(
-      { code: "bookings_check_failed", message: error },
+      { code: "bookings_check_failed", message: "Failed to verify property bookings." },
       { status: 500 }
     );
   }

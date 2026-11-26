@@ -192,10 +192,11 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    console.error("[host upload] error:", err);
     return NextResponse.json(
       {
         code: "upload_failed",
-        message: err instanceof Error ? err.message : "Media upload to storage failed.",
+        message: "Media upload to storage failed.",
       },
       { status: 500 }
     );

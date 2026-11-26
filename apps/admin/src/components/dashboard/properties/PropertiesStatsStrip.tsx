@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { Building2, TrendingUp, ShieldAlert } from "lucide-react";
 import { useAdminAuth } from "@/context/AdminAuthContext";
 import type { PropertyItem } from "../types";
 
@@ -13,105 +14,134 @@ export function PropertiesStatsStrip({ properties }: PropertiesStatsStripProps) 
 
   const approvedList = properties.filter((p) => p.status === "approved" || p.is_approved);
   const approvedCount = approvedList.length;
-  const pendingCount = properties.filter((p) => p.status === "pending" || (!p.is_approved && p.status !== "rejected")).length;
+  const pendingCount = properties.filter(
+    (p) => p.status === "pending" || (!p.is_approved && p.status !== "rejected")
+  ).length;
   const totalCount = properties.length || 1;
-  const approvedPercentage = properties.length > 0 ? Math.round((approvedCount / totalCount) * 100) : 0;
+  const approvedPercentage =
+    properties.length > 0 ? Math.round((approvedCount / totalCount) * 100) : 0;
 
   const avgNightlyRate =
     properties.length > 0
-      ? Math.round(properties.reduce((sum, p) => sum + Number(p.base_price || 0), 0) / properties.length)
+      ? Math.round(
+          properties.reduce((sum, p) => sum + Number(p.base_price || 0), 0) / properties.length
+        )
       : 0;
-  const activeNightlyCapacity = approvedList.reduce((sum, p) => sum + Number(p.base_price || 0), 0);
+  const activeNightlyCapacity = approvedList.reduce(
+    (sum, p) => sum + Number(p.base_price || 0),
+    0
+  );
 
   return (
-    <div dir={dir} className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6 mb-space-lg">
-      {/* Stat 1: Total Active Fleet */}
-      <div className="bg-surface-container-lowest p-space-lg rounded-xl shadow-sm flex items-center justify-between relative overflow-hidden group">
-        <div className="absolute -end-6 -bottom-6 w-28 h-28 bg-primary/5 rounded-full blur-xl group-hover:scale-125 transition-transform duration-500" />
-        <div className="flex flex-col gap-1 z-10">
-          <div className="flex items-center gap-space-xs flex-wrap">
-            <span className="font-label-sm text-label-sm uppercase tracking-wider text-outline">
-              {t("Total Available Units", "إجمالي الوحدات المتاحة")}
+    <div dir={dir} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+      {/* Metric 1: Total fleet & live ratio */}
+      <div className="bg-white dark:bg-[#0E0D16] rounded-xl border border-slate-200/90 dark:border-slate-800 p-5 shadow-xs flex flex-col justify-between">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex flex-col gap-1">
+            <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
+              {t("Total available units", "إجمالي الوحدات المتاحة")}
             </span>
-            <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-status-emerald/10 text-status-emerald">
-              {approvedPercentage}% {t("Live", "نشط")}
+            <div className="flex items-baseline gap-2 mt-1">
+              <span className="text-2xl font-semibold text-slate-900 dark:text-slate-100 font-mono tabular-nums">
+                {approvedCount}
+              </span>
+              <span className="text-xs text-slate-400 dark:text-slate-500 font-mono tabular-nums">
+                / {properties.length} {t("listed", "مدرج")}
+              </span>
+            </div>
+          </div>
+          <div className="w-9 h-9 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 flex items-center justify-center text-slate-600 dark:text-slate-400 shrink-0">
+            <Building2 size={18} strokeWidth={1.5} />
+          </div>
+        </div>
+
+        <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
+            <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500" />
+            <span>
+              {approvedPercentage}% {t("live & bookable", "نشط ومتاح")}
             </span>
           </div>
-          <div className="flex items-baseline gap-2">
-            <span className="font-display-md text-display-md text-on-surface">
-              {approvedCount}
-            </span>
-            <span className="font-body-sm text-body-sm text-outline">
-              / {properties.length} {t("Total Listed", "إجمالي المدرج")}
-            </span>
-          </div>
-          <div className="w-full bg-surface-container-high h-1.5 rounded-full mt-2 overflow-hidden">
+          <div className="w-24 bg-slate-100 dark:bg-slate-800 h-1 rounded-full overflow-hidden">
             <div
-              className="bg-status-emerald h-full rounded-full transition-all duration-500"
+              className="bg-emerald-600 h-full rounded-full transition-all duration-300"
               style={{ width: `${approvedPercentage}%` }}
             />
           </div>
         </div>
-        <div className="w-12 h-12 rounded-xl bg-surface-container-low flex items-center justify-center text-primary z-10 shrink-0">
-          <span className="material-symbols-outlined text-[26px]">domain</span>
+      </div>
+
+      {/* Metric 2: Active inventory capacity */}
+      <div className="bg-white dark:bg-[#0E0D16] rounded-xl border border-slate-200/90 dark:border-slate-800 p-5 shadow-xs flex flex-col justify-between">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex flex-col gap-1">
+            <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
+              {t("Active nightly capacity", "القيمة الليلية النشطة")}
+            </span>
+            <div className="flex items-baseline gap-1.5 mt-1">
+              <span className="text-2xl font-semibold text-slate-900 dark:text-slate-100 font-mono tabular-nums">
+                {activeNightlyCapacity.toLocaleString()}
+              </span>
+              <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
+                {t("SAR / night", "ر.س / ليلة")}
+              </span>
+            </div>
+          </div>
+          <div className="w-9 h-9 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 flex items-center justify-center text-slate-600 dark:text-slate-400 shrink-0">
+            <TrendingUp size={18} strokeWidth={1.5} />
+          </div>
+        </div>
+
+        <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+          <span>{t("Average nightly rate", "متوسط السعر الليلي")}</span>
+          <span className="font-mono tabular-nums font-medium text-slate-700 dark:text-slate-300">
+            {avgNightlyRate.toLocaleString()} {t("SAR", "ر.س")}
+          </span>
         </div>
       </div>
 
-      {/* Stat 2: Inventory Valuation */}
-      <div className="bg-surface-container-lowest p-space-lg rounded-xl shadow-sm flex items-center justify-between relative overflow-hidden group">
-        <div className="absolute -end-6 -bottom-6 w-28 h-28 bg-status-sand/10 rounded-full blur-xl group-hover:scale-125 transition-transform duration-500" />
-        <div className="flex flex-col gap-1 z-10">
-          <div className="flex items-center gap-space-xs flex-wrap">
-            <span className="font-label-sm text-label-sm uppercase tracking-wider text-outline">
-              {t("Active Nightly Capacity", "القيمة الليلية النشطة")}
+      {/* Metric 3: Verification queue */}
+      <div className="sm:col-span-2 lg:col-span-1 bg-white dark:bg-[#0E0D16] rounded-xl border border-slate-200/90 dark:border-slate-800 p-5 shadow-xs flex flex-col justify-between">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex flex-col gap-1">
+            <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
+              {t("Verification queue", "بانتظار التحقق")}
             </span>
-            <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-status-sand/20 text-status-sand">
-              {approvedCount} {t("Published", "منشور")}
-            </span>
+            <div className="flex items-baseline gap-2 mt-1">
+              <span
+                className={`text-2xl font-semibold font-mono tabular-nums ${
+                  pendingCount > 0 ? "text-amber-700 dark:text-amber-400" : "text-slate-900 dark:text-slate-100"
+                }`}
+              >
+                {pendingCount}
+              </span>
+              <span className="text-xs text-slate-400 dark:text-slate-500">
+                {t("units pending review", "وحدات بانتظار المراجعة")}
+              </span>
+            </div>
           </div>
-          <div className="flex items-baseline gap-2">
-            <span className="font-display-md text-display-md text-on-surface">
-              {activeNightlyCapacity.toLocaleString()} {t("SAR", "ر.س")}
-            </span>
-            <span className="font-body-sm text-body-sm text-outline">{t("/ night", "/ ليلة")}</span>
-          </div>
-          <div className="flex items-center gap-1.5 mt-2 text-on-surface-variant font-body-sm text-body-sm">
-            <span className="material-symbols-outlined text-[15px] text-status-sand">price_check</span>
-            <span>{t("Average nightly rate:", "متوسط السعر الليلي:")} {avgNightlyRate.toLocaleString()} {t("SAR", "ر.س")}</span>
+          <div
+            className={`w-9 h-9 rounded-lg border flex items-center justify-center shrink-0 ${
+              pendingCount > 0
+                ? "bg-amber-50 dark:bg-amber-950/40 border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-400"
+                : "bg-slate-50 dark:bg-slate-800 border-slate-100 dark:border-slate-700 text-slate-500 dark:text-slate-400"
+            }`}
+          >
+            <ShieldAlert size={18} strokeWidth={1.5} />
           </div>
         </div>
-        <div className="w-12 h-12 rounded-xl bg-surface-container-low flex items-center justify-center text-status-sand z-10 shrink-0">
-          <span className="material-symbols-outlined text-[26px]">analytics</span>
-        </div>
-      </div>
 
-      {/* Stat 3: Maintenance & Offline Attention */}
-      <div className="md:col-span-2 xl:col-span-1 bg-surface-container-lowest p-space-lg rounded-xl shadow-sm flex items-center justify-between relative overflow-hidden group">
-        <div className="absolute -end-6 -bottom-6 w-28 h-28 bg-status-terracotta/10 rounded-full blur-xl group-hover:scale-125 transition-transform duration-500" />
-        <div className="flex flex-col gap-1 z-10">
-          <div className="flex items-center gap-space-xs flex-wrap">
-            <span className="font-label-sm text-label-sm uppercase tracking-wider text-outline">
-              {t("Verification Flagged", "بانتظار التحقق")}
-            </span>
-            <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-status-terracotta/10 text-status-terracotta">
-              {t("Action Req.", "يتطلب مراجعة")}
-            </span>
-          </div>
-          <div className="flex items-baseline gap-2">
-            <span className="font-display-md text-display-md text-status-terracotta">
-              {pendingCount}
-            </span>
-            <span className="font-body-sm text-body-sm text-outline">
-              {t("Units pending verification", "وحدات بانتظار المراجعة")}
-            </span>
-          </div>
-          <div className="flex items-center gap-1.5 mt-2 text-on-surface-variant font-body-sm text-body-sm">
-            <span className="material-symbols-outlined text-[15px] text-status-terracotta">fact_check</span>
-            <span>{t("Ministry of Tourism & Balady Inspection", "تدقيق تراخيص السياحة والبلدية")}</span>
-          </div>
-        </div>
-        <div className="w-12 h-12 rounded-xl bg-surface-container-low flex items-center justify-center text-status-terracotta z-10 shrink-0">
-          <span className="material-symbols-outlined text-[26px]">shield</span>
+        <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+          <span>{t("Tourism license & ID verification", "تراخيص السياحة والهوية")}</span>
+          <span
+            className={`font-medium ${
+              pendingCount > 0 ? "text-amber-700 dark:text-amber-400 font-semibold" : "text-slate-600 dark:text-slate-400"
+            }`}
+          >
+            {pendingCount > 0
+              ? t("Action required", "يتطلب إجراء")
+              : t("All verified", "تم التحقق")}
+          </span>
         </div>
       </div>
     </div>

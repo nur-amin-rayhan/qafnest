@@ -10,15 +10,15 @@ export async function GET(request: NextRequest) {
     const slug = searchParams.get("slug");
     if (slug) {
       const blog = getBlogBySlug(slug);
-      if (!blog) {
+      if (!blog || blog.status === "draft") {
         return NextResponse.json({ error: "Blog post not found" }, { status: 404 });
       }
       return NextResponse.json(blog, { headers: { "Cache-Control": "no-store" } });
     }
-    const blogs = getAllBlogs();
+    const blogs = getAllBlogs().filter((b) => b.status !== "draft");
     return NextResponse.json(blogs, { headers: { "Cache-Control": "no-store" } });
   } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : "Internal error";
-    return NextResponse.json({ error: msg }, { status: 500 });
+    console.error("[cmsBlogs] load error:", err);
+    return NextResponse.json({ error: "Failed to load blog posts." }, { status: 500 });
   }
 }

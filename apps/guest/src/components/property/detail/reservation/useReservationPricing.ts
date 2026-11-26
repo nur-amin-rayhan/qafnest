@@ -1,6 +1,10 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { getStayTotal, Property } from "@/data/properties";
-import { calculatePricingBreakdown } from "@/lib/services/pricing";
+import {
+  calculatePricingBreakdown,
+  validateCoupon,
+  type CouponDefinition,
+} from "@/lib/services/pricing";
 import { usePlatformFeeSync } from "@/hooks/usePlatformFeeSync";
 import {
   computeSlotAwareStayRate,
@@ -37,6 +41,10 @@ export function useReservationPricing({
     checkinTime,
     checkoutTime,
   });
+
+  const [appliedCoupon, setAppliedCoupon] = useState<string | null>(null);
+  const [appliedCouponDef, setAppliedCouponDef] = useState<CouponDefinition | null>(null);
+  const [appliedDiscount, setAppliedDiscount] = useState<number | null>(null);
 
   const resolvedRates = useMemo(() => {
     if (isTwelveHourStay && checkoutDate) {
@@ -108,6 +116,9 @@ export function useReservationPricing({
       fixedFeeAmountSar,
       vatRate,
       category: property.category,
+      couponCode: appliedCoupon,
+      validatedCoupon: appliedCouponDef,
+      customDiscount: appliedDiscount,
     });
   }, [
     baseStayRate,
@@ -120,7 +131,73 @@ export function useReservationPricing({
     fixedFeeAmountSar,
     vatRate,
     property.category,
+    appliedCoupon,
+    appliedCouponDef,
+    appliedDiscount,
   ]);
+
+  const handleApplyCoupon = async (codeToApply: string): Promise<{ valid: boolean; message: string }> => {
+    const code = codeToApply.trim().toUpperCase();
+    if (!code) {
+      return {
+        valid: false,
+        message: language === "ar" ? "يرجى كتابة كود الخصم أولاً." : "Please enter a promo code.",
+      };
+    }
+    try {
+      const response = await fetch("/api/coupons/validate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          code,
+          baseRate: baseStayRate,
+          nights: resolvedRates.billableUnits,
+          category: property.category,
+        }),
+      });
+      const data = await response.json();
+      if (response.ok && data.valid) {
+        setAppliedCoupon(code);
+        setAppliedCouponDef(data.coupon || null);
+        setAppliedDiscount(typeof data.discountAmount === "number" ? data.discountAmount : null);
+        return {
+          valid: true,
+          message:
+            language === "ar"
+              ? `تم تطبيق الكود ${code} بنجاح!`
+              : `Promo code ${code} applied!`,
+        };
+      }
+      return {
+        valid: false,
+        message:
+          language === "ar"
+            ? data.messageAr || "كود الخصم غير صالح."
+            : data.messageEn || "Invalid promo code.",
+      };
+    } catch {
+      const local = validateCoupon(code, baseStayRate, resolvedRates.billableUnits);
+      if (local.valid) {
+        setAppliedCoupon(code);
+        setAppliedCouponDef(local.coupon || null);
+        setAppliedDiscount(local.discountAmount);
+        return {
+          valid: true,
+          message: language === "ar" ? local.messageAr : local.messageEn,
+        };
+      }
+      return {
+        valid: false,
+        message: language === "ar" ? local.messageAr : local.messageEn,
+      };
+    }
+  };
+
+  const handleRemoveCoupon = () => {
+    setAppliedCoupon(null);
+    setAppliedCouponDef(null);
+    setAppliedDiscount(null);
+  };
 
   const estimatedTotal = previewPricing.total;
   const originalNightly = hasDiscount ? property.originalPrice! : effectiveNightlyRate;
@@ -146,5 +223,9 @@ export function useReservationPricing({
     riyalLabel,
     splitInstallment,
     isLiveSynced,
+    appliedCoupon,
+    couponDiscount: previewPricing.couponDiscount,
+    handleApplyCoupon,
+    handleRemoveCoupon,
   };
 }

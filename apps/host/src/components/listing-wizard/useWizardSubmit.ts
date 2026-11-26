@@ -3,11 +3,6 @@
 import { useState } from "react";
 import type { AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime";
 import type { User } from "@supabase/supabase-js";
-import {
-  extractExtendedLocationToExternalMeta,
-  isMissingBilingualColumnError,
-  stripBilingualColumnsWithFallback,
-} from "@qafnest/shared";
 import { createHostDataClient } from "@/lib/supabase/hostDataClient";
 import { getFirebaseAuth, isFirebaseConfigured } from "@/lib/firebase/client";
 import { uploadPropertyImagesBridge } from "@/lib/storage/uploadBridge";
@@ -250,42 +245,19 @@ export function useWizardSubmit({
         lng: draft.longitude ?? Number((getCityInfo(draft.city).lng + (pin.x - 50) * 0.004).toFixed(6)),
       };
 
-      const insertPayloadPrepared = extractExtendedLocationToExternalMeta(propertyPayload);
-      let { error: insertError } = await supabase.from("properties").insert(insertPayloadPrepared);
-      if (insertError && isMissingBilingualColumnError(insertError)) {
-        const retry = await supabase
-          .from("properties")
-          .insert(stripBilingualColumnsWithFallback(propertyPayload));
-        insertError = retry.error;
-      }
-      if (!insertError) {
+      const apiRes = await fetch("/api/host/properties", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(hostAuthToken ? { Authorization: `Bearer ${hostAuthToken}` } : {}),
+        },
+        body: JSON.stringify(propertyPayload),
+      });
+      if (apiRes.ok) {
         insertSuccess = true;
       } else {
-        // If RLS blocked client-side direct insert, fallback to server API endpoint with verified auth token
-        let fallbackToken = hostAuthToken;
-        if (!fallbackToken) {
-          try {
-            if (isFirebaseConfigured()) {
-              const fbUser = getFirebaseAuth().currentUser;
-              if (fbUser) fallbackToken = await fbUser.getIdToken();
-            }
-          } catch {}
-        }
-
-        const apiRes = await fetch("/api/host/properties", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            ...(fallbackToken ? { Authorization: `Bearer ${fallbackToken}` } : {}),
-          },
-          body: JSON.stringify(propertyPayload),
-        });
-        if (apiRes.ok) {
-          insertSuccess = true;
-        } else {
-          const apiData = await apiRes.json();
-          throw new Error(apiData.message || insertError.message || "Property could not be saved.");
-        }
+        const apiData = await apiRes.json().catch(() => null);
+        throw new Error(apiData?.message || "Property could not be saved.");
       }
 
       if (!insertSuccess) {

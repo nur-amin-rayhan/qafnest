@@ -234,7 +234,7 @@ export async function GET(
   } catch (err: unknown) {
     console.error("Admin availability GET error:", err);
     return NextResponse.json(
-      { code: "internal_error", message: err instanceof Error ? err.message : "Failed to load availability" },
+      { code: "internal_error", message: "Failed to load availability." },
       { status: 500 }
     );
   }
@@ -477,7 +477,7 @@ export async function POST(
   } catch (err: unknown) {
     console.error("Admin availability POST error:", err);
     return NextResponse.json(
-      { code: "internal_error", message: err instanceof Error ? err.message : "Failed to save" },
+      { code: "internal_error", message: "Failed to save availability configuration." },
       { status: 500 }
     );
   }

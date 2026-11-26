@@ -8,28 +8,43 @@ import { ReviewsHeaderStats } from "./reviews/ReviewsHeaderStats";
 import { ReviewsFilterBar } from "./reviews/ReviewsFilterBar";
 import { useAdminAuth } from "@/context/AdminAuthContext";
 
+import { MessageSquare, Loader2 } from "lucide-react";
 import { adminPath } from "@/lib/adminUrl";
 interface GuestReviewsTabProps {
   triggerToast?: (message: string) => void;
 }
 
+// Module-level in-memory cache for instant reviews tab rendering
+let cachedReviews: AdminReviewItem[] | null = null;
+let cachedReviewStats: {
+  totalReviews: number;
+  avgRating: number;
+  pendingCount: number;
+  repliedCount: number;
+} | null = null;
+let cachedTotalPages = 1;
+let cachedTotalCount = 0;
+
 export function GuestReviewsTab({ triggerToast }: GuestReviewsTabProps) {
   const { t, dir } = useAdminAuth();
-  const [reviews, setReviews] = useState<AdminReviewItem[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [reviews, setReviews] = useState<AdminReviewItem[]>(() => cachedReviews || []);
+  const [loading, setLoading] = useState(!cachedReviews);
   const [errorMsg, setErrorMsg] = useState("");
   const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [totalCount, setTotalCount] = useState(0);
+  const [totalPages, setTotalPages] = useState(() => cachedTotalPages);
+  const [totalCount, setTotalCount] = useState(() => cachedTotalCount);
   const [statusFilter, setStatusFilter] = useState<"all" | "pending" | "replied">("all");
   const [searchQuery, setSearchQuery] = useState("");
 
-  const [stats, setStats] = useState({
-    totalReviews: 0,
-    avgRating: 0,
-    pendingCount: 0,
-    repliedCount: 0,
-  });
+  const [stats, setStats] = useState(
+    () =>
+      cachedReviewStats || {
+        totalReviews: 0,
+        avgRating: 0,
+        pendingCount: 0,
+        repliedCount: 0,
+      }
+  );
 
   // Modal State for Drafting/Editing Replies
   const [selectedReviewForReply, setSelectedReviewForReply] = useState<AdminReviewItem | null>(null);
@@ -48,7 +63,10 @@ export function GuestReviewsTab({ triggerToast }: GuestReviewsTabProps) {
   );
 
   const fetchReviews = useCallback(async () => {
-    setLoading(true);
+    const isSilent = Boolean(cachedReviews !== null);
+    if (!isSilent) {
+      setLoading(true);
+    }
     setErrorMsg("");
     try {
       const params = new URLSearchParams({
@@ -67,11 +85,18 @@ export function GuestReviewsTab({ triggerToast }: GuestReviewsTabProps) {
 
       const data = await res.json();
       if (data.success) {
-        setReviews(data.reviews || []);
-        setTotalPages(data.totalPages || 1);
-        setTotalCount(data.total || 0);
+        const revs = data.reviews || [];
+        setReviews(revs);
+        cachedReviews = revs;
+        const tp = data.totalPages || 1;
+        setTotalPages(tp);
+        cachedTotalPages = tp;
+        const tot = data.total || 0;
+        setTotalCount(tot);
+        cachedTotalCount = tot;
         if (data.stats) {
           setStats(data.stats);
+          cachedReviewStats = data.stats;
         }
       } else {
         throw new Error(data.message || "Failed to load reviews");
@@ -80,7 +105,9 @@ export function GuestReviewsTab({ triggerToast }: GuestReviewsTabProps) {
       console.error("Reviews load error:", err);
       setErrorMsg(t("Failed to load verified guest reviews.", "تعذر تحميل تقييمات الضيوف الموثقة."));
     } finally {
-      setLoading(false);
+      if (!isSilent) {
+        setLoading(false);
+      }
     }
   }, [page, statusFilter, t]);
 
@@ -240,19 +267,19 @@ export function GuestReviewsTab({ triggerToast }: GuestReviewsTabProps) {
 
       {/* Reviews List */}
       {loading ? (
-        <div className="rounded-2xl bg-surface-container-lowest p-12 text-center border border-surface-container shadow-sm">
-          <span className="inline-block h-8 w-8 animate-spin rounded-full border-3 border-primary border-t-transparent" />
-          <p className="text-xs font-semibold text-outline mt-3">
+        <div className="rounded-2xl bg-white dark:bg-[#0E0D16] p-12 text-center border border-slate-200/90 dark:border-slate-800 shadow-xs">
+          <Loader2 className="h-8 w-8 animate-spin text-[#4F2396] dark:text-purple-400 mx-auto" />
+          <p className="text-xs sm:text-sm font-semibold text-slate-500 dark:text-slate-400 mt-3">
             {t("Loading verified reviews...", "جارٍ تحميل التقييمات الموثقة...")}
           </p>
         </div>
       ) : filteredReviews.length === 0 ? (
-        <div className="rounded-2xl bg-surface-container-lowest p-12 text-center border border-surface-container shadow-sm">
-          <span className="material-symbols-outlined text-[42px] text-outline">chat_bubble_outline</span>
-          <h3 className="mt-2 text-base font-bold text-on-surface">
+        <div className="rounded-2xl bg-white dark:bg-[#0E0D16] p-12 text-center border border-slate-200/90 dark:border-slate-800 shadow-xs">
+          <MessageSquare className="w-10 h-10 text-slate-400 dark:text-slate-500 mx-auto stroke-[1.5]" />
+          <h3 className="mt-2 text-base sm:text-lg font-bold text-slate-900 dark:text-slate-100">
             {t("No reviews found", "لم يتم العثور على تقييمات")}
           </h3>
-          <p className="text-xs text-outline mt-1">
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
             {searchQuery
               ? t("No reviews match your current search query.", "لا توجد تقييمات تطابق بحثك الحالي.")
               : statusFilter === "pending"
@@ -279,10 +306,10 @@ export function GuestReviewsTab({ triggerToast }: GuestReviewsTabProps) {
 
       {/* Pagination Controls */}
       {totalPages > 1 && (
-        <div className="flex flex-wrap items-center justify-between gap-3 pt-4 border-t border-surface-container">
-          <p className="text-xs text-outline font-medium">
-            {t("Showing Page", "عرض الصفحة")} <strong className="text-on-surface">{page}</strong>{" "}
-            {t("of", "من")} <strong className="text-on-surface">{totalPages}</strong> ({totalCount}{" "}
+        <div className="flex flex-wrap items-center justify-between gap-3 pt-4 border-t border-slate-200/90 dark:border-slate-800">
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-medium">
+            {t("Showing Page", "عرض الصفحة")} <strong className="text-slate-900 dark:text-slate-100">{page}</strong>{" "}
+            {t("of", "من")} <strong className="text-slate-900 dark:text-slate-100">{totalPages}</strong> ({totalCount}{" "}
             {t("verified reviews", "تقييم موثق")})
           </p>
           <div className="flex items-center gap-2">
@@ -290,7 +317,7 @@ export function GuestReviewsTab({ triggerToast }: GuestReviewsTabProps) {
               type="button"
               onClick={() => setPage((p) => Math.max(1, p - 1))}
               disabled={page <= 1 || loading}
-              className="px-3.5 py-1.5 rounded-xl border border-surface-container-high bg-surface-container-lowest text-xs font-bold text-on-surface hover:bg-surface-container disabled:opacity-40 transition-colors cursor-pointer"
+              className="px-3.5 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs sm:text-sm font-semibold text-slate-800 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-40 transition-colors cursor-pointer"
             >
               {t("Previous", "السابق")}
             </button>
@@ -298,7 +325,7 @@ export function GuestReviewsTab({ triggerToast }: GuestReviewsTabProps) {
               type="button"
               onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
               disabled={page >= totalPages || loading}
-              className="px-3.5 py-1.5 rounded-xl border border-surface-container-high bg-surface-container-lowest text-xs font-bold text-on-surface hover:bg-surface-container disabled:opacity-40 transition-colors cursor-pointer"
+              className="px-3.5 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs sm:text-sm font-semibold text-slate-800 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-40 transition-colors cursor-pointer"
             >
               {t("Next", "التالي")}
             </button>

@@ -26,17 +26,20 @@ export { OTP_LENGTH, withLang };
 interface UseHostAuthFlowOptions {
   effectiveLang: "ar" | "en";
   returnUrl?: string;
+  initialAuthMode?: "signin" | "signup";
   onSuccess?: () => void;
 }
 
 export function useHostAuthFlow({
   effectiveLang,
   returnUrl = "/app",
+  initialAuthMode = "signin",
   onSuccess,
 }: UseHostAuthFlowOptions) {
   const { setHostUser } = useHostAuth();
   const [supabase] = useState(() => createClient());
 
+  const [authMode, setAuthMode] = useState<"signin" | "signup">(initialAuthMode);
   const [activeTab, setActiveTab] = useState<AuthTab>("phone");
   const [phoneStep, setPhoneStep] = useState<PhoneStep>("phone_input");
   const [otpChannel, setOtpChannel] = useState<OtpChannel>("sms");
@@ -51,11 +54,32 @@ export function useHostAuthFlow({
   const [lastName, setLastName] = useState("");
   const [contactEmail, setContactEmail] = useState("");
 
-  // Email login state
-  const [isEmailSignIn, setIsEmailSignIn] = useState(true);
+  // Email login state (defaults based on initialAuthMode)
+  const [isEmailSignIn, setIsEmailSignIn] = useState(initialAuthMode !== "signup");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [hostBusinessName, setHostBusinessName] = useState("");
+
+  // Keep authMode synced if initialAuthMode prop changes
+  useEffect(() => {
+    if (initialAuthMode) {
+      setAuthMode(initialAuthMode);
+      setIsEmailSignIn(initialAuthMode !== "signup");
+    }
+  }, [initialAuthMode]);
+
+  const toggleAuthMode = () => {
+    setAuthMode((prev) => {
+      const next = prev === "signin" ? "signup" : "signin";
+      setIsEmailSignIn(next !== "signup");
+      return next;
+    });
+  };
+
+  const handleSetIsEmailSignIn = (val: boolean) => {
+    setIsEmailSignIn(val);
+    setAuthMode(val ? "signin" : "signup");
+  };
 
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -132,7 +156,10 @@ export function useHostAuthFlow({
     } catch (err: unknown) {
       setErrorMsg(getFirebaseErrorMessage(err));
       try {
-        recaptchaVerifierRef.current?.render();
+        if (typeof window !== "undefined") {
+          const w = window as unknown as { grecaptcha?: { reset: () => void } };
+          w.grecaptcha?.reset?.();
+        }
       } catch {}
     } finally {
       setLoading(false);
@@ -273,18 +300,46 @@ export function useHostAuthFlow({
   };
 
   return {
-    activeTab, setActiveTab, phoneStep, setPhoneStep,
-    otpChannel, setOtpChannel, phone, setPhone,
-    sentPhoneDisplay, otp, otpTimer,
-    firstName, setFirstName, lastName, setLastName,
-    contactEmail, setContactEmail,
-    isEmailSignIn, setIsEmailSignIn,
-    email, setEmail, password, setPassword,
-    hostBusinessName, setHostBusinessName,
-    loading, errorMsg, setErrorMsg, successMsg,
-    recaptchaContainerRef, otpInputRefs,
-    handleSendPhoneOtp, handleOtpChange, handleOtpKeyDown,
-    handleVerifyOtp, handleSaveHostProfile, handleEmailAuth,
+    authMode,
+    setAuthMode,
+    toggleAuthMode,
+    activeTab,
+    setActiveTab,
+    phoneStep,
+    setPhoneStep,
+    otpChannel,
+    setOtpChannel,
+    phone,
+    setPhone,
+    sentPhoneDisplay,
+    otp,
+    otpTimer,
+    firstName,
+    setFirstName,
+    lastName,
+    setLastName,
+    contactEmail,
+    setContactEmail,
+    isEmailSignIn,
+    setIsEmailSignIn: handleSetIsEmailSignIn,
+    email,
+    setEmail,
+    password,
+    setPassword,
+    hostBusinessName,
+    setHostBusinessName,
+    loading,
+    errorMsg,
+    setErrorMsg,
+    successMsg,
+    recaptchaContainerRef,
+    otpInputRefs,
+    handleSendPhoneOtp,
+    handleOtpChange,
+    handleOtpKeyDown,
+    handleVerifyOtp,
+    handleSaveHostProfile,
+    handleEmailAuth,
     finishAuth,
   };
 }

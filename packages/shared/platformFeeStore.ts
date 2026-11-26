@@ -27,6 +27,8 @@ const normalizePlatformFeeConfig = (parsed: unknown): PlatformFeeConfig => {
         typeof candidate.guestFixedFeeAmountSar === "number" ? candidate.guestFixedFeeAmountSar : 0,
       guestServiceFeePercent:
         typeof candidate.guestServiceFeePercent === "number" ? candidate.guestServiceFeePercent : 13.0,
+      vatRatePercent:
+        typeof candidate.vatRatePercent === "number" ? candidate.vatRatePercent : 15.0,
       welcomeBonusAmountSar:
         typeof candidate.welcomeBonusAmountSar === "number" ? candidate.welcomeBonusAmountSar : 50.0,
       welcomeBonusEnabled: candidate.welcomeBonusEnabled !== false,

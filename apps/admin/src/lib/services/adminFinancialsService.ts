@@ -1,5 +1,6 @@
 import fs from "fs";
 import path from "path";
+import { sanitizeCsvCell } from "@qafnest/shared/escapeHtml";
 import { createAdminDataClient } from "@/lib/adminApi";
 import { getServerPlatformFeeConfig, hydratePlatformFeeConfig } from "@qafnest/shared/platformFeeStore";
 import { hydrateBookingFinancialsStore, resolveBookingSettlement } from "@qafnest/shared/bookingFinancialsStore";
@@ -125,12 +126,12 @@ export async function getAdminFinancialData() {
             "id, booking_reference, total_price, status, payment_status, check_in, check_out, total_nights, created_at, guest_id, auth_subject, property_id, properties(id, title, category, host_id, base_price)"
           )
           .order("created_at", { ascending: false })
-          .limit(200),
+          .limit(2000),
         supabase
           .from("properties")
           .select("id, title, category, status, is_approved, base_price, host_id, created_at")
           .order("created_at", { ascending: false })
-          .limit(500),
+          .limit(2000),
         supabase.auth.admin.listUsers({ page: 1, perPage: 200 }).catch(() => ({ data: { users: [] } })),
       ]);
 
@@ -190,36 +191,34 @@ export async function getAdminFinancialData() {
         }
       }
 
-      if (confirmedBookings.length > 0) {
-        const mapped = confirmedBookings.map((b: any) => {
-          const prop = Array.isArray(b.properties) ? b.properties[0] : b.properties;
-          const guestProf = b.guest_id ? profileMap.get(b.guest_id) : undefined;
-          const hostProf = prop?.host_id ? profileMap.get(prop.host_id) : undefined;
-          const authHost = prop?.host_id ? authHostMeta.get(prop.host_id) : undefined;
-          return {
-            id: b.id,
-            booking_reference: b.booking_reference,
-            total_price: b.total_price,
-            status: b.status,
-            payment_status: b.payment_status,
-            check_in: b.check_in,
-            check_out: b.check_out,
-            total_nights: b.total_nights,
-            created_at: b.created_at,
-            guest_name: guestProf?.full_name || b.auth_subject || "",
-            property: prop
-              ? {
-                  ...prop,
-                  price_per_night: prop.base_price,
-                  host_name: hostProf?.full_name || authHost?.name || "",
-                  host_phone: hostProf?.phone || authHost?.phone || "",
-                }
-              : null,
-          };
-        });
+      const mapped = confirmedBookings.map((b: any) => {
+        const prop = Array.isArray(b.properties) ? b.properties[0] : b.properties;
+        const guestProf = b.guest_id ? profileMap.get(b.guest_id) : undefined;
+        const hostProf = prop?.host_id ? profileMap.get(prop.host_id) : undefined;
+        const authHost = prop?.host_id ? authHostMeta.get(prop.host_id) : undefined;
+        return {
+          id: b.id,
+          booking_reference: b.booking_reference,
+          total_price: b.total_price,
+          status: b.status,
+          payment_status: b.payment_status,
+          check_in: b.check_in,
+          check_out: b.check_out,
+          total_nights: b.total_nights,
+          created_at: b.created_at,
+          guest_name: guestProf?.full_name || b.auth_subject || "",
+          property: prop
+            ? {
+                ...prop,
+                price_per_night: prop.base_price,
+                host_name: hostProf?.full_name || authHost?.name || "",
+                host_phone: hostProf?.phone || authHost?.phone || "",
+              }
+            : null,
+        };
+      });
 
-        payouts = syncConfirmedBookingsToPayouts(mapped);
-      }
+      payouts = syncConfirmedBookingsToPayouts(mapped);
     } catch (err) {
       console.warn("[adminFinancialsService] booking sync fallback:", err);
     }
@@ -227,9 +226,12 @@ export async function getAdminFinancialData() {
 
   const feeCfg = getServerPlatformFeeConfig();
   const bookingPayouts = payouts.filter((p) => p.source !== "host_request");
-  const payoutGrossSum = bookingPayouts.reduce((sum, p) => sum + p.grossAmount, 0);
-  if (liveGrossVolume === 0) {
-    liveGrossVolume = payoutGrossSum;
+
+  if (liveGrossVolume <= 0 && bookingPayouts.length > 0) {
+    liveGrossVolume = bookingPayouts.reduce(
+      (sum, p) => sum + (Number(p.guestPaidTotal || p.grossAmount) || 0),
+      0
+    );
   }
 
   const commissionRatePct = feeCfg.baseCommissionPercent;
@@ -243,7 +245,7 @@ export async function getAdminFinancialData() {
         })
       : null;
   const platformCommissionTotal =
-    bookingPayouts.length > 0
+    liveGrossVolume > 0 && bookingPayouts.length > 0
       ? Math.round(
           bookingPayouts.reduce(
             (sum, p) =>
@@ -258,7 +260,7 @@ export async function getAdminFinancialData() {
         ) / 100
       : fallbackSettlement?.platformNetRevenueSar ?? 0;
   const vatCollectedTotal =
-    bookingPayouts.length > 0
+    liveGrossVolume > 0 && bookingPayouts.length > 0
       ? Math.round(bookingPayouts.reduce((sum, p) => sum + (Number(p.vatAmount) || 0), 0) * 100) / 100
       : fallbackSettlement?.governmentVatRemittanceSar ?? 0;
 
@@ -656,11 +658,10 @@ function resolveMyFatoorahEnv(): { apiKey?: string; baseUrl: string } {
   let apiKey = process.env.MYFATOORAH_API_KEY?.trim();
   let baseUrl = process.env.MYFATOORAH_BASE_URL?.trim();
 
-  if (!apiKey) {
+  if (!apiKey && process.env.NODE_ENV !== "production") {
     const candidates = [
       path.join(process.cwd(), ".env.local"),
       path.join(process.cwd(), "..", "..", ".env.local"),
-      path.join(process.cwd(), "..", "guest", ".env.local"),
     ];
     for (const filePath of candidates) {
       try {
@@ -767,20 +768,20 @@ export function generateSarieCsvString(): string {
   ];
 
   const rows = payouts.map((p) => [
-    p.reference,
-    p.scheduledDate,
-    p.slaDeadlineAt,
-    `"${p.hostName.replace(/"/g, '""')}"`,
-    p.iban,
-    `"${p.bankName.replace(/"/g, '""')}"`,
+    sanitizeCsvCell(p.reference),
+    sanitizeCsvCell(p.scheduledDate),
+    sanitizeCsvCell(p.slaDeadlineAt),
+    sanitizeCsvCell(p.hostName),
+    sanitizeCsvCell(p.iban),
+    sanitizeCsvCell(p.bankName),
     p.grossAmount.toFixed(2),
     p.commissionAmount.toFixed(2),
     p.vatAmount.toFixed(2),
     p.netPayoutAmount.toFixed(2),
-    p.status.toUpperCase(),
-    p.hostPhone,
-    p.sarieTxnId || "N/A",
+    sanitizeCsvCell(p.status.toUpperCase()),
+    sanitizeCsvCell(p.hostPhone),
+    sanitizeCsvCell(p.sarieTxnId || "N/A"),
   ]);
 
-  return [headers.join(","), ...rows.map((r) => r.join(","))].join("\r\n");
+  return [headers.map(sanitizeCsvCell).join(","), ...rows.map((r) => r.join(","))].join("\r\n");
 }

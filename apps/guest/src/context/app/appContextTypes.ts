@@ -3,12 +3,6 @@ import type { Language, TRANSLATIONS } from "@/data/translations";
 export type { Language };
 export type Currency = "SAR";
 
-export interface BookingModalState {
-  isOpen: boolean;
-  propertyTitle: string;
-  basePrice: number;
-}
-
 export interface AppContextType {
   language: Language;
   setLanguage: (lang: Language) => void;
@@ -44,9 +38,6 @@ export interface AppContextType {
   setStayTiming: (t: string) => void;
   rentMode: "daily" | "monthly";
   setRentMode: (m: "daily" | "monthly") => void;
-  bookingModal: BookingModalState;
-  openBookingModal: (title: string, price: number) => void;
-  closeBookingModal: () => void;
   searchModalOpen: boolean;
   openSearchModal: () => void;
   closeSearchModal: () => void;

@@ -1,8 +1,18 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { getSupabaseConfig, isSupabaseConfigured } from "@/lib/supabase/config";
+import { verifyPortalSessionTokenEdge } from "@qafnest/shared/portalSessionEdge";
 
-const PROTECTED_PREFIXES = ["/admin", "/dashboard", "/api/admin"];
+const PROTECTED_PREFIXES = [
+  "/admin",
+  "/dashboard",
+  "/api/admin",
+  "/account",
+  "/my-bookings",
+  "/profile",
+  "/settings",
+  "/wishlist",
+];
 
 interface JwkCache {
   keys: Array<Record<string, unknown>>;
@@ -116,7 +126,8 @@ export async function middleware(request: NextRequest) {
   const isApi = pathname.startsWith("/api/");
   const isStatic =
     pathname.startsWith("/_next/") ||
-    /\.(?:svg|png|jpg|jpeg|gif|webp|woff|woff2|ttf|ico|json|txt|xml)$/i.test(pathname);
+    pathname === "/firebase-messaging-sw.js" ||
+    /\.(?:svg|png|jpg|jpeg|gif|webp|woff|woff2|ttf|ico|json|txt|xml|js|css|map)$/i.test(pathname);
 
   if (isStatic) {
     return NextResponse.next({ request });
@@ -148,6 +159,8 @@ export async function middleware(request: NextRequest) {
 
   let response = NextResponse.next({ request });
   let isSupabaseVerified = false;
+  let verifiedSubject: string | null = null;
+  let isAdminUser = false;
 
   if (isSupabaseConfigured()) {
     try {
@@ -168,29 +181,65 @@ export async function middleware(request: NextRequest) {
         },
       });
 
-      // Cryptographically verify Supabase user session token
+      // Cryptographically verify Supabase user session token & enforce guest portal decoupling
       const { data: { user }, error } = await supabase.auth.getUser();
       if (!error && user) {
-        isSupabaseVerified = true;
+        const devHostId = process.env.NEXT_PUBLIC_DEV_HOST_ID || "00000000-0000-0000-0000-000000000002";
+        const isHost =
+          user.app_metadata?.role === "host" ||
+          user.user_metadata?.role === "host" ||
+          user.id === devHostId;
+        if (!isHost) {
+          isSupabaseVerified = true;
+          verifiedSubject = user.id;
+          if (user.app_metadata?.role === "admin") {
+            isAdminUser = true;
+          } else if (internalPath === "/admin" || internalPath.startsWith("/admin/") || internalPath === "/api/admin" || internalPath.startsWith("/api/admin/")) {
+            const { data: reviewAdmin } = await supabase
+              .from("review_admins")
+              .select("auth_subject")
+              .eq("auth_subject", user.id)
+              .maybeSingle();
+            if (reviewAdmin?.auth_subject) {
+              isAdminUser = true;
+            }
+          }
+        }
       }
     } catch {}
   }
 
   if (isProtected) {
-    let isFirebaseVerified = false;
+    let isSessionCookieVerified = false;
     const sessionCookie = request.cookies.get("qafnest_has_session")?.value;
 
-    // Verify token value
     if (sessionCookie) {
-      if (process.env.NODE_ENV !== "production" && sessionCookie === "dev_guest_token") {
-        isFirebaseVerified = true;
+      const signedGuest = await verifyPortalSessionTokenEdge(sessionCookie, "guest");
+      if (signedGuest) {
+        isSessionCookieVerified = true;
+        if (!verifiedSubject) verifiedSubject = signedGuest.sub;
+      } else if (process.env.NODE_ENV !== "production" && sessionCookie === "dev_guest_token") {
+        isSessionCookieVerified = true;
+        if (!verifiedSubject) {
+          verifiedSubject = process.env.NEXT_PUBLIC_DEV_GUEST_ID || "00000000-0000-0000-0000-000000000001";
+        }
       } else if (sessionCookie !== "1" && sessionCookie !== "dev_guest_token") {
-        isFirebaseVerified = await verifyEdgeFirebaseToken(sessionCookie);
+        const isFbValid = await verifyEdgeFirebaseToken(sessionCookie);
+        if (isFbValid) {
+          isSessionCookieVerified = true;
+          try {
+            const payloadBytes = base64UrlToUint8Array(sessionCookie.split(".")[1] || "");
+            const payload = JSON.parse(new TextDecoder().decode(payloadBytes));
+            if (typeof payload?.sub === "string" && !verifiedSubject) {
+              verifiedSubject = payload.sub;
+            }
+          } catch {}
+        }
       }
     }
 
-    // If neither Supabase nor Firebase token passed verification, return 401 for API or redirect for pages
-    if (!isSupabaseVerified && !isFirebaseVerified) {
+    // If neither Supabase nor Firebase/portal session passed verification, return 401 for API or redirect for pages
+    if (!isSupabaseVerified && !isSessionCookieVerified) {
       if (isApi) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
       }
@@ -202,6 +251,46 @@ export async function middleware(request: NextRequest) {
       redirectResponse.cookies.delete("qafnest_has_session");
       redirectResponse.cookies.delete("qafnest_verified_guest");
       return redirectResponse;
+    }
+
+    // Enforce admin role / review_admins check on /admin and /api/admin routes
+    const isAdminRoute =
+      internalPath === "/admin" ||
+      internalPath.startsWith("/admin/") ||
+      internalPath === "/api/admin" ||
+      internalPath.startsWith("/api/admin/");
+    if (isAdminRoute && !isAdminUser) {
+      if (verifiedSubject && isSupabaseConfigured()) {
+        try {
+          const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
+          const { url } = getSupabaseConfig();
+          if (serviceKey && url) {
+            const res = await fetch(
+              `${url}/rest/v1/review_admins?auth_subject=eq.${encodeURIComponent(verifiedSubject)}&select=auth_subject&limit=1`,
+              {
+                headers: {
+                  apikey: serviceKey,
+                  Authorization: `Bearer ${serviceKey}`,
+                },
+                cache: "no-store",
+              }
+            );
+            if (res.ok) {
+              const rows = (await res.json()) as Array<{ auth_subject?: string }>;
+              if (Array.isArray(rows) && rows.length > 0) {
+                isAdminUser = true;
+              }
+            }
+          }
+        } catch {}
+      }
+
+      if (!isAdminUser) {
+        if (isApi) {
+          return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+        }
+        return NextResponse.redirect(new URL(`/${activeLocale}/`, request.url));
+      }
     }
   }
 
@@ -233,11 +322,19 @@ export async function middleware(request: NextRequest) {
     sameSite: "lax",
   });
 
+  if (
+    process.env.NODE_ENV !== "production" &&
+    !isApi &&
+    request.headers.get("sec-fetch-dest") === "document"
+  ) {
+    response.headers.set("Clear-Site-Data", '"cache"');
+  }
+
   return response;
 }
 
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|firebase-messaging-sw\\.js|.*\\.(?:svg|png|jpg|jpeg|gif|webp|avif|ico|woff|woff2|ttf|eot|js|css)$).*)",
   ],
 };

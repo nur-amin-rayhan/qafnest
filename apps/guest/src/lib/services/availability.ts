@@ -58,10 +58,6 @@ export interface LiveAvailabilityResult {
   slotConfig?: PropertyBookingSlotConfig;
 }
 
-const DEFAULT_BOOKED_RANGES: Record<string, BookedDateRange[]> = {};
-
-const LOCAL_STORAGE_KEY = "qafnest_booked_dates";
-
 function getStoredBookings(): Record<string, BookedDateRange[]> {
   return {};
 }
@@ -158,36 +154,16 @@ export async function fetchLivePropertyAvailability(propertyId: string): Promise
 }
 
 export function recordBookedRange(
-  propertyId: string,
-  checkIn: string,
-  checkOut: string,
-  bookingRef: string,
-  checkinTime: string = DEFAULT_CHECKIN_TIME,
-  checkoutTime: string = DEFAULT_CHECKOUT_TIME
+  _propertyId: string,
+  _checkIn: string,
+  _checkOut: string,
+  _bookingRef: string,
+  _checkinTime: string = DEFAULT_CHECKIN_TIME,
+  _checkoutTime: string = DEFAULT_CHECKOUT_TIME
 ): void {
-  if (typeof window === "undefined") return;
-  try {
-    const raw = window.localStorage.getItem(LOCAL_STORAGE_KEY);
-    const data: Record<string, BookedDateRange[]> = raw ? JSON.parse(raw) : {};
-    if (!data[propertyId]) data[propertyId] = [];
-    data[propertyId].push({ checkIn, checkOut, bookingRef, checkinTime, checkoutTime });
-    window.localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(data));
-  } catch (err) {
-    console.error("Failed to persist booked range locally:", err);
-  }
+  // Server database availability is the single source of truth; do not persist stale browser ranges.
 }
 
-export function removeBookedRange(propertyId: string, bookingRef: string): void {
-  if (typeof window === "undefined" || !bookingRef) return;
-  try {
-    const raw = window.localStorage.getItem(LOCAL_STORAGE_KEY);
-    if (!raw) return;
-    const data: Record<string, BookedDateRange[]> = JSON.parse(raw);
-    if (data[propertyId]) {
-      data[propertyId] = data[propertyId].filter((r) => r.bookingRef !== bookingRef);
-      window.localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(data));
-    }
-  } catch (err) {
-    console.error("Failed to remove booked range locally:", err);
-  }
+export function removeBookedRange(_propertyId: string, _bookingRef: string): void {
+  // Server database availability is the single source of truth.
 }

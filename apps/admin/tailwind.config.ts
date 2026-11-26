@@ -26,7 +26,7 @@ const config: Config = {
         "status-terracotta": "#D94F3D",
         "surface-container": "#ededf8",
         "secondary-fixed-dim": "#c1c2fa",
-        primary: "#38007c",
+        primary: "#4F2396",
         "on-secondary-fixed-variant": "#404272",
         "primary-fixed": "#ebdcff",
         "tertiary-fixed": "#ffddba",

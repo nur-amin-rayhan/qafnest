@@ -24,7 +24,11 @@ export function getAllBlogs(): SharedBlogPost[] {
 
 export function getBlogBySlug(slug: string): SharedBlogPost | null {
   const blogs = getAllBlogs();
-  return blogs.find((b) => b.slug.toLowerCase() === slug.toLowerCase()) || null;
+  const cleanSlug = slug.toLowerCase();
+  if (cleanSlug === "jeddah-beachfront-villas-guide") {
+    return blogs.find((b) => b.slug.toLowerCase() === "obhur-private-beach-villas-jeddah-coastal-living") || null;
+  }
+  return blogs.find((b) => b.slug.toLowerCase() === cleanSlug) || null;
 }
 
 export function getBlogById(id: string): SharedBlogPost | null {

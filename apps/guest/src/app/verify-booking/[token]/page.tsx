@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useParams } from "next/navigation";
 import { CheckCircle2, ShieldCheck, Phone, AlertCircle, RefreshCw } from "lucide-react";
 
@@ -35,11 +35,7 @@ export default function VerifyBookingPage({
   const [submittingId, setSubmittingId] = useState(false);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetchSession();
-  }, [token]);
-
-  async function fetchSession() {
+  const fetchSession = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -54,7 +50,11 @@ export default function VerifyBookingPage({
     } finally {
       setLoading(false);
     }
-  }
+  }, [token]);
+
+  useEffect(() => {
+    fetchSession();
+  }, [fetchSession]);
 
   async function handleVerifyOtp(e: React.FormEvent) {
     e.preventDefault();

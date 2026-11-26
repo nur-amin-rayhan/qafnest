@@ -30,8 +30,10 @@ import { getServerEffectiveGuestFeeConfig } from "@qafnest/shared/platformFeeSto
 import { hydrateSharedJsonFile } from "@qafnest/shared/serverJsonStore";
 import { DEFAULT_FEE_CONFIG } from "@qafnest/shared/platformFee";
 import {
+  deductWalletForBooking,
   getUserWallet,
   getUserSavedCards,
+  refundWalletForBooking,
   registerPendingWalletSplit,
   SavedCard,
 } from "@/lib/services/walletService";
@@ -41,7 +43,7 @@ import {
   recordCheckoutFinancialSnapshot,
 } from "./checkoutSettlement";
 
-const paymentMethods = ["card", "apple", "google", "stcpay", "samsung", "tabby", "tamara", "wallet"] as const;
+const paymentMethods = ["card", "mada", "apple", "google", "stcpay", "samsung", "tabby", "tamara", "wallet"] as const;
 type PaymentMethod = (typeof paymentMethods)[number];
 
 export async function POST(request: Request) {
@@ -218,7 +220,7 @@ async function executeCheckoutPost(request: Request) {
     if (!savedCard) {
       return NextResponse.json({ code: "card_not_found", message: "Selected saved card could not be found." }, { status: 404 });
     }
-    const hasUsableCvv = Boolean((cardCvv && cardCvv.length >= 3) || savedCard.cvvToken);
+    const hasUsableCvv = Boolean(cardCvv && /^\d{3,4}$/.test(cardCvv.trim()));
     if (savedCard.supportsDirectCharge && !hasUsableCvv) {
       return NextResponse.json(
         { code: "cvv_required", message: "Card CVV security code is required for saved card payments." },
@@ -383,6 +385,28 @@ async function executeCheckoutPost(request: Request) {
         };
       }
 
+      if (walletApplied > 0 && gatewayAmount > 0) {
+        const reserveResult = await deductWalletForBooking({
+          userId: effectiveUserId,
+          amount: walletApplied,
+          bookingRef,
+          propertyTitle: `${propTitle} (Wallet Split)`,
+        });
+        if (!reserveResult.success) {
+          return {
+            immediateResponse: NextResponse.json(
+              {
+                code: "insufficient_wallet_balance",
+                message: reserveResult.error || "Insufficient wallet balance for split checkout.",
+                availableBalance: reserveResult.newBalance,
+              },
+              { status: 400 }
+            ),
+          };
+        }
+        estimatedWelcomeBonusUsed = reserveResult.welcomeBonusUsed;
+      }
+
       const { bookingId, bookingPersisted, overlapConflict } = await persistBookingToDatabase({
         dbClient,
         resolvedDbPropertyId,
@@ -400,6 +424,15 @@ async function executeCheckoutPost(request: Request) {
       });
 
       if (!bookingPersisted) {
+        if (walletApplied > 0 && gatewayAmount > 0) {
+          await refundWalletForBooking({
+            userId: effectiveUserId,
+            amount: walletApplied,
+            welcomeBonusRestore: estimatedWelcomeBonusUsed,
+            bookingRef,
+            reason: "Booking creation rejected before gateway redirect",
+          }).catch(() => {});
+        }
         return {
           immediateResponse: NextResponse.json(
             overlapConflict
@@ -426,6 +459,9 @@ async function executeCheckoutPost(request: Request) {
         walletAppliedSar: walletApplied,
         welcomeBonusUsedSar: estimatedWelcomeBonusUsed,
         gatewayPaidSar: gatewayAmount,
+        guestName,
+        guestPhone,
+        guestEmail,
       });
 
       if (walletApplied > 0 && gatewayAmount > 0) {
@@ -438,6 +474,7 @@ async function executeCheckoutPost(request: Request) {
           totalAmount: totalPrice,
           gatewayMethod: selectedMethod,
           propertyTitle: propTitle,
+          settled: true,
         });
       }
 

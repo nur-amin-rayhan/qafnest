@@ -15,6 +15,7 @@ import {
   CreditCard,
 } from "lucide-react";
 import type { AdminHostLedger } from "@/lib/services/adminFinancialsService";
+import { computePayoutSlaMetrics } from "@qafnest/shared";
 import { PayoutsLedgerTable } from "./PayoutsLedgerTable";
 import { useAdminAuth } from "@/context/AdminAuthContext";
 
@@ -61,7 +62,10 @@ export function HostLedgersSection({
 }: HostLedgersSectionProps) {
   const { t, dir } = useAdminAuth();
   const [hostSearch, setHostSearch] = useState("");
-  const [hostFilter, setHostFilter] = useState<"all" | "has_due" | "settled" | "new_hosts">("all");
+  const [hostFilter, setHostFilter] = useState<
+    "all" | "host_requested" | "sla_urgent" | "has_due" | "escrow" | "processing" | "settled" | "on_hold"
+  >("all");
+  const [hostPayoutStatusFilter, setHostPayoutStatusFilter] = useState<string>("all");
   const currencyLabel = t("SAR", "ر.س");
 
   const selectedHost = useMemo(
@@ -74,11 +78,44 @@ export function HostLedgersSection({
 
   const filteredHosts = useMemo(() => {
     return hostLedgers.filter((h) => {
-      if (hostFilter === "has_due" && h.pendingDueAmount + h.onHoldAmount <= 0) return false;
-      if (hostFilter === "settled" && (h.pendingDueAmount + h.onHoldAmount > 0 || h.totalPaidOut <= 0)) {
-        return false;
+      if (hostFilter === "host_requested") {
+        const hasRequested = h.payouts?.some(
+          (p) => p.status !== "disbursed" && p.payoutRequestStatus === "requested"
+        );
+        if (!hasRequested) return false;
+      } else if (hostFilter === "sla_urgent") {
+        const hasUrgent = h.payouts?.some((p) => {
+          const m = computePayoutSlaMetrics(p, nowTick);
+          return m.tier === "overdue" || m.tier === "urgent";
+        });
+        if (!hasUrgent) return false;
+      } else if (hostFilter === "has_due") {
+        if (h.pendingDueAmount <= 0 && !h.payouts?.some((p) => p.status === "pending")) {
+          return false;
+        }
+      } else if (hostFilter === "escrow") {
+        const hasEscrow = h.payouts?.some((p) => {
+          if (p.status === "disbursed") return false;
+          const m = computePayoutSlaMetrics(p, nowTick);
+          return m.tier === "escrow";
+        });
+        if (!hasEscrow) return false;
+      } else if (hostFilter === "processing") {
+        const hasProcessing = h.payouts?.some((p) => p.status === "processing");
+        if (!hasProcessing) return false;
+      } else if (hostFilter === "settled") {
+        if (
+          h.pendingDueAmount + h.onHoldAmount > 0 ||
+          (h.totalPaidOut <= 0 && !h.payouts?.some((p) => p.status === "disbursed"))
+        ) {
+          return false;
+        }
+      } else if (hostFilter === "on_hold") {
+        if (h.onHoldAmount <= 0 && !h.payouts?.some((p) => p.status === "on_hold")) {
+          return false;
+        }
       }
-      if (hostFilter === "new_hosts" && h.bookingsCount > 0) return false;
+
       if (hostSearch.trim()) {
         const q = hostSearch.toLowerCase();
         const propMatch = h.properties.some((p) => p.propertyTitle.toLowerCase().includes(q));
@@ -93,27 +130,45 @@ export function HostLedgersSection({
       }
       return true;
     });
-  }, [hostLedgers, hostFilter, hostSearch]);
+  }, [hostLedgers, hostFilter, hostSearch, nowTick]);
+
+  const filteredHostPayouts = useMemo(() => {
+    if (!selectedHost?.payouts) return [];
+    return selectedHost.payouts.filter((p) => {
+      if (hostPayoutStatusFilter === "sla_urgent") {
+        const m = computePayoutSlaMetrics(p, nowTick);
+        if (m.tier !== "overdue" && m.tier !== "urgent") return false;
+      } else if (hostPayoutStatusFilter === "escrow") {
+        const m = computePayoutSlaMetrics(p, nowTick);
+        if (p.status === "disbursed" || m.tier !== "escrow") return false;
+      } else if (hostPayoutStatusFilter === "host_requested") {
+        if (p.status === "disbursed" || p.payoutRequestStatus !== "requested") return false;
+      } else if (hostPayoutStatusFilter !== "all" && p.status !== hostPayoutStatusFilter) {
+        return false;
+      }
+      return true;
+    });
+  }, [selectedHost?.payouts, hostPayoutStatusFilter, nowTick]);
 
   if (selectedHost) {
     const totalPayableAndHold = selectedHost.pendingDueAmount + selectedHost.onHoldAmount;
     return (
       <div dir={dir} className="space-y-6">
         {/* Selected Host Banner & Switcher */}
-        <div className="rounded-2xl border border-primary/20 bg-surface-container-low p-5 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+        <div className="rounded-xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-[#0E0D16] p-5 shadow-xs flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div className="flex items-start gap-3.5">
-            <div className="w-11 h-11 rounded-2xl bg-primary/10 text-primary flex items-center justify-center font-black text-base shrink-0">
+            <div className="w-11 h-11 rounded-xl bg-purple-50 dark:bg-purple-950/50 text-[#4F2396] dark:text-purple-300 border border-purple-200 dark:border-purple-800/50 flex items-center justify-center font-bold text-base shrink-0">
               {(selectedHost.hostName || "H").slice(0, 2).toUpperCase()}
             </div>
             <div>
               <div className="flex flex-wrap items-center gap-2">
-                <h3 className="text-lg font-black text-on-surface">{selectedHost.hostName}</h3>
-                <span className="rounded-full bg-surface-container-lowest border border-surface-container-high px-2.5 py-0.5 text-[10px] font-bold text-on-surface-variant">
+                <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">{selectedHost.hostName}</h3>
+                <span className="rounded-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-2.5 py-0.5 text-[10px] font-medium text-slate-600 dark:text-slate-400">
                   {selectedHost.propertiesCount} {t("Properties", "عقار")} · {selectedHost.bookingsCount}{" "}
                   {t("Bookings", "حجز")}
                 </span>
               </div>
-              <p className="text-xs text-on-surface-variant mt-0.5 font-medium">
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 font-medium">
                 {[selectedHost.hostEmail, selectedHost.hostPhone, selectedHost.bankName, selectedHost.iban]
                   .filter(Boolean)
                   .join(" · ")}
@@ -127,7 +182,7 @@ export function HostLedgersSection({
               onChange={(e) => onSelectHost(e.target.value)}
               data-testid="admin-host-ledger-selector"
               aria-label={t("Switch Host Ledger", "تبديل حساب المضيف")}
-              className="rounded-xl border border-surface-container-high bg-surface-container-lowest px-3 py-2 text-xs font-bold text-on-surface outline-none focus:border-primary cursor-pointer"
+              className="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-1.5 text-xs font-medium text-slate-900 dark:text-slate-100 outline-none focus:ring-1 focus:ring-[#4F2396] cursor-pointer"
             >
               <option value="all">
                 {t(`All Hosts Directory (${hostLedgers.length})`, `دليل جميع المضيفين (${hostLedgers.length})`)}
@@ -144,7 +199,7 @@ export function HostLedgersSection({
               type="button"
               onClick={() => onSelectHost("all")}
               data-testid="admin-host-ledger-back"
-              className="inline-flex items-center gap-1.5 rounded-xl border border-surface-container-high bg-surface-container-lowest hover:bg-surface-container px-3.5 py-2 text-xs font-bold text-on-surface transition cursor-pointer"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 px-3.5 py-1.5 text-xs font-medium text-slate-700 dark:text-slate-300 transition cursor-pointer shadow-xs"
             >
               <RotateCcw size={13} />
               <span>{t("All Hosts", "كل المضيفين")}</span>
@@ -154,85 +209,85 @@ export function HostLedgersSection({
 
         {/* 6 Financial Summary Cards for This Host */}
         <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3.5 text-xs">
-          <div className="rounded-2xl border border-surface-container-high bg-surface-container-lowest p-4">
-            <span className="text-[10px] font-extrabold uppercase text-outline block">
+          <div className="rounded-xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-[#0E0D16] p-4 shadow-xs">
+            <span className="text-[10px] font-medium uppercase text-slate-500 dark:text-slate-400 block">
               {t("Host Gross Listing", "إجمالي إيجارات المضيف")}
             </span>
-            <span className="mt-1.5 text-lg font-black text-on-surface font-mono block">
+            <span className="mt-1.5 text-lg font-semibold text-slate-900 dark:text-slate-100 font-mono tabular-nums block">
               {currencyLabel} {formatSar(selectedHost.grossListingEarnings)}
             </span>
-            <span className="text-[11px] text-on-surface-variant">
+            <span className="text-[11px] text-slate-400 dark:text-slate-500">
               {selectedHost.bookingsCount} {t("confirmed stays", "إقامة مؤكدة")}
             </span>
           </div>
 
-          <div className="rounded-2xl border border-surface-container-high bg-surface-container-lowest p-4">
-            <span className="text-[10px] font-extrabold uppercase text-rose-600 block">
+          <div className="rounded-xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-[#0E0D16] p-4 shadow-xs">
+            <span className="text-[10px] font-medium uppercase text-rose-600 dark:text-rose-400 block">
               {t("Comm & Promo", "العمولة والخصومات")}
             </span>
-            <span className="mt-1.5 text-lg font-black text-rose-600 font-mono block">
+            <span className="mt-1.5 text-lg font-semibold text-rose-600 dark:text-rose-400 font-mono tabular-nums block">
               -{currencyLabel} {formatSar(selectedHost.hostCommissionTotal + selectedHost.promoDiscountTotal)}
             </span>
-            <span className="text-[11px] text-on-surface-variant">
+            <span className="text-[11px] text-slate-400 dark:text-slate-500">
               {t("Promo:", "ترويج:")} {currencyLabel} {formatSar(selectedHost.promoDiscountTotal)}
             </span>
           </div>
 
-          <div className="rounded-2xl border border-surface-container-high bg-surface-container-lowest p-4">
-            <span className="text-[10px] font-extrabold uppercase text-outline block">
+          <div className="rounded-xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-[#0E0D16] p-4 shadow-xs">
+            <span className="text-[10px] font-medium uppercase text-slate-500 dark:text-slate-400 block">
               {t("Host Net Earnings", "صافي أرباح المضيف")}
             </span>
-            <span className="mt-1.5 text-lg font-black text-on-surface font-mono block">
+            <span className="mt-1.5 text-lg font-semibold text-slate-900 dark:text-slate-100 font-mono tabular-nums block">
               {currencyLabel} {formatSar(selectedHost.hostNetEarnings)}
             </span>
-            <span className="text-[11px] text-on-surface-variant">
+            <span className="text-[11px] text-slate-400 dark:text-slate-500">
               {t("Total lifetime payable", "إجمالي المستحق التراكمي")}
             </span>
           </div>
 
-          <div className="rounded-2xl border border-emerald-200 bg-emerald-50/50 p-4">
-            <span className="text-[10px] font-extrabold uppercase text-emerald-700 block">
+          <div className="rounded-xl border border-emerald-200/80 dark:border-emerald-800/80 bg-emerald-50/50 dark:bg-emerald-950/30 p-4 shadow-xs">
+            <span className="text-[10px] font-semibold uppercase text-emerald-700 dark:text-emerald-300 block">
               {t("Paid / Disbursed", "المدفوع / المحوّل")}
             </span>
-            <span className="mt-1.5 text-lg font-black text-emerald-700 font-mono block">
+            <span className="mt-1.5 text-lg font-semibold text-emerald-700 dark:text-emerald-300 font-mono tabular-nums block">
               {currencyLabel} {formatSar(selectedHost.totalPaidOut)}
             </span>
-            <span className="text-[11px] text-emerald-700/80">
+            <span className="text-[11px] text-emerald-700/80 dark:text-emerald-300/80">
               {t("Settled via SARIE", "تم التسديد عبر سريع")}
             </span>
           </div>
 
-          <div className="rounded-2xl border border-amber-200 bg-amber-50/70 p-4">
-            <span className="text-[10px] font-extrabold uppercase text-amber-800 block">
+          <div className="rounded-xl border border-amber-200/80 dark:border-amber-800/80 bg-amber-50/50 dark:bg-amber-950/30 p-4 shadow-xs">
+            <span className="text-[10px] font-semibold uppercase text-amber-800 dark:text-amber-300 block">
               {t("Remaining Due / Hold", "المتبقي / المعلق")}
             </span>
-            <span className="mt-1.5 text-lg font-black text-amber-900 font-mono block">
+            <span className="mt-1.5 text-lg font-semibold text-amber-900 dark:text-amber-200 font-mono tabular-nums block">
               {currencyLabel} {formatSar(totalPayableAndHold)}
             </span>
-            <span className="text-[11px] text-amber-800">
+            <span className="text-[11px] text-amber-800 dark:text-amber-300">
               {t("Due:", "مستحق:")} {formatSar(selectedHost.pendingDueAmount)} · {t("Hold:", "معلق:")}{" "}
               {formatSar(selectedHost.onHoldAmount)}
             </span>
           </div>
 
-          <div className="rounded-2xl border border-primary/20 bg-primary/5 p-4">
-            <span className="text-[10px] font-extrabold uppercase text-primary block">
+          <div className="rounded-xl border border-purple-200/80 dark:border-purple-800/80 bg-purple-50/50 dark:bg-purple-950/30 p-4 shadow-xs">
+            <span className="text-[10px] font-semibold uppercase text-[#4F2396] dark:text-purple-300 block">
               {t("Platform Net Revenue", "صافي إيراد المنصة")}
             </span>
-            <span className="mt-1.5 text-lg font-black text-primary font-mono block">
+            <span className="mt-1.5 text-lg font-semibold text-[#4F2396] dark:text-purple-300 font-mono tabular-nums block">
               {currencyLabel} {formatSar(selectedHost.platformNetFromHost)}
             </span>
-            <span className="text-[11px] text-on-surface-variant">
+            <span className="text-[11px] text-slate-500 dark:text-slate-400">
               {t("Gov VAT:", "ضريبة الزكاة:")} {currencyLabel} {formatSar(selectedHost.vatCollectedOnHostStays)}
             </span>
           </div>
         </div>
 
         {/* Host's Properties Financial Breakdown */}
-        <div className="rounded-2xl border border-surface-container-high bg-surface-container-lowest p-5 space-y-3">
+        <div className="rounded-xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-[#0E0D16] p-5 space-y-3 shadow-xs">
           <div className="flex items-center justify-between">
-            <h4 className="text-sm font-black text-on-surface flex items-center gap-2">
-              <Building2 size={16} className="text-primary" />
+            <h4 className="text-sm font-semibold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+              <Building2 size={16} className="text-[#4F2396] dark:text-purple-400" />
               <span>
                 {t(
                   `Properties Owned by ${selectedHost.hostName} (${selectedHost.properties.length})`,
@@ -242,14 +297,14 @@ export function HostLedgersSection({
             </h4>
           </div>
           {selectedHost.properties.length === 0 ? (
-            <p className="text-xs text-outline py-4">
+            <p className="text-xs text-slate-400 dark:text-slate-500 py-4">
               {t("No properties registered under this host yet.", "لا توجد عقارات مسجلة لهذا المضيف حتى الآن.")}
             </p>
           ) : (
             <div className="overflow-x-auto">
               <table className="min-w-[760px] w-full text-start border-collapse text-xs">
                 <thead>
-                  <tr className="border-b border-surface-container-high text-outline uppercase text-[10px] font-extrabold">
+                  <tr className="border-b border-slate-200/80 dark:border-slate-800 bg-slate-50/75 dark:bg-slate-900/60 text-slate-600 dark:text-slate-400 uppercase text-[10px] font-semibold">
                     <th className="py-2.5 pe-3 text-start">{t("Property", "العقار")}</th>
                     <th className="py-2.5 px-3 text-start">{t("Category / Rate", "الفئة / السعر")}</th>
                     <th className="py-2.5 px-3 text-end">{t("Bookings", "الحجوزات")}</th>
@@ -260,27 +315,27 @@ export function HostLedgersSection({
                     <th className="py-2.5 ps-3 text-end">{t("Due / Remaining", "المتبقي المستحق")}</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-surface-container">
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-slate-900 dark:text-slate-100">
                   {selectedHost.properties.map((p) => (
-                    <tr key={p.propertyId} className="hover:bg-surface-container-low/60">
-                      <td className="py-2.5 pe-3 font-bold text-on-surface">{p.propertyTitle}</td>
-                      <td className="py-2.5 px-3 text-on-surface-variant">
+                    <tr key={p.propertyId} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition">
+                      <td className="py-2.5 pe-3 font-semibold text-slate-900 dark:text-slate-100">{p.propertyTitle}</td>
+                      <td className="py-2.5 px-3 text-slate-500 dark:text-slate-400">
                         {p.category} · {currencyLabel} {formatSar(p.basePrice)}/{t("night", "ليلة")}
                       </td>
                       <td className="py-2.5 px-3 text-end font-mono">{p.bookingsCount}</td>
-                      <td className="py-2.5 px-3 text-end font-mono font-bold">
+                      <td className="py-2.5 px-3 text-end font-mono font-semibold">
                         {currencyLabel} {formatSar(p.grossListingSar)}
                       </td>
-                      <td className="py-2.5 px-3 text-end font-mono text-rose-600">
+                      <td className="py-2.5 px-3 text-end font-mono text-rose-600 dark:text-rose-400">
                         -{currencyLabel} {formatSar(p.hostCommissionSar + p.promoDiscountSar)}
                       </td>
-                      <td className="py-2.5 px-3 text-end font-mono font-bold">
+                      <td className="py-2.5 px-3 text-end font-mono font-semibold">
                         {currencyLabel} {formatSar(p.hostNetEarningsSar)}
                       </td>
-                      <td className="py-2.5 px-3 text-end font-mono text-emerald-700 font-bold">
+                      <td className="py-2.5 px-3 text-end font-mono text-emerald-600 dark:text-emerald-400 font-semibold">
                         {currencyLabel} {formatSar(p.paidOutSar)}
                       </td>
-                      <td className="py-2.5 ps-3 text-end font-mono font-black text-amber-800">
+                      <td className="py-2.5 ps-3 text-end font-mono font-semibold text-amber-700 dark:text-amber-300">
                         {currencyLabel} {formatSar(p.dueSar)}
                       </td>
                     </tr>
@@ -292,9 +347,9 @@ export function HostLedgersSection({
         </div>
 
         {/* Host's Transaction Ledger */}
-        <div className="rounded-2xl border border-surface-container-high bg-surface-container-lowest p-5 space-y-3">
-          <h4 className="text-sm font-black text-on-surface flex items-center gap-2">
-            <CreditCard size={16} className="text-primary" />
+        <div className="rounded-xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-[#0E0D16] p-5 space-y-3 shadow-xs">
+          <h4 className="text-sm font-semibold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+            <CreditCard size={16} className="text-[#4F2396] dark:text-purple-400" />
             <span>
               {t(
                 `Host Booking & Settlement Transactions (${selectedHost.transactions.length})`,
@@ -303,14 +358,14 @@ export function HostLedgersSection({
             </span>
           </h4>
           {selectedHost.transactions.length === 0 ? (
-            <p className="text-xs text-outline py-4">
+            <p className="text-xs text-slate-400 dark:text-slate-500 py-4">
               {t("No confirmed transactions recorded for this host yet.", "لا توجد حركات مالية مؤكدة لهذا المضيف بعد.")}
             </p>
           ) : (
             <div className="overflow-x-auto">
               <table className="min-w-[760px] w-full text-start border-collapse text-xs">
                 <thead>
-                  <tr className="border-b border-surface-container-high text-outline uppercase text-[10px] font-extrabold">
+                  <tr className="border-b border-slate-200/80 dark:border-slate-800 bg-slate-50/75 dark:bg-slate-900/60 text-slate-600 dark:text-slate-400 uppercase text-xs font-semibold">
                     <th className="py-2.5 pe-3 text-start">{t("Booking Ref", "مرجع الحجز")}</th>
                     <th className="py-2.5 px-3 text-start">{t("Property & Stay", "العقار والإقامة")}</th>
                     <th className="py-2.5 px-3 text-end">{t("Guest Paid", "دفع الضيف")}</th>
@@ -322,42 +377,42 @@ export function HostLedgersSection({
                     <th className="py-2.5 ps-3 text-end">{t("Status", "الحالة")}</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-surface-container">
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-slate-900 dark:text-slate-100">
                   {selectedHost.transactions.map((tx) => (
-                    <tr key={tx.bookingId} className="hover:bg-surface-container-low/60">
-                      <td className="py-2.5 pe-3 font-mono font-black text-on-surface">{tx.bookingReference}</td>
+                    <tr key={tx.bookingId} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition">
+                      <td className="py-2.5 pe-3 font-mono font-semibold text-slate-900 dark:text-slate-100 text-sm">{tx.bookingReference}</td>
                       <td className="py-2.5 px-3">
-                        <div className="font-bold text-on-surface">{tx.propertyTitle}</div>
-                        <div className="text-[11px] text-outline">
+                        <div className="font-semibold text-slate-900 dark:text-slate-100 text-sm">{tx.propertyTitle}</div>
+                        <div className="text-xs text-slate-500 dark:text-slate-400">
                           {tx.checkIn} → {tx.checkOut} · {tx.guestName}
                         </div>
                       </td>
-                      <td className="py-2.5 px-3 text-end font-mono">
+                      <td className="py-2.5 px-3 text-end font-mono text-sm">
                         {currencyLabel} {formatSar(tx.guestPaidTotalSar)}
                       </td>
-                      <td className="py-2.5 px-3 text-end font-mono text-amber-700">
+                      <td className="py-2.5 px-3 text-end font-mono text-amber-700 dark:text-amber-400 text-sm">
                         {currencyLabel} {formatSar(tx.govZatcaVatSar)}
                       </td>
-                      <td className="py-2.5 px-3 text-end font-mono font-bold">
+                      <td className="py-2.5 px-3 text-end font-mono font-semibold text-sm">
                         {currencyLabel} {formatSar(tx.listingGrossSar)}
                       </td>
-                      <td className="py-2.5 px-3 text-end font-mono text-rose-600">
+                      <td className="py-2.5 px-3 text-end font-mono text-rose-600 dark:text-rose-400 text-sm">
                         -{currencyLabel} {formatSar(tx.hostCommissionSar + tx.promoDiscountSar)}
                       </td>
-                      <td className="py-2.5 px-3 text-end font-mono font-black text-primary">
+                      <td className="py-2.5 px-3 text-end font-mono font-semibold text-[#4F2396] dark:text-purple-300 text-sm">
                         {currencyLabel} {formatSar(tx.hostNetPayoutSar)}
                       </td>
-                      <td className="py-2.5 px-3 text-end font-mono text-emerald-700 font-bold">
+                      <td className="py-2.5 px-3 text-end font-mono text-emerald-600 dark:text-emerald-400 font-semibold text-sm">
                         {currencyLabel} {formatSar(tx.platformNetRevenueSar)}
                       </td>
                       <td className="py-2.5 ps-3 text-end">
                         <span
-                          className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                          className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold border ${
                             tx.payoutStatus === "disbursed"
-                              ? "bg-emerald-100 text-emerald-800"
+                              ? "bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800/50"
                               : tx.payoutStatus === "on_hold"
-                              ? "bg-amber-100 text-amber-800"
-                              : "bg-violet-100 text-violet-800"
+                              ? "bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800/50"
+                              : "bg-purple-50 dark:bg-purple-950/50 text-[#4F2396] dark:text-purple-300 border border-purple-200 dark:border-purple-800/50"
                           }`}
                         >
                           {tx.payoutStatus === "disbursed" ? (
@@ -385,18 +440,48 @@ export function HostLedgersSection({
         </div>
 
         {/* Scoped Payout Controls for this Host */}
-        <div className="space-y-2">
-          <h4 className="text-sm font-black text-on-surface flex items-center gap-2">
-            <Wallet size={16} className="text-primary" />
-            <span>
-              {t(
-                `Payout Disbursement Actions for ${selectedHost.hostName}`,
-                `إجراءات صرف المستحقات للمضيف ${selectedHost.hostName}`
-              )}
-            </span>
-          </h4>
+        <div className="space-y-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <h4 className="text-sm font-semibold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+              <Wallet size={16} className="text-[#4F2396] dark:text-purple-400" />
+              <span>
+                {t(
+                  `Payout Disbursement Actions for ${selectedHost.hostName}`,
+                  `إجراءات صرف المستحقات للمضيف ${selectedHost.hostName}`
+                )}
+              </span>
+            </h4>
+          </div>
+
+          {/* Sub-sections filter for this host's payouts */}
+          <div className="inline-flex p-1 bg-slate-100 dark:bg-slate-800/80 rounded-lg overflow-x-auto max-w-full">
+            {[
+              { id: "all", labelEn: `All Payouts (${selectedHost.payouts.length})`, labelAr: `كل المدفوعات (${selectedHost.payouts.length})` },
+              { id: "host_requested", labelEn: "Host Requests", labelAr: "طلبات المضيف" },
+              { id: "sla_urgent", labelEn: "24h Urgent / Overdue", labelAr: "عاجلة خلال ٢٤ ساعة" },
+              { id: "escrow", labelEn: "In Escrow (Pre-Check-Out)", labelAr: "في الضمان (قبل المغادرة)" },
+              { id: "pending", labelEn: "Pending", labelAr: "قيد الانتظار" },
+              { id: "processing", labelEn: "Processing", labelAr: "قيد المعالجة" },
+              { id: "disbursed", labelEn: "Disbursed", labelAr: "تم الصرف" },
+              { id: "on_hold", labelEn: "On Hold", labelAr: "معلقة" },
+            ].map((tab) => (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setHostPayoutStatusFilter(tab.id)}
+                className={`px-3 py-1.5 rounded-md text-xs sm:text-sm transition-all whitespace-nowrap cursor-pointer ${
+                  hostPayoutStatusFilter === tab.id
+                    ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-xs font-semibold"
+                    : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 font-medium"
+                }`}
+              >
+                {t(tab.labelEn, tab.labelAr)}
+              </button>
+            ))}
+          </div>
+
           <PayoutsLedgerTable
-            payouts={selectedHost.payouts}
+            payouts={filteredHostPayouts}
             nowTick={nowTick}
             onUpdateStatus={onUpdateStatus}
             onBatchUpdateStatus={onBatchUpdateStatus}
@@ -411,25 +496,29 @@ export function HostLedgersSection({
   // All Hosts Overview Directory
   return (
     <div dir={dir} className="space-y-4">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div className="flex flex-wrap items-center gap-1.5">
+      <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-3">
+        <div className="inline-flex p-1 bg-slate-100 dark:bg-slate-800/80 rounded-lg overflow-x-auto max-w-full">
           {[
-            { id: "all", label: t(`All Hosts (${hostLedgers.length})`, `كل المضيفين (${hostLedgers.length})`) },
-            { id: "has_due", label: t("Due / Payable", "مستحق للدفع") },
-            { id: "settled", label: t("Paid Up", "مكتمل السداد") },
-            { id: "new_hosts", label: t("New / 0 Bookings", "جديد / بدون حجوزات") },
+            { id: "all", labelEn: `All Hosts (${hostLedgers.length})`, labelAr: `كل المضيفين (${hostLedgers.length})` },
+            { id: "host_requested", labelEn: "Host Requests", labelAr: "طلبات المضيفين" },
+            { id: "sla_urgent", labelEn: "24h Urgent / Overdue", labelAr: "عاجلة خلال ٢٤ ساعة" },
+            { id: "escrow", labelEn: "In Escrow (Pre-Check-Out)", labelAr: "في الضمان (قبل المغادرة)" },
+            { id: "has_due", labelEn: "Due / Payable", labelAr: "مستحق للدفع" },
+            { id: "processing", labelEn: "Processing", labelAr: "قيد المعالجة" },
+            { id: "settled", labelEn: "Paid Up", labelAr: "مكتمل السداد" },
+            { id: "on_hold", labelEn: "On Hold", labelAr: "معلقة" },
           ].map((tab) => (
             <button
               key={tab.id}
               type="button"
               onClick={() => setHostFilter(tab.id as typeof hostFilter)}
-              className={`rounded-xl px-3.5 py-1.5 text-xs font-bold transition cursor-pointer ${
+              className={`px-3 py-1.5 rounded-md text-xs sm:text-sm transition-all whitespace-nowrap cursor-pointer ${
                 hostFilter === tab.id
-                  ? "bg-primary text-on-primary shadow-xs"
-                  : "bg-surface-container-low text-on-surface-variant hover:bg-surface-container"
+                  ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-xs font-semibold"
+                  : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 font-medium"
               }`}
             >
-              {tab.label}
+              {t(tab.labelEn, tab.labelAr)}
             </button>
           ))}
         </div>
@@ -440,7 +529,7 @@ export function HostLedgersSection({
             onChange={(e) => onSelectHost(e.target.value)}
             data-testid="admin-host-ledger-selector"
             aria-label={t("Select Host Ledger", "اختيار حساب المضيف")}
-            className="rounded-xl border border-surface-container-high bg-surface-container-low px-3 py-2 text-xs font-bold text-on-surface outline-none focus:border-primary cursor-pointer"
+            className="h-10 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-xs sm:text-sm font-medium text-slate-900 dark:text-slate-100 outline-none focus:ring-1 focus:ring-[#4F2396] cursor-pointer"
           >
             <option value="all">{t("Jump to Host Dashboard...", "الانتقال إلى حساب مضيف...")}</option>
             {hostLedgers.map((h) => (
@@ -451,8 +540,8 @@ export function HostLedgersSection({
             ))}
           </select>
 
-          <div className="flex items-center gap-2 rounded-xl border border-surface-container-high bg-surface-container-low px-3 py-2 focus-within:border-primary focus-within:bg-surface-container-lowest min-w-[240px]">
-            <Search size={14} className="text-outline shrink-0" />
+          <div className="relative min-w-[220px] sm:min-w-[260px]">
+            <Search size={16} className="absolute inset-y-0 start-3 my-auto text-slate-400 dark:text-slate-500" />
             <input
               type="text"
               value={hostSearch}
@@ -461,21 +550,21 @@ export function HostLedgersSection({
                 "Search host name, email, phone, IBAN...",
                 "ابحث باسم المضيف، البريد، الجوال، الآيبان..."
               )}
-              className="flex-1 min-w-0 bg-transparent text-xs font-semibold text-on-surface outline-none"
+              className="w-full h-10 ps-9 pe-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs sm:text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-[#4F2396]"
             />
           </div>
         </div>
       </div>
 
       {filteredHosts.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-surface-container-high py-12 text-center text-xs font-bold text-outline">
+        <div className="rounded-xl border border-dashed border-slate-200 dark:border-slate-800 py-12 text-center text-xs font-medium text-slate-500 dark:text-slate-400">
           {t("No hosts match your current filter.", "لا يوجد مضيفون يطابقون التصفية الحالية.")}
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-2xl border border-surface-container-high bg-surface-container-lowest">
+        <div className="overflow-x-auto rounded-xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-[#0E0D16]">
           <table className="min-w-[880px] w-full text-start border-collapse text-xs">
             <thead>
-              <tr className="border-b border-surface-container-high bg-surface-container-low/70 text-outline uppercase text-[10px] font-extrabold">
+              <tr className="border-b border-slate-200/80 dark:border-slate-800 bg-slate-50/90 dark:bg-slate-900/90 text-slate-600 dark:text-slate-400 text-[11px] font-medium">
                 <th className="py-3 ps-4 pe-3 text-start">{t("Host Partner", "الشريك المضيف")}</th>
                 <th className="py-3 px-3 text-center">{t("Properties", "العقارات")}</th>
                 <th className="py-3 px-3 text-center">{t("Bookings", "الحجوزات")}</th>
@@ -488,44 +577,44 @@ export function HostLedgersSection({
                 <th className="py-3 ps-3 pe-4 text-end">{t("Action", "الإجراء")}</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-surface-container">
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80 text-slate-900 dark:text-slate-100">
               {filteredHosts.map((host) => (
                 <tr
                   key={host.hostId}
                   onClick={() => onSelectHost(host.hostId)}
-                  className="hover:bg-primary/5 transition cursor-pointer"
+                  className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition cursor-pointer"
                 >
                   <td className="py-3.5 ps-4 pe-3">
                     <div className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center font-black text-xs shrink-0">
+                      <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 flex items-center justify-center font-bold text-xs shrink-0">
                         <Users size={14} />
                       </div>
                       <div>
-                        <div className="font-bold text-on-surface">{host.hostName}</div>
-                        <div className="text-[11px] text-outline">
+                        <div className="font-semibold text-slate-900 dark:text-slate-100">{host.hostName}</div>
+                        <div className="text-[11px] text-slate-500 dark:text-slate-400">
                           {[host.hostEmail || host.hostId.slice(0, 8), host.hostPhone].filter(Boolean).join(" · ")}
                         </div>
                       </div>
                     </div>
                   </td>
-                  <td className="py-3.5 px-3 text-center font-mono font-bold">{host.propertiesCount}</td>
+                  <td className="py-3.5 px-3 text-center font-mono font-semibold">{host.propertiesCount}</td>
                   <td className="py-3.5 px-3 text-center font-mono">{host.bookingsCount}</td>
-                  <td className="py-3.5 px-3 text-end font-mono font-bold">
+                  <td className="py-3.5 px-3 text-end font-mono font-semibold">
                     {currencyLabel} {formatSar(host.grossListingEarnings)}
                   </td>
-                  <td className="py-3.5 px-3 text-end font-mono font-bold">
+                  <td className="py-3.5 px-3 text-end font-mono font-semibold">
                     {currencyLabel} {formatSar(host.hostNetEarnings)}
                   </td>
-                  <td className="py-3.5 px-3 text-end font-mono text-emerald-700 font-bold">
+                  <td className="py-3.5 px-3 text-end font-mono text-emerald-600 dark:text-emerald-400 font-semibold">
                     {currencyLabel} {formatSar(host.totalPaidOut)}
                   </td>
-                  <td className="py-3.5 px-3 text-end font-mono font-black text-amber-800">
+                  <td className="py-3.5 px-3 text-end font-mono font-bold text-amber-600 dark:text-amber-400">
                     {currencyLabel} {formatSar(host.pendingDueAmount)}
                   </td>
-                  <td className="py-3.5 px-3 text-end font-mono text-amber-700">
+                  <td className="py-3.5 px-3 text-end font-mono text-amber-600 dark:text-amber-400">
                     {currencyLabel} {formatSar(host.onHoldAmount)}
                   </td>
-                  <td className="py-3.5 px-3 text-end font-mono text-primary font-bold">
+                  <td className="py-3.5 px-3 text-end font-mono text-slate-900 dark:text-slate-100 font-semibold">
                     {currencyLabel} {formatSar(host.platformNetFromHost)}
                   </td>
                   <td className="py-3.5 ps-3 pe-4 text-end">
@@ -536,7 +625,7 @@ export function HostLedgersSection({
                         e.stopPropagation();
                         onSelectHost(host.hostId);
                       }}
-                      className="inline-flex items-center gap-1 rounded-xl border border-primary/25 bg-primary/5 hover:bg-primary hover:text-on-primary px-3 py-1.5 text-[11px] font-bold text-primary transition cursor-pointer"
+                      className="inline-flex items-center gap-1 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 px-3 py-1.5 text-[11px] font-medium text-slate-700 dark:text-slate-200 transition cursor-pointer"
                     >
                       <span>{t("View Ledger", "عرض السجل")}</span>
                       {dir === "rtl" ? <ArrowLeft size={12} /> : <ArrowRight size={12} />}

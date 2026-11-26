@@ -136,7 +136,7 @@ export function BookingCardItem({
               {item.check_in}
             </p>
             <span className="text-[10px] font-bold text-slate-400">
-              15:00 {t("PM", "مساءً")}
+              3:00 {t("PM", "مساءً")}
             </span>
           </div>
 

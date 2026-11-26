@@ -41,9 +41,13 @@
     "./pricingEngine": "./pricingEngine.ts",
     "./timeSlots": "./timeSlots.ts",
     "./escapeHtml": "./escapeHtml.ts",
-    "./supabaseKvStore": "./supabaseKvStore.ts"
+    "./supabaseKvStore": "./supabaseKvStore.ts",
+    "./portalSessionEdge": "./portalSessionEdge.ts",
+    "./portalRegistryStore": "./portalRegistryStore.ts",
+    "./rateLimiter": "./rateLimiter.ts"
   },
   "dependencies": {
+    "isomorphic-dompurify": "^4.9.0",
     "nodemailer": "^10.5.0"
   },
   "devDependencies": {

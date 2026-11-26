@@ -18,7 +18,7 @@ import {
 } from "@/lib/geo/serverGeocoder";
 
 function isPrivateOrReservedIp(ip: string): boolean {
-  const clean = ip.replace(/^::ffff:/i, "").toLowerCase();
+  const clean = ip.replace(/^::ffff:/i, "").trim().toLowerCase();
   if (net.isIPv4(clean)) {
     const parts = clean.split(".").map(Number);
     if (parts.length !== 4 || parts.some((n) => Number.isNaN(n))) return true;
@@ -28,15 +28,57 @@ function isPrivateOrReservedIp(ip: string): boolean {
     if (a === 172 && b >= 16 && b <= 31) return true;
     if (a === 192 && b === 168) return true;
     if (a === 100 && b >= 64 && b <= 127) return true;
+    if (a === 192 && b === 0) return true;
+    if (a === 198 && (b === 18 || b === 19)) return true;
     if (a >= 224) return true;
     return false;
   }
   if (net.isIPv6(clean)) {
-    if (clean === "::" || clean === "::1") return true;
-    if (clean.startsWith("fc") || clean.startsWith("fd") || clean.startsWith("fe80")) return true;
+    const bare = clean.split("%")[0];
+    if (bare === "::" || bare === "::1" || bare === "0:0:0:0:0:0:0:0" || bare === "0:0:0:0:0:0:0:1") {
+      return true;
+    }
+    const firstHextetHex = bare.split(":")[0] || "";
+    const firstHextet = parseInt(firstHextetHex || "0", 16);
+    if (
+      bare.startsWith("fc") ||
+      bare.startsWith("fd") ||
+      bare.startsWith("ff") ||
+      bare.startsWith("2001:db8") ||
+      (firstHextet >= 0xfe80 && firstHextet <= 0xfebf)
+    ) {
+      return true;
+    }
     return false;
   }
   return true;
+}
+
+const MAX_MAPS_RESPONSE_BYTES = 2 * 1024 * 1024;
+
+async function readBoundedResponseText(res: Response, maxBytes = MAX_MAPS_RESPONSE_BYTES): Promise<string> {
+  if (!res.body) return "";
+  const reader = res.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      if (!value) continue;
+      total += value.byteLength;
+      if (total > maxBytes) {
+        const remaining = value.subarray(0, Math.max(0, value.byteLength - (total - maxBytes)));
+        if (remaining.byteLength > 0) chunks.push(remaining);
+        await reader.cancel().catch(() => {});
+        break;
+      }
+      chunks.push(value);
+    }
+  } finally {
+    reader.releaseLock();
+  }
+  return Buffer.concat(chunks.map((c) => Buffer.from(c))).toString("utf8");
 }
 
 async function assertPublicGoogleUrl(targetUrl: string): Promise<URL> {
@@ -137,7 +179,10 @@ async function fetchGooglePreviewHints(
   if (!previewPath.startsWith("/maps/preview/place?")) return empty;
 
   try {
-    const res = await fetch(`https://www.google.com${previewPath}`, {
+    const targetPreviewUrl = `https://www.google.com${previewPath}`;
+    await assertPublicGoogleUrl(targetPreviewUrl);
+    const res = await fetch(targetPreviewUrl, {
+      redirect: "manual",
       headers: {
         "User-Agent":
           "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
@@ -147,7 +192,7 @@ async function fetchGooglePreviewHints(
       cache: "no-store",
     });
     if (!res.ok) return empty;
-    const rawText = await res.text().catch(() => "");
+    const rawText = await readBoundedResponseText(res).catch(() => "");
     const jsonText = rawText.replace(/^\)\]\}'\s*/, "");
     const parsed = JSON.parse(jsonText) as unknown[];
     const placeTuple = Array.isArray(parsed?.[6]) ? (parsed[6] as unknown[]) : null;
@@ -360,7 +405,7 @@ export async function POST(request: NextRequest) {
         }
 
         if (response.ok) {
-          const html = await response.text().catch(() => "");
+          const html = await readBoundedResponseText(response).catch(() => "");
           if (html) {
             const [hints, preview] = await Promise.all([
               Promise.resolve(extractMetaHintsFromHtml(html)),
@@ -422,8 +467,9 @@ export async function POST(request: NextRequest) {
       })
     );
   } catch (err: unknown) {
+    console.error("[host resolve-maps-url] error:", err);
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Failed to process location request" },
+      { error: "Failed to process location request" },
       { status: 500 }
     );
   }

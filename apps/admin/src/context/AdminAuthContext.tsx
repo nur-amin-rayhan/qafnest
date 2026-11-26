@@ -22,6 +22,8 @@ interface AdminAuthContextType {
   t: (en: string, ar: string) => string;
   mobileSidebarOpen: boolean;
   setMobileSidebarOpen: (open: boolean) => void;
+  isDark: boolean;
+  toggleTheme: () => void;
 }
 
 const AdminAuthContext = createContext<AdminAuthContextType | undefined>(undefined);
@@ -37,6 +39,38 @@ export function AdminAuthProvider({
   const [loading, setLoading] = useState(true);
   const [lang, setLangState] = useState<"ar" | "en">(initialLang);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const [isDark, setIsDark] = useState(false);
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem("qafnest_admin_theme");
+      const prefersDark = typeof window !== "undefined" && window.matchMedia("(prefers-color-scheme: dark)").matches;
+      const activeDark = stored === "dark" || (!stored && prefersDark);
+      setIsDark(activeDark);
+      if (activeDark) {
+        document.documentElement.classList.add("dark");
+      } else {
+        document.documentElement.classList.remove("dark");
+      }
+    } catch {}
+  }, []);
+
+  const toggleTheme = () => {
+    setIsDark((prev) => {
+      const next = !prev;
+      try {
+        const themeVal = next ? "dark" : "light";
+        localStorage.setItem("qafnest_admin_theme", themeVal);
+        document.cookie = `qafnest_admin_theme=${themeVal}; path=/; max-age=31536000; SameSite=Lax`;
+        if (next) {
+          document.documentElement.classList.add("dark");
+        } else {
+          document.documentElement.classList.remove("dark");
+        }
+      } catch {}
+      return next;
+    });
+  };
 
   useEffect(() => {
     try {
@@ -61,7 +95,7 @@ export function AdminAuthProvider({
 
   const toggleLang = () => setLang(lang === "ar" ? "en" : "ar");
   const dir: "rtl" | "ltr" = lang === "ar" ? "rtl" : "ltr";
-  const t = (en: string, ar: string) => (lang === "ar" ? ar : en);
+  const t = useCallback((en: string, ar: string) => (lang === "ar" ? ar : en), [lang]);
 
   const checkAuth = useCallback(async (): Promise<boolean> => {
     try {
@@ -135,6 +169,8 @@ export function AdminAuthProvider({
         t,
         mobileSidebarOpen,
         setMobileSidebarOpen,
+        isDark,
+        toggleTheme,
       }}
     >
       {children}

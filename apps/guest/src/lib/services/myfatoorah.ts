@@ -296,21 +296,32 @@ export function resolveCallbackUrls(options: {
   // 1. Explicit configured callback URL has highest priority
   let base = (config.callbackUrl || "").trim().replace(/\/+$/, "");
 
-  // 2. Derive from verified site environment variable or request origin
+  // 2. Derive from verified site environment variable or pre-validated canonical origin
   if (!base) {
     const siteUrl = (process.env.NEXT_PUBLIC_GUEST_URL || process.env.NEXT_PUBLIC_SITE_URL || "").trim().replace(/\/+$/, "");
     if (siteUrl && siteUrl.startsWith("http") && !siteUrl.includes(" ") && !siteUrl.includes("relative")) {
       base = siteUrl;
     } else if (options.origin) {
-      let optOrigin = options.origin.trim().replace(/\/+$/, "");
-      if (!optOrigin.startsWith("http://") && !optOrigin.startsWith("https://")) {
-        optOrigin = optOrigin.includes("localhost") || optOrigin.includes("127.0.0.1")
-          ? `http://${optOrigin}`
-          : `https://${optOrigin}`;
-      }
-      if (!optOrigin.includes(" ") && !optOrigin.includes("relative")) {
-        base = optOrigin;
-      }
+      try {
+        const parsed = new URL(options.origin.trim());
+        const allowedHosts = new Set<string>(["qafnest.com", "www.qafnest.com"]);
+        if (process.env.NODE_ENV !== "production") {
+          allowedHosts.add("localhost:3000");
+          allowedHosts.add("127.0.0.1:3000");
+          allowedHosts.add("localhost");
+        }
+        for (const extra of (process.env.ALLOWED_APP_ORIGINS || "").split(",")) {
+          const clean = extra.trim();
+          if (clean) {
+            try {
+              allowedHosts.add(new URL(clean.startsWith("http") ? clean : `https://${clean}`).host.toLowerCase());
+            } catch {}
+          }
+        }
+        if (allowedHosts.has(parsed.host.toLowerCase())) {
+          base = parsed.origin;
+        }
+      } catch {}
     }
   }
 

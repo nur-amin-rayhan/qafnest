@@ -95,13 +95,21 @@ function getRepoRootCandidates(fileName: string): string[] {
 }
 
 function writeAtomicJsonSync(filePath: string, data: unknown): void {
+  const serialized = JSON.stringify(data, null, 2);
+  try {
+    if (fs.existsSync(filePath) && fs.readFileSync(filePath, "utf-8") === serialized) {
+      return;
+    }
+  } catch {
+    // Proceed with atomic write if pre-check read fails
+  }
   const dir = path.dirname(filePath);
   if (!fs.existsSync(dir)) {
     fs.mkdirSync(dir, { recursive: true });
   }
   const tmpPath = `${filePath}.${process.pid}.${Date.now()}.${Math.random().toString(36).slice(2, 6)}.tmp`;
   try {
-    fs.writeFileSync(tmpPath, JSON.stringify(data, null, 2), "utf-8");
+    fs.writeFileSync(tmpPath, serialized, "utf-8");
     fs.renameSync(tmpPath, filePath);
   } catch (err) {
     try {
@@ -165,7 +173,9 @@ export function readSharedJsonFile<T>(
   const tmpFile = path.join(getTmpDataDir(), fileName);
   const bundledFile = path.join(getBundledSharedDataDir(), fileName);
   const extraFiles = extraFallbackDirs.map((dir) => path.join(dir, fileName));
-  const candidates = Array.from(new Set([tmpFile, bundledFile, ...extraFiles]));
+  const candidates = isReadOnlyServerlessEnv()
+    ? Array.from(new Set([tmpFile, bundledFile, ...extraFiles]))
+    : Array.from(new Set([bundledFile, tmpFile, ...extraFiles]));
   return readJsonFromCandidates(candidates, fallback, normalize);
 }
 
@@ -220,6 +230,9 @@ export function writeSharedJsonFile(fileName: string, data: unknown): boolean {
   const primaryPath = path.join(getBundledSharedDataDir(), key);
   const tmpFallbackPath = path.join(getTmpDataDir(), key);
   const ok = writeJsonWithTmpFallback(primaryPath, tmpFallbackPath, data);
+  try {
+    writeAtomicJsonSync(tmpFallbackPath, data);
+  } catch {}
   scheduleRemoteSync(key, data);
   return ok;
 }
@@ -230,6 +243,9 @@ export async function persistSharedJsonFile(fileName: string, data: unknown): Pr
   const primaryPath = path.join(getBundledSharedDataDir(), key);
   const tmpFallbackPath = path.join(getTmpDataDir(), key);
   const localOk = writeJsonWithTmpFallback(primaryPath, tmpFallbackPath, data);
+  try {
+    writeAtomicJsonSync(tmpFallbackPath, data);
+  } catch {}
   const remoteOk = await pushRemoteSharedState(key, data);
   return localOk || remoteOk;
 }
@@ -285,4 +301,15 @@ export function writeRootJsonFile(fileName: string, data: unknown): boolean {
     : writeJsonWithTmpFallback(joinRuntimeFile(findMonorepoRoot(), key), tmpFallbackPath, data);
   scheduleRemoteSync(key, data);
   return ok;
+}
+
+/** Writes a root-level JSON file locally/tmp and awaits remote Supabase persistence. */
+export async function persistRootJsonFile(fileName: string, data: unknown): Promise<boolean> {
+  const key = path.basename(fileName);
+  const tmpFallbackPath = path.join(getTmpDataDir(), key);
+  const localOk = isReadOnlyServerlessEnv()
+    ? writeJsonWithTmpFallback(tmpFallbackPath, tmpFallbackPath, data)
+    : writeJsonWithTmpFallback(joinRuntimeFile(findMonorepoRoot(), key), tmpFallbackPath, data);
+  const remoteOk = await pushRemoteSharedState(key, data);
+  return localOk || remoteOk;
 }

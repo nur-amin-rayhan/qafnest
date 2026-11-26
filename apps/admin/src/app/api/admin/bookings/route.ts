@@ -4,7 +4,6 @@ import { recordUserActivity } from "@qafnest/shared/userActivityStore";
 import {
   DEFAULT_CHECKIN_TIME,
   DEFAULT_CHECKOUT_TIME,
-  TWELVE_HOUR_CHECKIN_TIME,
   computeSlotAwareStayRate,
   doTimeSlotsOverlap,
   isSameDayTwelveHourStay,
@@ -27,6 +26,9 @@ import {
   voidCancelledBookingPayout,
 } from "@qafnest/shared/hostPayoutStore";
 import {
+  consumeVerificationToken,
+  hydrateHelplineVerificationStore,
+  persistHelplineVerificationStore,
   validateBookingVerification,
   confirmTransferClaim,
 } from "@qafnest/shared/helplineVerificationStore";
@@ -34,7 +36,6 @@ import {
   calculateCancellationRefundQuote,
   createBookingRefundRecord,
   markRefundDisbursed,
-  getBookingRefundRecord,
 } from "@qafnest/shared/bookingRefundStore";
 
 function round2(n: number): number {
@@ -353,6 +354,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    await hydrateHelplineVerificationStore();
     const verificationResult = validateBookingVerification(verificationToken);
     if (!verificationResult.valid || !verificationResult.session) {
       return NextResponse.json(
@@ -574,10 +576,11 @@ export async function POST(request: NextRequest) {
       }
 
       if (insertRes.error || !insertRes.data) {
+        console.error("[admin bookings POST] insert failed:", insertRes.error);
         return NextResponse.json(
           {
             code: "insert_failed",
-            message: insertRes.error?.message || "Could not create helpline booking in database.",
+            message: "Could not create helpline booking in database.",
           },
           { status: 500 }
         );
@@ -635,6 +638,8 @@ export async function POST(request: NextRequest) {
       }
 
       const adminSession = getAdminSession(request);
+      consumeVerificationToken(verificationToken);
+      await persistHelplineVerificationStore().catch(() => undefined);
       try {
         if (autoCreatedGuest && matchedGuestId) {
           recordUserActivity({
@@ -687,10 +692,11 @@ export async function POST(request: NextRequest) {
       });
     });
   } catch (err: unknown) {
+    console.error("[admin bookings POST] server error:", err);
     return NextResponse.json(
       {
         code: "server_error",
-        message: err instanceof Error ? err.message : "Failed to create manual booking.",
+        message: "Failed to create manual booking.",
       },
       { status: 500 }
     );
@@ -718,10 +724,17 @@ export async function PATCH(request: NextRequest) {
 
     const body = (await request.json()) as Record<string, unknown>;
     const idOrRef = String(body.bookingId || body.bookingReference || "").trim();
-    const action = String(body.action || "confirm_payment");
+    const action = typeof body.action === "string" ? body.action.trim() : "";
 
     if (!idOrRef) {
       return NextResponse.json({ code: "invalid_payload", message: "Booking ID or reference required." }, { status: 400 });
+    }
+
+    if (!["confirm_payment", "cancel", "mark_refund_disbursed"].includes(action)) {
+      return NextResponse.json(
+        { code: "invalid_action", message: "Unsupported booking administrative action." },
+        { status: 400 }
+      );
     }
 
     const isUuidLike = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(idOrRef);
@@ -823,8 +836,28 @@ export async function PATCH(request: NextRequest) {
           policyTier: quote.policyTier,
         });
       }
-    } else {
-      nextUpdates = { status: "confirmed", payment_status: "success" };
+    } else if (action === "confirm_payment") {
+      if (existing.status === "cancelled" || existing.payment_status === "refunded") {
+        return NextResponse.json(
+          {
+            code: "invalid_state_transition",
+            message: `Cannot confirm payment for a booking in '${existing.status}' / '${existing.payment_status}' state.`,
+          },
+          { status: 409 }
+        );
+      }
+      const sadadTxn =
+        typeof body.sadadBillNumber === "string" && body.sadadBillNumber.trim()
+          ? body.sadadBillNumber.trim()
+          : "";
+      const updatedSubject = sadadTxn
+        ? `${String(existing.auth_subject || "Guest")} | SADAD:${sadadTxn}`
+        : undefined;
+      nextUpdates = {
+        status: "confirmed",
+        payment_status: "success",
+        ...(updatedSubject ? { auth_subject: updatedSubject } : {}),
+      };
       confirmTransferClaim(existing.booking_reference, "Confirmed by Admin Helpline");
     }
 
@@ -836,8 +869,9 @@ export async function PATCH(request: NextRequest) {
       .maybeSingle();
 
     if (updErr || !updated) {
+      console.error("[admin bookings PATCH] update failed:", updErr);
       return NextResponse.json(
-        { code: "update_failed", message: updErr?.message || "Could not update booking." },
+        { code: "update_failed", message: "Could not update booking." },
         { status: 500 }
       );
     }
@@ -845,12 +879,34 @@ export async function PATCH(request: NextRequest) {
     if (action === "cancel" && existing.property_id && existing.check_in && existing.check_out && existing.check_out > existing.check_in) {
       try {
         const { addDaysToIsoDate } = await import("@qafnest/shared");
+        const { data: siblingActive } = await supabase
+          .from("bookings")
+          .select("check_in, check_out")
+          .eq("property_id", existing.property_id)
+          .in("status", ["confirmed", "checked_in", "completed"])
+          .neq("id", existing.id);
+
+        const occupiedBySibling = new Set<string>();
+        for (const sb of siblingActive || []) {
+          if (!sb.check_in || !sb.check_out || sb.check_out <= sb.check_in) continue;
+          let c = String(sb.check_in).slice(0, 10);
+          const end = String(sb.check_out).slice(0, 10);
+          let g = 0;
+          while (c < end && g < 180) {
+            occupiedBySibling.add(c);
+            c = addDaysToIsoDate(c, 1);
+            g++;
+          }
+        }
+
         const releaseDates: string[] = [];
         let cursor = String(existing.check_in).slice(0, 10);
         const endIso = String(existing.check_out).slice(0, 10);
         let guard = 0;
         while (cursor < endIso && guard < 180) {
-          releaseDates.push(cursor);
+          if (!occupiedBySibling.has(cursor)) {
+            releaseDates.push(cursor);
+          }
           cursor = addDaysToIsoDate(cursor, 1);
           guard++;
         }
@@ -925,8 +981,9 @@ export async function PATCH(request: NextRequest) {
       policyQuote: quote,
     });
   } catch (err: unknown) {
+    console.error("[admin bookings PATCH] server error:", err);
     return NextResponse.json(
-      { code: "server_error", message: err instanceof Error ? err.message : "Error updating booking" },
+      { code: "server_error", message: "Failed to update booking." },
       { status: 500 }
     );
   }

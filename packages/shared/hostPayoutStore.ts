@@ -42,6 +42,9 @@ export interface HostPayoutStoreData {
 const PAYOUT_STORE_FILE = "host-payouts.json";
 
 function buildInitialBaselinePayouts(): SharedHostPayoutRecord[] {
+  if (process.env.NODE_ENV === "production") {
+    return [];
+  }
   return [
     {
       id: "pay-002",
@@ -235,6 +238,12 @@ export function setSharedHostIban(hostId: string, info: Omit<StoredHostBankInfo,
   return full;
 }
 
+export function removeSharedHostIban(hostId: string): void {
+  const store = readStore();
+  delete store.hostIbans[hostId];
+  writeStore(store);
+}
+
 export function getAllStoredPayouts(): SharedHostPayoutRecord[] {
   return readStore().payouts;
 }
@@ -312,6 +321,42 @@ export function syncConfirmedBookingsToPayouts(liveBookings: SyncBookingInput[])
   }
 
   let changed = false;
+
+  // Prune any orphaned booking payouts whose bookings no longer exist in Supabase (only when live bookings exist)
+  if (liveBookings.length > 0) {
+    const liveBookingKeys = new Set<string>();
+    for (const b of liveBookings) {
+      if (b.id) liveBookingKeys.add(String(b.id));
+      if (b.booking_reference) liveBookingKeys.add(String(b.booking_reference));
+    }
+    const beforeCount = store.payouts.length;
+    store.payouts = store.payouts.filter((p) => {
+      if (p.source === "host_request") return true;
+      if (
+        process.env.NODE_ENV !== "production" &&
+        (p.id === "pay-002" || p.id === "pay-003" || p.reference === "SARIE-QAF-PAY002" || p.reference === "SARIE-QAF-PAY003")
+      ) {
+        return true;
+      }
+      if (p.bookingId && liveBookingKeys.has(String(p.bookingId))) return true;
+      const refWithoutPrefix = p.reference?.startsWith("SARIE-") ? p.reference.slice(6) : p.reference;
+      if (refWithoutPrefix && liveBookingKeys.has(refWithoutPrefix)) return true;
+      if (
+        Array.isArray(p.bookings) &&
+        p.bookings.some(
+          (bk) =>
+            (bk.id && liveBookingKeys.has(String(bk.id))) ||
+            (bk.reference && liveBookingKeys.has(String(bk.reference)))
+        )
+      ) {
+        return true;
+      }
+      return false;
+    });
+    if (store.payouts.length !== beforeCount) {
+      changed = true;
+    }
+  }
 
   for (const b of liveBookings) {
     const isPaid =
@@ -565,7 +610,9 @@ export function updateStoredPayoutStatus(
   externalTxnRef?: string
 ): SharedHostPayoutRecord | undefined {
   const store = readStore();
-  const target = store.payouts.find((p) => p.id === payoutId);
+  const target = store.payouts.find(
+    (p) => p.id === payoutId || p.reference === payoutId || p.bookingId === payoutId
+  );
   if (!target) return undefined;
 
   let verifiedTxnRef = target.sarieTxnId;
@@ -588,7 +635,7 @@ export function updateStoredPayoutStatus(
   const nowIso = new Date().toISOString();
 
   store.payouts = store.payouts.map((p) => {
-    if (p.id === payoutId) {
+    if (p.id === target.id) {
       updatedItem = {
         ...p,
         status: newStatus,
@@ -639,9 +686,10 @@ export function batchUpdateStoredPayoutStatus(
   }
 
   const nowIso = new Date().toISOString();
+  const idsSet = new Set(payoutIds.flatMap((id) => [id, `SARIE-${id}`, id.replace(/^SARIE-/, "")]));
 
   store.payouts = store.payouts.map((p) => {
-    if (payoutIds.includes(p.id)) {
+    if (idsSet.has(p.id) || (p.reference && idsSet.has(p.reference))) {
       if (newStatus === "disbursed") {
         const checkoutCheck = isPayoutPostCheckoutEligible(p);
         if (!checkoutCheck.eligible || p.payoutRequestStatus === "rejected") {

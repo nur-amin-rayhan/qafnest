@@ -9,15 +9,17 @@ export async function verifySaudiDocument({
   type,
   rawId,
   fullName,
+  phone,
   session,
   language,
 }: {
   type: "national_id" | "iqama";
   rawId: string;
-  fullName: string;
+  fullName?: string;
+  phone?: string;
   session: Session | null;
   language: string;
-}): Promise<{ success: boolean; message: string; isError?: boolean }> {
+}): Promise<{ success: boolean; message: string; fullName?: string; isError?: boolean }> {
   try {
     const authHeaders = await getReviewAuthorizationHeaders(session);
     const res = await fetch("/api/profile/verify", {
@@ -26,21 +28,28 @@ export async function verifySaudiDocument({
         "Content-Type": "application/json",
         ...authHeaders,
       },
-      body: JSON.stringify({ type, id_number: rawId, full_name: fullName }),
+      credentials: "same-origin",
+      body: JSON.stringify({ type, id_number: rawId, full_name: fullName, phone }),
     });
     const data = await res.json();
     if (res.ok && data.success) {
       const ref =
-        data.verification_reference || (type === "national_id" ? "NAFATH-SA" : "MUQEEM-IQ");
+        data.verification_reference || (type === "national_id" ? "NAFATH-SA" : "YAQEEN-IQ");
+      const fetchedName =
+        typeof data.verified_name === "string" && data.verified_name.trim()
+          ? data.verified_name.trim()
+          : typeof data.full_name === "string" && data.full_name.trim()
+          ? data.full_name.trim()
+          : undefined;
       const message =
         type === "national_id"
           ? language === "ar"
-            ? `تم التحقق من الهوية الوطنية بنجاح عبر النفاذ الوطني الموحد (المرجع: ${ref})`
-            : `Saudi National ID verified successfully via Nafath Single Sign-On (Ref: ${ref})`
+            ? `تم التحقق من الهوية الوطنية ومزامنة الاسم عبر نفاذ / علم يقين (${ref})`
+            : `National ID verified and name synced via Nafath / Elm Yaqeen (${ref})`
           : language === "ar"
-          ? `تم التحقق من هوية مقيم (الإقامة) بنجاح عبر النظام المركزي لوزارة الداخلية (المرجع: ${ref})`
-          : `Resident Iqama verified successfully via Muqeem / MOI (Ref: ${ref})`;
-      return { success: true, message };
+          ? `تم التحقق من هوية مقيم (الإقامة) ومزامنة الاسم عبر نفاذ / علم يقين (${ref})`
+          : `Iqama verified and name synced via Nafath / Elm Yaqeen (${ref})`;
+      return { success: true, message, fullName: fetchedName };
     } else {
       return {
         success: false,
@@ -55,16 +64,14 @@ export async function verifySaudiDocument({
       };
     }
   } catch {
-    // Offline fallback: verified by format
-    const message =
-      type === "national_id"
-        ? language === "ar"
-          ? "تم التحقق من صحة رقم الهوية الوطنية واعتماده بنجاح"
-          : "Saudi National ID verified successfully in registry"
-        : language === "ar"
-        ? "تم التحقق من صحة رقم هوية مقيم (الإقامة) واعتماده بنجاح"
-        : "Resident Iqama verified successfully in registry";
-    return { success: true, message };
+    return {
+      success: false,
+      isError: true,
+      message:
+        language === "ar"
+          ? "تعذر الاتصال بخدمة نفاذ / علم يقين. يرجى المحاولة لاحقاً."
+          : "Nafath / Elm Yaqeen service could not be reached. Please try again.",
+    };
   }
 }
 
@@ -79,10 +86,6 @@ export async function persistProfileRecord({
   trimmedIqama,
   primaryIdType,
   editCity,
-  nationalIdVerified,
-  iqamaVerified,
-  emailVerified,
-  isVerified,
 }: {
   user: User | null;
   session: Session | null;
@@ -94,52 +97,23 @@ export async function persistProfileRecord({
   trimmedIqama: string;
   primaryIdType: "national_id" | "iqama";
   editCity: string;
-  nationalIdVerified: boolean;
-  iqamaVerified: boolean;
-  emailVerified: boolean;
-  isVerified: boolean;
+  nationalIdVerified?: boolean;
+  iqamaVerified?: boolean;
+  emailVerified?: boolean;
+  isVerified?: boolean;
 }): Promise<void> {
-  const primaryDocId = trimmedNationalId || trimmedIqama || "";
-
-  // 1. Persist to Supabase if available
   if (user?.id) {
-    try {
-      await supabase.from("profiles").upsert(
-        {
-          id: user.id,
-          full_name: editFullName.trim(),
-          phone: editPhone.trim(),
-          national_id: primaryDocId || null,
-          iqama: trimmedIqama || null,
-          id_type: primaryIdType,
-          city: editCity,
-          email: trimmedEmail || null,
-          is_verified: isVerified,
-        },
-        { onConflict: "id" }
-      );
-    } catch {}
-
     try {
       await supabase.auth.updateUser({
         data: {
           full_name: editFullName.trim(),
           contact_email: trimmedEmail,
           city: editCity,
-          national_id: trimmedNationalId || null,
-          iqama: trimmedIqama || null,
           id_type: primaryIdType,
-          is_national_id_verified: nationalIdVerified,
-          is_iqama_verified: iqamaVerified,
-          is_email_verified: emailVerified,
-          is_verified: isVerified,
         },
       });
     } catch {}
-  }
 
-  // 2. Persist to Firebase storage for phone-auth guests
-  if (user?.id) {
     try {
       const parts = editFullName.trim().split(/\s+/).filter(Boolean);
       saveStoredFirebaseProfile(user.id, {
@@ -148,36 +122,32 @@ export async function persistProfileRecord({
         full_name: editFullName.trim(),
         contact_email: trimmedEmail,
         phone: editPhone.trim(),
-        national_id: trimmedNationalId || undefined,
-        iqama: trimmedIqama || undefined,
-        id_type: primaryIdType,
-        is_verified: isVerified,
         city: editCity,
       });
     } catch {}
   }
 
-  // 3. Post to API route for full server persistence
-  try {
-    const authHeaders = await getReviewAuthorizationHeaders(session);
-    await fetch("/api/profile", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        ...authHeaders,
-      },
-      body: JSON.stringify({
-        full_name: editFullName.trim(),
-        email: trimmedEmail,
-        phone: editPhone.trim(),
-        national_id: trimmedNationalId,
-        iqama: trimmedIqama,
-        id_type: primaryIdType,
-        city: editCity,
-        is_verified: isVerified,
-      }),
-    });
-  } catch {}
+  const authHeaders = await getReviewAuthorizationHeaders(session);
+  const res = await fetch("/api/profile", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...authHeaders,
+    },
+    body: JSON.stringify({
+      full_name: editFullName.trim(),
+      email: trimmedEmail,
+      phone: editPhone.trim(),
+      national_id: trimmedNationalId,
+      iqama: trimmedIqama,
+      id_type: primaryIdType,
+      city: editCity,
+    }),
+  });
+  if (!res.ok) {
+    const errData = (await res.json().catch(() => ({}))) as { error?: string };
+    throw new Error(errData.error || "Failed to persist profile changes");
+  }
 }
 
 export function validateProfileFields({
@@ -235,11 +205,10 @@ export function extractInitialProfileState({
   const rawPhone = profile?.phone || user?.phone || (meta.phone as string) || storedFb?.phone || "";
   const rawEmail = profile?.contact_email || user?.email || (meta.contact_email as string) || storedFb?.contact_email || "";
   const rawCity = profile?.city || (meta.city as string) || storedFb?.city || (language === "ar" ? "الرياض" : "Riyadh");
-  const rawNationalId = profile?.national_id || (meta.national_id as string) || storedFb?.national_id || "";
-  const rawIqama = profile?.iqama || (meta.iqama as string) || storedFb?.iqama || "";
+  const rawNationalId = profile?.national_id || (meta.national_id as string) || "";
+  const rawIqama = profile?.iqama || (meta.iqama as string) || "";
   const rawIdType = profile?.id_type || (meta.id_type as "national_id" | "iqama") || storedFb?.id_type || (rawIqama && !rawNationalId ? "iqama" : "national_id");
-  const isNatIdValid = Boolean(rawNationalId && /^1\d{9}$/.test(rawNationalId));
-  const isIqamaValid = Boolean(rawIqama && /^2\d{9}$/.test(rawIqama));
+  const isServerVerified = Boolean(profile?.is_verified || user?.app_metadata?.is_verified);
 
   return {
     rawFullName,
@@ -249,9 +218,9 @@ export function extractInitialProfileState({
     rawNationalId,
     rawIqama,
     primaryIdType: (rawIdType === "iqama" ? "iqama" : "national_id") as "national_id" | "iqama",
-    nationalIdVerified: Boolean(profile?.is_verified || meta.is_national_id_verified || isNatIdValid),
-    iqamaVerified: Boolean(profile?.is_verified || meta.is_iqama_verified || isIqamaValid),
-    emailVerified: Boolean(user?.email_confirmed_at || meta.is_email_verified || (rawEmail && rawEmail.includes("@"))),
+    nationalIdVerified: Boolean(isServerVerified && (rawIdType !== "iqama" || rawNationalId)),
+    iqamaVerified: Boolean(isServerVerified && (rawIdType === "iqama" || rawIqama)),
+    emailVerified: Boolean(user?.email_confirmed_at),
   };
 }
 

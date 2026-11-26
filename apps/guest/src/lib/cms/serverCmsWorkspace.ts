@@ -148,12 +148,12 @@ export const DEFAULT_PUBLIC_FAQS: PublicCmsFaq[] = [
         id: "faq-1",
         category: "booking",
         question: {
-          en: "How does QafNest work and is it licensed by the Ministry of Tourism?",
-          ar: "ما هي منصة قاف نست وهل هي مرخصة رسمياً من وزارة السياحة؟",
+          en: "What is QafNest and how does it work?",
+          ar: "ما هي منصة قاف نست وكيف تعمل؟",
         },
         answer: {
-          en: "QafNest is an electronic vacation rental platform licensed by the Saudi Ministry of Tourism (License #73102999) connecting Guests with verified Hosts across chalets, villas, resorts (istirahat), apartments, farms, and desert camps. QafNest acts strictly as an authorized digital intermediary ensuring identity verification, secure payments, and compliant tax invoicing.",
-          ar: "منصة قاف نست هي منصة إلكترونية سعودية مرخصة من وزارة السياحة (ترخيص رقم 73102999) تعمل كوسيط تقني يربط الضيوف بالمضيفين المعتمدين لحجز الشاليهات والفلل والاستراحات والشقق والمزارع والمخيمات، مع ضمان توثيق الهوية وأمان المدفوعات والفوترة الضريبية.",
+          en: "QafNest is an electronic vacation rental platform connecting Guests with verified Hosts across chalets, villas, resorts (istirahat), apartments, farms, and desert camps. QafNest acts strictly as a secure digital intermediary ensuring identity verification, secure payments, and compliant tax invoicing.",
+          ar: "منصة قاف نست هي منصة إلكترونية سعودية تعمل كوسيط تقني يربط الضيوف بالمضيفين المعتمدين لحجز الشاليهات والفلل والاستراحات والشقق والمزارع والمخيمات، مع ضمان توثيق الهوية وأمان المدفوعات والفوترة الضريبية.",
         },
         enabled: true,
         order: 1,

@@ -80,6 +80,7 @@ export interface PropertyDeletionRequest {
   reviewedBy?: string;
   adminNotes?: string;
   autoDeletedAt?: string;
+  isReadByHost?: boolean;
 }
 
 export interface PropertyDeletionRequestSummary {

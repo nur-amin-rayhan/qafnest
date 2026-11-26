@@ -98,9 +98,7 @@ export function SavedCardsSelector({
                     <div className="flex items-center gap-2 text-xs">
                       <LockKeyhole className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
                       <span className="font-bold text-gray-800 dark:text-gray-200 text-[11px]">
-                        {c.hasSavedCvv
-                          ? label("CVV Saved (1-Click Ready)", "رمز الأمان CVV محفوظ (دفع فوري)")
-                          : label("Enter 3-digit CVV / CVC:", "أدخل رمز الأمان (CVV):")}
+                        {label("Enter 3-digit CVV / CVC:", "أدخل رمز الأمان (CVV):")}
                       </span>
                     </div>
                     <div className="flex items-center gap-2">
@@ -108,7 +106,7 @@ export function SavedCardsSelector({
                         type="password"
                         inputMode="numeric"
                         maxLength={4}
-                        placeholder={c.hasSavedCvv ? "SAVED" : "•••"}
+                        placeholder="•••"
                         value={cardCvv || ""}
                         onChange={(e) => {
                           setCardCvv?.(e.target.value.replace(/\D/g, "").slice(0, 4));
@@ -117,7 +115,7 @@ export function SavedCardsSelector({
                         className="w-20 px-2.5 py-1 text-center font-mono text-xs font-black tracking-widest rounded-lg border border-violet-300 dark:border-violet-500/40 bg-violet-50/50 dark:bg-black/50 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-violet-500"
                       />
                       <span className="text-[10px] text-gray-400 font-semibold">
-                        {c.hasSavedCvv ? label("Optional update", "محفوظ تلقائياً") : label("Required for payment", "مطلوب للدفع")}
+                        {label("Required for payment", "مطلوب للدفع")}
                       </span>
                     </div>
                   </div>

@@ -24,10 +24,22 @@ export default async function RootLayout({
   const rawLang = cookieStore.get("qafnest_admin_lang")?.value;
   const initialLang: "ar" | "en" = rawLang === "ar" ? "ar" : "en";
   const initialDir = initialLang === "ar" ? "rtl" : "ltr";
+  const rawTheme = cookieStore.get("qafnest_admin_theme")?.value;
+  const isDarkInitial = rawTheme === "dark";
 
   return (
-    <html lang={initialLang} dir={initialDir} suppressHydrationWarning>
+    <html
+      lang={initialLang}
+      dir={initialDir}
+      className={isDarkInitial ? "dark" : ""}
+      suppressHydrationWarning
+    >
       <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var s=localStorage.getItem('qafnest_admin_theme');var d=document.documentElement;if(s==='dark'||(!s&&window.matchMedia('(prefers-color-scheme: dark)').matches)){d.classList.add('dark')}else if(s==='light'){d.classList.remove('dark')}}catch(e){}})();`,
+          }}
+        />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link

@@ -81,21 +81,42 @@ export interface StoredFirebaseProfile {
   full_name: string;
   contact_email: string;
   phone: string;
-  national_id?: string;
-  iqama?: string;
   id_type?: "national_id" | "iqama";
-  is_verified?: boolean;
   city?: string;
 }
 
 const PROFILE_STORAGE_PREFIX = "qafnest_fb_profile_";
+
+function sanitizeStoredFirebaseProfile(
+  rawObj: Record<string, unknown>
+): StoredFirebaseProfile {
+  return {
+    first_name: typeof rawObj.first_name === "string" ? rawObj.first_name : "",
+    last_name: typeof rawObj.last_name === "string" ? rawObj.last_name : "",
+    full_name: typeof rawObj.full_name === "string" ? rawObj.full_name : "",
+    contact_email: typeof rawObj.contact_email === "string" ? rawObj.contact_email : "",
+    phone: typeof rawObj.phone === "string" ? rawObj.phone : "",
+    id_type:
+      rawObj.id_type === "national_id" || rawObj.id_type === "iqama"
+        ? rawObj.id_type
+        : undefined,
+    city: typeof rawObj.city === "string" ? rawObj.city : undefined,
+  };
+}
 
 export function getStoredFirebaseProfile(uid: string): StoredFirebaseProfile | null {
   if (typeof window === "undefined" || !uid) return null;
   try {
     const raw = window.localStorage.getItem(`${PROFILE_STORAGE_PREFIX}${uid}`);
     if (!raw) return null;
-    return JSON.parse(raw) as StoredFirebaseProfile;
+    const parsed = JSON.parse(raw) as Record<string, unknown>;
+    if (!parsed || typeof parsed !== "object") return null;
+    const clean = sanitizeStoredFirebaseProfile(parsed);
+    // Purge legacy plaintext KYC PII or spoofable verification flags from browser storage
+    if ("national_id" in parsed || "iqama" in parsed || "is_verified" in parsed) {
+      window.localStorage.setItem(`${PROFILE_STORAGE_PREFIX}${uid}`, JSON.stringify(clean));
+    }
+    return clean;
   } catch {
     return null;
   }
@@ -107,9 +128,12 @@ export function saveStoredFirebaseProfile(
 ): void {
   if (typeof window === "undefined" || !uid) return;
   try {
+    const clean = sanitizeStoredFirebaseProfile(
+      profile as unknown as Record<string, unknown>
+    );
     window.localStorage.setItem(
       `${PROFILE_STORAGE_PREFIX}${uid}`,
-      JSON.stringify(profile),
+      JSON.stringify(clean),
     );
   } catch {}
 }

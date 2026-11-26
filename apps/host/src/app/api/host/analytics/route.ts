@@ -36,8 +36,9 @@ export async function GET(request: NextRequest) {
     // 2. Fetch properties owned by authenticated host
     let propQuery = supabase
       .from("properties")
-      .select("id, title, city, city_name, district, category, category_name, base_price, is_approved, status, images, created_at")
-      .eq("host_id", effectiveHostId);
+      .select("id, title, title_ar, city, city_name, district, category, category_name, base_price, is_approved, status, images, created_at")
+      .eq("host_id", effectiveHostId)
+      .neq("status", "archived");
 
     if (filterPropertyId !== "all") {
       propQuery = propQuery.eq("id", filterPropertyId);
@@ -45,7 +46,8 @@ export async function GET(request: NextRequest) {
 
     const { data: properties, error: propErr } = await propQuery;
     if (propErr) {
-      return NextResponse.json({ code: "db_error", message: propErr.message }, { status: 500 });
+      console.error("[host analytics] prop query failed:", propErr);
+      return NextResponse.json({ code: "db_error", message: "Failed to load properties." }, { status: 500 });
     }
 
     const hostProperties = properties || [];
@@ -88,12 +90,13 @@ export async function GET(request: NextRequest) {
       .order("created_at", { ascending: false });
 
     if (bookErr) {
-      return NextResponse.json({ code: "db_error", message: bookErr.message }, { status: 500 });
+      console.error("[host analytics] bookings query failed:", bookErr);
+      return NextResponse.json({ code: "db_error", message: "Failed to load booking analytics." }, { status: 500 });
     }
 
     const allBookings = bookings || [];
 
-    // Filter bookings by timeframe if requested
+    // Filter bookings and reviews by timeframe if requested
     const now = new Date();
     let cutoffDate: Date | null = null;
     if (timeframe === "30d") {
@@ -116,7 +119,7 @@ export async function GET(request: NextRequest) {
     let totalNights = 0;
 
     const isVerifiedPaidBooking = (b: { status?: string | null; payment_status?: string | null }) =>
-      (b.status === "confirmed" || b.status === "completed") &&
+      (b.status === "confirmed" || b.status === "checked_in" || b.status === "completed") &&
       (!b.payment_status || b.payment_status === "success" || b.payment_status === "paid");
 
     for (const b of filteredBookings) {
@@ -127,7 +130,12 @@ export async function GET(request: NextRequest) {
         totalNights += Number(b.total_nights) || 1;
       } else if (b.status === "pending" && b.payment_status !== "initiated") {
         pendingCount++;
-      } else if (b.status === "cancelled") {
+      } else if (
+        b.status === "cancelled" &&
+        (b.payment_status === "paid" ||
+          b.payment_status === "success" ||
+          b.payment_status === "refunded")
+      ) {
         cancelledCount++;
       }
     }
@@ -178,7 +186,10 @@ export async function GET(request: NextRequest) {
       .in("property_id", propertyIds);
 
     const allReviews = reviews || [];
-    const totalReviews = allReviews.length;
+    const filteredReviews = cutoffDate
+      ? allReviews.filter((r) => new Date(r.created_at) >= cutoffDate)
+      : allReviews;
+    const totalReviews = filteredReviews.length;
 
     let sumRating = 0;
     let sumClean = 0;
@@ -188,7 +199,7 @@ export async function GET(request: NextRequest) {
     let sumServ = 0;
     let sumCond = 0;
 
-    for (const r of allReviews) {
+    for (const r of filteredReviews) {
       sumRating += Number(r.rating) || 0;
       sumClean += Number(r.cleanliness_rating) || Number(r.rating) || 0;
       sumAcc += Number(r.accuracy_rating) || Number(r.rating) || 0;
@@ -208,15 +219,15 @@ export async function GET(request: NextRequest) {
       value: totalReviews > 0 ? Number((sumValue / totalReviews).toFixed(1)) : 0,
     };
 
-    // 7. Per-Property Performance Breakdown
+    // 7. Per-Property Performance Breakdown (scoped to timeframe)
     const propertyPerformance = hostProperties.map((p) => {
-      const propBookings = allBookings.filter(
+      const propBookings = filteredBookings.filter(
         (b) => b.property_id === p.id && isVerifiedPaidBooking(b)
       );
       const propRevenue = propBookings.reduce((acc, b) => acc + (Number(b.total_price) || 0), 0);
       const propNights = propBookings.reduce((acc, b) => acc + (Number(b.total_nights) || 1), 0);
 
-      const propReviews = allReviews.filter((r) => r.property_id === p.id);
+      const propReviews = filteredReviews.filter((r) => r.property_id === p.id);
       const propAvgRating =
         propReviews.length > 0
           ? Number(
@@ -235,7 +246,7 @@ export async function GET(request: NextRequest) {
       return {
         propertyId: p.id,
         title: p.title || "Untitled Property",
-        titleAr: p.title || "عقار بدون عنوان",
+        titleAr: (p as { title_ar?: string | null }).title_ar || p.title || "عقار بدون عنوان",
         city: p.city_name || p.city || "Riyadh",
         district: p.district || "",
         address: p.district || "",
@@ -273,8 +284,9 @@ export async function GET(request: NextRequest) {
       propertyPerformance,
     });
   } catch (err: unknown) {
+    console.error("[host analytics GET] server error:", err);
     return NextResponse.json(
-      { code: "server_error", message: err instanceof Error ? err.message : "Unknown error" },
+      { code: "server_error", message: "Failed to load host analytics." },
       { status: 500 }
     );
   }

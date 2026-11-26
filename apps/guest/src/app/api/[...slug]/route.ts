@@ -3,6 +3,7 @@ import { dispatchApiModule, type RouteModule } from "@/server/api/dispatchRoute"
 import * as adminReviewsRoute from "@/server/api/core/adminReviews";
 import * as adminReviewsReplyRoute from "@/server/api/core/adminReviewsReply";
 import * as authDevLoginRoute from "@/server/api/core/authDevLogin";
+import * as authSessionRoute from "@/server/api/core/authSession";
 import * as authSignupGuardRoute from "@/server/api/core/authSignupGuard";
 import * as authWelcomeBonusRoute from "@/server/api/core/authWelcomeBonus";
 import * as cmsBlogsRoute from "@/server/api/core/cmsBlogs";
@@ -12,9 +13,11 @@ import * as cmsWorkspaceRoute from "@/server/api/core/cmsWorkspace";
 import * as contactRoute from "@/server/api/core/contact";
 import * as couponsActiveRoute from "@/server/api/core/couponsActive";
 import * as couponsValidateRoute from "@/server/api/core/couponsValidate";
+import * as hostsPublicRoute from "@/server/api/core/hostsPublic";
 import * as invoicesZatcaRoute from "@/server/api/core/invoicesZatca";
 import * as platformFeesRoute from "@/server/api/core/platformFees";
 import * as profileRoute from "@/server/api/core/profile";
+import * as profilePhoneRoute from "@/server/api/core/profilePhone";
 import * as profileVerifyRoute from "@/server/api/core/profileVerify";
 import * as propertyAvailabilityRoute from "@/server/api/core/propertyAvailability";
 import * as reviewsEligibilityRoute from "@/server/api/core/reviewsEligibility";
@@ -34,6 +37,7 @@ const CORE_ROUTES: Record<string, RouteModule> = {
   "admin/reviews": adminReviewsRoute,
   "admin/reviews/reply": adminReviewsReplyRoute,
   "auth/dev-login": authDevLoginRoute,
+  "auth/session": authSessionRoute,
   "auth/signup-guard": authSignupGuardRoute,
   "auth/welcome-bonus": authWelcomeBonusRoute,
   "cms/blogs": cmsBlogsRoute,
@@ -43,9 +47,11 @@ const CORE_ROUTES: Record<string, RouteModule> = {
   contact: contactRoute,
   "coupons/active": couponsActiveRoute,
   "coupons/validate": couponsValidateRoute,
+  "hosts/public": hostsPublicRoute,
   "invoices/zatca": invoicesZatcaRoute,
   "platform/fees": platformFeesRoute,
   profile: profileRoute,
+  "profile/phone": profilePhoneRoute,
   "profile/verify": profileVerifyRoute,
   reviews: reviewsListRoute,
   "reviews/eligibility": reviewsEligibilityRoute,

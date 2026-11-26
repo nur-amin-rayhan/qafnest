@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { X, Send, RefreshCw } from "lucide-react";
 import { AdminReviewItem } from "../types";
 import { useAdminAuth } from "@/context/AdminAuthContext";
 
@@ -66,22 +67,22 @@ export function ReviewReplyModal({
       onClick={closeReplyModal}
     >
       <div
-        className="w-full max-w-xl rounded-2xl bg-surface-container-lowest p-6 shadow-2xl border border-surface-container space-y-4 max-h-[90vh] overflow-y-auto"
+        className="w-full max-w-xl rounded-xl bg-white dark:bg-[#0E0D16] p-6 shadow-2xl border border-slate-200 dark:border-slate-800 space-y-4 max-h-[90vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-start justify-between gap-3">
+        <div className="flex items-start justify-between gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
           <div>
-            <span className="text-[11px] font-bold text-primary uppercase tracking-wider">
+            <span className="text-[11px] font-semibold text-[#4F2396] dark:text-purple-300 uppercase tracking-wider">
               {t("Authoritative Operations Moderation", "الإشراف والرقابة التشغيلية المعتمدة")}
             </span>
-            <h3 className="text-lg font-bold text-on-surface">
+            <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100 mt-0.5">
               {selectedReviewForReply.admin_reply || selectedReviewForReply.admin_reply_ar
                 ? t("Update Official Response", "تحديث الرد الرسمي")
                 : t("Publish Official Admin Response", "نشر الرد الرسمي للإدارة")}
             </h3>
-            <p className="text-xs text-outline mt-0.5 line-clamp-1">
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-1">
               {t("For stay at:", "للإقامة في:")}{" "}
-              <strong className="text-on-surface">
+              <strong className="text-slate-800 dark:text-slate-200">
                 {selectedReviewForReply.property_title}
               </strong>{" "}
               ({t("Guest:", "الضيف:")} {selectedReviewForReply.guest_display_name})
@@ -90,16 +91,16 @@ export function ReviewReplyModal({
           <button
             type="button"
             onClick={closeReplyModal}
-            className="p-1 rounded-lg text-outline hover:bg-surface-container hover:text-on-surface transition-colors cursor-pointer"
+            className="p-1 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors cursor-pointer"
             aria-label={t("Close dialog", "إغلاق النافذة")}
           >
-            <span className="material-symbols-outlined text-[20px]">close</span>
+            <X size={18} />
           </button>
         </div>
 
         {/* Quick Templates */}
         <div className="space-y-1.5">
-          <label className="block text-[11px] font-bold text-outline uppercase tracking-wider">
+          <label className="block text-[11px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
             {t("Quick Response Templates:", "قوالب الرد السريعة:")}
           </label>
           <div className="flex flex-wrap gap-1.5">
@@ -111,7 +112,7 @@ export function ReviewReplyModal({
                   setReplyDraftEn(tmpl.en);
                   setReplyDraftAr(tmpl.ar);
                 }}
-                className="text-[11px] font-semibold px-2.5 py-1 rounded-lg bg-surface-container hover:bg-primary/10 hover:text-primary text-on-surface-variant transition-colors border border-surface-container-high cursor-pointer"
+                className="text-[11px] font-medium px-2.5 py-1 rounded-md bg-slate-50 dark:bg-slate-800/60 hover:bg-purple-50 dark:hover:bg-purple-950/50 hover:text-[#4F2396] dark:hover:text-purple-300 text-slate-600 dark:text-slate-300 transition-colors border border-slate-200/80 dark:border-slate-800 cursor-pointer shadow-2xs"
               >
                 + {t(tmpl.labelEn, tmpl.labelAr)}
               </button>
@@ -122,9 +123,9 @@ export function ReviewReplyModal({
         <form onSubmit={handleSaveReply} className="space-y-4">
           {/* English Response */}
           <div className="space-y-1.5">
-            <div className="flex items-center justify-between text-xs font-bold text-on-surface">
+            <div className="flex items-center justify-between text-xs font-medium text-slate-700 dark:text-slate-300">
               <span>{t("English Response:", "الرد باللغة الإنجليزية:")}</span>
-              <span className="text-[10px] font-normal text-outline">
+              <span className="text-[10px] font-mono text-slate-400 dark:text-slate-500">
                 {replyDraftEn.length} / 2000
               </span>
             </div>
@@ -135,15 +136,15 @@ export function ReviewReplyModal({
               onChange={(e) => setReplyDraftEn(e.target.value)}
               placeholder={t("Write the official English reply...", "اكتب الرد الرسمي باللغة الإنجليزية...")}
               dir="ltr"
-              className="w-full rounded-xl border border-surface-container-high bg-surface-container-low p-3 text-xs sm:text-sm font-medium text-on-surface placeholder:text-outline outline-none focus:border-primary focus:bg-surface-container-lowest transition-colors resize-none"
+              className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-3 text-xs sm:text-sm font-normal text-slate-900 dark:text-slate-100 placeholder:text-slate-400 outline-none focus:border-[#4F2396] transition-colors resize-none"
             />
           </div>
 
           {/* Arabic Response */}
           <div className="space-y-1.5">
-            <div className="flex items-center justify-between text-xs font-bold text-on-surface">
+            <div className="flex items-center justify-between text-xs font-medium text-slate-700 dark:text-slate-300">
               <span>{t("Arabic Response (Optional / Recommended):", "الرد باللغة العربية (اختياري / موصى به):")}</span>
-              <span className="text-[10px] font-normal text-outline">
+              <span className="text-[10px] font-mono text-slate-400 dark:text-slate-500">
                 {replyDraftAr.length} / 2000
               </span>
             </div>
@@ -154,11 +155,11 @@ export function ReviewReplyModal({
               onChange={(e) => setReplyDraftAr(e.target.value)}
               placeholder="اكتب الرد الرسمي باللغة العربية..."
               dir="rtl"
-              className="w-full rounded-xl border border-surface-container-high bg-surface-container-low p-3 text-xs sm:text-sm font-medium text-on-surface placeholder:text-outline outline-none focus:border-primary focus:bg-surface-container-lowest transition-colors resize-none font-arabic"
+              className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-3 text-xs sm:text-sm font-normal text-slate-900 dark:text-slate-100 placeholder:text-slate-400 outline-none focus:border-[#4F2396] transition-colors resize-none font-arabic"
             />
           </div>
 
-          <p className="text-[11px] text-outline leading-relaxed">
+          <p className="text-[11px] text-slate-400 dark:text-slate-500 leading-relaxed">
             {t(
               "ℹ️ This response will be publicly displayed on the listing's guest reviews section.",
               "ℹ️ سيتم عرض هذا الرد علناً في قسم تقييمات الضيوف الخاص بالعقار."
@@ -166,28 +167,28 @@ export function ReviewReplyModal({
           </p>
 
           {/* Actions */}
-          <div className="flex items-center justify-end gap-2 pt-3 border-t border-surface-container">
+          <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100 dark:border-slate-800">
             <button
               type="button"
               onClick={closeReplyModal}
               disabled={savingReply}
-              className="px-4 py-2 rounded-xl text-xs font-bold text-on-surface-variant hover:bg-surface-container transition-colors cursor-pointer"
+              className="px-3 h-8 rounded-lg text-xs font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
             >
               {t("Cancel", "إلغاء")}
             </button>
             <button
               type="submit"
               disabled={savingReply}
-              className="px-5 py-2 rounded-xl bg-primary hover:bg-primary/90 text-white text-xs font-bold shadow-md transition disabled:opacity-50 flex items-center gap-1.5 cursor-pointer"
+              className="px-4 h-8 rounded-lg bg-[#4F2396] hover:bg-[#3d1a75] text-white text-xs font-medium shadow-xs transition disabled:opacity-50 flex items-center gap-1.5 cursor-pointer"
             >
               {savingReply ? (
                 <>
-                  <span className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                  <RefreshCw size={13} className="animate-spin" />
                   <span>{t("Publishing...", "جارٍ النشر...")}</span>
                 </>
               ) : (
                 <>
-                  <span className="material-symbols-outlined text-[16px]">send</span>
+                  <Send size={13} />
                   <span>{t("Publish Response", "نشر الرد")}</span>
                 </>
               )}

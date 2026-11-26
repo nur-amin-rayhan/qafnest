@@ -87,17 +87,17 @@ export default function Destinations() {
           </div>
 
           {/* Left / Right Carousel Navigation Controls */}
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="hidden sm:flex items-center gap-2 shrink-0" dir="ltr">
             <button
               onClick={() => scroll("left")}
-              aria-label="Scroll destinations left"
+              aria-label={language === "ar" ? "السابق" : "Scroll destinations left"}
               className="h-9 w-9 rounded-full bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 flex items-center justify-center text-gray-800 dark:text-white hover:border-violet-400 hover:bg-violet-50 dark:hover:bg-violet-500/20 transition-all cursor-pointer shadow-sm active:scale-95"
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
             <button
               onClick={() => scroll("right")}
-              aria-label="Scroll destinations right"
+              aria-label={language === "ar" ? "التالي" : "Scroll destinations right"}
               className="h-9 w-9 rounded-full bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 flex items-center justify-center text-gray-800 dark:text-white hover:border-violet-400 hover:bg-violet-50 dark:hover:bg-violet-500/20 transition-all cursor-pointer shadow-sm active:scale-95"
             >
               <ChevronRight className="w-4 h-4" />

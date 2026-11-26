@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   Search,
   Columns3,
@@ -79,6 +79,14 @@ export function CollectionTableShell<T extends { id: string }>({
   const [visibleKeys, setVisibleKeys] = useState<string[]>(() =>
     columns.filter((c) => c.defaultVisible !== false).map((c) => c.key)
   );
+  const columnsSignature = useMemo(() => columns.map((c) => c.key).join("|"), [columns]);
+  useEffect(() => {
+    setVisibleKeys(columns.filter((c) => c.defaultVisible !== false).map((c) => c.key));
+    setSelectedIds([]);
+    setPage(1);
+    setColsOpen(false);
+    setFilterOpen(false);
+  }, [columnsSignature, columns]);
   const [colsOpen, setColsOpen] = useState(false);
   const [filterOpen, setFilterOpen] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);

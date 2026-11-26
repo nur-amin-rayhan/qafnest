@@ -39,7 +39,6 @@ export function PropertyFullPagePreview({
   onApprove,
   onRequestRevisions,
   onReviewDeletionRequest,
-  isStandalonePage: _isStandalonePage = false,
 }: PropertyFullPagePreviewProps) {
   const { lang: adminLang, dir: adminDir } = useAdminAuth();
   const [lang, setLang] = useState<"ar" | "en">(adminLang || "ar");
@@ -405,19 +404,19 @@ export function PropertyFullPagePreview({
       </main>
 
       {/* 6. Footer Simulation */}
-      <footer className="mt-20 border-t border-gray-100 bg-surface-container-low py-10 dark:border-white/10 dark:bg-[#06060B]">
+      <footer className="mt-20 border-t border-slate-200 dark:border-slate-800 bg-slate-50 py-10 dark:bg-[#06060B]">
         <div className="mx-auto max-w-[1360px] px-4 sm:px-6 lg:px-8 space-y-4">
-          <div className="rounded-2xl border border-gray-200 bg-white px-6 py-6 dark:border-white/10 dark:bg-[#12101a] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white px-6 py-6 dark:bg-[#12101a] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="space-y-1">
-              <span className="font-display font-black text-on-surface text-lg">
-                Qaf<span className="text-[#7c3aed]">Nest</span><span className="text-[#FF9750]">.</span>
+              <span className="font-display font-black text-slate-900 dark:text-slate-100 text-lg">
+                Qaf<span className="text-[#4F2396] dark:text-purple-400">Nest</span><span className="text-[#FF9750]">.</span>
               </span>
-              <p className="text-xs text-outline">
-                {t("مرخصة من وزارة السياحة · ترخيص رقم: 73102999", "Licensed by the Ministry of Tourism · License Number: 73102999")}
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                {t("منصة وساطة إلكترونية موثقة · سجل تجاري: 0000000000", "Verified Electronic Intermediary · CR: 0000000000")}
               </p>
             </div>
-            <div className="flex flex-wrap items-center gap-4 text-xs font-semibold text-on-surface-variant">
-              <a href="tel:+966576707709" className="text-primary hover:underline">
+            <div className="flex flex-wrap items-center gap-4 text-xs font-semibold text-slate-600 dark:text-slate-300">
+              <a href="tel:+966576707709" className="text-[#4F2396] dark:text-purple-300 hover:underline">
                 {t("الدعم: 0576707709", "Support: 0576707709")}
               </a>
               <span>•</span>

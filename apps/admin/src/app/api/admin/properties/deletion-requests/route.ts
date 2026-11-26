@@ -165,38 +165,79 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
-    // Clean up non-blocking child records so FK constraints never block deletion of eligible listings
-    for (const childTable of ["property_custom_pricing", "wishlists", "reviews"] as const) {
-      try {
-        await supabase.from(childTable).delete().eq("property_id", targetReq.propertyId);
-      } catch {
-        // Ignore optional/non-existent tables
+    const { data: historicalBookings } = await supabase
+      .from("bookings")
+      .select("id")
+      .eq("property_id", targetReq.propertyId)
+      .limit(1);
+
+    const nowIso = new Date().toISOString();
+    let deleteErr: { message: string } | null = null;
+    let wasArchivedInsteadOfDeleted = false;
+
+    if (historicalBookings && historicalBookings.length > 0) {
+      // Preserve historical bookings, ZATCA invoices, and payout records via atomic soft-delete
+      const { error: archiveErr } = await supabase
+        .from("properties")
+        .update({
+          status: "archived",
+          is_approved: false,
+          archived_at: nowIso,
+          updated_at: nowIso,
+        })
+        .eq("id", targetReq.propertyId);
+
+      if (archiveErr && /archived_at|column .* does not exist/i.test(archiveErr.message || "")) {
+        const retryArchive = await supabase
+          .from("properties")
+          .update({
+            status: "archived",
+            is_approved: false,
+            updated_at: nowIso,
+          })
+          .eq("id", targetReq.propertyId);
+        deleteErr = retryArchive.error;
+      } else {
+        deleteErr = archiveErr;
       }
+      wasArchivedInsteadOfDeleted = !deleteErr;
+    } else {
+      // Safe to remove cleanly when the listing has zero historical booking records
+      for (const childTable of ["property_custom_pricing", "wishlists", "reviews"] as const) {
+        try {
+          await supabase.from(childTable).delete().eq("property_id", targetReq.propertyId);
+        } catch {
+          // Ignore optional/non-existent tables
+        }
+      }
+
+      const hardDelete = await supabase
+        .from("properties")
+        .delete()
+        .eq("id", targetReq.propertyId);
+      deleteErr = hardDelete.error;
     }
 
-    const { error: deleteErr } = await supabase
-      .from("properties")
-      .delete()
-      .eq("id", targetReq.propertyId);
-
     if (deleteErr) {
+      console.error("[admin deletion-requests] property delete failed:", deleteErr);
       return NextResponse.json(
         {
           code: "property_delete_failed",
-          message: deleteErr.message,
+          message: "Failed to delete or archive property.",
         },
         { status: 500 }
       );
     }
 
-    const nowIso = new Date().toISOString();
     const updated = finalizePropertyDeletionReview({
       requestId: targetReq.id,
       decision: "approve",
       reviewedBy: reviewer,
       adminNotes:
         adminNotes ||
-        "Verified 0 active or unsettled reservations. Approved and auto-deleted listing.",
+        (wasArchivedInsteadOfDeleted
+          ? "Verified 0 active bookings. Archived listing cleanly to preserve financial & booking audit history."
+          : "Verified 0 active or unsettled reservations. Approved and auto-deleted listing."),
       autoDeletedAt: nowIso,
     });
     await persistPropertyDeletionStore().catch(() => undefined);
@@ -222,13 +263,11 @@ export async function PATCH(request: NextRequest) {
       request: updated,
     });
   } catch (err) {
+    console.error("[admin deletion-requests] review failed:", err);
     return NextResponse.json(
       {
         code: "internal_error",
-        message:
-          err instanceof Error
-            ? err.message
-            : "Failed to review property deletion request.",
+        message: "Failed to review property deletion request.",
       },
       { status: 500 }
     );

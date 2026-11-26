@@ -29,20 +29,20 @@ export function WalletTransactionsSection({
   return (
     <div>
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
-        <h3 className="text-base font-bold text-slate-900 dark:text-white">
+        <h3 className="text-base font-semibold text-slate-900 dark:text-white">
           {t("Wallet Activity & Transactions", "سجل العمليات وحركات الرصيد")}
         </h3>
 
-        <div className="flex flex-wrap items-center gap-1.5 p-1 rounded-xl bg-slate-100 dark:bg-white/5 border border-slate-200/60 dark:border-white/10 text-xs">
+        <div className="flex flex-wrap items-center gap-1.5 p-1 rounded-xl bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 text-xs">
           {FILTER_OPTIONS.map((opt) => (
             <button
               key={opt.id}
               type="button"
               onClick={() => setActiveFilter(opt.id)}
-              className={`px-3 py-1 rounded-lg font-bold transition-all cursor-pointer ${
+              className={`px-3 py-1 rounded-lg font-medium transition-colors cursor-pointer ${
                 activeFilter === opt.id
                   ? "bg-white dark:bg-[#0E0E1A] text-slate-900 dark:text-white shadow-xs"
-                  : "text-slate-500 hover:text-slate-900 dark:hover:text-white"
+                  : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
               }`}
             >
               {t(opt.labelEn, opt.labelAr)}
@@ -52,9 +52,9 @@ export function WalletTransactionsSection({
       </div>
 
       {transactions.length === 0 ? (
-        <div className="p-8 text-center rounded-2xl bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5">
-          <Clock className="w-8 h-8 text-slate-400 mx-auto mb-2" />
-          <p className="text-sm font-bold text-slate-600 dark:text-slate-300">
+        <div className="p-8 text-center rounded-2xl bg-[#F9F8FD] dark:bg-white/[0.03] border border-slate-200 dark:border-white/10">
+          <Clock className="w-8 h-8 text-slate-500 dark:text-slate-400 mx-auto mb-2" />
+          <p className="text-sm font-medium text-slate-700 dark:text-slate-300">
             {t("No wallet transactions found", "لا توجد عمليات مسجلة في هذا القسم")}
           </p>
         </div>
@@ -67,16 +67,16 @@ export function WalletTransactionsSection({
             return (
               <div
                 key={tx.id}
-                className="flex items-center justify-between gap-3 p-4 rounded-2xl bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5 hover:border-slate-200 dark:hover:border-white/10 transition-colors"
+                className="flex items-center justify-between gap-3 p-4 rounded-2xl bg-[#F9F8FD] dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 transition-colors"
               >
                 <div className="flex items-center gap-3.5 min-w-0">
                   <div
-                    className={`w-10 h-10 shrink-0 rounded-xl flex items-center justify-center font-bold ${
+                    className={`w-10 h-10 shrink-0 rounded-xl flex items-center justify-center font-semibold ${
                       isBooking
-                        ? "bg-purple-100 dark:bg-purple-950/40 text-[#4F2396] dark:text-purple-300"
+                        ? "bg-[#F4EEFF] dark:bg-purple-950/40 text-[#4F2396] dark:text-purple-300"
                         : isPositive
-                        ? "bg-emerald-100 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400"
-                        : "bg-blue-100 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400"
+                        ? "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400"
+                        : "bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400"
                     }`}
                   >
                     {isBooking ? (
@@ -88,10 +88,10 @@ export function WalletTransactionsSection({
                     )}
                   </div>
                   <div className="min-w-0">
-                    <p className="text-sm font-bold text-slate-900 dark:text-white truncate">
+                    <p className="text-sm font-semibold text-slate-900 dark:text-white truncate">
                       {t(tx.titleEn, tx.titleAr)}
                     </p>
-                    <p className="text-xs text-slate-500 font-mono mt-0.5 truncate">
+                    <p className="text-xs text-slate-600 dark:text-slate-400 font-mono tabular-nums mt-0.5 truncate">
                       Ref: {tx.reference} · {new Date(tx.createdAt).toLocaleDateString()}
                     </p>
                   </div>
@@ -101,18 +101,17 @@ export function WalletTransactionsSection({
                   <div className="text-end">
                     {tx.amount !== 0 && (
                       <div
-                        className={`text-sm font-black font-mono ${
-                          isPositive ? "text-emerald-600 dark:text-emerald-400" : "text-slate-900 dark:text-white"
+                        className={`text-sm font-semibold font-mono tabular-nums ${
+                          isPositive ? "text-emerald-700 dark:text-emerald-400" : "text-slate-900 dark:text-white"
                         }`}
-                        dir="ltr"
                       >
-                        {isPositive ? `+${tx.amount.toFixed(2)}` : tx.amount.toFixed(2)} SAR
+                        <bdi dir="ltr">{isPositive ? `+${tx.amount.toFixed(2)}` : tx.amount.toFixed(2)} SAR</bdi>
                       </div>
                     )}
                     {tx.points !== undefined && tx.points !== 0 && (
                       <div
-                        className={`text-[11px] font-bold ${
-                          tx.points > 0 ? "text-purple-600 dark:text-purple-400" : "text-amber-600"
+                        className={`text-[11px] font-medium ${
+                          tx.points > 0 ? "text-[#4F2396] dark:text-purple-400" : "text-amber-700 dark:text-amber-400"
                         }`}
                       >
                         {tx.points > 0 ? `+${tx.points} Pts` : `${tx.points} Pts`}
@@ -125,7 +124,7 @@ export function WalletTransactionsSection({
                       <button
                         type="button"
                         onClick={() => onSelectReceipt(tx)}
-                        className="inline-flex items-center gap-1.5 rounded-xl border border-violet-200 bg-white hover:bg-violet-50 px-2.5 py-1.5 text-xs font-bold text-violet-700 dark:border-violet-500/30 dark:bg-white/5 dark:text-violet-300 dark:hover:bg-violet-950/40 transition cursor-pointer shadow-2xs shrink-0"
+                        className="inline-flex items-center gap-1.5 rounded-xl border border-slate-300 bg-white hover:bg-purple-50 px-2.5 py-1.5 text-xs font-medium text-[#4F2396] dark:border-white/15 dark:bg-white/5 dark:text-purple-300 dark:hover:bg-purple-950/40 transition-colors cursor-pointer shrink-0"
                         title={t("View official tax invoice & receipt", "عرض الفاتورة الضريبية والإيصال المالي")}
                       >
                         <FileText className="w-3.5 h-3.5" />

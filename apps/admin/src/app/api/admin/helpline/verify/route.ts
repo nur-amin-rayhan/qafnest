@@ -2,11 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { createAdminDataClient, isAdminRequest } from "@/lib/adminApi";
 import {
   createVerificationSession,
+  dispatchHelplineSms,
   getVerificationSession,
   hydrateHelplineVerificationStore,
+  persistHelplineVerificationStore,
+  toPublicHelplineSession,
   verifySessionOtp,
   verifySessionIdentity,
-  type HelplineVerificationSession,
 } from "@qafnest/shared/helplineVerificationStore";
 import { hydrateUserGovernanceStore, readUserGovernanceStore } from "@qafnest/shared/userActivityStore";
 
@@ -40,7 +42,7 @@ export async function GET(request: NextRequest) {
     if (!session) {
       return NextResponse.json({ error: "Verification session not found" }, { status: 404 });
     }
-    return NextResponse.json({ session });
+    return NextResponse.json({ session: toPublicHelplineSession(session) });
   }
 
   // 2. If searching existing active users (merges auth.users + profiles safely)
@@ -93,7 +95,8 @@ export async function GET(request: NextRequest) {
         ? profilesRes.value.error.message
         : undefined;
     if (errMsg && profilesRes.status === "fulfilled") {
-      return NextResponse.json({ error: errMsg }, { status: 500 });
+      console.error("[admin helpline verify] profiles query failed:", errMsg);
+      return NextResponse.json({ error: "Failed to load verification profiles." }, { status: 500 });
     }
   }
 
@@ -250,7 +253,8 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      const session = createVerificationSession({
+      const method = body.method === "link" ? "link" : "code";
+      const { session, previewOtp } = createVerificationSession({
         phoneNumber,
         guestName: body.guestName,
         nationalId: body.nationalId,
@@ -258,24 +262,39 @@ export async function POST(request: NextRequest) {
         guestEmail: body.guestEmail,
         isExistingUser: Boolean(body.isExistingUser),
         isAccountActive,
-        method: body.method === "link" ? "link" : "code",
+        method,
       });
 
       const hostHeader = request.headers.get("host") || "localhost:3003";
       const guestOrigin = process.env.NEXT_PUBLIC_GUEST_URL || `http://${hostHeader.replace(":3003", ":3000")}`;
       const verificationLink = `${guestOrigin}/verify-booking/${session.token}`;
 
-      const isTestOtpEnabled =
-        process.env.NODE_ENV !== "production" && Boolean(session.devOtpCode);
+      const smsRes = await dispatchHelplineSms({
+        phoneNumber,
+        otpCode: previewOtp || "",
+        verificationLink,
+        method,
+      });
+
+      if (!smsRes.dispatched) {
+        return NextResponse.json(
+          { error: smsRes.error || "SMS gateway unavailable." },
+          { status: 503 }
+        );
+      }
+
+      await persistHelplineVerificationStore();
+
       return NextResponse.json({
         success: true,
-        session,
+        session: toPublicHelplineSession(session),
+        ...(previewOtp ? { devOtpCode: previewOtp } : {}),
         verificationLink,
         message:
           session.verificationMethod === "link"
             ? "Verification link generated. Send this link to the caller to complete verification."
-            : isTestOtpEnabled
-            ? `Verification code sent to caller (${phoneNumber}). Test code: ${session.devOtpCode}`
+            : previewOtp
+            ? `Verification code sent to caller (${phoneNumber}). Test code: ${previewOtp}`
             : `Verification code sent via SMS to caller (${phoneNumber}).`,
       });
     }
@@ -288,13 +307,15 @@ export async function POST(request: NextRequest) {
       }
 
       const res = verifySessionOtp(token, code);
-      if (!res.success) {
+      if (!res.success || !res.session) {
+        await persistHelplineVerificationStore().catch(() => undefined);
         return NextResponse.json({ error: res.error }, { status: 400 });
       }
+      await persistHelplineVerificationStore();
 
       return NextResponse.json({
         success: true,
-        session: res.session,
+        session: toPublicHelplineSession(res.session),
         message: "Mobile phone number successfully verified.",
       });
     }
@@ -308,26 +329,30 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: "Token and National ID / Iqama are required." }, { status: 400 });
       }
 
-      const res = verifySessionIdentity(token, {
+      const res = await verifySessionIdentity(token, {
         nationalId,
         fullName,
         provider: "yakeen",
       });
 
-      if (!res.success) {
-        return NextResponse.json({ error: res.error }, { status: 400 });
+      if (!res.success || !res.session) {
+        return NextResponse.json(
+          { error: res.error },
+          { status: res.statusCode || 400 }
+        );
       }
+      await persistHelplineVerificationStore();
 
       return NextResponse.json({
         success: true,
-        session: res.session,
-        message: "National ID / Iqama verified with Yakeen National Registry.",
+        session: toPublicHelplineSession(res.session),
+        message: "National ID / Iqama verified successfully.",
       });
     }
 
     return NextResponse.json({ error: `Unknown action '${action}'` }, { status: 400 });
   } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : "Internal verification error";
-    return NextResponse.json({ error: msg }, { status: 500 });
+    console.error("[admin helpline verify] server error:", err);
+    return NextResponse.json({ error: "Internal verification error" }, { status: 500 });
   }
 }

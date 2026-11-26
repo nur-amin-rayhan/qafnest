@@ -29,59 +29,56 @@ export default function RateAppTab({
   t,
 }: RateAppTabProps) {
   const categories = [
-    { id: "speed", labelEn: "App & Booking Speed", labelAr: "سرعة الحجز والتطبيق" },
-    { id: "cleanliness", labelEn: "Cleanliness & Units", labelAr: "نظافة وجودة الوحدات" },
-    { id: "concierge", labelEn: "Support & Check-in", labelAr: "خدمة الدخول والدعم" },
-    { id: "pricing", labelEn: "Prices & Value", labelAr: "الأسعار والشفافية" },
+    { id: "speed", labelEn: "Booking speed", labelAr: "سرعة الحجز" },
+    { id: "cleanliness", labelEn: "Property accuracy", labelAr: "مطابقة الوحدة" },
+    { id: "concierge", labelEn: "Check-in & access", labelAr: "الدخول الذكي" },
+    { id: "pricing", labelEn: "Pricing & clarity", labelAr: "وضوح الأسعار" },
   ];
 
   return (
-    <div>
-      <div className="flex items-center justify-between pb-6 mb-6 border-b border-slate-100 dark:border-white/10">
-        <div>
-          <h2 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white">
-            {t("Rate Your QafNest Experience", "قيّمنا وملاحظات الخدمة")}
-          </h2>
-          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
-            {t(
-              "Your feedback drives our continuous refinement of luxury Saudi stays.",
-              "رأيك وملاحظاتك تساهم مباشرة في تطوير معايير الضيافة الفاخرة."
-            )}
-          </p>
-        </div>
+    <div className="space-y-6">
+      <div className="pb-5 border-b border-slate-200 dark:border-white/[0.08]">
+        <h2 className="text-lg sm:text-xl font-semibold text-slate-900 dark:text-white">
+          {t("Rate your experience", "قيّم تجربتك")}
+        </h2>
+        <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 mt-1">
+          {t(
+            "Share feedback to help us improve bookings and stays.",
+            "شاركنا ملاحظاتك لتحسين تجربة الحجز والإقامة."
+          )}
+        </p>
       </div>
 
       {feedbackSubmitted ? (
-        <div className="p-8 rounded-3xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 text-center">
-          <CheckCircle2 size={40} className="text-emerald-500 mx-auto mb-3" />
-          <h3 className="text-lg font-black text-slate-900 dark:text-white">
-            {t("Thank you for your valuable rating!", "شكراً جزيلاً لتقييمك الرائع!")}
+        <div className="p-6 rounded-2xl bg-emerald-50 border border-emerald-200 dark:bg-emerald-500/15 dark:border-emerald-500/30 text-center">
+          <CheckCircle2 size={32} className="text-emerald-700 dark:text-emerald-400 mx-auto mb-2.5" />
+          <h3 className="text-base font-semibold text-slate-900 dark:text-white">
+            {t("Feedback submitted", "تم إرسال التقييم")}
           </h3>
-          <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
-            {t("Your feedback helps us maintain premium quality standards.", "ملاحظاتك تساعدنا دائماً في تقديم الأفضل.")}
+          <p className="text-xs text-slate-700 dark:text-slate-300 mt-1">
+            {t("Thank you for sharing your rating.", "شكراً لمشاركتك رأيك معنا.")}
           </p>
         </div>
       ) : (
-        <form onSubmit={handleSendFeedback} className="space-y-6">
-          {/* Star Rating */}
+        <form onSubmit={handleSendFeedback} className="space-y-5">
           <div>
-            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2">
-              {t("Select Overall Rating", "اختر التقييم العام")}
+            <label className="block text-xs font-medium text-slate-800 dark:text-slate-300 mb-2">
+              {t("Overall rating", "التقييم العام")}
             </label>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5">
               {[1, 2, 3, 4, 5].map((star) => (
                 <button
                   key={star}
                   type="button"
                   onClick={() => setRatingScore(star)}
-                  className="p-2 transition transform hover:scale-110 cursor-pointer"
+                  className="p-1.5 transition-colors cursor-pointer"
                 >
                   <Star
-                    size={32}
+                    size={26}
                     className={
                       star <= ratingScore
-                        ? "text-amber-400 fill-amber-400"
-                        : "text-slate-200 dark:text-slate-700"
+                        ? "text-amber-500 fill-amber-400"
+                        : "text-slate-300 dark:text-slate-700"
                     }
                   />
                 </button>
@@ -89,21 +86,20 @@ export default function RateAppTab({
             </div>
           </div>
 
-          {/* Category */}
           <div>
-            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2">
-              {t("What aspect would you like to highlight?", "ما هو الجانب الذي ترغب في تقييمه؟")}
+            <label className="block text-xs font-medium text-slate-800 dark:text-slate-300 mb-2">
+              {t("Focus area", "الجانب المختار")}
             </label>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
               {categories.map((cat) => (
                 <button
                   key={cat.id}
                   type="button"
                   onClick={() => setFeedbackCategory(cat.id)}
-                  className={`p-3 rounded-2xl border text-xs font-bold transition text-center cursor-pointer ${
+                  className={`p-2.5 rounded-xl border text-xs font-medium transition-colors text-center cursor-pointer ${
                     feedbackCategory === cat.id
-                      ? "border-[#4F2396] bg-purple-50 dark:bg-purple-950/40 text-[#4F2396] dark:text-purple-300 ring-1 ring-[#4F2396]"
-                      : "border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-white/5"
+                      ? "border-[#4F2396] bg-[#F4EEFF] dark:bg-[#4F2396]/25 text-[#4F2396] dark:text-purple-200"
+                      : "border-slate-300 dark:border-white/15 bg-white dark:bg-[#06060B] text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/[0.04]"
                   }`}
                 >
                   {language === "ar" ? cat.labelAr : cat.labelEn}
@@ -112,34 +108,29 @@ export default function RateAppTab({
             </div>
           </div>
 
-          {/* Comment */}
           <div>
-            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2">
-              {t("Your Comments & Suggestions", "ملاحظاتك ومقترحاتك")}
+            <label className="block text-xs font-medium text-slate-800 dark:text-slate-300 mb-2">
+              {t("Comments", "الملاحظات")}
             </label>
             <textarea
               rows={4}
               required
               value={feedbackText}
               onChange={(e) => setFeedbackText(e.target.value)}
-              placeholder={t(
-                "Tell us how we can make your next stay even better...",
-                "شاركنا تجربتك وكيف نجعل إقامتك القادمة أكثر تميزاً..."
-              )}
-              className="w-full rounded-2xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 p-4 text-sm font-medium text-slate-900 dark:text-white outline-none focus:border-[#4F2396] focus:bg-white dark:focus:bg-[#06060B] transition"
+              placeholder={t("Write your feedback", "اكتب ملاحظاتك هنا")}
+              className="w-full rounded-xl border border-slate-300 dark:border-white/15 bg-white dark:bg-[#06060B] p-3.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#4F2396]/35 focus:border-[#4F2396] transition-colors"
             />
           </div>
 
           <button
             type="submit"
             disabled={!feedbackText.trim()}
-            className="rounded-2xl bg-[#4F2396] hover:bg-[#3f1c79] text-white font-bold px-8 py-3 text-sm shadow-md transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed focus-visible:ring-2 focus-visible:ring-violet-400 focus-visible:outline-none min-h-[44px]"
+            className="rounded-xl bg-[#4F2396] hover:bg-[#3f1c79] text-white font-medium px-6 py-2.5 text-sm transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed min-h-[44px]"
           >
-            {t("Submit Review", "إرسال التقييم")}
+            {t("Submit rating", "إرسال التقييم")}
           </button>
         </form>
       )}
     </div>
   );
 }
-

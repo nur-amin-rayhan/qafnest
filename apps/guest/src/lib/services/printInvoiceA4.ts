@@ -357,7 +357,7 @@ export async function printInvoiceA4(params: PrintableInvoiceParams): Promise<vo
             </div>
 
             <div class="compliance-note">
-              QafNest Kingdom of Saudi Arabia · Ministry of Tourism License #73102999 · CR #1010648921 · Support: 0576707709 · Fatoorah Verified
+              QafNest Kingdom of Saudi Arabia · CR #0000000000 · Support: +966 57 670 7709 · Fatoorah Verified
             </div>
           </div>
         </div>

@@ -2,11 +2,16 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { calculatePricingBreakdown } from "@/lib/services/pricing";
 import { validateAuthoritativeCoupon } from "@/lib/services/couponService";
-import { getServerEffectiveGuestFeeConfig } from "@qafnest/shared/platformFeeStore";
+import {
+  getServerEffectiveGuestFeeConfig,
+  hydratePlatformFeeConfig,
+} from "@qafnest/shared/platformFeeStore";
+import { hydratePromotionState } from "@qafnest/shared/promotionStore";
 
 
 export async function POST(request: Request) {
   try {
+    await Promise.all([hydratePlatformFeeConfig(), hydratePromotionState()]);
     const payload = await request.json();
     const { code, nights, category } = payload || {};
     const baseRate =

@@ -328,3 +328,79 @@ html.light #navbar {
   border-bottom-color: rgba(88, 28, 135, 0.08) !important;
   color: #111827 !important;
 }
+
+/* Policy Cancellation Tier Badges - High contrast & crystal clarity in Light & Dark modes */
+.tier-badge-flexible,
+article#cancellations .bg-emerald-200,
+.policy-rich-content .bg-emerald-200 {
+  display: inline-flex !important;
+  align-items: center !important;
+  padding: 0.25rem 0.75rem !important;
+  border-radius: 9999px !important;
+  font-size: 0.75rem !important;
+  font-weight: 700 !important;
+  line-height: 1rem !important;
+  background-color: #d1fae5 !important;
+  color: #065f46 !important;
+  border: 1px solid #a7f3d0 !important;
+}
+html.dark .tier-badge-flexible,
+.dark .tier-badge-flexible,
+html.dark article#cancellations .bg-emerald-200,
+.dark article#cancellations .bg-emerald-200,
+html.dark .policy-rich-content .bg-emerald-200,
+.dark .policy-rich-content .bg-emerald-200 {
+  background-color: rgba(16, 185, 129, 0.2) !important;
+  color: #34d399 !important;
+  border: 1px solid rgba(16, 185, 129, 0.4) !important;
+}
+
+.tier-badge-moderate,
+article#cancellations .bg-blue-200,
+.policy-rich-content .bg-blue-200 {
+  display: inline-flex !important;
+  align-items: center !important;
+  padding: 0.25rem 0.75rem !important;
+  border-radius: 9999px !important;
+  font-size: 0.75rem !important;
+  font-weight: 700 !important;
+  line-height: 1rem !important;
+  background-color: #dbeafe !important;
+  color: #1e40af !important;
+  border: 1px solid #bfdbfe !important;
+}
+html.dark .tier-badge-moderate,
+.dark .tier-badge-moderate,
+html.dark article#cancellations .bg-blue-200,
+.dark article#cancellations .bg-blue-200,
+html.dark .policy-rich-content .bg-blue-200,
+.dark .policy-rich-content .bg-blue-200 {
+  background-color: rgba(59, 130, 246, 0.2) !important;
+  color: #60a5fa !important;
+  border: 1px solid rgba(59, 130, 246, 0.4) !important;
+}
+
+.tier-badge-strict,
+article#cancellations .bg-rose-200,
+.policy-rich-content .bg-rose-200 {
+  display: inline-flex !important;
+  align-items: center !important;
+  padding: 0.25rem 0.75rem !important;
+  border-radius: 9999px !important;
+  font-size: 0.75rem !important;
+  font-weight: 700 !important;
+  line-height: 1rem !important;
+  background-color: #ffe4e6 !important;
+  color: #9f1239 !important;
+  border: 1px solid #fecdd3 !important;
+}
+html.dark .tier-badge-strict,
+.dark .tier-badge-strict,
+html.dark article#cancellations .bg-rose-200,
+.dark article#cancellations .bg-rose-200,
+html.dark .policy-rich-content .bg-rose-200,
+.dark .policy-rich-content .bg-rose-200 {
+  background-color: rgba(244, 63, 94, 0.2) !important;
+  color: #fb7185 !important;
+  border: 1px solid rgba(244, 63, 94, 0.4) !important;
+}

@@ -31,10 +31,10 @@ export default function HostEmailAuthStep({
   t,
 }: HostEmailAuthStepProps) {
   return (
-    <form onSubmit={onSubmit} className="mt-5 space-y-4">
+    <form onSubmit={onSubmit} className="mt-4 space-y-3.5">
       {!isEmailSignIn && (
         <div>
-          <label className="mb-1.5 block text-xs font-extrabold text-slate-700">
+          <label className="mb-1.5 block text-xs font-semibold text-slate-700">
             {t("Host or Business Name", "اسم المنشأة أو المضيف")}
           </label>
           <input
@@ -43,13 +43,13 @@ export default function HostEmailAuthStep({
             value={hostBusinessName}
             onChange={(e) => setHostBusinessName(e.target.value)}
             placeholder={t("e.g. Oasis Luxury Chalets", "مثال: شاليهات الواحة الفاخرة")}
-            className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-900 outline-none focus:border-[#4F2396] focus:bg-white"
+            className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm font-medium text-slate-900 outline-none focus:border-[#4F2396] focus:ring-1 focus:ring-[#4F2396] transition"
           />
         </div>
       )}
 
       <div>
-        <label className="mb-1.5 block text-xs font-extrabold text-slate-700">
+        <label className="mb-1.5 block text-xs font-semibold text-slate-700">
           {t("Email Address", "البريد الإلكتروني")}
         </label>
         <input
@@ -59,12 +59,12 @@ export default function HostEmailAuthStep({
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           placeholder="host@example.com"
-          className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-900 outline-none focus:border-[#4F2396] focus:bg-white"
+          className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm font-medium text-slate-900 outline-none focus:border-[#4F2396] focus:ring-1 focus:ring-[#4F2396] transition"
         />
       </div>
 
       <div>
-        <label className="mb-1.5 block text-xs font-extrabold text-slate-700">
+        <label className="mb-1.5 block text-xs font-semibold text-slate-700">
           {t("Password", "كلمة المرور")}
         </label>
         <input
@@ -74,16 +74,16 @@ export default function HostEmailAuthStep({
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           placeholder="••••••••"
-          className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-900 outline-none focus:border-[#4F2396] focus:bg-white"
+          className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm font-medium text-slate-900 outline-none focus:border-[#4F2396] focus:ring-1 focus:ring-[#4F2396] transition"
         />
       </div>
 
       <button
         type="submit"
         disabled={loading}
-        className="flex w-full items-center justify-center gap-2 rounded-2xl bg-[#4F2396] hover:bg-[#3d1a78] py-3.5 text-sm font-black text-white shadow-lg transition active:scale-[0.98] disabled:opacity-60 cursor-pointer"
+        className="mt-1 flex w-full items-center justify-center gap-2 rounded-xl bg-[#4F2396] hover:bg-[#3f1b7a] py-3 text-sm font-semibold text-white shadow-xs transition active:scale-[0.99] disabled:opacity-50 cursor-pointer"
       >
-        {loading ? <LoaderCircle className="h-5 w-5 animate-spin" /> : <Lock size={16} />}
+        {loading ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Lock size={15} />}
         <span>
           {loading
             ? t("Verifying...", "جارٍ التحقق…")
@@ -93,11 +93,11 @@ export default function HostEmailAuthStep({
         </span>
       </button>
 
-      <div className="flex items-center justify-between pt-1 text-xs font-bold">
+      <div className="flex items-center justify-between pt-1 text-xs font-medium">
         <button
           type="button"
           onClick={() => setIsEmailSignIn(!isEmailSignIn)}
-          className="text-[#4F2396] hover:underline cursor-pointer"
+          className="text-[#4F2396] font-semibold hover:underline cursor-pointer"
         >
           {isEmailSignIn
             ? t("Don't have a host account? Register now", "ليس لديك حساب مضيف؟ سجل الآن")

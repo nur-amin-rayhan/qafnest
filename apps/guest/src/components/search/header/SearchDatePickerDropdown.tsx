@@ -211,7 +211,7 @@ export function SearchDatePickerDropdown({
         <div
           data-lenis-prevent="true"
           onWheel={(e) => e.stopPropagation()}
-          className="absolute top-full left-1/2 -translate-x-1/2 lg:left-auto lg:right-0 rtl:lg:right-auto rtl:lg:left-0 lg:translate-x-0 mt-2.5 w-[calc(100vw-2rem)] sm:w-auto max-w-[650px] rounded-3xl bg-white dark:bg-[#141122] border border-violet-200/90 dark:border-violet-500/30 shadow-[0_24px_60px_rgba(109,40,217,0.24)] p-4 sm:p-5 z-[90]"
+          className="absolute top-full mt-2.5 inset-x-0 mx-auto w-[calc(100vw-2rem)] max-w-[340px] sm:max-w-[620px] sm:w-auto lg:inset-x-auto lg:right-0 rtl:lg:right-auto rtl:lg:left-0 lg:max-w-[650px] rounded-3xl bg-white dark:bg-[#141122] border border-violet-200/90 dark:border-violet-500/30 shadow-[0_24px_60px_rgba(109,40,217,0.24)] p-4 sm:p-5 z-[90]"
         >
           {/* Quick Nights Presets */}
           <div className="flex flex-wrap items-center justify-between gap-2 pb-3 mb-3 border-b border-violet-100 dark:border-violet-500/20">

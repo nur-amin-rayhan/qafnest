@@ -14,6 +14,7 @@ interface HostOtpVerifyStepProps {
   onResendOtp: (e: React.FormEvent) => void;
   onChangeNumber: () => void;
   t: (en: string, ar: string) => string;
+  authMode?: "signin" | "signup";
 }
 
 export default function HostOtpVerifyStep({
@@ -27,6 +28,7 @@ export default function HostOtpVerifyStep({
   onResendOtp,
   onChangeNumber,
   t,
+  authMode = "signin",
 }: HostOtpVerifyStepProps) {
   return (
     <form onSubmit={onSubmit} className="space-y-5">
@@ -57,7 +59,7 @@ export default function HostOtpVerifyStep({
             onChange={(e) => handleOtpChange(index, e.target.value)}
             onKeyDown={(e) => handleOtpKeyDown(index, e)}
             autoFocus={index === 0}
-            className="h-12 w-11 sm:h-14 sm:w-12 rounded-2xl border border-slate-200 bg-slate-50 text-center text-xl font-black text-[#4F2396] outline-none focus:border-[#4F2396] focus:bg-white focus:ring-2 focus:ring-violet-200 transition"
+            className="h-11 w-10 sm:h-12 sm:w-11 rounded-xl border border-slate-200 bg-white text-center text-lg font-bold text-slate-900 outline-none focus:border-[#4F2396] focus:ring-1 focus:ring-[#4F2396] transition"
           />
         ))}
       </div>
@@ -65,10 +67,16 @@ export default function HostOtpVerifyStep({
       <button
         type="submit"
         disabled={loading || otp.join("").length !== otp.length}
-        className="flex w-full items-center justify-center gap-2 rounded-2xl bg-[#4F2396] hover:bg-[#3d1a78] py-3.5 text-sm font-black text-white shadow-lg transition active:scale-[0.98] disabled:opacity-50 cursor-pointer"
+        className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#4F2396] hover:bg-[#3f1b7a] py-3 text-sm font-semibold text-white shadow-xs transition active:scale-[0.99] disabled:opacity-50 cursor-pointer"
       >
-        {loading ? <LoaderCircle className="h-5 w-5 animate-spin" /> : <CheckCircle2 size={16} />}
-        <span>{loading ? t("Verifying code...", "جارٍ التحقق…") : t("Verify & Sign In", "تأكيد والدخول")}</span>
+        {loading ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <CheckCircle2 size={15} />}
+        <span>
+          {loading
+            ? t("Verifying code...", "جارٍ التحقق…")
+            : authMode === "signup"
+            ? t("Verify & Continue", "تأكيد ومتابعة")
+            : t("Verify & Sign In", "تأكيد والدخول")}
+        </span>
       </button>
 
       <div className="text-center">

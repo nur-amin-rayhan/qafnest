@@ -786,10 +786,11 @@ export async function GET(request: NextRequest) {
       securityAlertsCount: securityOverview.alerts.length,
     });
   } catch (err: unknown) {
+    console.error("[admin/users GET] failed:", err);
     return NextResponse.json(
       {
         code: "server_error",
-        message: err instanceof Error ? err.message : "Failed to load user management directory.",
+        message: "Failed to load user management directory.",
       },
       { status: 500 }
     );
@@ -833,9 +834,11 @@ export async function PATCH(request: NextRequest) {
 
     if (action === "suspend_user") {
       if (supabase && isUuid) {
-        await supabase.auth.admin
-          .updateUserById(userId, { ban_duration: "876000h" })
-          .catch(() => null);
+        const { error: banErr } = await supabase.auth.admin.updateUserById(userId, { ban_duration: "876000h" });
+        if (banErr) {
+          console.error("[admin users PATCH] suspend auth user failed:", banErr);
+          return NextResponse.json({ code: "auth_update_failed", message: "Failed to suspend user account." }, { status: 500 });
+        }
       }
       updateUserGovernanceOverride(
         userId,
@@ -847,9 +850,11 @@ export async function PATCH(request: NextRequest) {
       actionDetails = body.reason || "Account access temporarily suspended by Operations.";
     } else if (action === "activate_user") {
       if (supabase && isUuid) {
-        await supabase.auth.admin
-          .updateUserById(userId, { ban_duration: "none" })
-          .catch(() => null);
+        const { error: unbanErr } = await supabase.auth.admin.updateUserById(userId, { ban_duration: "none" });
+        if (unbanErr) {
+          console.error("[admin users PATCH] activate auth user failed:", unbanErr);
+          return NextResponse.json({ code: "auth_update_failed", message: "Failed to reactivate user account." }, { status: 500 });
+        }
       }
       updateUserGovernanceOverride(
         userId,
@@ -861,23 +866,31 @@ export async function PATCH(request: NextRequest) {
       actionDetails = "Account suspension lifted by Operations.";
     } else if (action === "verify_user") {
       if (supabase && isUuid) {
-        await supabase
+        const { error: profErr } = await supabase
           .from("profiles")
           .update({
             is_verified: true,
             nafath_verified_at: new Date().toISOString(),
           })
           .eq("id", userId);
+        if (profErr) {
+          console.error("[admin users PATCH] verify profile failed:", profErr);
+          return NextResponse.json({ code: "profile_update_failed", message: "Failed to verify user profile." }, { status: 500 });
+        }
       }
       updateUserGovernanceOverride(userId, role, { verifiedOverride: true }, actorEmail);
       actionTitle = `${role === "host" ? "Host" : "Guest"} KYC / Identity Verified`;
       actionDetails = "Verified manually by Operations Admin.";
     } else if (action === "unverify_user") {
       if (supabase && isUuid) {
-        await supabase
+        const { error: profErr } = await supabase
           .from("profiles")
           .update({ is_verified: false })
           .eq("id", userId);
+        if (profErr) {
+          console.error("[admin users PATCH] unverify profile failed:", profErr);
+          return NextResponse.json({ code: "profile_update_failed", message: "Failed to clear verification." }, { status: 500 });
+        }
       }
       updateUserGovernanceOverride(userId, role, { verifiedOverride: false }, actorEmail);
       actionTitle = `${role === "host" ? "Host" : "Guest"} Verification Revoked`;
@@ -890,6 +903,11 @@ export async function PATCH(request: NextRequest) {
       updateUserGovernanceOverride(userId, role, { adminNote: note }, actorEmail);
       actionTitle = `Compliance Note Added (${role === "host" ? "Host" : "Guest"})`;
       actionDetails = note;
+    } else {
+      return NextResponse.json(
+        { code: "invalid_action", message: `Unsupported governance action: ${String(action)}` },
+        { status: 400 }
+      );
     }
 
     recordUserActivity({
@@ -908,10 +926,11 @@ export async function PATCH(request: NextRequest) {
       message: `${actionTitle}: ${body.userName || userId}`,
     });
   } catch (err: unknown) {
+    console.error("[admin users PATCH] server error:", err);
     return NextResponse.json(
       {
         code: "server_error",
-        message: err instanceof Error ? err.message : "Failed to update user governance state.",
+        message: "Failed to update user governance state.",
       },
       { status: 500 }
     );

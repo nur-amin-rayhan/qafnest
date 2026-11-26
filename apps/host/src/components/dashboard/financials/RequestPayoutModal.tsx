@@ -163,7 +163,7 @@ export function RequestPayoutModal({
             {hasIban && ibanData.isVerified ? (
               <span className="inline-flex items-center gap-1 text-[11px] text-emerald-600 font-bold mt-1">
                 <ShieldCheck size={13} />
-                <span>{t("Verified SAMA Account", "حساب بنكي موثق لدى ساما")}</span>
+                <span>{t("IBAN Checksum Validated (MOD-97)", "تم التحقق من صيغة الآيبان (MOD-97)")}</span>
               </span>
             ) : null}
           </div>

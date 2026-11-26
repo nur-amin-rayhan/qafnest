@@ -22,8 +22,8 @@ export async function GET(
     }
     return NextResponse.json(blog);
   } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : "Internal error";
-    return NextResponse.json({ error: msg }, { status: 500 });
+    console.error("[cms blog GET] error:", err);
+    return NextResponse.json({ error: "Failed to load blog." }, { status: 500 });
   }
 }
 
@@ -50,8 +50,8 @@ export async function PUT(
     await persistSharedJsonFile(BLOGS_FILE, getAllBlogs());
     return NextResponse.json({ success: true, blog: sanitizedPost });
   } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : "Internal error";
-    return NextResponse.json({ error: msg }, { status: 500 });
+    console.error("[cms blog GET] error:", err);
+    return NextResponse.json({ error: "Failed to load blog." }, { status: 500 });
   }
 }
 
@@ -71,7 +71,7 @@ export async function DELETE(
     await persistSharedJsonFile(BLOGS_FILE, getAllBlogs());
     return NextResponse.json({ success: true });
   } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : "Internal error";
-    return NextResponse.json({ error: msg }, { status: 500 });
+    console.error("[cms blog GET] error:", err);
+    return NextResponse.json({ error: "Failed to load blog." }, { status: 500 });
   }
 }

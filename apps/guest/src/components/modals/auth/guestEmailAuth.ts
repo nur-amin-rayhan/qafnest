@@ -1,6 +1,6 @@
 import type { SupabaseClient, User } from "@supabase/supabase-js";
 import { checkSignupGuard, claimWelcomeBonus } from "@/lib/auth/deviceFingerprint";
-import { setCachedAuth, syncSessionCookie, type Profile } from "@/context/auth/guestAuthStorage";
+import { setCachedAuth, type Profile } from "@/context/auth/guestAuthStorage";
 
 export async function executeEmailAuth({
   supabase,
@@ -34,7 +34,6 @@ export async function executeEmailAuth({
           };
           if (devData?.success && devData.user && devData.profile) {
             setCachedAuth({ user: devData.user, profile: devData.profile });
-            syncSessionCookie("dev_guest_token");
             if (typeof window !== "undefined") {
               setTimeout(() => window.location.reload(), 650);
             }

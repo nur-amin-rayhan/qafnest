@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { FileText, Download, Eye } from "lucide-react";
+import { FileText, Eye } from "lucide-react";
 import type { HostVatInvoice } from "@/lib/services/hostFinancialsService";
 import { VatInvoiceModal } from "./VatInvoiceModal";
 

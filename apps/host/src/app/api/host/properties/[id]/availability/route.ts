@@ -136,7 +136,8 @@ export async function GET(
     }
 
     if (propErr) {
-      return NextResponse.json({ code: "db_error", message: propErr.message }, { status: 500 });
+      console.error("[host availability GET] prop query failed:", propErr);
+      return NextResponse.json({ code: "db_error", message: "Failed to load property availability." }, { status: 500 });
     }
     if (!prop) {
       return NextResponse.json({ code: "property_not_found", message: "Property not found." }, { status: 404 });
@@ -168,14 +169,14 @@ export async function GET(
 
     const targetDbId = isUuid(effectiveProp.id) ? effectiveProp.id : null;
 
-    // 2. Fetch verified confirmed/completed bookings only (never show unpaid pending checkouts as Booked)
+    // 2. Fetch verified confirmed/checked_in/completed bookings only (never show unpaid pending checkouts as Booked)
     let bookingsData: unknown[] = [];
     if (targetDbId) {
       const { data: bRows } = await supabase
         .from("bookings")
         .select("id, booking_reference, check_in, check_out, checkin_time, checkout_time, status, payment_status, created_at")
         .eq("property_id", targetDbId)
-        .in("status", ["confirmed", "completed"]);
+        .in("status", ["confirmed", "checked_in", "completed"]);
       bookingsData = (bRows || []).filter(
         (b) => !b.payment_status || b.payment_status === "success" || b.payment_status === "paid"
       );
@@ -237,7 +238,7 @@ export async function GET(
   } catch (err: unknown) {
     console.error("Host availability query exception:", err);
     return NextResponse.json(
-      { code: "internal_error", message: err instanceof Error ? err.message : "Internal error" },
+      { code: "internal_error", message: "Failed to load availability." },
       { status: 500 }
     );
   }
@@ -283,7 +284,8 @@ export async function POST(
     }
 
     if (propErr) {
-      return NextResponse.json({ code: "db_error", message: propErr.message }, { status: 500 });
+      console.error("[host availability POST] prop query failed:", propErr);
+      return NextResponse.json({ code: "db_error", message: "Failed to load property." }, { status: 500 });
     }
     if (!prop) {
       return NextResponse.json({ code: "property_not_found", message: "Property not found." }, { status: 404 });
@@ -293,6 +295,12 @@ export async function POST(
       return NextResponse.json(
         { code: "forbidden", message: "You are not authorized to manage this property." },
         { status: 403 }
+      );
+    }
+    if (postPropRecord.status === "archived") {
+      return NextResponse.json(
+        { code: "property_archived", message: "Cannot modify availability of an archived property." },
+        { status: 409 }
       );
     }
 
@@ -332,6 +340,44 @@ export async function POST(
       }
     }
 
+    const todayRiyadhIso = getRiyadhNowInfo().dateIso;
+    if (priceOverrides && typeof priceOverrides === "object") {
+      for (const [dateStr, rawPrice] of Object.entries(priceOverrides as Record<string, unknown>)) {
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+          return NextResponse.json(
+            { code: "invalid_date", message: `Invalid price override date format: ${dateStr}` },
+            { status: 400 }
+          );
+        }
+        if (dateStr < todayRiyadhIso) {
+          return NextResponse.json(
+            { code: "past_date_immutable", message: `Cannot override pricing for past date ${dateStr}.` },
+            { status: 400 }
+          );
+        }
+        if (rawPrice !== null && rawPrice !== "" && rawPrice !== undefined) {
+          const numericPrice = Number(rawPrice);
+          if (!Number.isFinite(numericPrice) || numericPrice <= 0 || numericPrice > 1_000_000) {
+            return NextResponse.json(
+              { code: "invalid_price", message: `Price override for ${dateStr} must be a positive number.` },
+              { status: 400 }
+            );
+          }
+        }
+      }
+    }
+
+    if (Array.isArray(blockedDates)) {
+      for (const dateStr of blockedDates) {
+        if (typeof dateStr === "string" && /^\d{4}-\d{2}-\d{2}$/.test(dateStr) && dateStr < todayRiyadhIso) {
+          return NextResponse.json(
+            { code: "past_date_immutable", message: `Cannot block past date ${dateStr}.` },
+            { status: 400 }
+          );
+        }
+      }
+    }
+
     return await acquirePropertyBookingLock([effectiveProp.id, effectiveProp.slug], async () => {
       // Load active bookings to prevent accidental overwrite or blocking already-booked slots
       const fifteenMinutesAgo = new Date(Date.now() - 15 * 60 * 1000).toISOString();
@@ -342,7 +388,7 @@ export async function POST(
           .from("bookings")
           .select("id, booking_reference, check_in, check_out, checkin_time, checkout_time, status, created_at")
           .eq("property_id", targetDbId)
-          .or(`status.in.(confirmed,completed),and(status.eq.pending,created_at.gt.${fifteenMinutesAgo})`);
+          .or(`status.in.(confirmed,checked_in,completed),and(status.eq.pending,created_at.gt.${fifteenMinutesAgo})`);
         activeBookingRows = bRows || [];
       }
 
@@ -350,7 +396,7 @@ export async function POST(
         (activeBookingRows || []) as Array<Record<string, unknown>>
       );
 
-      // Overwrite check: refuse closing a full day or disabling a half-slot that already has an active booking
+      // Overwrite check: refuse closing a full day when either morning OR evening slot holds an active booking
       if (Array.isArray(blockedDates)) {
         for (const dateStr of blockedDates) {
           if (typeof dateStr !== "string") continue;
@@ -367,12 +413,12 @@ export async function POST(
               b
             )
           );
-          if (hasMorningBooking && hasEveningBooking) {
+          if (hasMorningBooking || hasEveningBooking) {
             return NextResponse.json(
               {
                 code: "slot_has_active_booking",
-                message: `Cannot block ${dateStr} because guests hold confirmed bookings across that date.`,
-                messageAr: `لا يمكن إغلاق ${dateStr} لوجود حجوزات مؤكدة تشغل الفترات الزمنية لهذا اليوم.`,
+                message: `Cannot block ${dateStr} because a guest holds an active booking during that date.`,
+                messageAr: `لا يمكن إغلاق ${dateStr} لوجود حجز مؤكد يشغل جزءاً أو كامل هذا اليوم.`,
               },
               { status: 409 }
             );
@@ -455,6 +501,9 @@ export async function POST(
       const propertyUpdates: Record<string, unknown> = {};
       if (typeof basePrice === "number" && basePrice > 0) {
         propertyUpdates.base_price = basePrice;
+        if (!weekendPrice && (!customDayPricing || (!customDayPricing.friday && !customDayPricing.thursday && !customDayPricing.saturday))) {
+          propertyUpdates.weekend_price = basePrice;
+        }
       }
       if (typeof weekdayPrice === "number" && weekdayPrice > 0) {
         propertyUpdates.weekday_price = weekdayPrice;

@@ -10,6 +10,7 @@ interface PricingLineItemsProps {
   language: "en" | "ar";
   onRemoveCoupon: () => void;
   t: (en: string, ar: string) => string;
+  isTwelveHourStay?: boolean;
 }
 
 export function PricingLineItems({
@@ -18,25 +19,40 @@ export function PricingLineItems({
   language,
   onRemoveCoupon,
   t,
+  isTwelveHourStay = false,
 }: PricingLineItemsProps) {
   const [showServiceFeeTooltip, setShowServiceFeeTooltip] = useState(false);
   const [showVatTooltip, setShowVatTooltip] = useState(false);
+
+  const hasListingDiscount = pricing.listingDiscount > 0;
+  const originalSubtotal = hasListingDiscount
+    ? pricing.baseRate + pricing.listingDiscount
+    : pricing.baseRate;
+  const displayedNightly = hasListingDiscount
+    ? Math.round((originalSubtotal / nights) * 100) / 100
+    : pricing.nightlyRate;
 
   return (
     <div className="space-y-2.5 text-xs sm:text-sm text-gray-700 dark:text-gray-200">
       {/* Base Stay */}
       <div className="flex items-center justify-between">
         <span className="text-gray-600 dark:text-gray-300">
-          {formatCurrency(pricing.nightlyRate, language)} × {nights}{" "}
-          {nights === 1 ? t("night", "ليلة") : t("nights", "ليال")}
+          {isTwelveHourStay ? (
+            t("12-Hour stay (12:00 AM – 12:00 PM)", "إقامة 12 ساعة (12:00 ص – 12:00 م)")
+          ) : (
+            <>
+              {formatCurrency(displayedNightly, language)} × {nights}{" "}
+              {nights === 1 ? t("night", "ليلة") : t("nights", "ليال")}
+            </>
+          )}
         </span>
         <span className="font-semibold text-gray-900 dark:text-white">
-          {formatCurrency(pricing.baseRate, language)}
+          {formatCurrency(originalSubtotal, language)}
         </span>
       </div>
 
       {/* Listing Discount (if applicable) */}
-      {pricing.listingDiscount > 0 && (
+      {hasListingDiscount && (
         <div className="flex items-center justify-between text-rose-600 dark:text-rose-400 font-medium">
           <span className="inline-flex items-center gap-1">
             <Sparkles className="h-3.5 w-3.5" />

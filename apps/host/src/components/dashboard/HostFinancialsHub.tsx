@@ -55,6 +55,7 @@ export default function HostFinancialsHub({ lang, t }: HostFinancialsHubProps) {
     toastMsg,
     loadFinancials,
     handleUpdateIban,
+    handleDeleteIban,
     handleRequestPayout,
     handleUpdateSettlementSettings,
   } = useHostFinancials();
@@ -289,7 +290,13 @@ export default function HostFinancialsHub({ lang, t }: HostFinancialsHubProps) {
 
       {/* Sub-Tab 3: Payout Method (IBAN) */}
       {activeSubTab === "iban" && (
-        <PayoutIbanCard ibanData={iban} onUpdateIban={handleUpdateIban} lang={lang} t={t} />
+        <PayoutIbanCard
+          ibanData={iban}
+          onUpdateIban={handleUpdateIban}
+          onDeleteIban={handleDeleteIban}
+          lang={lang}
+          t={t}
+        />
       )}
 
       {/* Sub-Tab 3: VAT Invoices */}

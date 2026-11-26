@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { getHostRequestHeaders } from "@/lib/hostPropertyActions";
+import { createClient } from "@/lib/supabase/client";
 import type {
   SettingsTab,
   HostProfileSettings,
@@ -81,9 +83,8 @@ export function useHostSettings(
   const loadSettings = useCallback(async () => {
     setIsLoading(true);
     try {
-      const res = await fetch("/api/host/settings", {
-        headers: hostId ? { "x-dev-host-id": hostId } : {},
-      });
+      const headers = await getHostRequestHeaders(hostId);
+      const res = await fetch("/api/host/settings", { headers, cache: "no-store" });
       if (!res.ok) throw new Error("Failed to load settings.");
       const json = await res.json();
       if (json.settings) {
@@ -106,11 +107,12 @@ export function useHostSettings(
   const saveProfile = async (data: Partial<HostProfileSettings>) => {
     setIsSaving(true);
     try {
+      const authHeaders = await getHostRequestHeaders(hostId);
       const res = await fetch("/api/host/settings", {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
-          ...(hostId ? { "x-dev-host-id": hostId } : {}),
+          ...authHeaders,
         },
         body: JSON.stringify({ section: "profile", data }),
       });
@@ -118,7 +120,7 @@ export function useHostSettings(
       if (!res.ok || !json.success) {
         throw new Error(json.message || "Could not save profile details");
       }
-      setProfileForm((prev) => ({ ...prev, ...data }));
+      setProfileForm((prev) => ({ ...prev, ...(json.profile || data) }));
       onProfileUpdated?.();
       showToast(
         "success",
@@ -145,11 +147,12 @@ export function useHostSettings(
   }) => {
     setIsSaving(true);
     try {
+      const authHeaders = await getHostRequestHeaders(hostId);
       const res = await fetch("/api/host/settings", {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
-          ...(hostId ? { "x-dev-host-id": hostId } : {}),
+          ...authHeaders,
         },
         body: JSON.stringify({ section: "payout", data }),
       });
@@ -178,11 +181,12 @@ export function useHostSettings(
     setIsSaving(true);
     try {
       const updated = { ...notificationsForm, ...data };
+      const authHeaders = await getHostRequestHeaders(hostId);
       const res = await fetch("/api/host/settings", {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
-          ...(hostId ? { "x-dev-host-id": hostId } : {}),
+          ...authHeaders,
         },
         body: JSON.stringify({ section: "notifications", data: updated }),
       });
@@ -190,7 +194,7 @@ export function useHostSettings(
       if (!res.ok || !json.success) {
         throw new Error(json.message || "Failed to save notifications");
       }
-      setNotificationsForm(updated);
+      setNotificationsForm(json.notifications || updated);
       showToast(
         "success",
         lang === "ar"
@@ -207,18 +211,19 @@ export function useHostSettings(
     }
   };
 
-  const updatePassword = async (password: string) => {
+  const updatePassword = async (password: string, currentPassword?: string) => {
     setIsSaving(true);
     try {
+      const authHeaders = await getHostRequestHeaders(hostId);
       const res = await fetch("/api/host/settings", {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
-          ...(hostId ? { "x-dev-host-id": hostId } : {}),
+          ...authHeaders,
         },
         body: JSON.stringify({
           section: "security",
-          data: { action: "update_password", password },
+          data: { action: "update_password", password, currentPassword },
         }),
       });
       const json = await res.json();
@@ -250,11 +255,16 @@ export function useHostSettings(
   const signOutOtherSessions = async () => {
     setIsSaving(true);
     try {
+      try {
+        const supabase = createClient();
+        await supabase.auth.signOut({ scope: "others" });
+      } catch {}
+      const authHeaders = await getHostRequestHeaders(hostId);
       const res = await fetch("/api/host/settings", {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
-          ...(hostId ? { "x-dev-host-id": hostId } : {}),
+          ...authHeaders,
         },
         body: JSON.stringify({
           section: "security",

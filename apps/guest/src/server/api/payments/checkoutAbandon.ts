@@ -70,8 +70,9 @@ export async function POST(request: NextRequest) {
       message: "Reservation checkout session cancelled and availability reverted.",
     });
   } catch (err: unknown) {
+    console.error("[checkoutAbandon] error:", err);
     return NextResponse.json(
-      { code: "server_error", message: err instanceof Error ? err.message : "Internal error" },
+      { code: "server_error", message: "Failed to cancel reservation session." },
       { status: 500 }
     );
   }

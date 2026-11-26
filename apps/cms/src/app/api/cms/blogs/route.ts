@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { getAllBlogs, saveBlog } from "@qafnest/shared/blogStore";
 import { hydrateSharedJsonFile, persistSharedJsonFile } from "@qafnest/shared/serverJsonStore";
-import { sanitizeRichHtml } from "@qafnest/shared/escapeHtml";
+import { sanitizeRichHtml } from "@qafnest/shared/sanitizeRichHtml";
 import type { SharedBlogPost } from "@qafnest/shared";
 import { isAdminRequest } from "@/lib/adminApi";
 
@@ -27,8 +27,8 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(blogs);
   } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : "Internal error";
-    return NextResponse.json({ error: msg }, { status: 500 });
+    console.error("[cms blogs GET] error:", err);
+    return NextResponse.json({ error: "Failed to load blogs." }, { status: 500 });
   }
 }
 
@@ -72,7 +72,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ success: true, blog: sanitizedPost });
   } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : "Internal error";
-    return NextResponse.json({ error: msg }, { status: 500 });
+    console.error("[cms blogs POST] error:", err);
+    return NextResponse.json({ error: "Failed to save blog." }, { status: 500 });
   }
 }

@@ -27,25 +27,25 @@ export function PaymentRow({
       aria-label={`${title}. ${description}`}
       disabled={disabled}
       onClick={onSelect}
-      className={`flex w-full items-center gap-3 py-4 text-start transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-violet-500 disabled:cursor-not-allowed cursor-pointer ${
-        selected ? "text-gray-950 dark:text-white" : "text-gray-800 dark:text-gray-200"
+      className={`flex w-full items-center gap-3 py-4 text-start transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#4F2396] disabled:cursor-not-allowed cursor-pointer ${
+        selected ? "text-slate-900 dark:text-white" : "text-slate-700 dark:text-slate-200"
       }`}
     >
       <span
         className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border transition-colors ${
-          selected ? "border-violet-700 dark:border-violet-300" : "border-gray-400 dark:border-gray-500"
+          selected ? "border-[#4F2396] dark:border-purple-400" : "border-slate-300 dark:border-slate-600"
         }`}
         aria-hidden="true"
       >
         <span
-          className={`h-2.5 w-2.5 rounded-full bg-violet-700 transition-transform dark:bg-violet-300 ${
+          className={`h-2.5 w-2.5 rounded-full bg-[#4F2396] transition-transform dark:bg-purple-400 ${
             selected ? "scale-100" : "scale-0"
           }`}
         />
       </span>
       <span className="min-w-0 flex-1">
         <span className="block text-sm font-bold">{title}</span>
-        <span className="mt-0.5 block text-xs leading-5 text-gray-500 dark:text-gray-400">
+        <span className="mt-0.5 block text-xs leading-5 text-slate-500 dark:text-slate-400">
           {description}
         </span>
       </span>

@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { MapPin } from "lucide-react";
+import { MapPin, Map } from "lucide-react";
 
 interface TabLocationProps {
   district: string;
@@ -49,15 +49,15 @@ export function TabLocation({ district, cityName, address, lat, lng, lang = "en"
           href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(queryTarget)}`}
           target="_blank"
           rel="noreferrer"
-          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-primary text-white text-xs font-bold shadow-md hover:bg-primary/90 transition"
+          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#4F2396] hover:bg-[#431D82] text-white text-xs font-bold shadow-md transition"
         >
-          <span className="material-symbols-outlined text-[16px]">map</span>
+          <Map size={15} />
           <span>{t("فتح في خرائط Google", "Open in Google Maps")}</span>
         </a>
       </div>
 
       {/* Embedded Interactive Google Map */}
-      <div className="relative aspect-[16/9] w-full overflow-hidden rounded-3xl border border-violet-200/80 bg-surface-container shadow-inner">
+      <div className="relative aspect-[16/9] w-full overflow-hidden rounded-3xl border border-violet-200/80 bg-slate-100 dark:bg-slate-900 shadow-inner">
         <iframe
           key={embedSrc}
           title={`${district} ${cityName} Google Map`}
@@ -69,7 +69,7 @@ export function TabLocation({ district, cityName, address, lat, lng, lang = "en"
         />
       </div>
 
-      <p className="text-xs text-outline">
+      <p className="text-xs text-slate-500 dark:text-slate-400">
         {t(
           "حفاظاً على الخصوصية، يظهر الموقع التقريبي للحي. يتم إرسال رابط اللوكيشن الدقيق وإرشادات الدخول الذاتي بعد تأكيد الحجز مباشرة.",
           "Approximate neighborhood location shown for privacy. Exact GPS coordinates and self-checkin instructions are provided upon confirmed reservation."

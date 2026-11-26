@@ -1,5 +1,5 @@
 import type { Property } from "@/data/properties";
-import { listProperties } from "@/lib/services/properties";
+import { getMemoryPropertiesSnapshot, listProperties } from "@/lib/services/properties";
 import { createClient } from "@/lib/supabase/client";
 
 export interface HostReview {
@@ -40,9 +40,18 @@ export function resolveHostIdForProperty(property: Property): string {
   return property.hostId || property.host?.id || "";
 }
 
-export function resolveHostForProperty(property: Property) {
+export function resolveHostForProperty(property: Property, allProperties?: Property[]) {
   const hostId = resolveHostIdForProperty(property);
   const h = property.host;
+  const pool = allProperties && allProperties.length > 0 ? allProperties : getMemoryPropertiesSnapshot();
+  let propertiesCount = typeof h?.propertiesCount === "number" ? h.propertiesCount : 1;
+
+  if (hostId && pool && pool.length > 0) {
+    const matched = pool.filter((p) => resolveHostIdForProperty(p) === hostId);
+    if (matched.length > 0) {
+      propertiesCount = matched.length;
+    }
+  }
 
   return {
     id: hostId,
@@ -59,7 +68,7 @@ export function resolveHostForProperty(property: Property) {
     profileHref: hostId ? `/host/${encodeURIComponent(hostId)}` : "",
     rating: typeof property.rating === "number" ? property.rating : 0,
     reviewsCount: typeof property.reviewsCount === "number" ? property.reviewsCount : 0,
-    propertiesCount: typeof h?.propertiesCount === "number" ? h.propertiesCount : 1,
+    propertiesCount,
   };
 }
 
@@ -67,15 +76,17 @@ export async function getHostProfile(hostId: string): Promise<HostProfile | null
   const allProperties = await listProperties();
   const matchedProperties = allProperties.filter((p) => resolveHostIdForProperty(p) === hostId);
 
-  // If hostId is a UUID from Supabase profiles, fetch profile details
-  let dbProfile: { full_name?: string | null; phone?: string | null; created_at?: string | null } | null = null;
+  // If hostId is a UUID, fetch non-PII host display details via server endpoint (bypasses RLS cleanly)
+  let dbProfile: { full_name?: string | null; avatar_url?: string | null; created_at?: string | null } | null = null;
   const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(hostId);
 
-  if (isUuid) {
+  if (isUuid && typeof window !== "undefined") {
     try {
-      const supabase = createClient();
-      const { data } = await supabase.from("profiles").select("full_name, phone, created_at").eq("id", hostId).maybeSingle();
-      if (data) dbProfile = data;
+      const res = await fetch(`/api/hosts/public?id=${encodeURIComponent(hostId)}`);
+      if (res.ok) {
+        const json = (await res.json()) as { host?: { full_name?: string | null; avatar_url?: string | null; created_at?: string | null } | null };
+        if (json?.host) dbProfile = json.host;
+      }
     } catch {}
   }
 
@@ -161,7 +172,7 @@ export async function getHostProfile(hostId: string): Promise<HostProfile | null
     id: hostId,
     name,
     nameAr,
-    avatarUrl: hostMeta?.avatar,
+    avatarUrl: dbProfile?.avatar_url || hostMeta?.avatar,
     badge: hostMeta?.badge || "Host Partner",
     badgeAr: hostMeta?.badgeAr || "شريك ضيافة",
     about: hostMeta?.about || "",

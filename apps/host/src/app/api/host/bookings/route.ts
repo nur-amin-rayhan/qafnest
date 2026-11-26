@@ -10,7 +10,7 @@ import {
   stripBilingualFromSelect,
 } from "@qafnest/shared";
 import { getServerPlatformFeeConfig } from "@qafnest/shared/platformFeeStore";
-import { resolveBookingSettlement } from "@qafnest/shared/bookingFinancialsStore";
+import { resolveBookingSettlement, getBookingFinancialSnapshot } from "@qafnest/shared/bookingFinancialsStore";
 
 function getAdminClient() {
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
@@ -67,7 +67,8 @@ export async function GET(request: NextRequest) {
     }
 
     if (propErr) {
-      return NextResponse.json({ code: "db_error", message: propErr.message }, { status: 500 });
+      console.error("[host bookings GET] prop query failed:", propErr);
+      return NextResponse.json({ code: "db_error", message: "Failed to load properties." }, { status: 500 });
     }
 
     type HostPropertyRow = Record<string, unknown> & {
@@ -131,7 +132,8 @@ export async function GET(request: NextRequest) {
       .order("created_at", { ascending: false });
 
     if (bookErr) {
-      return NextResponse.json({ code: "db_error", message: bookErr.message }, { status: 500 });
+      console.error("[host bookings GET] bookings query failed:", bookErr);
+      return NextResponse.json({ code: "db_error", message: "Failed to load bookings." }, { status: 500 });
     }
 
     // Exclude uncompleted checkout sessions and technical failed transactions.
@@ -158,7 +160,7 @@ export async function GET(request: NextRequest) {
           b.payment_status === "refunded"
         );
       }
-      return b.status === "confirmed" || b.status === "completed";
+      return b.status === "confirmed" || b.status === "checked_in" || b.status === "completed";
     });
     const guestIds = Array.from(new Set(rawList.map((b) => b.guest_id).filter(Boolean)));
     const profileMap = new Map<string, { full_name?: string; phone?: string; is_verified?: boolean; national_id?: string; iqama?: string }>();
@@ -180,7 +182,6 @@ export async function GET(request: NextRequest) {
 
     const todayStr = new Date().toISOString().slice(0, 10);
     const feeCfg = getServerPlatformFeeConfig();
-    const commRatePct = feeCfg.baseCommissionPercent;
     const vatRatePct = feeCfg.vatRatePercent;
 
     let allBookings = rawList.map((b) => {
@@ -192,9 +193,14 @@ export async function GET(request: NextRequest) {
 
       // Guest Display Info & Verification Auto-population
       const profile = b.guest_id ? profileMap.get(b.guest_id) : null;
-      let guestName = profile?.full_name?.trim() || "Guest";
-      let guestPhone = profile?.phone?.trim() || "";
-      let isGuestVerified = Boolean(profile?.is_verified || profile?.national_id || profile?.iqama);
+      const snapshot =
+        getBookingFinancialSnapshot(b.booking_reference) ||
+        (b.id ? getBookingFinancialSnapshot(b.id) : null);
+      let guestName = profile?.full_name?.trim() || snapshot?.guestName?.trim() || "Guest";
+      let guestPhone = profile?.phone?.trim() || snapshot?.guestPhone?.trim() || "";
+      let isGuestVerified = Boolean(
+        profile?.is_verified || profile?.national_id || profile?.iqama || guestPhone
+      );
 
       if (!guestPhone && b.auth_subject) {
         if (b.auth_subject.startsWith("guest_phone_")) {
@@ -210,8 +216,21 @@ export async function GET(request: NextRequest) {
             guestName = `Guest (${guestPhone.slice(-4)})`;
           }
           isGuestVerified = true;
-        } else if (guestName === "Guest") {
-          guestName = b.auth_subject;
+        }
+      }
+
+      // Never expose raw auth_subject/UUID codes as guest name
+      if (
+        guestName === "Guest" ||
+        /^[0-9a-f]{8}-[0-9a-f]{4}/i.test(guestName) ||
+        (b.auth_subject && guestName === b.auth_subject)
+      ) {
+        if (snapshot?.guestName && snapshot.guestName.trim()) {
+          guestName = snapshot.guestName.trim();
+        } else if (guestPhone) {
+          guestName = `Guest (${guestPhone.slice(-4)})`;
+        } else {
+          guestName = "Guest User";
         }
       }
 
@@ -314,7 +333,7 @@ export async function GET(request: NextRequest) {
     for (const b of allBookings) {
       const isPaid =
         !b.payment_status || b.payment_status === "success" || b.payment_status === "paid";
-      if ((b.status === "confirmed" || b.status === "completed") && isPaid) {
+      if ((b.status === "confirmed" || b.status === "checked_in" || b.status === "completed") && isPaid) {
         totalRevenueSAR += Number(b.total_price) || 0;
         if (b.stayStatus === "today" || b.stayStatus === "in_house") {
           checkedInTodayCount++;
@@ -368,8 +387,9 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (err: unknown) {
+    console.error("[host bookings GET] server error:", err);
     return NextResponse.json(
-      { code: "server_error", message: err instanceof Error ? err.message : "Unknown error" },
+      { code: "server_error", message: "Failed to load host bookings." },
       { status: 500 }
     );
   }

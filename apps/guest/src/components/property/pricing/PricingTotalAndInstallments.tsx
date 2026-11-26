@@ -39,20 +39,20 @@ export function PricingTotalAndInstallments({
 
       {/* Installments Split Callout (Tabby / Tamara 4 interest-free payments) */}
       {showInstallments && (
-        <div className="mt-3 p-2.5 rounded-xl border border-violet-200/80 bg-gradient-to-r from-violet-50/60 via-white to-fuchsia-50/40 dark:border-violet-500/20 dark:from-violet-950/20 dark:to-transparent flex items-center justify-between text-xs">
-          <div className="flex items-center gap-1.5 text-gray-700 dark:text-gray-200">
-            <span className="font-semibold">
+        <div className="mt-3 p-3 rounded-xl border border-slate-200/85 bg-slate-50/70 dark:border-slate-800 dark:bg-slate-900/50 flex items-center justify-between text-xs">
+          <div className="flex items-center gap-1.5 text-slate-700 dark:text-slate-200">
+            <span className="font-medium">
               {t("Or 4 interest-free payments of", "أو قسّمها على 4 دفعات بدون فوائد بقيمة")}
             </span>
-            <strong className="font-black text-violet-700 dark:text-violet-300 font-mono">
+            <strong className="font-bold text-[#4F2396] dark:text-purple-300 font-mono">
               {formatCurrency(pricing.installmentAmount, language)}
             </strong>
           </div>
-          <div className="flex items-center gap-1 shrink-0">
+          <div className="flex items-center gap-1.5 shrink-0">
             <span className="px-1.5 py-0.5 rounded text-[9.5px] font-black bg-[#3EFEAB] text-gray-950 shadow-2xs">
               tabby
             </span>
-            <span className="px-1.5 py-0.5 rounded text-[9.5px] font-black bg-gradient-to-r from-[#FBD3A7] to-[#D4B5FD] text-gray-950 shadow-2xs">
+            <span className="px-1.5 py-0.5 rounded text-[9.5px] font-black bg-[#FCEFD7] border border-[#F2D7B3] text-[#8A4A0B] shadow-2xs">
               tamara
             </span>
           </div>

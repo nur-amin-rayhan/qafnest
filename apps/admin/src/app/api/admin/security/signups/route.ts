@@ -71,11 +71,13 @@ export async function POST(request: NextRequest) {
             { status: 400, headers: NO_STORE_HEADERS }
           );
         }
+        await hydrateSignupSecurityStore();
         const doc = blockIpAddress(
           body.ip,
           body.reason || "Blocked manually by Admin",
           session.email || "Super Admin"
         );
+        await persistSignupSecurityStore();
         return NextResponse.json(
           { success: true, message: `IP ${body.ip} blocked.`, ...doc },
           { headers: NO_STORE_HEADERS }
@@ -89,7 +91,9 @@ export async function POST(request: NextRequest) {
             { status: 400, headers: NO_STORE_HEADERS }
           );
         }
+        await hydrateSignupSecurityStore();
         const doc = unblockIpAddress(body.ip);
+        await persistSignupSecurityStore();
         return NextResponse.json(
           { success: true, message: `IP ${body.ip} unblocked.`, ...doc },
           { headers: NO_STORE_HEADERS }
@@ -103,7 +107,9 @@ export async function POST(request: NextRequest) {
             { status: 400, headers: NO_STORE_HEADERS }
           );
         }
+        await hydrateSignupSecurityStore();
         const doc = clearIpRegistrationLock(body.ip);
+        await persistSignupSecurityStore();
         return NextResponse.json(
           { success: true, message: `IP registration lock reset for ${body.ip}.`, ...doc },
           { headers: NO_STORE_HEADERS }
@@ -117,7 +123,9 @@ export async function POST(request: NextRequest) {
             { status: 400, headers: NO_STORE_HEADERS }
           );
         }
+        await hydrateSignupSecurityStore();
         const doc = clearDeviceRegistrationLock(body.deviceId);
+        await persistSignupSecurityStore();
         return NextResponse.json(
           { success: true, message: `Device lock cleared.`, ...doc },
           { headers: NO_STORE_HEADERS }
@@ -158,10 +166,11 @@ export async function POST(request: NextRequest) {
         );
     }
   } catch (err: unknown) {
+    console.error("[admin security signups] error:", err);
     return NextResponse.json(
       {
         code: "error",
-        message: err instanceof Error ? err.message : "Failed to update security controls.",
+        message: "Failed to update security controls.",
       },
       { status: 500, headers: NO_STORE_HEADERS }
     );

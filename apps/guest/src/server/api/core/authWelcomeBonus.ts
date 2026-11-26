@@ -6,6 +6,7 @@ import {
   getServerPlatformFeeConfig,
   hydratePlatformFeeConfig,
 } from "@qafnest/shared/platformFeeStore";
+import { checkRateLimit } from "@qafnest/shared/rateLimiter";
 import {
   extractClientIp,
   normalizeDeviceId,
@@ -17,6 +18,15 @@ import {
 
 
 export async function POST(request: Request) {
+  const ip = extractClientIp(request);
+  const rl = checkRateLimit(`welcome:${ip}`, 10, 15 * 60_000);
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { code: "rate_limited", message: "Too many requests." },
+      { status: 429, headers: { "Retry-After": String(rl.retryAfterSeconds) } }
+    );
+  }
+
   const authUser = await verifyGuestSession(request);
   if (!authUser) {
     return NextResponse.json({ code: "unauthorized" }, { status: 401 });
@@ -58,7 +68,7 @@ export async function POST(request: Request) {
       });
     }
 
-    // Verify account age strictly from server records (never let body.isNewSignup mark old Supabase accounts new)
+    // Verify account age strictly from server records (never let body.isNewSignup mark accounts new)
     let isRecentSignup = false;
     try {
       const admin = await getAdminOrServerClient();
@@ -71,15 +81,18 @@ export async function POST(request: Request) {
             isRecentSignup = true;
           }
         }
+      } else if (authUser.provider === "firebase" && wallet.transactions.length === 0) {
+        const { count } = await admin
+          .from("bookings")
+          .select("id", { count: "exact", head: true })
+          .or(`guest_id.eq.${authUser.id},auth_subject.eq.${authUser.id}`);
+        if ((count ?? 0) === 0) {
+          isRecentSignup = true;
+        }
       }
     } catch {
-      if (wallet.transactions.length === 0 && Boolean(body.isNewSignup)) {
-        isRecentSignup = true;
-      }
-    }
-
-    if (!isRecentSignup && authUser.provider === "firebase" && wallet.transactions.length === 0) {
-      isRecentSignup = true;
+      // Fail closed on verification error rather than trusting client body.isNewSignup
+      isRecentSignup = false;
     }
 
     if (!isRecentSignup) {
@@ -154,12 +167,13 @@ export async function POST(request: Request) {
         : "تم التحقق من حالة المكافأة الترحيبية.",
     });
   } catch (err: unknown) {
+    console.error("[authWelcomeBonus] failed:", err);
     return NextResponse.json(
       {
         success: false,
         awarded: false,
         amountCredited: 0,
-        message: err instanceof Error ? err.message : "Failed to process welcome bonus.",
+        message: "Failed to process welcome bonus.",
       },
       { status: 500 }
     );

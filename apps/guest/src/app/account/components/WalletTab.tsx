@@ -123,14 +123,14 @@ export default function WalletTab({
   });
 
   return (
-    <div className="space-y-8">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-slate-100 dark:border-white/10">
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-slate-200 dark:border-white/[0.08]">
         <div>
-          <h2 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white">
-            {t("Digital Wallet & Loyalty Points", "المحفظة الرقمية ونقاط المكافآت")}
+          <h2 className="text-lg sm:text-xl font-semibold text-slate-900 dark:text-white">
+            {t("Wallet & Loyalty Points", "المحفظة ونقاط الولاء")}
           </h2>
-          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
-            {t("Top up your balance, manage instant bookings, and track rewards.", "اشحن رصيد محفظتك، وادفع لحجوزاتك فوراً، وتابع نقاط مكافآتك وعروضك.")}
+          <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 mt-1">
+            {t("Top up your balance, pay for bookings, and review wallet activity.", "اشحن رصيدك وادفع لحجوزاتك وتابع حركات المحفظة.")}
           </p>
         </div>
 
@@ -141,9 +141,9 @@ export default function WalletTab({
               setActionErrorMsg(null);
               setRedeemModalOpen(true);
             }}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-500/20 text-amber-700 dark:text-amber-400 font-bold text-xs hover:bg-amber-100/70 transition-all cursor-pointer"
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white dark:bg-[#06060B] border border-slate-300 dark:border-white/15 text-slate-800 dark:text-slate-200 font-semibold text-xs hover:bg-slate-50 dark:hover:bg-white/[0.06] transition-colors cursor-pointer"
           >
-            <Gift size={16} />
+            <Gift size={15} className="text-amber-600 dark:text-amber-400" />
             <span>{t("Redeem Points", "استبدال النقاط")}</span>
           </button>
 
@@ -153,89 +153,91 @@ export default function WalletTab({
               setActionErrorMsg(null);
               setTopUpModalOpen(true);
             }}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-gradient-to-r from-[#4F2396] to-[#7c3aed] text-white font-bold text-xs shadow-md shadow-purple-900/20 hover:opacity-95 transition-all cursor-pointer"
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#4F2396] text-white font-semibold text-xs hover:bg-[#3d1979] transition-colors cursor-pointer"
           >
-            <PlusCircle size={16} />
+            <PlusCircle size={15} />
             <span>{t("Top Up Wallet", "شحن المحفظة")}</span>
           </button>
         </div>
       </div>
 
       {actionSuccessMsg && (
-        <div className="flex items-center gap-3 p-4 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-500/20 text-emerald-800 dark:text-emerald-300 text-sm font-semibold">
-          <CheckCircle2 size={18} className="text-emerald-600 shrink-0" />
+        <div className="flex items-center gap-3 p-4 rounded-xl bg-emerald-50 dark:bg-emerald-500/15 border border-emerald-200 dark:border-emerald-500/30 text-emerald-800 dark:text-emerald-300 text-sm font-medium">
+          <CheckCircle2 size={18} className="text-emerald-700 dark:text-emerald-400 shrink-0" />
           <span>{actionSuccessMsg}</span>
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-tr from-[#15042c] via-[#2d1159] to-[#5b1f99] p-6 sm:p-7 text-white shadow-xl shadow-purple-950/20 border border-white/20">
-          <div className="flex items-center justify-between mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="rounded-2xl bg-[#F9F8FD] dark:bg-white/[0.03] p-6 border border-slate-200 dark:border-white/10 flex flex-col justify-between">
+          <div className="flex items-center justify-between mb-5">
             <div>
-              <span className="text-[10px] uppercase font-black tracking-widest text-[#FF9750] bg-white/10 px-2.5 py-1 rounded-full">
-                QAFNEST GUEST WALLET
+              <span className="text-[11px] font-semibold uppercase tracking-wide text-[#4F2396] dark:text-purple-300">
+                {t("Wallet Balance", "رصيد المحفظة")}
               </span>
-              <p className="text-xs text-purple-200 mt-1">{t("Instant Booking & 0% Fees", "دفع فوري بدون رسوم بوابة")}</p>
+              <p className="text-xs text-slate-600 dark:text-slate-400 mt-0.5">
+                {t("Available for instant checkout", "متاح للسداد الفوري")}
+              </p>
             </div>
-            <div className="w-10 h-10 rounded-2xl bg-white/15 backdrop-blur-md flex items-center justify-center font-black text-sm">
-              QN
-            </div>
-          </div>
-
-          <div className="mb-6">
-            <p className="text-xs text-purple-200/80 mb-1">{t("Available Balance", "الرصيد المتاح")}</p>
-            <div className="text-3xl sm:text-4xl font-black font-mono tracking-tight" dir="ltr">
-              {walletBalance.toFixed(2)} <span className="text-base font-sans text-purple-200">SAR</span>
+            <div className="w-9 h-9 rounded-xl bg-[#F4EEFF] dark:bg-[#4F2396]/25 text-[#4F2396] dark:text-purple-300 flex items-center justify-center font-semibold text-xs">
+              SAR
             </div>
           </div>
 
-          <div className="flex items-center justify-between text-xs text-purple-200/90 pt-4 border-t border-white/15">
-            <span className="truncate max-w-[150px] font-bold">{displayName}</span>
+          <div className="mb-5">
+            <div className="text-2xl sm:text-3xl font-semibold font-mono tabular-nums tracking-tight text-slate-900 dark:text-white">
+              <bdi dir="ltr">{walletBalance.toFixed(2)} SAR</bdi>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between text-xs text-slate-600 dark:text-slate-400 pt-3.5 border-t border-slate-200 dark:border-white/10">
+            <span className="truncate max-w-[160px] font-medium text-slate-800 dark:text-slate-200">{displayName}</span>
             <button
               type="button"
               onClick={() => setTopUpModalOpen(true)}
-              className="inline-flex items-center gap-1 font-bold text-[#FF9750] hover:underline cursor-pointer"
+              className="inline-flex items-center gap-1 font-semibold text-[#4F2396] dark:text-purple-300 hover:underline cursor-pointer"
             >
-              <span>{t("Quick Top-up", "+ شحن سريع")}</span>
+              <span>{t("Top up", "شحن الرصيد")}</span>
               <ArrowUpRight size={14} />
             </button>
           </div>
         </div>
 
-        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-tr from-[#0b1329] via-[#10224d] to-[#1e3a8a] p-6 sm:p-7 text-white shadow-xl shadow-blue-950/20 border border-white/20">
-          <div className="flex items-center justify-between mb-6">
+        <div className="rounded-2xl bg-[#F9F8FD] dark:bg-white/[0.03] p-6 border border-slate-200 dark:border-white/10 flex flex-col justify-between">
+          <div className="flex items-center justify-between mb-5">
             <div>
-              <span className="text-[10px] uppercase font-black tracking-widest text-emerald-400 bg-white/10 px-2.5 py-1 rounded-full">
-                {loyaltyTier} MEMBER
+              <span className="text-[11px] font-semibold uppercase tracking-wide text-emerald-700 dark:text-emerald-400">
+                {loyaltyTier} {t("Tier", "فئة")}
               </span>
-              <p className="text-xs text-blue-200 mt-1">{t("Loyalty Rewards Program", "برنامج ولاء ومكافآت قاف")}</p>
+              <p className="text-xs text-slate-600 dark:text-slate-400 mt-0.5">
+                {t("Loyalty Points", "نقاط المكافآت")}
+              </p>
             </div>
-            <div className="w-10 h-10 rounded-2xl bg-amber-400/20 backdrop-blur-md text-amber-300 flex items-center justify-center">
-              <Coins size={20} />
+            <div className="w-9 h-9 rounded-xl bg-amber-50 border border-amber-200 dark:bg-amber-950/30 dark:border-amber-500/20 text-amber-700 dark:text-amber-400 flex items-center justify-center">
+              <Coins size={18} />
             </div>
           </div>
 
-          <div className="mb-6">
-            <p className="text-xs text-blue-200/80 mb-1">{t("Loyalty Points", "نقاط المكافآت المتاحة")}</p>
-            <div className="flex items-baseline gap-2">
-              <span className="text-3xl sm:text-4xl font-black font-mono tracking-tight" dir="ltr">
+          <div className="mb-5">
+            <div className="flex items-baseline gap-2.5">
+              <span className="text-2xl sm:text-3xl font-semibold font-mono tabular-nums tracking-tight text-slate-900 dark:text-white" dir="ltr">
                 {loyaltyPoints}
               </span>
-              <span className="text-xs font-bold text-emerald-400">
-                ≈ {(loyaltyPoints / 10).toFixed(2)} SAR {t("Value", "قيمة")}
+              <span className="text-xs font-medium text-emerald-700 dark:text-emerald-400">
+                (<bdi dir="ltr">{(loyaltyPoints / 10).toFixed(2)} SAR</bdi>)
               </span>
             </div>
           </div>
 
-          <div className="flex items-center justify-between text-xs text-blue-200/90 pt-4 border-t border-white/15">
-            <span className="flex items-center gap-1">
-              <Zap size={14} className="text-amber-400" />
-              <span>{t("Earn 2X Points on Bookings", "اكسب نقطتين لكل ريال عند الحجز")}</span>
+          <div className="flex items-center justify-between text-xs text-slate-600 dark:text-slate-400 pt-3.5 border-t border-slate-200 dark:border-white/10">
+            <span className="flex items-center gap-1.5">
+              <Zap size={14} className="text-amber-600 dark:text-amber-400" />
+              <span>{t("Earn points on completed stays", "اكسب نقاطاً عند إتمام الحجوزات")}</span>
             </span>
             <button
               type="button"
               onClick={() => setRedeemModalOpen(true)}
-              className="inline-flex items-center gap-1 font-bold text-amber-300 hover:underline cursor-pointer"
+              className="inline-flex items-center gap-1 font-semibold text-[#4F2396] dark:text-purple-300 hover:underline cursor-pointer"
             >
               <span>{t("Redeem", "استبدال")}</span>
               <ChevronRight size={14} className="rtl:rotate-180" />
@@ -245,36 +247,35 @@ export default function WalletTab({
       </div>
 
       {offers.length > 0 && (
-        <div className="p-5 sm:p-6 rounded-3xl bg-purple-50/70 dark:bg-purple-950/20 border border-purple-200/60 dark:border-purple-500/20">
-          <div className="flex items-center justify-between mb-4">
+        <div className="p-5 rounded-2xl bg-[#F9F8FD] dark:bg-white/[0.03] border border-slate-200 dark:border-white/10">
+          <div className="flex items-center justify-between mb-3.5">
             <div className="flex items-center gap-2">
-              <Sparkles className="w-5 h-5 text-[#FF9750]" />
-              <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white">
-                {t("Exclusive Loyalty Offers & Multipliers", "عروض مضاعفة النقاط والمكافآت النشطة")}
+              <Sparkles className="w-4 h-4 text-[#4F2396] dark:text-purple-300" />
+              <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
+                {t("Loyalty Offers", "عروض الولاء")}
               </h3>
             </div>
-            <span className="text-[11px] font-black uppercase text-[#4F2396] dark:text-purple-300">
+            <span className="text-[11px] font-medium text-slate-600 dark:text-slate-400">
               {t("Active Campaigns", "حملات جارية")}
             </span>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             {offers.map((offer) => (
               <div
                 key={offer.id}
-                className="p-4 rounded-2xl bg-white dark:bg-[#0E0E1A] border border-slate-200/70 dark:border-white/10 shadow-xs flex flex-col justify-between"
+                className="p-4 rounded-xl bg-white dark:bg-[#06060B] border border-slate-200 dark:border-white/10 flex flex-col justify-between"
               >
                 <div>
                   <div className="flex items-center justify-between mb-2">
-                    <span className="px-2 py-0.5 rounded-full bg-purple-100 dark:bg-purple-900/40 text-[#4F2396] dark:text-purple-300 text-[10px] font-black">
+                    <span className="px-2 py-0.5 rounded-md bg-[#F4EEFF] dark:bg-purple-900/40 text-[#4F2396] dark:text-purple-300 text-[10px] font-semibold">
                       {t(offer.badgeEn, offer.badgeAr)}
                     </span>
-                    <span className="text-[10px] text-slate-400 font-bold">QafNest</span>
                   </div>
-                  <h4 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white mb-1">
+                  <h4 className="text-xs sm:text-sm font-semibold text-slate-900 dark:text-white mb-1">
                     {t(offer.titleEn, offer.titleAr)}
                   </h4>
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed">
+                  <p className="text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed">
                     {t(offer.descriptionEn, offer.descriptionAr)}
                   </p>
                 </div>

@@ -140,9 +140,13 @@ export default function HostBookingsManagement({
     setActionLoadingId(bookingId);
     setActionSuccessMsg(null);
     try {
+      const authHeaders = await getHostRequestHeaders(user?.id);
       const res = await fetch(`/api/host/bookings/${bookingId}`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...authHeaders,
+        },
         body: JSON.stringify(payload),
       });
       const data = await res.json();

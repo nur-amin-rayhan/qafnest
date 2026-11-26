@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { createClient } from "@/lib/supabase/client";
 import {
   DEFAULT_ADMIN_METRICS,
   INITIAL_MOCK_PROPERTIES,
@@ -24,6 +23,15 @@ import {
 } from "./dashboardPropertyApi";
 
 import { adminPath } from "@/lib/adminUrl";
+
+// Module-level in-memory SWR cache across dashboard views
+let cachedMetrics: AdminMetrics | null = null;
+let cachedProperties: PropertyItem[] | null = null;
+let cachedBookings: BookingItem[] | null = null;
+let cachedPayoutReminders: PayoutReminderSummary | null = null;
+let cachedUrgentPayoutQueue: SharedHostPayoutRecord[] | null = null;
+let cachedDeletionRequests: AdminPropertyDeletionRequest[] | null = null;
+
 export function useAdminDashboardData() {
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
@@ -58,82 +66,77 @@ export function useAdminDashboardData() {
     }>
   >([]);
 
-  const pushLiveAlert = useCallback(
-    (alert: {
-      kind: "booking" | "property";
-      title: string;
-      subtitle: string;
-      bookingId?: string;
-      propertyId?: string;
-    }) => {
-      const id = `rt-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
-      setLiveAlerts((prev) => [
-        { ...alert, id, timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) },
-        ...prev.slice(0, 3),
-      ]);
-    },
-    []
-  );
-
   const dismissLiveAlert = useCallback((id: string) => {
     setLiveAlerts((prev) => prev.filter((a) => a.id !== id));
   }, []);
 
-  const triggerToast = (msg: string) => {
+  const triggerToast = useCallback((msg: string) => {
     setToastMsg(msg);
     setTimeout(() => {
       setToastMsg("");
     }, 3800);
-  };
+  }, []);
 
-  const [metrics, setMetrics] = useState<AdminMetrics>(DEFAULT_ADMIN_METRICS);
-  const [properties, setProperties] = useState<PropertyItem[]>(INITIAL_MOCK_PROPERTIES);
-  const [bookings, setBookings] = useState<BookingItem[]>(INITIAL_MOCK_BOOKINGS);
-  const [payoutReminders, setPayoutReminders] = useState<PayoutReminderSummary | null>(null);
-  const [urgentPayoutQueue, setUrgentPayoutQueue] = useState<SharedHostPayoutRecord[]>([]);
-  const [deletionRequests, setDeletionRequests] = useState<AdminPropertyDeletionRequest[]>([]);
+  const [metrics, setMetrics] = useState<AdminMetrics>(() => cachedMetrics || DEFAULT_ADMIN_METRICS);
+  const [properties, setProperties] = useState<PropertyItem[]>(() => cachedProperties || INITIAL_MOCK_PROPERTIES);
+  const [bookings, setBookings] = useState<BookingItem[]>(() => cachedBookings || INITIAL_MOCK_BOOKINGS);
+  const [payoutReminders, setPayoutReminders] = useState<PayoutReminderSummary | null>(() => cachedPayoutReminders);
+  const [urgentPayoutQueue, setUrgentPayoutQueue] = useState<SharedHostPayoutRecord[]>(() => cachedUrgentPayoutQueue || []);
+  const [deletionRequests, setDeletionRequests] = useState<AdminPropertyDeletionRequest[]>(() => cachedDeletionRequests || []);
 
   const loadLiveAdminData = useCallback(async (options?: { silent?: boolean }) => {
-    const isSilent = Boolean(options?.silent);
+    const isSilent = Boolean(options?.silent || cachedProperties !== null);
     if (!isSilent) {
       setLoading(true);
       setErrorMsg("");
     }
     try {
-      const [resMetrics, resProps] = await Promise.all([
-        fetch(adminPath("/api/admin/metrics"), { cache: "no-store" }),
-        fetch(adminPath("/api/admin/properties"), { cache: "no-store" }),
-      ]);
+      const fetchProps = fetch(adminPath("/api/admin/properties"), { cache: "no-store" })
+        .then(async (resProps) => {
+          if (resProps.ok) {
+            const propData = await resProps.json();
+            if (Array.isArray(propData.properties)) {
+              setProperties(propData.properties);
+              cachedProperties = propData.properties;
+            }
+            if (Array.isArray(propData.deletionRequests)) {
+              setDeletionRequests(propData.deletionRequests);
+              cachedDeletionRequests = propData.deletionRequests;
+            }
+          }
+        })
+        .catch((err) => console.error("Properties sync error:", err));
 
-      if (resMetrics.ok) {
-        const metData = await resMetrics.json();
-        if (metData.metrics) {
-          setMetrics(metData.metrics);
-        }
-        if (metData.payoutReminders) {
-          setPayoutReminders(metData.payoutReminders);
-        }
-        if (Array.isArray(metData.urgentPayoutQueue)) {
-          setUrgentPayoutQueue(metData.urgentPayoutQueue);
-        }
-        if (Array.isArray(metData.deletionRequests)) {
-          setDeletionRequests(metData.deletionRequests);
-        }
-        const liveBookings = metData.bookings || metData.recentBookings;
-        if (Array.isArray(liveBookings)) {
-          setBookings(liveBookings);
-        }
-      }
+      const fetchMetrics = fetch(adminPath("/api/admin/metrics"), { cache: "no-store" })
+        .then(async (resMetrics) => {
+          if (resMetrics.ok) {
+            const metData = await resMetrics.json();
+            if (metData.metrics) {
+              setMetrics(metData.metrics);
+              cachedMetrics = metData.metrics;
+            }
+            if (metData.payoutReminders) {
+              setPayoutReminders(metData.payoutReminders);
+              cachedPayoutReminders = metData.payoutReminders;
+            }
+            if (Array.isArray(metData.urgentPayoutQueue)) {
+              setUrgentPayoutQueue(metData.urgentPayoutQueue);
+              cachedUrgentPayoutQueue = metData.urgentPayoutQueue;
+            }
+            if (Array.isArray(metData.deletionRequests)) {
+              setDeletionRequests(metData.deletionRequests);
+              cachedDeletionRequests = metData.deletionRequests;
+            }
+            const liveBookings = metData.bookings || metData.recentBookings;
+            if (Array.isArray(liveBookings)) {
+              setBookings(liveBookings);
+              cachedBookings = liveBookings;
+            }
+          }
+        })
+        .catch((err) => console.error("Metrics sync error:", err));
 
-      if (resProps.ok) {
-        const propData = await resProps.json();
-        if (Array.isArray(propData.properties)) {
-          setProperties(propData.properties);
-        }
-        if (Array.isArray(propData.deletionRequests)) {
-          setDeletionRequests(propData.deletionRequests);
-        }
-      }
+      await Promise.all([fetchProps, fetchMetrics]);
     } catch (e) {
       console.error(e);
       if (!isSilent) {
@@ -157,75 +160,19 @@ export function useAdminDashboardData() {
       window.addEventListener("focus", handleFocus);
     }
 
-    // Silent background poller fallback (no spinning refresh icon)
+    // Silent background poller fallback (authenticated via /api/admin/* endpoints)
     const interval = setInterval(() => {
       if (typeof document !== "undefined" && document.hidden) return;
       void loadLiveAdminData({ silent: true });
     }, 8000);
 
-    let supabase: ReturnType<typeof createClient> | undefined;
-    try {
-      supabase = createClient();
-      const channel = supabase
-        .channel("admin-realtime-feed")
-        .on(
-          "postgres_changes",
-          { event: "*", schema: "public", table: "properties" },
-          (payload) => {
-            void loadLiveAdminData({ silent: true });
-            const row = payload.new as Record<string, unknown> | undefined;
-            if (payload.eventType === "INSERT" && row) {
-              pushLiveAlert({
-                kind: "property",
-                title: "New Property Submitted",
-                subtitle: String(row.title || "A new listing awaits your review"),
-                propertyId: row.id ? String(row.id) : undefined,
-              });
-            }
-          }
-        )
-        .on(
-          "postgres_changes",
-          { event: "*", schema: "public", table: "bookings" },
-          (payload) => {
-            void loadLiveAdminData({ silent: true });
-            const row = payload.new as Record<string, unknown> | undefined;
-            if (payload.eventType === "INSERT" && row) {
-              pushLiveAlert({
-                kind: "booking",
-                title: "New Guest Booking",
-                subtitle: `Ref ${String(row.booking_reference || "")} • ${Number(row.total_price || 0).toFixed(0)} SAR`,
-                bookingId: row.id ? String(row.id) : undefined,
-              });
-            } else if (payload.eventType === "UPDATE" && row?.status === "confirmed") {
-              pushLiveAlert({
-                kind: "booking",
-                title: "Booking Confirmed & Paid",
-                subtitle: `Ref ${String(row.booking_reference || "")} • Click to inspect`,
-                bookingId: row.id ? String(row.id) : undefined,
-              });
-            }
-          }
-        )
-        .subscribe();
-
-      return () => {
-        if (typeof window !== "undefined") {
-          window.removeEventListener("focus", handleFocus);
-        }
-        clearInterval(interval);
-        if (supabase) void supabase.removeChannel(channel);
-      };
-    } catch (e) {
-      console.warn("Could not setup admin realtime listener:", e);
-    }
     return () => {
       if (typeof window !== "undefined") {
         window.removeEventListener("focus", handleFocus);
       }
       clearInterval(interval);
     };
-  }, [loadLiveAdminData, pushLiveAlert]);
+  }, [loadLiveAdminData]);
 
   const updatePropertyStatus = async (
     id: string,
@@ -425,7 +372,7 @@ export function useAdminDashboardData() {
         return { ok: false, error: msg };
       }
     },
-    [loadLiveAdminData]
+    [loadLiveAdminData, triggerToast]
   );
 
   return {

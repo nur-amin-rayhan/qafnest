@@ -1,6 +1,8 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
+import { sanitizeHrefUrl } from "@qafnest/shared/escapeHtml";
+import { sanitizeRichHtml } from "@qafnest/shared/sanitizeRichHtml";
 import {
   Undo2,
   Redo2,
@@ -67,9 +69,10 @@ export function RichVisualEditor({
 
   useEffect(() => {
     if (mode === "visual" && editorRef.current) {
-      if (editorRef.current.innerHTML !== value) {
-        editorRef.current.innerHTML = value || "";
-        lastExternalValue.current = value;
+      const safeHtml = sanitizeRichHtml(value || "");
+      if (editorRef.current.innerHTML !== safeHtml) {
+        editorRef.current.innerHTML = safeHtml;
+        lastExternalValue.current = safeHtml;
       }
     }
   }, [value, mode]);
@@ -110,8 +113,9 @@ export function RichVisualEditor({
   const handleInsertLink = () => {
     saveSelection();
     const url = window.prompt("Enter link URL (https://...):", "https://");
-    if (url && url.trim()) {
-      exec("createLink", url.trim());
+    const safeUrl = sanitizeHrefUrl(url);
+    if (safeUrl) {
+      exec("createLink", safeUrl);
     }
   };
 
@@ -141,8 +145,10 @@ export function RichVisualEditor({
   };
 
   const handleInsertImageUrl = (url: string, alt = "Blog image") => {
+    const safeImgUrl = sanitizeHrefUrl(url, ["http:", "https:", "data:"]);
+    if (!safeImgUrl) return;
     const safeAlt = (altDraft.trim() || alt || "Blog image").replace(/"/g, "&quot;");
-    const imgHtml = `\n<figure style="margin:20px 0;"><img src="${url}" alt="${safeAlt}" style="width:100%;max-width:100%;height:auto;border-radius:14px;display:block;" /></figure>\n`;
+    const imgHtml = `\n<figure style="margin:20px 0;"><img src="${safeImgUrl}" alt="${safeAlt}" style="width:100%;max-width:100%;height:auto;border-radius:14px;display:block;" /></figure>\n`;
     if (mode === "visual") {
       editorRef.current?.focus();
       restoreSelection();
@@ -258,7 +264,7 @@ export function RichVisualEditor({
               onChange={handleHeadingChange}
               defaultValue="p"
               disabled={mode !== "visual"}
-              className={`text-xs px-2 py-1 rounded border outline-none ${
+              className={`text-xs px-2 py-1 rounded border outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 ${
                 darkMode
                   ? "bg-[#11131A] border-[#2A2F3E] text-slate-200"
                   : "bg-white border-gray-200 text-gray-700"
@@ -468,7 +474,7 @@ export function RichVisualEditor({
               className={`w-full p-4 font-mono text-xs leading-relaxed outline-none resize-y ${
                 darkMode ? "bg-[#0D0F15] text-emerald-300" : "bg-[#FAFAFA] text-[#111827]"
               }`}
-              placeholder="<h2>Section title</h2><p>HTML content... (Tip: click 'Insert Image' or drag an image file here to auto-upload & insert an <img> tag!)</p>"
+              placeholder="<h2>Section title</h2><p>HTML content... (Tip: click 'Insert Image' or drag an image file here to auto-upload & insert an image!)</p>"
             />
           )}
         </div>
@@ -509,7 +515,7 @@ export function RichVisualEditor({
                 value={altDraft}
                 onChange={(e) => setAltDraft(e.target.value)}
                 placeholder="Describe this image for Google SEO (e.g. Heated pool chalet in Riyadh)"
-                className={`w-full px-3 py-2 text-xs rounded-lg border outline-none ${
+                className={`w-full px-3 py-2 text-xs rounded-lg border outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 ${
                   darkMode ? "bg-[#11131A] border-[#2A2F3E]" : "bg-white border-gray-300"
                 }`}
               />
@@ -562,15 +568,16 @@ export function RichVisualEditor({
               <input
                 name="imgUrl"
                 placeholder="Or paste an image URL (https://...)"
-                className={`flex-1 px-3 py-2 text-xs rounded-lg border outline-none ${
+                className={`flex-1 px-3 py-2 text-xs rounded-lg border outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 ${
                   darkMode ? "bg-[#11131A] border-[#2A2F3E]" : "bg-white border-gray-300"
                 }`}
               />
               <button
                 type="submit"
-                className="px-3.5 py-2 rounded-lg border border-gray-300 dark:border-[#2A2F3E] text-xs font-medium hover:bg-gray-50 dark:hover:bg-white/5"
+                disabled={uploading}
+                className="px-3.5 py-2 rounded-lg border border-gray-300 dark:border-[#2A2F3E] text-xs font-medium hover:bg-gray-50 dark:hover:bg-white/5 disabled:opacity-50"
               >
-                Insert URL
+                {uploading ? "Inserting..." : "Insert URL"}
               </button>
             </form>
 
@@ -590,7 +597,7 @@ export function RichVisualEditor({
                     >
                       <div className="h-20 bg-gray-100 overflow-hidden">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={m.url} alt={m.alt} className="w-full h-full object-cover group-hover:scale-105 transition" />
+                        <img src={m.url} alt={m.alt || m.filename || "Media Library Image"} className="w-full h-full object-cover group-hover:scale-105 transition" />
                       </div>
                       <div className="p-1.5 text-[11px] truncate">{m.filename}</div>
                     </button>

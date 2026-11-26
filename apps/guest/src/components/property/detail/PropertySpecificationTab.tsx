@@ -7,10 +7,6 @@ import {
   Bath,
   Sofa,
   Maximize2,
-  Waves,
-  Zap,
-  KeyRound,
-  ShieldCheck,
 } from "lucide-react";
 import type { Property } from "@/data/properties";
 import PropertyPoolSpecs from "./specification/PropertyPoolSpecs";
@@ -54,26 +50,19 @@ export function Fact({
   value: string;
 }) {
   return (
-    <div className="rounded-2xl border border-violet-200/80 bg-gradient-to-br from-violet-50/60 via-white to-fuchsia-50/40 p-3.5 shadow-sm transition hover:border-violet-300 dark:border-violet-500/25 dark:from-violet-950/35 dark:via-[#141022] dark:to-fuchsia-950/20">
-      <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-violet-100 to-fuchsia-100 text-violet-700 shadow-xs dark:from-violet-500/20 dark:to-fuchsia-500/20 dark:text-violet-300">
+    <div className="flex items-center gap-3.5 rounded-2xl border border-slate-200/85 bg-slate-50/60 p-3.5 sm:p-4 transition hover:border-slate-300 dark:border-slate-800 dark:bg-[#110F18] dark:hover:border-slate-700">
+      <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-purple-50 text-[#4F2396] dark:bg-purple-950/60 dark:text-purple-300">
         {icon}
       </span>
-      <span className="mt-3 block text-[11px] font-bold uppercase tracking-wide text-violet-700/85 dark:text-violet-300/85">
-        {label}
-      </span>
-      <span className="mt-0.5 block truncate text-sm sm:text-base font-black text-gray-950 dark:text-white">
-        {value}
-      </span>
+      <div className="min-w-0 flex-1">
+        <span className="block text-xs font-medium text-slate-500 dark:text-slate-400">
+          {label}
+        </span>
+        <span className="mt-0.5 block text-sm sm:text-[15px] font-bold text-slate-900 dark:text-white leading-snug break-words">
+          {value}
+        </span>
+      </div>
     </div>
-  );
-}
-
-export function Badge({ icon, label }: { icon: React.ReactNode; label: string }) {
-  return (
-    <span className="inline-flex items-center gap-1.5 rounded-xl border border-violet-200/80 bg-gradient-to-r from-violet-50 via-purple-50 to-fuchsia-50 px-3.5 py-1.5 text-xs font-black text-violet-900 shadow-2xs dark:border-violet-400/25 dark:from-violet-950/50 dark:via-purple-950/40 dark:to-fuchsia-950/40 dark:text-violet-200">
-      {icon}
-      {label}
-    </span>
   );
 }
 
@@ -92,45 +81,50 @@ export default function PropertySpecificationTab({
   return (
     <section
       id="specification"
-      className="scroll-mt-32 border-b border-gray-100 py-8 dark:border-white/10"
+      className="scroll-mt-32 border-b border-slate-200/80 py-8 dark:border-slate-800"
     >
-      <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-violet-600 dark:text-violet-300">
-        {anchorLabel("Stay details", "تفاصيل الإقامة")}
-      </span>
-      <h2 className="mt-1 text-2xl font-extrabold tracking-tight text-gray-950 dark:text-white">
-        {anchorLabel("Specification", "المواصفات")}
-      </h2>
-      <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">{specs}</p>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <span className="text-xs font-semibold text-[#4F2396] dark:text-purple-300">
+            {anchorLabel("Stay details", "تفاصيل الإقامة")}
+          </span>
+          <h2 className="mt-0.5 text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+            {anchorLabel("Specification", "المواصفات الأساسية")}
+          </h2>
+        </div>
+      </div>
+      <p className="mt-2 text-sm text-slate-600 dark:text-slate-300 leading-relaxed">{specs}</p>
 
       {property.isLicensed && property.tourismLicenseNumber && (
-        <div className="mt-4 text-xs font-semibold text-gray-500 dark:text-gray-400">
+        <div className="mt-3 text-xs font-medium text-slate-500 dark:text-slate-400">
           {anchorLabel("Tourism Ministry License Number", "رقم ترخيص وزارة السياحة")}:{" "}
-          <span className="font-semibold text-gray-900 dark:text-white">
+          <span className="font-semibold text-slate-900 dark:text-white">
             {property.tourismLicenseNumber}
           </span>
         </div>
       )}
 
-      <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+      {/* Responsive Grid with Room for Full Text Without Truncation */}
+      <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
         <Fact
-          icon={<Users className="h-4 w-4 text-violet-500" />}
+          icon={<Users className="h-5 w-5" />}
           label={anchorLabel("Capacity", "السعة الإجمالية")}
           value={anchorLabel(`Up to ${capacity} guests`, `حتى ${capacity} ضيوف`)}
         />
         {bedrooms !== null ? (
           <Fact
-            icon={<BedDouble className="h-4 w-4 text-violet-500" />}
+            icon={<BedDouble className="h-5 w-5" />}
             label={anchorLabel("Bedrooms", "غرف النوم")}
             value={anchorLabel(`${bedrooms} Bedrooms`, `${bedrooms} غرف نوم`)}
           />
         ) : null}
         <Fact
-          icon={<Bath className="h-4 w-4 text-violet-500" />}
+          icon={<Bath className="h-5 w-5" />}
           label={anchorLabel("Bathrooms", "دورات المياه")}
           value={anchorLabel(`${bathrooms} Baths`, `${bathrooms} دورات مياه`)}
         />
         <Fact
-          icon={<Sofa className="h-4 w-4 text-violet-500" />}
+          icon={<Sofa className="h-5 w-5" />}
           label={anchorLabel("Living spaces", "المجالس والصالات")}
           value={
             property.majlisDetails?.mainMajlisCapacity
@@ -143,13 +137,13 @@ export default function PropertySpecificationTab({
         />
         {property.areaSqm ? (
           <Fact
-            icon={<Maximize2 className="h-4 w-4 text-violet-500" />}
+            icon={<Maximize2 className="h-5 w-5" />}
             label={anchorLabel("Area", "المساحة")}
             value={`${property.areaSqm} ${anchorLabel("m²", "م²")}`}
           />
         ) : null}
         <Fact
-          icon={<Users className="h-4 w-4 text-violet-500" />}
+          icon={<Users className="h-5 w-5" />}
           label={anchorLabel("Target audience", "الفئة المسموحة")}
           value={chaletFor}
         />
@@ -168,31 +162,6 @@ export default function PropertySpecificationTab({
           anchorLabel={anchorLabel}
         />
       )}
-
-      {/* Badges */}
-      <div className="mt-4 flex flex-wrap gap-2">
-        {property.instantBook && (
-          <Badge
-            icon={<Zap className="h-3.5 w-3.5" />}
-            label={anchorLabel("Instant booking", "حجز فوري")}
-          />
-        )}
-        {property.selfCheckin && (
-          <Badge
-            icon={<KeyRound className="h-3.5 w-3.5" />}
-            label={anchorLabel("Self check-in", "دخول ذاتي")}
-          />
-        )}
-        {property.hasPool && (
-          <Badge icon={<Waves className="h-3.5 w-3.5" />} label={anchorLabel("Pool", "مسبح")} />
-        )}
-        {property.isLicensed && (
-          <Badge
-            icon={<ShieldCheck className="h-3.5 w-3.5" />}
-            label={anchorLabel("Licensed", "مرخص")}
-          />
-        )}
-      </div>
 
       {/* Categorized Amenities */}
       <PropertyAmenitiesSection

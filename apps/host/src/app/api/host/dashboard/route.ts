@@ -10,6 +10,7 @@ import {
 import {
   getLatestDeletionRequestForProperty,
   hydratePropertyDeletionStore,
+  markDeletionRequestReadByHost,
   readPropertyDeletionRequests,
   toDeletionRequestSummary,
 } from "@qafnest/shared/propertyDeletionStore";
@@ -84,7 +85,8 @@ export async function GET(request: NextRequest) {
     }
 
     if (propError) {
-      return NextResponse.json({ code: "properties_query_failed", message: propError.message }, { status: 500 });
+      console.error("[host dashboard GET] prop query failed:", propError);
+      return NextResponse.json({ code: "properties_query_failed", message: "Failed to load properties." }, { status: 500 });
     }
 
     const hostProperties: Array<Record<string, unknown> & { id: string; title?: string }> = (
@@ -141,9 +143,27 @@ export async function GET(request: NextRequest) {
       ]);
 
       if (!bookingRes.error && bookingRes.data) {
-        const rawFiltered = bookingRes.data.filter(
-          (b) => !(b.status === "pending" && b.payment_status === "initiated")
-        );
+        const rawFiltered = bookingRes.data.filter((b) => {
+          if (
+            b.payment_status === "failed" ||
+            b.payment_status === "initiated" ||
+            b.payment_status === "abandoned"
+          ) {
+            return false;
+          }
+          if (b.status === "pending") {
+            return false;
+          }
+          if (b.status === "cancelled") {
+            // Only show cancelled bookings if payment was actually successful / refunded (i.e. confirmed reservation was cancelled)
+            return (
+              b.payment_status === "paid" ||
+              b.payment_status === "success" ||
+              b.payment_status === "refunded"
+            );
+          }
+          return true;
+        });
         const guestIds = Array.from(new Set(rawFiltered.map((b) => b.guest_id).filter(Boolean)));
         const profileMap = new Map<string, string>();
         if (guestIds.length > 0) {
@@ -205,7 +225,7 @@ export async function GET(request: NextRequest) {
             : r.status === "rejected"
               ? `Admin declined removal: ${r.adminNotes || "Please contact support for details."}`
               : `Submitted reason: ${r.reasonLabelEn} — awaiting admin approval.`,
-        is_read: false,
+        is_read: Boolean(r.isReadByHost),
         created_at: r.reviewedAt || r.requestedAt,
       }));
 
@@ -224,8 +244,9 @@ export async function GET(request: NextRequest) {
       notifications,
     });
   } catch (err: unknown) {
+    console.error("[host dashboard GET] server error:", err);
     return NextResponse.json(
-      { code: "server_error", message: err instanceof Error ? err.message : "Unknown error" },
+      { code: "server_error", message: "Failed to load dashboard." },
       { status: 500 }
     );
   }
@@ -260,15 +281,20 @@ export async function PATCH(request: NextRequest) {
     }
 
     if (body.notificationId) {
-      await supabase
-        .from("host_notifications")
-        .update({ is_read: true })
-        .eq("id", body.notificationId)
-        .eq("host_id", effectiveHostId);
+      if (body.notificationId.startsWith("del-notif-")) {
+        markDeletionRequestReadByHost(body.notificationId, effectiveHostId);
+      } else {
+        await supabase
+          .from("host_notifications")
+          .update({ is_read: true })
+          .eq("id", body.notificationId)
+          .eq("host_id", effectiveHostId);
+      }
       return NextResponse.json({ success: true });
     }
 
     if (body.markAllRead) {
+      markDeletionRequestReadByHost("all", effectiveHostId);
       await supabase
         .from("host_notifications")
         .update({ is_read: true })
@@ -278,8 +304,9 @@ export async function PATCH(request: NextRequest) {
 
     return NextResponse.json({ code: "invalid_request" }, { status: 400 });
   } catch (err: unknown) {
+    console.error("[host dashboard PATCH] server error:", err);
     return NextResponse.json(
-      { code: "server_error", message: err instanceof Error ? err.message : "Unknown error" },
+      { code: "server_error", message: "Failed to update notifications." },
       { status: 500 }
     );
   }

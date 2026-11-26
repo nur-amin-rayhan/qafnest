@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
+import { ArrowDown, Building2, ChevronLeft, ChevronRight } from "lucide-react";
 import { useAdminAuth } from "@/context/AdminAuthContext";
 import { PropertyItem, type AdminPropertyDeletionRequest } from "./types";
 import { PropertyTableRow } from "./properties/PropertyTableRow";
@@ -8,7 +9,6 @@ import { PropertyMobileCard } from "./properties/PropertyMobileCard";
 import { PropertyFiltersBar } from "./properties/PropertyFiltersBar";
 import { PropertiesStatsStrip } from "./properties/PropertiesStatsStrip";
 import { PropertiesHeaderActions } from "./properties/PropertiesHeaderActions";
-import { PropertiesInsightsStrip } from "./properties/PropertiesInsightsStrip";
 import { PropertyDeletionRequestsPanel } from "./properties/PropertyDeletionRequestsPanel";
 
 interface PropertiesManagementTabProps {
@@ -98,8 +98,11 @@ export function PropertiesManagementTab({
     return counts;
   }, [properties]);
 
+  const isAllSelected =
+    filteredProperties.length > 0 && selectedPropertyIds.length === filteredProperties.length;
+
   return (
-    <div dir={dir} className="flex flex-col w-full space-y-6">
+    <div dir={dir} className="flex flex-col w-full">
       {onReviewDeletionRequest && (
         <PropertyDeletionRequestsPanel
           requests={deletionRequests}
@@ -111,11 +114,12 @@ export function PropertiesManagementTab({
         />
       )}
 
-      {/* 1. Top Stats & Performance Summary Strip */}
+      {/* 1. Key Metrics Strip */}
       <PropertiesStatsStrip properties={properties} />
 
-      {/* 2. Header Section with Inventory Controls & Batch Actions */}
+      {/* 2. Header with Operations & Batch Controls */}
       <PropertiesHeaderActions
+        properties={filteredProperties}
         selectedPropertyIds={selectedPropertyIds}
         showBatchMenu={showBatchMenu}
         setShowBatchMenu={setShowBatchMenu}
@@ -125,7 +129,7 @@ export function PropertiesManagementTab({
         triggerToast={triggerToast}
       />
 
-      {/* 3. Primary Filter Tabs Bar & Search Canvas */}
+      {/* 3. Filter Controls & Search */}
       <PropertyFiltersBar
         properties={properties}
         propertyStatusFilter={propertyStatusFilter}
@@ -139,80 +143,87 @@ export function PropertiesManagementTab({
       />
 
       {/* 4. Listings Table Card */}
-      <div className="w-full overflow-hidden rounded-xl bg-surface-container-lowest shadow-sm mb-space-lg border border-surface-container/60">
+      <div className="w-full overflow-hidden rounded-xl bg-white dark:bg-[#0E0D16] shadow-xs border border-slate-200/90 dark:border-slate-800 mb-6">
         {/* Table Toolbar */}
-        <div className="px-4 sm:px-6 py-3 bg-surface-container-low flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-surface-container/60">
-          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+        <div className="px-4 py-2.5 bg-slate-50/75 dark:bg-slate-900/60 border-b border-slate-200/80 dark:border-slate-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <div className="flex flex-wrap items-center gap-2.5 text-xs text-slate-600 dark:text-slate-400">
             <label className="inline-flex items-center gap-2 cursor-pointer select-none">
               <input
                 type="checkbox"
-                checked={
-                  filteredProperties.length > 0 &&
-                  selectedPropertyIds.length === filteredProperties.length
-                }
+                checked={isAllSelected}
                 onChange={selectAllProps}
-                className="w-4 h-4 rounded text-primary focus:ring-primary accent-primary-container cursor-pointer"
+                className="w-4 h-4 rounded border-slate-300 dark:border-slate-600 text-[#4F2396] focus:ring-[#4F2396] accent-[#4F2396] cursor-pointer"
               />
-              <span className="font-label-sm text-label-sm uppercase tracking-wider text-outline font-semibold">
-                {t("Select All On Page", "تحديد الكل في الصفحة")}
+              <span className="font-medium text-slate-700 dark:text-slate-300">
+                {t("Select all on page", "تحديد الكل في الصفحة")}
               </span>
             </label>
-            <span className="text-outline-variant font-label-sm">|</span>
-            <span className="font-body-sm text-body-sm text-on-surface-variant">
+            <span className="text-slate-300 dark:text-slate-600">|</span>
+            <span className="text-slate-500 dark:text-slate-400">
               {t("Showing", "عرض")}{" "}
-              <span className="font-semibold text-on-surface">{filteredProperties.length}</span>{" "}
-              {t("of", "من")} {properties.length} {t("total", "إجمالي")}
+              <span className="font-medium text-slate-800 dark:text-slate-200 font-mono tabular-nums">
+                {filteredProperties.length}
+              </span>{" "}
+              {t("of", "من")}{" "}
+              <span className="font-mono tabular-nums">{properties.length}</span>{" "}
+              {t("total units", "إجمالي الوحدات")}
             </span>
           </div>
 
-          <div className="flex items-center gap-2 self-end sm:self-auto">
-            <span className="font-label-sm text-label-sm text-outline">{t("Sort by:", "ترتيب:")}</span>
+          <div className="flex items-center gap-1.5 self-end sm:self-auto text-xs text-slate-500 dark:text-slate-400">
+            <span>{t("Sort by:", "ترتيب:")}</span>
             <button
               type="button"
-              className="flex items-center gap-1 font-title-sm text-title-sm text-on-surface font-semibold hover:text-primary transition-colors cursor-pointer"
+              className="inline-flex items-center gap-1 font-medium text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100 transition-colors cursor-pointer"
             >
-              <span>{t("Date Added", "تاريخ الإضافة")}</span>
-              <span className="material-symbols-outlined text-[16px]">arrow_downward</span>
+              <span>{t("Date added", "تاريخ الإضافة")}</span>
+              <ArrowDown size={13} strokeWidth={1.5} />
             </button>
           </div>
         </div>
 
-        {/* Desktop Table View (xl+) */}
-        <div className="hidden xl:block w-full overflow-x-auto">
-          <table className="table-fixed w-full min-w-[920px] border-collapse text-start">
+        {/* Desktop Table View (lg+) */}
+        <div className="hidden lg:block w-full overflow-x-auto">
+          <table className="table-fixed w-full min-w-[880px] border-collapse text-start">
             <colgroup>
-              <col style={{ width: "33%" }} />
-              <col style={{ width: "24%" }} />
-              <col style={{ width: "14%" }} />
+              <col style={{ width: "34%" }} />
+              <col style={{ width: "23%" }} />
+              <col style={{ width: "15%" }} />
               <col style={{ width: "13%" }} />
-              <col style={{ width: "16%" }} />
+              <col style={{ width: "15%" }} />
             </colgroup>
             <thead>
-              <tr className="bg-surface-container-low font-label-sm text-label-sm uppercase tracking-wider text-outline select-none border-b border-surface-container/60">
-                <th className="py-3 px-4 text-start font-semibold">
-                  <div className="flex items-center gap-2">
-                    <span>{t("Property & Details", "العقار والتفاصيل")}</span>
-                  </div>
+              <tr className="bg-slate-50/60 dark:bg-slate-900/60 border-b border-slate-200/80 dark:border-slate-800 text-[11px] font-medium text-slate-500 dark:text-slate-400 select-none">
+                <th className="py-2.5 px-4 text-start font-medium">
+                  {t("Property & details", "العقار والتفاصيل")}
                 </th>
-                <th className="py-3 px-4 text-start font-semibold">
-                  {t("Host & Portfolio", "المضيف والمحفظة")}
+                <th className="py-2.5 px-4 text-start font-medium">
+                  {t("Host & portfolio", "المضيف والمحفظة")}
                 </th>
-                <th className="py-3 px-4 text-start font-semibold">
-                  {t("Rate & Instant", "السعر والحجز الفوري")}
+                <th className="py-2.5 px-4 text-start font-medium">
+                  {t("Rate & booking", "السعر ونوع الحجز")}
                 </th>
-                <th className="py-3 px-4 text-center font-semibold">
+                <th className="py-2.5 px-4 text-center font-medium">
                   {t("Status", "الحالة")}
                 </th>
-                <th className="py-3 px-4 text-end font-semibold">
+                <th className="py-2.5 px-4 text-end font-medium">
                   {t("Actions", "الإجراءات")}
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-surface-container/60 text-on-surface font-body-md text-body-md">
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-slate-800 dark:text-slate-200 text-xs">
               {filteredProperties.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="py-12 text-center text-outline">
-                    {t("No properties match your filter criteria.", "لا توجد عقارات تطابق معايير التصفية المحددة.")}
+                  <td colSpan={5} className="py-14 text-center">
+                    <div className="flex flex-col items-center justify-center gap-2 text-slate-400">
+                      <Building2 size={28} strokeWidth={1.25} className="text-slate-300 dark:text-slate-600" />
+                      <p className="text-xs text-slate-500 dark:text-slate-400">
+                        {t(
+                          "No properties match your filter criteria.",
+                          "لا توجد عقارات تطابق معايير التصفية المحددة."
+                        )}
+                      </p>
+                    </div>
                   </td>
                 </tr>
               ) : (
@@ -235,11 +246,14 @@ export function PropertiesManagementTab({
           </table>
         </div>
 
-        {/* Mobile & Tablet Card Layout (< xl) */}
-        <div className="block xl:hidden w-full divide-y divide-surface-container/60">
-          {paginatedProperties.length === 0 ? (
-            <div className="py-12 text-center text-outline">
-              {t("No properties match your filter criteria.", "لا توجد عقارات تطابق معايير التصفية المحددة.")}
+        {/* Mobile & Tablet Card Layout (< lg) */}
+        <div className="block lg:hidden w-full divide-y divide-slate-100">
+          {filteredProperties.length === 0 ? (
+            <div className="py-12 text-center text-slate-400 text-xs">
+              {t(
+                "No properties match your filter criteria.",
+                "لا توجد عقارات تطابق معايير التصفية المحددة."
+              )}
             </div>
           ) : (
             paginatedProperties.map((prop) => (
@@ -252,34 +266,32 @@ export function PropertiesManagementTab({
                 updatePropertyStatus={updatePropertyStatus}
                 onSelectProperty={onSelectProperty}
                 onRequestReject={onRequestReject}
+                onReviewDeletionRequest={onReviewDeletionRequest}
                 t={t}
               />
             ))
           )}
         </div>
 
-        {/* Table Footer */}
-        <div className="px-4 sm:px-6 py-3 bg-surface-container-low flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-surface-container/60">
-          <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-xs sm:text-sm">
-            <span className="font-body-sm text-body-sm text-on-surface-variant">
-              {t("Rows per page:", "عدد الصفوف:")}
-            </span>
+        {/* Table Footer / Pagination */}
+        <div className="px-4 py-2.5 bg-slate-50/75 dark:bg-slate-900/60 border-t border-slate-200/80 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500 dark:text-slate-400">
+          <div className="flex items-center gap-2">
+            <span>{t("Rows per page:", "عدد الصفوف:")}</span>
             <select
               value={pageSize}
               onChange={(e) => {
                 setPageSize(Number(e.target.value) || 10);
                 setPage(1);
               }}
-              className="h-8 px-2 bg-surface-container-lowest rounded-lg font-body-sm text-body-sm text-on-surface focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-400 focus-visible:ring-offset-2 cursor-pointer"
+              className="h-7 px-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded text-xs text-slate-700 dark:text-slate-300 focus:outline-none focus:border-[#4F2396] cursor-pointer"
               aria-label="Rows per page"
             >
               <option value={10}>10</option>
               <option value={25}>25</option>
               <option value={50}>50</option>
             </select>
-            <span className="text-outline font-body-sm text-body-sm">
-              {t("Showing", "عرض")} {paginatedProperties.length} {t("of", "من")} {filteredProperties.length}{" "}
-              {t("matching properties", "عقار مطابق")} ({properties.length} {t("total", "إجمالي")})
+            <span className="ms-1 text-slate-400 dark:text-slate-500 font-mono tabular-nums">
+              ({paginatedProperties.length} {t("shown", "معروض")})
             </span>
           </div>
 
@@ -288,10 +300,16 @@ export function PropertiesManagementTab({
               type="button"
               disabled={safePage <= 1}
               onClick={() => setPage((p) => Math.max(1, p - 1))}
-              className="h-8 px-2.5 rounded-lg bg-surface-container-lowest text-on-surface hover:bg-surface-container disabled:opacity-40 font-title-sm text-xs flex items-center justify-center transition-colors cursor-pointer"
+              className="h-7 px-2 rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-40 text-xs flex items-center justify-center transition-colors cursor-pointer"
             >
-              {t("Prev", "السابق")}
+              {dir === "rtl" ? (
+                <ChevronRight size={14} strokeWidth={1.5} />
+              ) : (
+                <ChevronLeft size={14} strokeWidth={1.5} />
+              )}
+              <span className="ms-1">{t("Prev", "السابق")}</span>
             </button>
+
             {Array.from({ length: totalPages }, (_, idx) => idx + 1)
               .slice(Math.max(0, safePage - 3), Math.max(5, safePage + 2))
               .map((pageNum) => (
@@ -299,29 +317,32 @@ export function PropertiesManagementTab({
                   key={pageNum}
                   type="button"
                   onClick={() => setPage(pageNum)}
-                  className={`h-8 w-8 rounded-lg font-title-sm text-title-sm flex items-center justify-center transition-colors cursor-pointer ${
+                  className={`h-7 w-7 rounded text-xs font-mono tabular-nums flex items-center justify-center transition-colors cursor-pointer ${
                     pageNum === safePage
-                      ? "bg-primary-container text-on-primary font-semibold shadow-sm"
-                      : "bg-surface-container-lowest text-on-surface hover:bg-surface-container"
+                      ? "bg-[#4F2396] text-white font-medium shadow-2xs"
+                      : "bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700"
                   }`}
                 >
                   {pageNum}
                 </button>
               ))}
+
             <button
               type="button"
               disabled={safePage >= totalPages}
               onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-              className="h-8 px-2.5 rounded-lg bg-surface-container-lowest text-on-surface hover:bg-surface-container disabled:opacity-40 font-title-sm text-xs flex items-center justify-center transition-colors cursor-pointer"
+              className="h-7 px-2 rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-40 text-xs flex items-center justify-center transition-colors cursor-pointer"
             >
-              {t("Next", "التالي")}
+              <span className="me-1">{t("Next", "التالي")}</span>
+              {dir === "rtl" ? (
+                <ChevronLeft size={14} strokeWidth={1.5} />
+              ) : (
+                <ChevronRight size={14} strokeWidth={1.5} />
+              )}
             </button>
           </div>
         </div>
       </div>
-
-      {/* 5. Operational Insights & Region Distribution Strip */}
-      <PropertiesInsightsStrip properties={properties} triggerToast={triggerToast} />
     </div>
   );
 }

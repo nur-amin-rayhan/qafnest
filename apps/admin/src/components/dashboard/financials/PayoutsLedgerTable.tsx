@@ -156,29 +156,31 @@ export function PayoutsLedgerTable({
     <div dir={dir} className="space-y-3">
       {/* Bank Quick Filter Pills */}
       <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs">
-        <span className="text-outline text-[11px] font-bold me-1 flex items-center gap-1 shrink-0">
+        <span className="text-slate-400 dark:text-slate-500 text-[11px] font-medium me-1 flex items-center gap-1 shrink-0">
           <Building2 size={13} /> {t("Bank:", "البنك:")}
         </span>
-        {banks.map((b) => (
-          <button
-            key={b.id}
-            type="button"
-            onClick={() => setSelectedBank(b.id)}
-            className={`rounded-xl px-2.5 py-1 text-[11px] font-bold transition cursor-pointer shrink-0 ${
-              selectedBank === b.id
-                ? "bg-surface-container-high text-primary border border-primary/20"
-                : "bg-surface-container-low text-on-surface-variant hover:bg-surface-container"
-            }`}
-          >
-            {b.label}
-          </button>
-        ))}
+        <div className="inline-flex p-1 bg-slate-100 dark:bg-slate-800/80 rounded-lg overflow-x-auto">
+          {banks.map((b) => (
+            <button
+              key={b.id}
+              type="button"
+              onClick={() => setSelectedBank(b.id)}
+              className={`rounded-md px-2.5 py-1 text-[11px] transition cursor-pointer shrink-0 whitespace-nowrap ${
+                selectedBank === b.id
+                  ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-xs font-semibold"
+                  : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 font-medium"
+              }`}
+            >
+              {b.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Batch Action Toolbar */}
       {selectedIds.length > 0 && (
-        <div className="flex flex-wrap items-center justify-between gap-3 p-3 bg-primary/10 border border-primary/20 rounded-2xl animate-in fade-in text-xs">
-          <span className="font-bold text-primary">
+        <div className="flex flex-wrap items-center justify-between gap-3 p-3 bg-purple-50 dark:bg-purple-950/30 border border-purple-200 dark:border-purple-800/50 rounded-xl animate-in fade-in text-xs">
+          <span className="font-bold text-[#4F2396] dark:text-purple-300">
             {t(
               `${selectedIds.length} Payout${selectedIds.length > 1 ? "s" : ""} Selected`,
               `تم تحديد ${selectedIds.length} دفعة`
@@ -188,7 +190,7 @@ export function PayoutsLedgerTable({
             <button
               type="button"
               onClick={handleBatchDisburse}
-              className="inline-flex items-center gap-1.5 rounded-xl bg-status-emerald px-3.5 py-1.5 text-xs font-bold text-white hover:bg-emerald-700 transition cursor-pointer shadow-xs"
+              className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 px-3.5 py-1.5 text-xs font-semibold text-white transition cursor-pointer shadow-xs"
             >
               <CheckCircle2 size={13} />
               <span>{t(`Settle Selected (${selectedIds.length})`, `صرف المحدد (${selectedIds.length})`)}</span>
@@ -196,7 +198,7 @@ export function PayoutsLedgerTable({
             <button
               type="button"
               onClick={handleBatchHold}
-              className="inline-flex items-center gap-1 rounded-xl bg-rose-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-rose-700 transition cursor-pointer"
+              className="inline-flex items-center gap-1 rounded-lg bg-rose-600 hover:bg-rose-700 px-3 py-1.5 text-xs font-semibold text-white transition cursor-pointer"
             >
               <PauseCircle size={13} />
               <span>{t("Put on Hold", "تعليق الدفعة")}</span>
@@ -204,7 +206,7 @@ export function PayoutsLedgerTable({
             <button
               type="button"
               onClick={() => setSelectedIds([])}
-              className="text-xs text-outline hover:text-on-surface cursor-pointer px-2"
+              className="text-xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer px-2"
             >
               {t("Cancel", "إلغاء")}
             </button>
@@ -213,17 +215,17 @@ export function PayoutsLedgerTable({
       )}
 
       {/* Table */}
-      <div className="border border-surface-container-high rounded-2xl overflow-hidden bg-surface-container-lowest shadow-xs">
+      <div className="border border-slate-200/90 dark:border-slate-800 rounded-xl overflow-hidden bg-white dark:bg-[#0E0D16] shadow-xs">
         <div className="overflow-x-auto">
-          <table className="min-w-[840px] w-full text-xs text-start">
-            <thead className="bg-surface-container text-on-surface font-extrabold border-b border-surface-container-high">
+          <table className="min-w-[840px] w-full text-xs sm:text-sm text-start">
+            <thead className="bg-slate-50/90 dark:bg-slate-900/90 text-slate-600 dark:text-slate-400 font-semibold border-b border-slate-200/80 dark:border-slate-800 text-xs">
               <tr>
                 <th className="p-3.5 text-center w-8">
-                  <button type="button" onClick={handleSelectAll} className="cursor-pointer text-outline hover:text-on-surface">
+                  <button type="button" onClick={handleSelectAll} className="cursor-pointer text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
                     {selectedIds.length === filtered.length && filtered.length > 0 ? (
-                      <CheckSquare size={15} className="text-primary" />
+                      <CheckSquare size={16} className="text-[#4F2396] dark:text-purple-400" />
                     ) : (
-                      <Square size={15} />
+                      <Square size={16} />
                     )}
                   </button>
                 </th>
@@ -238,10 +240,10 @@ export function PayoutsLedgerTable({
                 <th className="p-3.5 text-end">{t("Actions", "الإجراءات")}</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-surface-container font-medium text-on-surface">
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80 text-slate-900 dark:text-slate-100">
               {filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={10} className="py-12 text-center text-outline font-semibold">
+                  <td colSpan={10} className="py-12 text-center text-slate-400 dark:text-slate-500 font-medium text-xs sm:text-sm">
                     {t("No host payouts recorded yet.", "لا توجد دفعات مضيفين مسجلة حتى الآن.")}
                   </td>
                 </tr>
@@ -253,18 +255,30 @@ export function PayoutsLedgerTable({
                     <tr
                       key={p.id}
                       onClick={() => setSelectedPayout(p)}
-                      className={`hover:bg-surface-container-low/70 transition cursor-pointer ${
-                        isSelected ? "bg-primary/5" : sla.isOverdue ? "bg-rose-50/40" : ""
+                      className={`hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors cursor-pointer border-b border-slate-100 dark:border-slate-800/80 ${
+                        isSelected
+                          ? "bg-purple-50/50 dark:bg-purple-950/20"
+                          : sla.isOverdue
+                          ? "bg-rose-50/40 dark:bg-rose-950/20"
+                          : ""
                       }`}
                     >
                       <td className="p-3.5 text-center" onClick={(e) => e.stopPropagation()}>
-                        <button type="button" onClick={() => toggleSelect(p.id)} className="cursor-pointer text-outline hover:text-primary">
-                          {isSelected ? <CheckSquare size={15} className="text-primary" /> : <Square size={15} />}
+                        <button
+                          type="button"
+                          onClick={() => toggleSelect(p.id)}
+                          className="cursor-pointer text-slate-400 hover:text-[#4F2396] dark:hover:text-purple-400"
+                        >
+                          {isSelected ? (
+                            <CheckSquare size={16} className="text-[#4F2396] dark:text-purple-400" />
+                          ) : (
+                            <Square size={16} />
+                          )}
                         </button>
                       </td>
 
                       <td className="p-3.5">
-                        <div className="flex items-center gap-1.5 font-mono font-bold text-on-surface">
+                        <div className="flex items-center gap-1.5 font-mono font-semibold text-slate-900 dark:text-slate-100 text-sm">
                           <span>{p.reference}</span>
                           <button
                             type="button"
@@ -272,73 +286,73 @@ export function PayoutsLedgerTable({
                               e.stopPropagation();
                               handleCopy(p.id, p.reference);
                             }}
-                            className="text-outline hover:text-on-surface cursor-pointer p-0.5"
+                            className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer p-0.5"
                             title={t("Copy Reference", "نسخ المرجع")}
                           >
-                            <Copy size={12} />
+                            <Copy size={13} />
                           </button>
                           {copiedId === p.id && (
-                            <span className="text-[10px] text-status-emerald font-bold">
+                            <span className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold">
                               {t("Copied!", "تم النسخ!")}
                             </span>
                           )}
                         </div>
-                        <span className="text-[11px] text-on-surface-variant block mt-0.5">{p.scheduledDate}</span>
+                        <span className="text-xs text-slate-500 dark:text-slate-400 block mt-0.5">{p.scheduledDate}</span>
                       </td>
 
                       <td className="p-3.5">
-                        <span className="font-bold text-on-surface block">{p.hostName}</span>
-                        <span className="text-[11px] text-on-surface-variant block mt-0.5 truncate max-w-[180px]">
+                        <span className="font-semibold text-slate-900 dark:text-slate-100 text-sm block">{p.hostName}</span>
+                        <span className="text-xs text-slate-500 dark:text-slate-400 block mt-0.5 truncate max-w-[200px]">
                           {p.propertyTitle} ({p.staysCount} {t("stays", "إقامات")})
                         </span>
                       </td>
 
                       <td className="p-3.5">
-                        <span className="text-[11px] text-on-surface-variant block">
+                        <span className="text-xs text-slate-500 dark:text-slate-400 block">
                           {p.bankName || t("Not Configured", "غير محدد")}
                         </span>
-                        <span className="font-mono text-xs font-bold text-primary block mt-0.5" dir="ltr">
+                        <span className="font-mono text-sm font-semibold text-slate-900 dark:text-slate-100 block mt-0.5" dir="ltr">
                           {p.iban && p.iban.length >= 8
                             ? `SA${p.iban.slice(2, 4)} **** ${p.iban.slice(-4)}`
                             : t("Not Configured", "غير محدد")}
                         </span>
                       </td>
 
-                      <td className="p-3.5 text-end font-mono">
+                      <td className="p-3.5 text-end font-mono font-medium text-slate-900 dark:text-slate-100 text-sm">
                         {p.grossAmount.toLocaleString("en-US", { minimumFractionDigits: 2 })}
                       </td>
 
-                      <td className="p-3.5 text-end font-mono text-status-emerald">
+                      <td className="p-3.5 text-end font-mono font-medium text-emerald-600 dark:text-emerald-400 text-sm">
                         {p.commissionAmount.toLocaleString("en-US", { minimumFractionDigits: 2 })}
                       </td>
 
-                      <td className="p-3.5 text-end font-mono font-black text-on-surface text-sm">
+                      <td className="p-3.5 text-end font-mono font-bold text-slate-900 dark:text-slate-100 text-sm sm:text-base">
                         {currencyLabel} {p.netPayoutAmount.toLocaleString("en-US", { minimumFractionDigits: 2 })}
                       </td>
 
                       <td className="p-3.5 text-center">
                         <span
-                          className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-bold border ${
+                          className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold border ${
                             sla.tier === "escrow"
-                              ? "bg-indigo-50 text-indigo-800 border-indigo-200"
+                              ? "bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800"
                               : sla.tier === "overdue"
-                              ? "bg-rose-50 text-rose-700 border-rose-200 animate-pulse"
+                              ? "bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800 animate-pulse"
                               : sla.tier === "urgent"
-                              ? "bg-amber-50 text-amber-800 border-amber-200"
+                              ? "bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800"
                               : sla.tier === "on_track"
-                              ? "bg-violet-50 text-primary border-violet-200"
+                              ? "bg-purple-50 dark:bg-purple-950/60 text-[#4F2396] dark:text-purple-300 border-purple-200 dark:border-purple-800"
                               : sla.tier === "on_hold"
-                              ? "bg-surface-container text-outline border-surface-container-high"
-                              : "bg-emerald-50 text-status-emerald border-emerald-200"
+                              ? "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700"
+                              : "bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800"
                           }`}
                         >
-                          {sla.tier === "escrow" ? <Lock size={10} /> : <Clock size={10} />}
+                          {sla.tier === "escrow" ? <Lock size={12} /> : <Clock size={12} />}
                           <span>
                             {lang === "ar" ? sla.countdownLabelAr : sla.countdownLabel}
                           </span>
                         </span>
                         {p.remindedAt && p.status !== "disbursed" && (
-                          <span className="text-[9px] text-outline block mt-0.5 font-mono">
+                          <span className="text-xs text-slate-400 dark:text-slate-500 block mt-0.5 font-mono">
                             {t(`Reminded (${p.reminderCount || 1}x)`, `تذكير (${p.reminderCount || 1}×)`)}
                           </span>
                         )}
@@ -347,32 +361,32 @@ export function PayoutsLedgerTable({
                       <td className="p-3.5 text-center">
                         <div className="flex flex-col items-center gap-1">
                           {p.status === "disbursed" && (
-                            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-0.5 text-[11px] font-bold text-status-emerald border border-emerald-200">
-                              <CheckCircle2 size={11} /> <span>{t("Disbursed", "تم الصرف")}</span>
+                            <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 dark:bg-emerald-950/60 px-2.5 py-0.5 text-xs font-semibold text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+                              <CheckCircle2 size={13} /> <span>{t("Disbursed", "تم الصرف")}</span>
                             </span>
                           )}
                           {p.status === "processing" && (
-                            <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2.5 py-0.5 text-[11px] font-bold text-amber-800 border border-amber-200">
-                              <Clock size={11} /> <span>{t("Processing", "قيد المعالجة")}</span>
+                            <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 dark:bg-amber-950/60 px-2.5 py-0.5 text-xs font-semibold text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
+                              <Clock size={13} /> <span>{t("Processing", "قيد المعالجة")}</span>
                             </span>
                           )}
                           {p.status === "pending" && (
-                            <span className="inline-flex items-center gap-1 rounded-full bg-violet-50 px-2.5 py-0.5 text-[11px] font-bold text-primary border border-violet-200">
-                              <Clock size={11} /> <span>{t("Pending", "قيد الانتظار")}</span>
+                            <span className="inline-flex items-center gap-1.5 rounded-full bg-purple-50 dark:bg-purple-950/60 px-2.5 py-0.5 text-xs font-semibold text-[#4F2396] dark:text-purple-300 border border-purple-200 dark:border-purple-800">
+                              <Clock size={13} /> <span>{t("Pending", "قيد الانتظار")}</span>
                             </span>
                           )}
                           {p.status === "on_hold" && (
-                            <span className="inline-flex items-center gap-1 rounded-full bg-rose-50 px-2 py-0.5 text-[10px] font-bold text-rose-700 border border-rose-200">
-                              <AlertTriangle size={11} /> <span>{t("On Hold", "معلق")}</span>
+                            <span className="inline-flex items-center gap-1.5 rounded-full bg-rose-50 dark:bg-rose-950/60 px-2.5 py-0.5 text-xs font-semibold text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800">
+                              <AlertTriangle size={13} /> <span>{t("On Hold", "معلق")}</span>
                             </span>
                           )}
                           {p.status !== "disbursed" && p.payoutRequestStatus === "requested" && (
-                            <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-extrabold text-primary border border-primary/20">
+                            <span className="inline-flex items-center gap-1 rounded-full bg-purple-50 dark:bg-purple-950/60 px-2.5 py-0.5 text-xs font-bold text-[#4F2396] dark:text-purple-300 border border-purple-200 dark:border-purple-800">
                               {t("Host Req · Review", "طلب مضيف")}
                             </span>
                           )}
                           {p.status !== "disbursed" && p.payoutRequestStatus === "approved" && (
-                            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700 border border-emerald-200">
+                            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 dark:bg-emerald-950/60 px-2.5 py-0.5 text-xs font-semibold text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
                               {t("Approved · Awaiting Txn", "معتمد للمالية")}
                             </span>
                           )}
@@ -385,18 +399,18 @@ export function PayoutsLedgerTable({
                             <button
                               type="button"
                               onClick={() => onSendReminder([p.id])}
-                              className="rounded-xl border border-primary/20 bg-primary/5 hover:bg-primary/10 p-1.5 text-primary transition cursor-pointer"
+                              className="rounded-lg border border-purple-200 dark:border-purple-800 bg-purple-50 dark:bg-purple-950/50 p-1.5 text-[#4F2396] dark:text-purple-300 transition cursor-pointer"
                               title={t("Send 24h SLA Reminder", "إرسال تذكير مهلة 24 ساعة")}
                             >
-                              <BellRing size={12} />
+                              <BellRing size={14} />
                             </button>
                           )}
                           <button
                             type="button"
                             onClick={() => setSelectedPayout(p)}
-                            className="inline-flex items-center gap-1 rounded-xl border border-surface-container-high bg-surface-container hover:bg-surface-container-high px-2.5 py-1 text-xs font-bold text-on-surface transition cursor-pointer"
+                            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 px-3 py-1.5 text-xs font-semibold text-slate-700 dark:text-slate-200 transition cursor-pointer shadow-xs"
                           >
-                            <Eye size={12} />
+                            <Eye size={13} />
                             <span>{t("Details", "التفاصيل")}</span>
                           </button>
                           {p.status !== "disbursed" ? (
@@ -404,20 +418,20 @@ export function PayoutsLedgerTable({
                               <button
                                 type="button"
                                 onClick={() => setSelectedPayout(p)}
-                                className="inline-flex items-center gap-1 rounded-xl bg-status-emerald px-2.5 py-1 text-xs font-bold text-white hover:bg-emerald-700 transition cursor-pointer shadow-xs shrink-0"
+                                className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 px-3 py-1.5 text-xs font-semibold text-white transition cursor-pointer shadow-xs shrink-0"
                                 title={t("Open dossier to enter Legal Txn # & settle", "فتح السجل لإدخال المرجع الرسمي والتسوية")}
                               >
-                                <CheckCircle2 size={12} />
+                                <CheckCircle2 size={13} />
                                 <span>{t("Txn & Settle", "صرف برقم")}</span>
                               </button>
                             ) : (
                               <button
                                 type="button"
                                 onClick={() => setSelectedPayout(p)}
-                                className="inline-flex items-center gap-1 rounded-xl bg-indigo-50 border border-indigo-200 px-2.5 py-1 text-[11px] font-bold text-indigo-800 hover:bg-indigo-100 transition cursor-pointer shrink-0"
+                                className="inline-flex items-center gap-1.5 rounded-lg bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800 px-3 py-1.5 text-xs font-semibold text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 transition cursor-pointer shrink-0"
                                 title={t("Locked in escrow until guest check-out", "محجوز في الضمان حتى مغادرة الضيف")}
                               >
-                                <Lock size={11} />
+                                <Lock size={12} />
                                 <span>{t("Escrow", "ضمان")}</span>
                               </button>
                             )

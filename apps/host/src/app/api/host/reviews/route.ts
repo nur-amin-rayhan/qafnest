@@ -46,7 +46,8 @@ export async function GET(request: NextRequest) {
 
     const { data: properties, error: propErr } = await propQuery;
     if (propErr) {
-      return NextResponse.json({ code: "db_error", message: propErr.message }, { status: 500 });
+      console.error("[host reviews GET] prop query failed:", propErr);
+      return NextResponse.json({ code: "db_error", message: "Failed to load property reviews." }, { status: 500 });
     }
 
     const hostProperties = properties || [];
@@ -77,7 +78,8 @@ export async function GET(request: NextRequest) {
       .order("created_at", { ascending: false });
 
     if (revErr) {
-      return NextResponse.json({ code: "db_error", message: revErr.message }, { status: 500 });
+      console.error("[host reviews GET] query failed:", revErr);
+      return NextResponse.json({ code: "db_error", message: "Failed to load reviews." }, { status: 500 });
     }
 
     let allReviews = (reviewsData || []).map((r) => {
@@ -179,8 +181,9 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (err: unknown) {
+    console.error("[host reviews GET] server error:", err);
     return NextResponse.json(
-      { code: "server_error", message: err instanceof Error ? err.message : "Unknown error" },
+      { code: "server_error", message: "Failed to load reviews." },
       { status: 500 }
     );
   }

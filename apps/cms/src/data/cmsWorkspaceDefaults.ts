@@ -156,12 +156,12 @@ export function createDefaultCmsWorkspace(): CmsWorkspaceData {
         id: "faq-1",
         category: "booking",
         question: {
-          en: "How does QafNest work and is it licensed by the Ministry of Tourism?",
-          ar: "ما هي منصة قاف نست وهل هي مرخصة رسمياً من وزارة السياحة؟",
+          en: "What is QafNest and how does it work?",
+          ar: "ما هي منصة قاف نست وكيف تعمل؟",
         },
         answer: {
-          en: "QafNest is an electronic vacation rental platform licensed by the Saudi Ministry of Tourism (License #73102999) connecting Guests with verified Hosts across chalets, villas, resorts (istirahat), apartments, farms, and desert camps. QafNest acts strictly as an authorized digital intermediary ensuring identity verification, secure payments, and compliant tax invoicing.",
-          ar: "منصة قاف نست هي منصة إلكترونية سعودية مرخصة من وزارة السياحة (ترخيص رقم 73102999) تعمل كوسيط تقني يربط الضيوف بالمضيفين المعتمدين لحجز الشاليهات والفلل والاستراحات والشقق والمزارع والمخيمات، مع ضمان توثيق الهوية وأمان المدفوعات والفوترة الضريبية.",
+          en: "QafNest is an electronic vacation rental platform connecting Guests with verified Hosts across chalets, villas, resorts (istirahat), apartments, farms, and desert camps. QafNest acts strictly as a secure digital intermediary ensuring identity verification, secure payments, and compliant tax invoicing.",
+          ar: "منصة قاف نست هي منصة إلكترونية سعودية تعمل كوسيط تقني يربط الضيوف بالمضيفين المعتمدين لحجز الشاليهات والفلل والاستراحات والشقق والمزارع والمخيمات، مع ضمان توثيق الهوية وأمان المدفوعات والفوترة الضريبية.",
         },
         enabled: true,
         order: 1,
@@ -566,7 +566,7 @@ export function createDefaultCmsWorkspace(): CmsWorkspaceData {
         content: {
           en: `<h2>1. Binding Agreement &amp; Platform Role</h2>
 <p>Accessing, browsing, or registering on QafNest constitutes your unconditional agreement to these Terms, our Privacy Policy, and all supplemental policies published on the Platform.</p>
-<p>QafNest operates strictly as an electronic hospitality intermediary licensed by the Saudi Ministry of Tourism (License #73102999), connecting licensed Hosts with Guests across chalets, private villas, resorts (istirahat), apartments, farms, and desert camps.</p>
+<p>QafNest operates strictly as an electronic hospitality intermediary, connecting licensed Hosts with Guests across chalets, private villas, resorts (istirahat), apartments, farms, and desert camps.</p>
 <h2>2. Eligibility, Guest &amp; Host Accounts</h2>
 <p>Users must be at least 18 years old with valid legal capacity. Mandatory identity verification via National ID / Iqama / Passport (Nafath &amp; Elm Yaqeen) and OTP mobile verification applies prior to booking confirmation or listing activation.</p>
 <h2>3. Booking Confirmation &amp; Stay Rules</h2>
@@ -587,7 +587,7 @@ export function createDefaultCmsWorkspace(): CmsWorkspaceData {
 <p>These Terms are governed by the laws and regulations of the Kingdom of Saudi Arabia. Any unresolved dispute shall fall under the jurisdiction of the competent courts in Riyadh, Kingdom of Saudi Arabia.</p>`,
           ar: `<h2>١. الاتفاقية الملزمة ودور المنصة الوسيط</h2>
 <p>يُعد دخولك إلى منصة قاف نست أو تصفحك أو تسجيلك فيها موافقةً تامة ودون قيد أو شرط على هذه الشروط والأحكام وسياسة الخصوصية وجميع السياسات المكملة المنشورة على المنصة.</p>
-<p>تعمل منصة قاف نست كوسيط إلكتروني تقني مرخص من وزارة السياحة في المملكة العربية السعودية (ترخيص رقم 73102999) يربط بين المضيفين المرخصين والضيوف لحجز الشاليهات والفلل والاستراحات والشقق والمزارع والمخيمات.</p>
+<p>تعمل منصة قاف نست كوسيط إلكتروني تقني يربط بين المضيفين المرخصين والضيوف لحجز الشاليهات والفلل والاستراحات والشقق والمزارع والمخيمات.</p>
 <h2>٢. الأهلية وحسابات الضيف والمضيف</h2>
 <p>يشترط ألا يقل عمر المستخدم عن 18 عاماً وأن يتمتع بالأهلية النظامية، مع الالتزام بتوثيق الهوية الوطنية أو الإقامة أو جواز السفر (عبر نفاذ ويقين) ورقم الجوال قبل تأكيد الحجز أو تفعيل الإعلان.</p>
 <h2>٣. تأكيد الحجز وقواعد الإقامة</h2>
@@ -763,8 +763,8 @@ export function createDefaultCmsWorkspace(): CmsWorkspaceData {
       },
       {
         id: "soc-4",
-        platform: "WhatsApp",
-        url: "https://wa.me/966500000000",
+        platform: "X",
+        url: "https://x.com/qafnest",
         enabled: true,
         updatedAt: now,
       },
@@ -977,7 +977,7 @@ export function createDefaultCmsWorkspace(): CmsWorkspaceData {
         ],
       },
       contactUs: {
-        phone: "+966500000000",
+        phone: "+966576707709",
         address: {
           en: "Riyadh (HQ) & Jeddah Hubs, Kingdom of Saudi Arabia",
           ar: "الرياض (المقر الرئيسي) وجدة، المملكة العربية السعودية",
@@ -987,7 +987,7 @@ export function createDefaultCmsWorkspace(): CmsWorkspaceData {
         businessEmail: "hosts@qafnest.com",
         facebook: "https://www.facebook.com/qafnest.sa",
         instagram: "https://www.instagram.com/qafnest/",
-        whatsapp: "+966500000000",
+        whatsapp: "+966576707709",
       },
       siteSeo: {
         siteName: { en: "QafNest", ar: "قاف نست" },

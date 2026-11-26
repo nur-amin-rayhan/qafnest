@@ -31,10 +31,10 @@ export default function HostProfileDetailsStep({
   effectiveLang,
 }: HostProfileDetailsStepProps) {
   return (
-    <form onSubmit={onSubmit} className="space-y-4">
-      <div className="grid grid-cols-2 gap-3">
+    <form onSubmit={onSubmit} className="space-y-3.5">
+      <div className="grid grid-cols-2 gap-2.5">
         <div>
-          <label className="mb-1.5 block text-xs font-extrabold text-slate-700">
+          <label className="mb-1.5 block text-xs font-semibold text-slate-700">
             {t("First Name", "الاسم الأول / التجاري")}
           </label>
           <input
@@ -43,11 +43,11 @@ export default function HostProfileDetailsStep({
             value={firstName}
             onChange={(e) => setFirstName(e.target.value)}
             placeholder={t("e.g. Mohammed", "مثال: محمد")}
-            className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-900 outline-none focus:border-[#4F2396] focus:bg-white"
+            className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm font-medium text-slate-900 outline-none focus:border-[#4F2396] focus:ring-1 focus:ring-[#4F2396] transition"
           />
         </div>
         <div>
-          <label className="mb-1.5 block text-xs font-extrabold text-slate-700">
+          <label className="mb-1.5 block text-xs font-semibold text-slate-700">
             {t("Last / Family Name", "اسم العائلة")}
           </label>
           <input
@@ -56,13 +56,13 @@ export default function HostProfileDetailsStep({
             value={lastName}
             onChange={(e) => setLastName(e.target.value)}
             placeholder={t("e.g. Al-Ghamdi", "مثال: الغامدي")}
-            className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-900 outline-none focus:border-[#4F2396] focus:bg-white"
+            className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm font-medium text-slate-900 outline-none focus:border-[#4F2396] focus:ring-1 focus:ring-[#4F2396] transition"
           />
         </div>
       </div>
 
       <div>
-        <label className="mb-1.5 block text-xs font-extrabold text-slate-700">
+        <label className="mb-1.5 block text-xs font-semibold text-slate-700">
           {t("Email Address (Optional)", "البريد الإلكتروني (اختياري)")}
         </label>
         <input
@@ -71,19 +71,19 @@ export default function HostProfileDetailsStep({
           value={contactEmail}
           onChange={(e) => setContactEmail(e.target.value)}
           placeholder="host@example.com"
-          className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-900 outline-none focus:border-[#4F2396] focus:bg-white"
+          className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm font-medium text-slate-900 outline-none focus:border-[#4F2396] focus:ring-1 focus:ring-[#4F2396] transition"
         />
       </div>
 
       <button
         type="submit"
         disabled={loading}
-        className="mt-2 flex w-full items-center justify-center gap-2 rounded-2xl bg-[#FF9750] hover:bg-[#f58438] py-3.5 text-sm font-black text-[#2d1259] shadow-lg transition active:scale-[0.98] disabled:opacity-60 cursor-pointer"
+        className="mt-1 flex w-full items-center justify-center gap-2 rounded-xl bg-[#4F2396] hover:bg-[#3f1b7a] py-3 text-sm font-semibold text-white shadow-xs transition active:scale-[0.99] disabled:opacity-50 cursor-pointer"
       >
         {loading ? (
-          <LoaderCircle className="h-5 w-5 animate-spin" />
+          <LoaderCircle className="h-4 w-4 animate-spin" />
         ) : (
-          <ArrowRight size={16} className={effectiveLang === "ar" ? "rotate-180" : ""} />
+          <ArrowRight size={15} className={effectiveLang === "ar" ? "rotate-180" : ""} />
         )}
         <span>
           {loading
@@ -96,7 +96,7 @@ export default function HostProfileDetailsStep({
         <button
           type="button"
           onClick={onSkip}
-          className="text-xs font-bold text-slate-500 hover:text-[#4F2396] hover:underline cursor-pointer"
+          className="text-xs font-medium text-slate-500 hover:text-[#4F2396] hover:underline cursor-pointer"
         >
           {t("Skip for now and enter dashboard", "تخطي الآن والدخول إلى لوحة التحكم")}
         </button>

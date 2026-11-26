@@ -6,6 +6,12 @@ import {
   reportInvoiceToZatcaApi,
   testZatcaGatewayHandshake,
 } from "@/lib/services/zatcaPhase2Service";
+import {
+  getServerZatcaConfig,
+  getZatcaInvoiceRecords,
+  hydrateZatcaState,
+} from "@qafnest/shared/zatcaStore";
+import { persistSharedJsonFile } from "@qafnest/shared/serverJsonStore";
 import { getLiveAdminInvoices } from "@/lib/services/adminInvoicesService";
 import { renderInvoicePdfHtml } from "@/lib/services/renderInvoicePdfHtml";
 
@@ -14,6 +20,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ code: "unauthorized" }, { status: 401 });
   }
 
+  await hydrateZatcaState().catch(() => undefined);
   const { searchParams } = request.nextUrl;
   const action = searchParams.get("action");
   const invoiceId = searchParams.get("invoiceId");
@@ -61,6 +68,7 @@ export async function POST(request: NextRequest) {
   }
 
   try {
+    await hydrateZatcaState().catch(() => undefined);
     const body = await request.json();
     const { action, invoiceId } = body;
 
@@ -74,6 +82,8 @@ export async function POST(request: NextRequest) {
 
     if (action === "report" && invoiceId) {
       const result = await reportInvoiceToZatcaApi(invoiceId);
+      await persistSharedJsonFile("zatca-config.json", getServerZatcaConfig()).catch(() => undefined);
+      await persistSharedJsonFile("zatca-invoices.json", getZatcaInvoiceRecords(500)).catch(() => undefined);
       return NextResponse.json({
         ...result,
         message: result.success
@@ -92,8 +102,9 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ code: "invalid_action" }, { status: 400 });
   } catch (err: unknown) {
+    console.error("[admin zatca] error:", err);
     return NextResponse.json(
-      { code: "server_error", message: err instanceof Error ? err.message : "ZATCA processing error" },
+      { code: "server_error", message: "ZATCA processing error." },
       { status: 500 }
     );
   }

@@ -14,8 +14,8 @@ import { hydrateBookingFinancialsStore, resolveBookingSettlement } from "@qafnes
 import {
   hydratePropertyDeletionStore,
   readPropertyDeletionRequests,
-  type PropertyDeletionRequestSummary,
 } from "@qafnest/shared/propertyDeletionStore";
+import { hydrateSharedJsonFile } from "@qafnest/shared/serverJsonStore";
 import { enrichDeletionRequestsWithLiveBookings } from "@/lib/propertyDeletionServer";
 
 function maskIdentityValue(val?: unknown): string {
@@ -36,13 +36,21 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    await Promise.all([
+    const [, , , , , , firebaseProfilesMap, zatcaInvoiceRows] = await Promise.all([
       hydrateHostPayoutStore(),
       hydrateBookingRefundStore(),
       hydrateHelplineVerificationStore(),
       hydratePlatformFeeConfig(),
       hydrateBookingFinancialsStore(),
       hydratePropertyDeletionStore(),
+      hydrateSharedJsonFile<Record<string, Record<string, unknown>>>(
+        "firebase-guest-profiles.json",
+        () => ({})
+      ),
+      hydrateSharedJsonFile<Array<Record<string, unknown>>>(
+        "zatca-invoices.json",
+        () => []
+      ),
     ]);
 
     const [propertiesRes, bookingsRes, authUsersRes] = await Promise.all([
@@ -135,6 +143,61 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    const invoiceBuyerByRef = new Map<string, string>();
+    for (const inv of zatcaInvoiceRows || []) {
+      const ref = String(inv?.bookingReference || "").trim();
+      const buyer = String(inv?.buyerName || "").trim();
+      const invType = String(inv?.type || "").trim();
+      if (ref && buyer && buyer !== "Valued Guest" && invType !== "standard") {
+        invoiceBuyerByRef.set(ref, buyer);
+      }
+    }
+
+    for (const [fbUid, fb] of Object.entries(firebaseProfilesMap || {})) {
+      if (!fb || typeof fb !== "object") continue;
+      const fullName = String(fb.full_name || "").trim() || undefined;
+      const phone = String(fb.phone || "").trim() || undefined;
+      const email = String(fb.contact_email || "").trim() || undefined;
+      const city = String(fb.city || "").trim() || undefined;
+      const rawId = fb.national_id || fb.iqama;
+      const idMasked = maskIdentityValue(rawId) || undefined;
+      const idType = fb.iqama
+        ? "iqama"
+        : fb.national_id
+        ? "national_id"
+        : (fb.id_type as string | undefined) || undefined;
+      const entry: ResolvedUserMeta = {
+        full_name: fullName,
+        phone,
+        email,
+        city,
+        id_type: idType,
+        id_masked: idMasked,
+        is_verified: Boolean(fb.is_verified || rawId),
+      };
+      const prev = authUserMap.get(fbUid);
+      authUserMap.set(fbUid, {
+        ...prev,
+        ...entry,
+        full_name: entry.full_name || prev?.full_name,
+        phone: entry.phone || prev?.phone,
+        email: entry.email || prev?.email,
+      });
+      if (phone) {
+        const suffix = phone.replace(/\D/g, "").slice(-9);
+        if (suffix.length >= 8) {
+          const prevPhone = contactByPhoneSuffix.get(suffix);
+          contactByPhoneSuffix.set(suffix, {
+            ...prevPhone,
+            ...entry,
+            full_name: entry.full_name || prevPhone?.full_name,
+            phone: entry.phone || prevPhone?.phone,
+            email: entry.email || prevPhone?.email,
+          });
+        }
+      }
+    }
+
     const profileIds = Array.from(
       new Set([
         ...rawProperties.map((p: any) => p.host_id).filter(Boolean),
@@ -203,12 +266,17 @@ export async function GET(request: NextRequest) {
 
     const propMap = new Map(properties.map((p) => [p.id, p]));
     const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    const opaqueUidPattern = /^[A-Za-z0-9_-]{20,64}$/;
 
     const bookings = rawBookings.map((b: any) => {
       const prop = propMap.get(b.property_id);
       const guestProf = b.guest_id ? profileMap.get(b.guest_id) : undefined;
-      const guestAuth = b.guest_id ? authUserMap.get(b.guest_id) : undefined;
       const rawSubject = String(b.auth_subject || "").trim();
+      const guestAuth =
+        (b.guest_id ? authUserMap.get(b.guest_id) : undefined) ||
+        (rawSubject ? authUserMap.get(rawSubject) : undefined);
+      const invoiceBuyerName =
+        (b.booking_reference ? invoiceBuyerByRef.get(b.booking_reference) : undefined) || "";
       const subjectParts = rawSubject.includes(" | ")
         ? rawSubject.split(" | ").map((s) => s.trim())
         : [];
@@ -236,7 +304,7 @@ export async function GET(request: NextRequest) {
           parsedPhone = rawSubject.startsWith("+") ? rawSubject : `+${rawSubject}`;
         } else if (rawSubject.includes("@")) {
           parsedEmail = rawSubject;
-        } else if (!uuidPattern.test(rawSubject)) {
+        } else if (!uuidPattern.test(rawSubject) && !opaqueUidPattern.test(rawSubject)) {
           parsedName = rawSubject;
         }
       }
@@ -256,6 +324,7 @@ export async function GET(request: NextRequest) {
         guestAuth?.full_name ||
         parsedName ||
         phoneLookup?.full_name ||
+        invoiceBuyerName ||
         (resolvedPhone ? `Guest (${resolvedPhone.slice(-4)})` : "") ||
         (resolvedEmail ? resolvedEmail.split("@")[0] : "");
 
@@ -455,8 +524,9 @@ export async function GET(request: NextRequest) {
       properties: propertiesWithDeletion,
     });
   } catch (err: unknown) {
+    console.error("[admin metrics] server error:", err);
     return NextResponse.json(
-      { code: "server_error", message: err instanceof Error ? err.message : "Unknown error" },
+      { code: "server_error", message: "Failed to load admin metrics." },
       { status: 500 }
     );
   }

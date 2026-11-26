@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { X, Building2, CheckCircle2, ShieldCheck, Copy, Check } from "lucide-react";
+import { X, Building2, CheckCircle2, Copy, Check } from "lucide-react";
 import { getFirebaseAuth, isFirebaseConfigured } from "@/lib/firebase/client";
 import { createClient } from "@/lib/supabase/client";
 import type { Booking } from "../types";
@@ -18,7 +18,6 @@ export function GuestTransferClaimModal({
   booking,
   onClose,
   onSubmitted,
-  language,
   label,
 }: GuestTransferClaimModalProps) {
   const [transferRef, setTransferRef] = useState("");

@@ -12,29 +12,29 @@ export function ReservationSplitTrigger({
   onOpen,
 }: ReservationSplitTriggerProps) {
   return (
-    <div className="border-t border-slate-100 pt-3 dark:border-white/10">
+    <div className="border-t border-slate-200/80 pt-3 dark:border-slate-800">
       <button
         type="button"
         onClick={onOpen}
-        className="w-full rounded-2xl border-2 border-slate-200/90 bg-white p-3.5 text-left rtl:text-right transition hover:border-[#4F2396] dark:border-violet-500/25 dark:bg-violet-950/20 cursor-pointer group"
+        className="w-full rounded-2xl border border-slate-200/85 bg-slate-50/60 p-3.5 text-left rtl:text-right transition hover:border-slate-300 dark:border-slate-800 dark:bg-[#110F18] dark:hover:border-slate-700 cursor-pointer group"
       >
         <div className="flex items-baseline gap-1.5 text-xs sm:text-[13px]">
-          <span className="font-extrabold text-gray-950 dark:text-white">
+          <span className="font-bold text-slate-900 dark:text-white">
             {language === "ar" ? "ادفع بالتقسيط" : "Pay in Splits"}
           </span>
-          <span className="text-gray-500 group-hover:text-[#4F2396] dark:text-violet-300 transition-colors">
+          <span className="text-slate-500 group-hover:text-[#4F2396] dark:text-slate-400 dark:group-hover:text-purple-300 transition-colors">
             {language === "ar" ? "(اضغط للتفاصيل)" : "(Click for details)"}
           </span>
         </div>
 
         <div className="mt-2.5 flex items-center gap-2 flex-wrap">
-          <span className="inline-flex items-center justify-center rounded-lg bg-gradient-to-r from-[#FBD3A7] via-[#F5B5C8] to-[#D4B5FD] px-3.5 py-1 text-xs font-black tracking-tight text-gray-950 shadow-xs">
+          <span className="inline-flex items-center justify-center rounded-lg bg-[#FCEFD7] border border-[#F2D7B3] px-3 py-1 text-xs font-black tracking-tight text-[#8A4A0B] shadow-2xs">
             tamara
           </span>
-          <span className="inline-flex items-center justify-center rounded-lg bg-[#3EFEAB] px-3.5 py-1 text-xs font-black tracking-tight text-gray-950 shadow-xs">
+          <span className="inline-flex items-center justify-center rounded-lg bg-[#3EFEAB] px-3 py-1 text-xs font-black tracking-tight text-gray-950 shadow-2xs">
             tabby
           </span>
-          <span className="inline-flex items-center justify-center rounded-lg bg-[#5528B9] px-3.5 py-1 text-xs font-black italic tracking-tight text-white shadow-xs">
+          <span className="inline-flex items-center justify-center rounded-lg bg-[#4F2396] px-3 py-1 text-xs font-black italic tracking-tight text-white shadow-2xs">
             MIS<sup className="ml-0.5 text-[7px] not-italic font-bold">pay</sup>
           </span>
         </div>

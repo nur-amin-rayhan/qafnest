@@ -29,14 +29,14 @@ export default function PropertyAmenitiesSection({
   anchorLabel,
 }: PropertyAmenitiesSectionProps) {
   return (
-    <div className="mt-8 border-t border-violet-100/80 pt-6 dark:border-violet-500/15">
-      <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-violet-600 dark:text-violet-300">
+    <div className="mt-8 border-t border-slate-200/80 pt-6 dark:border-slate-800">
+      <span className="text-xs font-semibold text-[#4F2396] dark:text-purple-300">
         {anchorLabel("What's included", "المرافق المتاحة")}
       </span>
-      <h3 className="mt-1 text-xl font-bold text-gray-950 dark:text-white">
+      <h3 className="mt-0.5 text-xl font-bold text-slate-900 dark:text-white">
         {anchorLabel("Amenities & Facilities", "المرافق والمواصفات الكاملة")}
       </h3>
-      <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+      <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
         {anchorLabel(
           "Comprehensive list of verified features and equipment available during your stay",
           "قائمة شاملة بكافة الخدمات والتجهيزات المتاحة لراحتك"
@@ -44,17 +44,17 @@ export default function PropertyAmenitiesSection({
       </p>
 
       {categorizedAmenities.length > 0 ? (
-        <div className="mt-6 space-y-5">
+        <div className="mt-6 space-y-4">
           {categorizedAmenities.map((group) => (
             <div
               key={group.id}
-              className="rounded-3xl border border-violet-200/80 bg-violet-50/35 p-5 shadow-xs dark:border-violet-500/20 dark:bg-[#12101a]"
+              className="rounded-2xl border border-slate-200/85 bg-slate-50/60 p-4 sm:p-5 dark:border-slate-800 dark:bg-[#110F18]"
             >
-              <div className="flex items-center gap-2.5 mb-4">
-                <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-violet-700 text-white shadow-sm shadow-violet-700/20">
+              <div className="flex items-center gap-2.5 mb-3.5">
+                <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-[#4F2396] text-white shadow-xs">
                   <AmenityIcon name={group.iconName} className="h-4 w-4" />
                 </span>
-                <h4 className="font-bold text-sm sm:text-base text-gray-900 dark:text-white">
+                <h4 className="font-bold text-sm sm:text-base text-slate-900 dark:text-white">
                   {anchorLabel(group.titleEn, group.titleAr)}
                 </h4>
               </div>
@@ -63,9 +63,9 @@ export default function PropertyAmenitiesSection({
                 {group.amenities.map((amenity) => (
                   <div
                     key={amenity.id}
-                    className="flex items-center gap-2.5 rounded-2xl border border-violet-200/70 bg-white px-4 py-3 text-xs sm:text-[13px] text-gray-800 shadow-xs transition hover:border-violet-400 dark:border-violet-500/20 dark:bg-[#161224] dark:text-gray-200"
+                    className="flex items-center gap-2.5 rounded-xl border border-slate-200/70 bg-white px-3.5 py-2.5 text-xs sm:text-[13px] text-slate-800 shadow-2xs transition hover:border-slate-300 dark:border-slate-800 dark:bg-slate-900/90 dark:text-slate-200"
                   >
-                    <span className="text-violet-600 dark:text-violet-400 shrink-0">
+                    <span className="text-[#4F2396] dark:text-purple-400 shrink-0">
                       <AmenityIcon name={amenity.iconName} className="h-4 w-4" />
                     </span>
                     <span className="font-semibold">

@@ -45,6 +45,7 @@ export default function ReservationReview({ property }: ReservationReviewProps) 
     editStayHref,
     baseStayRate,
     hasDiscount,
+    isTwelveHourStay,
     installmentPrice,
     setPricing,
     phoneVerified,
@@ -112,7 +113,7 @@ export default function ReservationReview({ property }: ReservationReviewProps) 
       <main className="mx-auto max-w-[1240px] px-4 pb-16 pt-24 sm:px-6 lg:px-8">
         <Link
           href={editStayHref}
-          className="inline-flex items-center gap-2 text-sm font-semibold text-gray-500 transition hover:text-violet-700 dark:text-gray-400 dark:hover:text-violet-300"
+          className="inline-flex items-center gap-2 text-sm font-semibold text-slate-500 transition hover:text-[#4F2396] dark:text-slate-400 dark:hover:text-purple-300"
         >
           <ArrowLeft className="h-4 w-4 rtl:rotate-180" />
           {label("Back to stay details", "العودة إلى تفاصيل الإقامة")}
@@ -121,13 +122,13 @@ export default function ReservationReview({ property }: ReservationReviewProps) 
         <div className="mt-6 grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_400px]">
           <div className="min-w-0">
             <div className="mb-6">
-              <span className="inline-flex rounded-full bg-violet-50 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-violet-700 dark:bg-violet-400/10 dark:text-violet-300">
+              <span className="inline-flex rounded-full bg-purple-50 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-[#4F2396] dark:bg-purple-950/60 dark:text-purple-300">
                 {label("Reservation · Step 1", "الحجز · الخطوة ١")}
               </span>
-              <h1 className="mt-3 font-display text-3xl font-extrabold tracking-tight text-gray-950 dark:text-white sm:text-4xl">
+              <h1 className="mt-3 font-display text-3xl font-bold tracking-tight text-slate-900 dark:text-white sm:text-4xl">
                 {label("Review & Pay", "مراجعة الحجز والدفع")}
               </h1>
-              <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+              <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">
                 {label(
                   "Review your stay and guest details before moving to payment.",
                   "راجع تفاصيل الإقامة والضيوف قبل الانتقال إلى الدفع."
@@ -221,6 +222,7 @@ export default function ReservationReview({ property }: ReservationReviewProps) 
             baseStayRate={baseStayRate}
             setPricing={setPricing}
             hasDiscount={hasDiscount}
+            isTwelveHourStay={isTwelveHourStay}
             formatPrice={formatPrice}
             language={language}
             label={label}

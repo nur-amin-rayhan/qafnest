@@ -3,6 +3,7 @@ import { verifyHostSession } from "@/lib/auth/serverAuth";
 import {
   getHostFinancialData,
   updateHostIban,
+  deleteHostIban,
   createPayoutRequest,
   updateSettlementSettings,
   generateSettlementCsvString,
@@ -37,8 +38,9 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ success: true, ...data });
   } catch (err: unknown) {
+    console.error("[host financials GET] error:", err);
     return NextResponse.json(
-      { code: "server_error", message: err instanceof Error ? err.message : "Error fetching financials" },
+      { code: "server_error", message: "Error fetching financials." },
       { status: 500 }
     );
   }
@@ -65,11 +67,20 @@ export async function POST(request: NextRequest) {
           { status: 400 }
         );
       }
-      const updated = updateHostIban(authUser.id, iban, accountHolder);
+      const updated = await updateHostIban(authUser.id, iban, accountHolder);
       return NextResponse.json({
         success: true,
-        message: "IBAN updated and verified successfully with Saudi Central Bank (SAMA).",
+        message: "IBAN checksum validated (ISO 13616 MOD-97) and saved pending SARIE bank verification.",
         iban: updated,
+      });
+    }
+
+    if (action === "delete_iban") {
+      const deleted = deleteHostIban(authUser.id);
+      return NextResponse.json({
+        success: true,
+        message: "Bank account removed successfully.",
+        iban: deleted,
       });
     }
 

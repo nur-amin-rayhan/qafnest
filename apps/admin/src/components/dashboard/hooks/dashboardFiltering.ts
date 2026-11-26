@@ -1,5 +1,4 @@
 import {
-  getLocalizedSaudiCity,
   matchesPropertySearchQuery,
   normalizeSaudiCityId,
 } from "@qafnest/shared";
@@ -66,7 +65,13 @@ export function filterBookings(
         b.status !== "refund_requested"
       )
         return false;
-      if (status === "disputes" && b.status !== "refund_requested") return false;
+      if (
+        status === "disputes" &&
+        b.status !== "disputed" &&
+        b.status !== "chargeback" &&
+        !b.transferClaim
+      )
+        return false;
     }
 
     if (search.trim()) {

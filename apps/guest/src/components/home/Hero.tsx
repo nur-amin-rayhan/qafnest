@@ -58,10 +58,11 @@ export default function Hero() {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
+          suppressHydrationWarning
           className="inline-flex items-center gap-2 rounded-full px-3.5 py-1 text-xs font-semibold uppercase tracking-wider text-violet-700 dark:text-violet-300 bg-violet-50 dark:bg-violet-950/40 mb-3 sm:mb-3.5 border border-violet-200 dark:border-violet-500/20"
         >
           <span className="h-2 w-2 rounded-full bg-violet-600 dark:bg-fuchsia-400 animate-pulse" />
-          {t.hero.badge}
+          <span suppressHydrationWarning>{t.hero.badge}</span>
         </motion.div>
 
         {/* Hero Title */}
@@ -105,7 +106,7 @@ export default function Hero() {
           <div className="bg-white dark:bg-[#0E0E1A] rounded-2xl sm:rounded-3xl shadow-[0_15px_45px_rgba(0,0,0,0.12)] border border-gray-200/80 dark:border-white/10 p-2 sm:p-2.5 relative z-50">
             <form
               onSubmit={handleSearchSubmit}
-              className="flex flex-col lg:flex-row lg:items-center text-start relative"
+              className="flex flex-col lg:flex-row lg:items-center text-start relative w-full"
             >
               {/* 1. CHOOSE A CITY */}
               <CitySelectDropdown
@@ -186,7 +187,7 @@ export default function Hero() {
               <div className="p-1.5 shrink-0 flex items-center justify-end w-full lg:w-auto">
                 <button
                   type="submit"
-                  aria-label="Search accommodations"
+                  aria-label={language === "ar" ? "بحث عن إقامة" : "Search accommodations"}
                   aria-busy="false"
                   className="h-12 w-full lg:w-12 sm:h-13 min-h-[44px] min-w-[44px] rounded-2xl bg-purple-800 hover:bg-purple-900 active:scale-95 text-white flex items-center justify-center gap-2 shadow-md transition-all cursor-pointer focus-visible:ring-2 focus-visible:ring-violet-400 focus-visible:ring-offset-2 focus-visible:outline-none"
                 >

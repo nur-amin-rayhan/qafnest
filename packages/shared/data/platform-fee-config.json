@@ -1,9 +1,9 @@
 {
-  "baseCommissionPercent": 14,
-  "guestServiceFeePercent": 14,
+  "baseCommissionPercent": 20,
+  "guestServiceFeePercent": 19,
   "guestFeeMode": "percentage",
   "guestFixedFeeAmountSar": 25,
-  "syncGuestServiceFee": true,
+  "syncGuestServiceFee": false,
   "vatRatePercent": 15,
   "enableCategoryOverrides": false,
   "categoryOverrides": [
@@ -49,7 +49,12 @@
   "minCommissionAmountSar": 0,
   "welcomeBonusAmountSar": 50,
   "welcomeBonusEnabled": true,
-  "lastUpdatedBy": "Super Admin (Finance Officer)",
-  "lastUpdatedAt": "2026-11-17T20:28:59.798Z",
-  "notes": "E2E automated test commission update"
+  "lastUpdatedBy": "admin@qafnest.com",
+  "lastUpdatedAt": "2026-11-25T14:20:57.890Z",
+  "notes": "E2E automated test rollback to original rate",
+  "vatType": "EXCLUSIVE",
+  "updatedBy": "Test Admin",
+  "guestFeePercent": 12,
+  "zatcaVatTreatment": "STANDARD_15",
+  "hostCommissionPercent": 14.5
 }

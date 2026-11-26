@@ -2,12 +2,15 @@ import { NextRequest, NextResponse } from "next/server";
 import { verifyGuestSession } from "@/lib/auth/serverAuth";
 import {
   getContactSettings,
+  hydrateContactInquiriesStore,
+  persistContactInquiriesStore,
   submitContactInquiry,
 } from "@qafnest/shared/contactInquiriesStore";
-import { hydrateSharedJsonFile } from "@qafnest/shared/serverJsonStore";
+import { checkRateLimit } from "@qafnest/shared/rateLimiter";
+import { extractClientIp } from "@qafnest/shared/signupSecurityStore";
 
 export async function GET() {
-  await hydrateSharedJsonFile("contact-inquiries.json", () => ({}));
+  await hydrateContactInquiriesStore();
   const settings = getContactSettings();
   return NextResponse.json({
     success: true,
@@ -20,6 +23,18 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
+  const clientIp = extractClientIp(request);
+  const rl = checkRateLimit(`contact:${clientIp}`, 5, 15 * 60_000);
+  if (!rl.allowed) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: "Too many contact requests. Please wait before trying again.",
+      },
+      { status: 429, headers: { "Retry-After": String(rl.retryAfterSeconds) } }
+    );
+  }
+
   try {
     const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;
     const guest = await verifyGuestSession(request).catch(() => null);
@@ -60,6 +75,63 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Verify Cloudflare Turnstile CAPTCHA whenever configured (fail closed for all sources)
+    const turnstileToken = String(body.turnstileToken || "");
+    const turnstileSecret = (process.env.TURNSTILE_SECRET_KEY || "").trim();
+    const skipTurnstileForSignedInSupport = Boolean(guest && source === "account_support");
+    if (turnstileSecret && !skipTurnstileForSignedInSupport) {
+      if (!turnstileToken) {
+        return NextResponse.json(
+          {
+            success: false,
+            error:
+              locale === "ar"
+                ? "يرجى إكمال فحص التحقق الأمني من كلاودفلير."
+                : "Please complete the security check before submitting.",
+          },
+          { status: 400 }
+        );
+      }
+
+      try {
+        const formData = new URLSearchParams();
+        formData.append("secret", turnstileSecret);
+        formData.append("response", turnstileToken);
+
+        const verifyRes = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: formData.toString(),
+          signal: AbortSignal.timeout(5000),
+        });
+        const verifyData = (await verifyRes.json().catch(() => ({}))) as { success?: boolean };
+        if (!verifyRes.ok || !verifyData.success) {
+          return NextResponse.json(
+            {
+              success: false,
+              error:
+                locale === "ar"
+                  ? "فشل التحقق الأمني. يرجى إعادة المحاولة."
+                  : "Security check verification failed. Please try again.",
+            },
+            { status: 400 }
+          );
+        }
+      } catch (err: unknown) {
+        console.warn("Cloudflare Turnstile verification error:", err);
+        return NextResponse.json(
+          {
+            success: false,
+            error:
+              locale === "ar"
+                ? "تعذر التحقق من فحص الأمان حالياً. يرجى المحاولة بعد قليل."
+                : "Security verification service unavailable. Please try again shortly.",
+          },
+          { status: 503 }
+        );
+      }
+    }
+
     const result = await submitContactInquiry({
       name,
       phone,
@@ -69,6 +141,7 @@ export async function POST(request: NextRequest) {
       source,
       locale,
     });
+    await persistContactInquiriesStore().catch(() => undefined);
 
     return NextResponse.json({
       success: true,
@@ -78,10 +151,11 @@ export async function POST(request: NextRequest) {
       deliveryStatus: result.inquiry.deliveryStatus,
     });
   } catch (err: unknown) {
+    console.error("[contact] submit error:", err);
     return NextResponse.json(
       {
         success: false,
-        error: err instanceof Error ? err.message : "Failed to submit message.",
+        error: "Failed to submit message.",
       },
       { status: 500 }
     );

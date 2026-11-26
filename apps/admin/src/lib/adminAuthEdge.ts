@@ -83,6 +83,10 @@ export async function verifyAdminTokenEdge(
       return null;
     }
 
+    if (typeof payload.email !== "string" || !payload.email) {
+      return null;
+    }
+
     if (typeof payload.exp !== "number" || Date.now() > payload.exp) {
       return null;
     }

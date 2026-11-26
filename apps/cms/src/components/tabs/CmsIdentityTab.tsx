@@ -31,7 +31,7 @@ export function CmsIdentityTab({ t }: CmsIdentityTabProps) {
   const [activeProvider, setActiveProvider] = useState<"yakeen" | "nafath" | "sandbox">("sandbox");
   const [yakeenAppId, setYakeenAppId] = useState("");
   const [yakeenAppKey, setYakeenAppKey] = useState("");
-  const [yakeenOrgNo, setYakeenOrgNo] = useState("7007384501");
+  const [yakeenOrgNo, setYakeenOrgNo] = useState("0000000000");
   const [nafathAppId, setNafathAppId] = useState("");
   const [nafathAppKey, setNafathAppKey] = useState("");
 
@@ -46,7 +46,7 @@ export function CmsIdentityTab({ t }: CmsIdentityTabProps) {
           setActiveProvider(d.config.activeProvider || "sandbox");
           setYakeenAppId(d.config.yakeen?.appId || "");
           setYakeenAppKey(d.config.yakeen?.appKey || "");
-          setYakeenOrgNo(d.config.yakeen?.organizationNumber || "7007384501");
+          setYakeenOrgNo(d.config.yakeen?.organizationNumber || "0000000000");
           setNafathAppId(d.config.nafath?.appId || "");
           setNafathAppKey(d.config.nafath?.appKey || "");
         }
@@ -72,7 +72,7 @@ export function CmsIdentityTab({ t }: CmsIdentityTabProps) {
         yakeen: {
           appId: yakeenAppId.trim(),
           appKey: yakeenAppKey.trim(),
-          organizationNumber: yakeenOrgNo.trim() || "7007384501",
+          organizationNumber: yakeenOrgNo.trim() || "0000000000",
           baseUrl: "https://yakeen.elm.sa/api",
         },
         nafath: {
@@ -375,7 +375,7 @@ export function CmsIdentityTab({ t }: CmsIdentityTabProps) {
               <label className="block text-gray-400 mb-1 font-semibold">{t("Organization 700 Number", "الرقم الموحد للمنشأة 700")}</label>
               <input
                 type="text"
-                placeholder="7007384501"
+                placeholder="0000000000"
                 value={yakeenOrgNo}
                 onChange={(e) => setYakeenOrgNo(e.target.value)}
                 className="w-full px-3.5 py-2.5 rounded-xl bg-black/40 border border-white/10 text-white font-mono focus:outline-none focus:border-teal-500"

@@ -15,6 +15,9 @@ import {
 export interface BookingFinancialSnapshot {
   bookingRef: string;
   bookingId?: string;
+  guestName?: string | null;
+  guestPhone?: string | null;
+  guestEmail?: string | null;
   listingAmountSar: number;
   guestServiceFeeSar: number;
   guestFeeMode: GuestFeeMode;

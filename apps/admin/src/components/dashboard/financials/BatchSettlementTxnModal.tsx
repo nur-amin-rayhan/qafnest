@@ -56,30 +56,30 @@ export function BatchSettlementTxnModal({
       <form
         onSubmit={handleSubmit}
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-md rounded-3xl bg-surface-container-lowest border border-surface-container-high p-5 sm:p-6 shadow-2xl space-y-4 text-on-surface"
+        className="w-full max-w-md rounded-xl bg-white dark:bg-[#0E0D16] border border-slate-200/90 dark:border-slate-800 p-5 sm:p-6 shadow-xl space-y-4 text-slate-900 dark:text-slate-100"
       >
-        <div className="flex items-start justify-between gap-2 pb-3 border-b border-surface-container">
+        <div className="flex items-start justify-between gap-2 pb-3 border-b border-slate-200/80 dark:border-slate-800">
           <div>
-            <h3 className="text-sm sm:text-base font-black text-on-surface flex items-center gap-2">
-              <ShieldCheck size={18} className="text-status-emerald shrink-0" />
+            <h3 className="text-sm sm:text-base font-semibold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+              <ShieldCheck size={18} className="text-emerald-500 shrink-0" />
               <span>{t(titleEn, titleAr)}</span>
             </h3>
-            <p className="text-xs text-on-surface-variant mt-1 leading-relaxed">
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
               {t(subtitleEn, subtitleAr)}
             </p>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="rounded-xl p-1 text-outline hover:bg-surface-container cursor-pointer"
+            className="rounded-lg p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
             aria-label={t("Close", "إغلاق")}
           >
             <X size={18} />
           </button>
         </div>
 
-        <div className="rounded-2xl bg-amber-50/80 border border-amber-200 p-3 text-[11px] text-amber-900 flex items-start gap-2">
-          <AlertTriangle size={14} className="text-amber-600 shrink-0 mt-0.5" />
+        <div className="rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 p-3 text-[11px] text-amber-800 dark:text-amber-300 flex items-start gap-2">
+          <AlertTriangle size={14} className="text-amber-500 shrink-0 mt-0.5" />
           <span>
             {t(
               "Only post-checkout eligible payouts with configured IBANs will be settled. Stays still before guest check-out remain locked in escrow.",
@@ -89,7 +89,7 @@ export function BatchSettlementTxnModal({
         </div>
 
         <div className="space-y-1.5 text-xs">
-          <label className="font-bold text-on-surface block">
+          <label className="font-semibold text-slate-900 dark:text-slate-100 block">
             {t(
               "Legal Bank / SAMA SARIE Transaction Number *",
               "رقم العملية البنكية الرسمي / سريع (إلزامي) *"
@@ -108,10 +108,10 @@ export function BatchSettlementTxnModal({
               "e.g. SARIE-20261115-884120",
               "مثال: SARIE-20261115-884120"
             )}
-            className="w-full rounded-xl border border-surface-container-high bg-surface-container-low p-2.5 font-mono text-xs text-on-surface outline-none focus:border-primary"
+            className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-2.5 font-mono text-xs text-slate-900 dark:text-slate-100 outline-none focus:ring-1 focus:ring-[#4F2396] focus:border-[#4F2396]"
           />
           {touched && !validation.valid && (
-            <p className="text-[11px] font-bold text-rose-600">
+            <p className="text-[11px] font-medium text-rose-600 dark:text-rose-400">
               {t(
                 validation.errorEn || "Valid legal bank transaction number is required.",
                 validation.errorAr || "رقم العملية البنكية الرسمي مطلوب."
@@ -120,19 +120,19 @@ export function BatchSettlementTxnModal({
           )}
         </div>
 
-        <div className="flex items-center justify-end gap-2 pt-2 border-t border-surface-container">
+        <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-200/80 dark:border-slate-800">
           <button
             type="button"
             onClick={onClose}
             disabled={submitting}
-            className="px-3.5 py-2 rounded-xl border border-surface-container-high text-xs font-bold text-on-surface-variant hover:bg-surface-container cursor-pointer"
+            className="px-3.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer shadow-xs"
           >
             {t("Cancel", "إلغاء")}
           </button>
           <button
             type="submit"
             disabled={submitting || !validation.valid}
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-status-emerald text-white hover:bg-emerald-700 text-xs font-bold shadow-xs transition cursor-pointer disabled:opacity-50"
+            className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-xs transition cursor-pointer disabled:opacity-50"
           >
             <CheckCircle2 size={14} />
             <span>

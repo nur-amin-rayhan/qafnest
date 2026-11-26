@@ -53,17 +53,17 @@ export function ReservationCalendarPopover({
   isTwelveHourStay = false,
 }: ReservationCalendarPopoverProps) {
   return (
-    <div className="mt-3 rounded-3xl border border-violet-200/90 bg-white p-4 shadow-[0_20px_50px_rgba(109,40,217,0.18)] dark:border-violet-500/30 dark:bg-[#0E0E1A]">
+    <div className="mt-3 rounded-2xl border border-slate-200/90 bg-white p-3.5 sm:p-4 shadow-xl shadow-slate-900/5 dark:border-slate-800 dark:bg-[#110F18]">
       {/* Calendar Mode Selector Tabs */}
       {!isTwelveHourStay ? (
-        <div className="mb-3 grid grid-cols-2 gap-1.5 rounded-2xl bg-violet-50 p-1 border border-violet-100 dark:border-violet-500/20 dark:bg-white/5">
+        <div className="mb-3 grid grid-cols-2 gap-1.5 rounded-xl bg-slate-100/80 p-1 border border-slate-200/60 dark:border-slate-800 dark:bg-slate-900/60">
           <button
             type="button"
             onClick={() => setSelectingField("checkin")}
-            className={`rounded-xl py-2 text-[11px] font-bold transition cursor-pointer ${
+            className={`rounded-lg py-2 text-[11px] font-bold transition cursor-pointer ${
               selectingField === "checkin"
-                ? "bg-violet-700 text-white shadow-sm"
-                : "text-violet-800 dark:text-violet-200 hover:bg-white/60 dark:hover:bg-white/5"
+                ? "bg-[#4F2396] text-white shadow-xs"
+                : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
             }`}
           >
             {language === "ar" ? "١. اختر الوصول (4:00 م)" : "1. Select Check-in (4 PM)"}
@@ -71,17 +71,17 @@ export function ReservationCalendarPopover({
           <button
             type="button"
             onClick={() => setSelectingField("checkout")}
-            className={`rounded-xl py-2 text-[11px] font-bold transition cursor-pointer ${
+            className={`rounded-lg py-2 text-[11px] font-bold transition cursor-pointer ${
               selectingField === "checkout"
-                ? "bg-violet-700 text-white shadow-sm"
-                : "text-violet-800 dark:text-violet-200 hover:bg-white/60 dark:hover:bg-white/5"
+                ? "bg-[#4F2396] text-white shadow-xs"
+                : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
             }`}
           >
             {language === "ar" ? "٢. اختر المغادرة (12:00 م)" : "2. Select Check-out (12 PM)"}
           </button>
         </div>
       ) : (
-        <div className="mb-3 rounded-2xl bg-cyan-50 px-3 py-2 text-[11px] font-bold text-cyan-900 border border-cyan-200 dark:bg-cyan-500/15 dark:text-cyan-200 dark:border-cyan-500/30 text-center">
+        <div className="mb-3 rounded-xl bg-slate-100 px-3 py-2 text-[11px] font-bold text-slate-800 border border-slate-200 dark:bg-slate-900 dark:text-slate-200 dark:border-slate-800 text-center">
           {language === "ar"
             ? "اختر تاريخ فترة الـ 12 ساعة (12:00 ص – 12:00 م)"
             : "Select Date for 12-Hour Stay (12:00 AM – 12:00 PM)"}
@@ -90,7 +90,7 @@ export function ReservationCalendarPopover({
 
       {/* Quick Duration Pills */}
       {!isTwelveHourStay && (
-        <div className="mb-3 flex items-center gap-1.5 overflow-x-auto pb-1">
+        <div className="mb-3 flex items-center gap-1.5 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {[
             { count: 1, labelEn: "1 Night", labelAr: "ليلة واحدة" },
             { count: 2, labelEn: "2 Nights (Weekend)", labelAr: "ليلتان (ويكند)" },
@@ -103,8 +103,8 @@ export function ReservationCalendarPopover({
               onClick={() => applyQuickPreset(preset.count)}
               className={`shrink-0 rounded-xl border px-2.5 py-1 text-[10px] font-bold transition cursor-pointer ${
                 nights === preset.count
-                  ? "border-violet-600 bg-violet-600 text-white shadow-xs"
-                  : "border-violet-200/80 bg-violet-50/50 text-violet-800 hover:border-violet-400 dark:border-violet-500/25 dark:bg-white/5 dark:text-violet-200"
+                  ? "border-[#4F2396] bg-[#4F2396] text-white shadow-xs"
+                  : "border-slate-200/80 bg-slate-50 text-slate-700 hover:border-slate-300 dark:border-slate-800 dark:bg-slate-900/50 dark:text-slate-300"
               }`}
             >
               {language === "ar" ? preset.labelAr : preset.labelEn}
@@ -124,12 +124,12 @@ export function ReservationCalendarPopover({
                 : { year: prev.year, month: prev.month - 1 }
             )
           }
-          className="flex h-8 w-8 items-center justify-center rounded-xl border border-violet-200/80 bg-violet-50/50 text-violet-700 hover:bg-violet-100 dark:border-violet-500/30 dark:bg-white/5 dark:text-violet-300 cursor-pointer"
+          className="flex h-8 w-8 items-center justify-center rounded-xl border border-slate-200/80 bg-slate-50 text-slate-700 hover:bg-slate-100 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 cursor-pointer"
           aria-label="Previous month"
         >
           <ChevronLeft className="h-4 w-4 rtl:rotate-180" />
         </button>
-        <span className="text-sm font-extrabold tracking-wide text-gray-950 dark:text-white">
+        <span className="text-sm font-bold tracking-tight text-slate-900 dark:text-white">
           {monthTitle}
         </span>
         <button
@@ -141,7 +141,7 @@ export function ReservationCalendarPopover({
                 : { year: prev.year, month: prev.month + 1 }
             )
           }
-          className="flex h-8 w-8 items-center justify-center rounded-xl border border-violet-200/80 bg-violet-50/50 text-violet-700 hover:bg-violet-100 dark:border-violet-500/30 dark:bg-white/5 dark:text-violet-300 cursor-pointer"
+          className="flex h-8 w-8 items-center justify-center rounded-xl border border-slate-200/80 bg-slate-50 text-slate-700 hover:bg-slate-100 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 cursor-pointer"
           aria-label="Next month"
         >
           <ChevronRight className="h-4 w-4 rtl:rotate-180" />
@@ -149,7 +149,7 @@ export function ReservationCalendarPopover({
       </div>
 
       {/* Weekday Headers */}
-      <div className="grid grid-cols-7 gap-1 text-center text-[10px] font-bold text-gray-400 dark:text-gray-500 mb-1">
+      <div className="grid grid-cols-7 gap-1 text-center text-[10px] font-bold text-slate-400 dark:text-slate-500 mb-1">
         {weekdayHeaders.map((dayName) => (
           <span key={dayName} className="py-1">
             {dayName}
@@ -211,18 +211,18 @@ export function ReservationCalendarPopover({
               onClick={() => handleSelectDate(cell.iso!)}
               className={`flex h-12 flex-col items-center justify-center rounded-xl text-xs transition cursor-pointer relative overflow-hidden ${
                 isDisabled
-                  ? "opacity-30 cursor-not-allowed text-gray-400 line-through bg-slate-50 dark:bg-white/5"
+                  ? "opacity-30 cursor-not-allowed text-slate-400 line-through bg-slate-50 dark:bg-white/5"
                   : isStart || isEnd
-                  ? "bg-violet-700 text-white font-black shadow-md shadow-violet-700/30 scale-[1.03]"
+                  ? "bg-[#4F2396] text-white font-bold shadow-md shadow-[#4F2396]/20 scale-[1.02]"
                   : isInRange
-                  ? "bg-violet-100 text-violet-900 font-bold dark:bg-violet-500/25 dark:text-violet-100 border border-violet-300/60 dark:border-violet-400/30"
+                  ? "bg-purple-50 text-[#4F2396] font-bold dark:bg-purple-950/40 dark:text-purple-200 border-y border-purple-200/50 dark:border-purple-800/40"
                   : isSplitCheckoutOpen
-                  ? "bg-gradient-to-b from-amber-100 via-white to-emerald-50 text-amber-950 font-bold border border-amber-300/80 hover:border-violet-500 dark:from-amber-500/20 dark:to-emerald-500/15 dark:text-amber-100"
+                  ? "bg-gradient-to-b from-amber-100 via-white to-emerald-50 text-amber-950 font-bold border border-amber-300/80 hover:border-[#4F2396] dark:from-amber-500/20 dark:to-emerald-500/15 dark:text-amber-100"
                   : isSplitCheckinOpen
-                  ? "bg-gradient-to-b from-cyan-50 via-white to-violet-100 text-cyan-950 font-bold border border-cyan-300/80 hover:border-violet-500 dark:from-cyan-500/20 dark:to-violet-500/20 dark:text-cyan-100"
+                  ? "bg-gradient-to-b from-cyan-50 via-white to-purple-100 text-cyan-950 font-bold border border-cyan-300/80 hover:border-[#4F2396] dark:from-cyan-500/20 dark:to-purple-500/20 dark:text-cyan-100"
                   : isCheckoutDay
                   ? "bg-amber-50 text-amber-900 font-bold border border-amber-300/70 hover:bg-amber-100 dark:bg-amber-500/15 dark:text-amber-200"
-                  : "hover:bg-violet-50 text-gray-800 dark:text-gray-200 dark:hover:bg-white/10"
+                  : "hover:bg-slate-100 text-slate-800 dark:text-slate-200 dark:hover:bg-slate-800/60"
               }`}
             >
               <span className="leading-none">{cell.day}</span>
@@ -242,8 +242,8 @@ export function ReservationCalendarPopover({
                 <span
                   className={`mt-0.5 text-[8px] font-semibold leading-none ${
                     isStart || isEnd
-                      ? "text-violet-100"
-                      : "text-violet-600/80 dark:text-violet-300/70"
+                      ? "text-purple-200"
+                      : "text-[#4F2396] dark:text-purple-300"
                   }`}
                 >
                   {isTwelveHourStay && daySummary?.openWindows.find((w) => w.formatId === "twelve_hour_12am_12pm")?.price
@@ -268,8 +268,8 @@ export function ReservationCalendarPopover({
         </div>
       </div>
 
-      <div className="mt-3 flex items-center justify-between border-t border-violet-100 pt-3 dark:border-white/10">
-        <span className="text-xs font-bold text-violet-800 dark:text-violet-200">
+      <div className="mt-3 flex items-center justify-between border-t border-slate-200/80 pt-3 dark:border-slate-800">
+        <span className="text-xs font-bold text-slate-900 dark:text-white">
           {isTwelveHourStay
             ? language === "ar"
               ? `فترة 12 ساعة (12ص–12م) · ${estimatedTotal.toFixed(0)} ر.س`
@@ -279,7 +279,7 @@ export function ReservationCalendarPopover({
         <button
           type="button"
           onClick={onClose}
-          className="rounded-xl bg-violet-700 px-3 py-1.5 text-[11px] font-bold text-white hover:bg-violet-800 cursor-pointer"
+          className="rounded-xl bg-[#4F2396] px-4 py-2 text-xs font-bold text-white hover:bg-[#431c82] cursor-pointer shadow-xs transition"
         >
           {language === "ar" ? "تم" : "Done"}
         </button>

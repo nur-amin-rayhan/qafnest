@@ -1,5 +1,7 @@
+import { safeJsonLdStringify } from "@qafnest/shared/escapeHtml";
 import type { Metadata, Viewport } from "next";
 import { Suspense } from "react";
+import Script from "next/script";
 import localFont from "next/font/local";
 import { cookies, headers } from "next/headers";
 import ClientProviders from "@/components/providers/ClientProviders";
@@ -82,14 +84,14 @@ export async function generateMetadata(): Promise<Metadata> {
       : "QAFNEST · Feel at Home. Stay Exceptional.";
   const fallbackDescription =
     lang === "ar"
-      ? "منصة وساطة لتأجير بيوت العطلات والشاليهات الفاخرة والفلل الخاصة والمزارع والمخيمات الصحراوية في المملكة العربية السعودية. مرخصة من وزارة السياحة."
-      : "Peer-to-peer vacation rental platform for luxury chalets, private villas, country farms, and desert camps across Saudi Arabia. Licensed by the Ministry of Tourism.";
+      ? "منصة وساطة لتأجير بيوت العطلات والشاليهات الفاخرة والفلل الخاصة والمزارع والمخيمات الصحراوية في المملكة العربية السعودية."
+      : "Peer-to-peer vacation rental platform for luxury chalets, private villas, country farms, and desert camps across Saudi Arabia.";
 
   const title = seo?.defaultTitle?.[lang]?.trim() || fallbackTitle;
   const description = seo?.defaultDescription?.[lang]?.trim() || fallbackDescription;
   const keywords =
     seo?.keywords?.[lang]?.trim() ||
-    "QafNest, chalets in Riyadh, villas in Jeddah, AlUla glamping, vacation rental Saudi Arabia, luxury chalets, Tabby installment stays, Ministry of Tourism licensed";
+    "QafNest, chalets in Riyadh, villas in Jeddah, AlUla glamping, vacation rental Saudi Arabia, luxury chalets, Tabby installment stays";
   const ogTitle = seo?.openGraph?.title?.[lang]?.trim() || title;
   const ogDescription = seo?.openGraph?.description?.[lang]?.trim() || description;
   const ogImage = seo?.openGraph?.image?.trim() || "";
@@ -151,7 +153,8 @@ export default async function RootLayout({
   const initialDir = initialLang === "ar" ? "rtl" : "ltr";
   const rawTheme = cookieStore.get("qafnest_theme")?.value;
   const initialTheme: "light" | "dark" = rawTheme === "light" ? "light" : "dark";
-  const gtmId = cms.globals.gtm?.enabled ? cms.globals.gtm.gtmId : "";
+  const rawGtmId = cms.globals.gtm?.enabled ? String(cms.globals.gtm.gtmId || "").trim() : "";
+  const gtmId = /^GTM-[A-Z0-9]{4,12}$/i.test(rawGtmId) ? rawGtmId.toUpperCase() : "";
 
   const sameAs = Array.from(
     new Set([
@@ -171,16 +174,31 @@ export default async function RootLayout({
     ...(sameAs.length > 0 ? { sameAs } : {}),
   };
 
+  const initialRtlClass = initialLang === "ar" ? "rtl" : "";
+
   return (
-    <html lang={initialLang} dir={initialDir} className={`${geist.variable} ${dinNext.variable} ${initialTheme}`} suppressHydrationWarning>
+    <html lang={initialLang} dir={initialDir} className={`${geist.variable} ${dinNext.variable} ${initialTheme} ${initialRtlClass}`.trim()} suppressHydrationWarning>
       <head>
+        {/* Critical Origin Preconnects for Performance */}
+        <link rel="preconnect" href="https://apis.google.com" />
+        <link rel="preconnect" href="https://qafnest.firebaseapp.com" crossOrigin="anonymous" />
+        <link rel="dns-prefetch" href="https://www.googletagmanager.com" />
+        <link rel="dns-prefetch" href="https://identitytoolkit.googleapis.com" />
+
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(orgJsonLd) }}
+          dangerouslySetInnerHTML={{ __html: safeJsonLdStringify(orgJsonLd) }}
+        />
+        <script
+          id="qafnest-preferences"
+          dangerouslySetInnerHTML={{
+            __html: `try { const root = document.documentElement; const p = window.location.pathname; const pathLang = p === '/ar' || p.startsWith('/ar/') ? 'ar' : (p === '/en' || p.startsWith('/en/') ? 'en' : null); const lang = pathLang || localStorage.getItem('qafnest_lang'); const theme = localStorage.getItem('qafnest_theme') || (root.classList.contains('light') ? 'light' : 'dark'); if (lang === 'ar' || lang === 'en') { root.lang = lang; root.dir = lang === 'ar' ? 'rtl' : 'ltr'; root.classList.toggle('rtl', lang === 'ar'); localStorage.setItem('qafnest_lang', lang); } if (theme === 'light') { root.classList.add('light'); root.classList.remove('dark'); document.cookie = 'qafnest_theme=light; path=/; max-age=31536000; SameSite=Lax'; } else { root.classList.add('dark'); root.classList.remove('light'); document.cookie = 'qafnest_theme=dark; path=/; max-age=31536000; SameSite=Lax'; } } catch {}`,
+          }}
         />
         {gtmId && (
-          <script
+          <Script
             id="qafnest-gtm-head"
+            strategy="lazyOnload"
             dangerouslySetInnerHTML={{
               __html: `(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer','${gtmId}');`,
             }}
@@ -201,12 +219,6 @@ export default async function RootLayout({
             />
           </noscript>
         )}
-        <script
-          id="qafnest-preferences"
-          dangerouslySetInnerHTML={{
-            __html: `try { const root = document.documentElement; const p = window.location.pathname; const pathLang = p === '/ar' || p.startsWith('/ar/') ? 'ar' : (p === '/en' || p.startsWith('/en/') ? 'en' : null); const lang = pathLang || localStorage.getItem('qafnest_lang'); const theme = localStorage.getItem('qafnest_theme') || (root.classList.contains('light') ? 'light' : 'dark'); if (lang === 'ar' || lang === 'en') { root.lang = lang; root.dir = lang === 'ar' ? 'rtl' : 'ltr'; root.classList.toggle('rtl', lang === 'ar'); localStorage.setItem('qafnest_lang', lang); } if (theme === 'light') { root.classList.add('light'); root.classList.remove('dark'); document.cookie = 'qafnest_theme=light; path=/; max-age=31536000; SameSite=Lax'; } else { root.classList.add('dark'); root.classList.remove('light'); document.cookie = 'qafnest_theme=dark; path=/; max-age=31536000; SameSite=Lax'; } } catch {}`,
-          }}
-        />
         <ClientProviders initialLang={initialLang} initialTheme={initialTheme}>
           <DynamicSeoTags />
           {gtmId && (

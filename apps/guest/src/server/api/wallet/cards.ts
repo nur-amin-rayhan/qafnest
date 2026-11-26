@@ -39,36 +39,42 @@ export async function POST(request: Request) {
   }
 
   const cardholderName = String(body.cardholderName || "").trim();
-  const cardNumber = String(body.cardNumber || "").replace(/\D/g, "");
+  const rawLast4 = String(body.last4 || "").replace(/\D/g, "");
+  const cardDigits = String(body.cardNumber || "").replace(/\D/g, "");
+  const last4 = /^\d{4}$/.test(rawLast4) ? rawLast4 : cardDigits.slice(-4);
   const expiryMonth = String(body.expiryMonth || "").trim();
   const expiryYear = String(body.expiryYear || "").trim();
-  const cvv = String(body.cvv || "").replace(/\D/g, "");
+  const gatewayToken = typeof body.gatewayToken === "string" ? body.gatewayToken.trim() : undefined;
+  const panHash = typeof body.panHash === "string" ? body.panHash.trim() : undefined;
   const isDefault = Boolean(body.isDefault);
 
   const monthNum = parseInt(expiryMonth, 10);
   if (
     !cardholderName ||
-    cardNumber.length < 15 ||
-    cardNumber.length > 19 ||
+    !/^\d{4}$/.test(last4) ||
     !expiryMonth ||
     !expiryYear ||
     isNaN(monthNum) ||
     monthNum < 1 ||
-    monthNum > 12 ||
-    !/^\d{3,4}$/.test(cvv)
+    monthNum > 12
   ) {
     return NextResponse.json(
-      { error: "Please enter complete cardholder name, valid card number, expiry date, and CVV." },
+      { error: "Please enter valid cardholder name, last 4 card digits, and expiry date." },
       { status: 400 }
     );
   }
 
+  // PCI-DSS: NEVER store full PAN or CVV on our servers; only masked display metadata or gateway tokens
   const newCard = await saveUserCard(authUser.id, {
     cardholderName,
-    cardNumber,
+    last4,
+    cardNumber: cardDigits,
     expiryMonth,
     expiryYear,
-    cvv,
+    brand: typeof body.brand === "string" ? (body.brand as any) : undefined,
+    gatewayToken,
+    panHash,
+    maskedPan: `**** **** **** ${last4}`,
     isDefault,
   });
 
@@ -78,7 +84,7 @@ export async function POST(request: Request) {
     success: true,
     card: toPublicSavedCard(newCard),
     cards: allCards,
-    message: "Card saved successfully for fast 1-click checkout!",
+    message: "Card metadata saved securely (PAN & CVV are never stored).",
   });
 }
 

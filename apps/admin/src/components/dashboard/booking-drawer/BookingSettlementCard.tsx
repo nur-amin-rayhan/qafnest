@@ -157,20 +157,20 @@ export function BookingSettlementSections({
   const payout = selectedBooking.payoutSummary;
   return (
     <>
-      <section className="rounded-2xl bg-surface-container-lowest border border-surface-container p-5 space-y-4 shadow-2xs">
-        <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-surface-container">
-          <h3 className="font-title-sm text-sm font-black text-on-surface">
+      <section className="rounded-2xl bg-white dark:bg-[#0E0D16] border border-slate-200/90 dark:border-slate-800 p-5 space-y-4 shadow-xs">
+        <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-slate-100 dark:border-slate-800">
+          <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-slate-100">
             {t("Guest Billing, ZATCA VAT & Host Settlement", "الفاتورة والضريبة وحصة المضيف والتسوية")}
           </h3>
-          <span className="text-[11px] font-mono text-outline">
+          <span className="text-[11px] font-mono text-slate-500 dark:text-slate-400">
             {t("DB ID:", "المعرف:")} {selectedBooking.dbId || selectedBooking.id}
           </span>
         </div>
 
-        <div className="space-y-2.5 text-xs text-on-surface-variant">
+        <div className="space-y-2.5 text-xs sm:text-sm text-slate-600 dark:text-slate-300">
           <div className="flex justify-between gap-2">
             <span>{t(`Listing Base Subtotal (${stayNights} nights)`, `أصل سعر الإقامة (${stayNights} ليالٍ)`)}</span>
-            <span className="font-mono font-semibold text-on-surface shrink-0">
+            <span className="font-mono font-semibold text-slate-900 dark:text-slate-100 shrink-0">
               {s.listingAmountSar.toFixed(2)} {currencyLabel}
             </span>
           </div>
@@ -179,7 +179,7 @@ export function BookingSettlementSections({
             <span className="font-mono shrink-0">+{s.guestServiceFeeSar.toFixed(2)} {currencyLabel}</span>
           </div>
           {s.promoDiscountSar > 0 && (
-            <div className="flex justify-between gap-2 text-emerald-700">
+            <div className="flex justify-between gap-2 text-emerald-600 dark:text-emerald-400 font-medium">
               <span>{t("Promo Discount", "خصم العرض")}</span>
               <span className="font-mono shrink-0">-{s.promoDiscountSar.toFixed(2)} {currencyLabel}</span>
             </div>
@@ -189,27 +189,27 @@ export function BookingSettlementSections({
             <span className="font-mono shrink-0">+{s.governmentVatRemittanceSar.toFixed(2)} {currencyLabel}</span>
           </div>
 
-          <div className="flex justify-between text-sm sm:text-base text-on-surface pt-3 font-bold border-t border-surface-container">
+          <div className="flex justify-between text-sm sm:text-base text-slate-900 dark:text-slate-100 pt-3 font-bold border-t border-slate-200/80 dark:border-slate-800">
             <span>{t("Gross Guest Billing", "المبلغ الإجمالي المدفوع من الضيف")}</span>
-            <span className="text-primary font-mono font-black">{selectedBooking.amount.toFixed(2)} {currencyLabel}</span>
+            <span className="text-[#4F2396] dark:text-purple-300 font-mono font-black">{selectedBooking.amount.toFixed(2)} {currencyLabel}</span>
           </div>
 
-          <div className="mt-3 pt-3 border-t border-dashed border-surface-container space-y-2 text-xs">
+          <div className="mt-3 pt-3 border-t border-dashed border-slate-200 dark:border-slate-800 space-y-2 text-xs sm:text-sm">
             <div className="flex justify-between gap-2">
               <span>{t(`Host Commission (${s.hostCommissionPercent}%)`, `عمولة المنصة من المضيف (${s.hostCommissionPercent}%)`)}</span>
-              <span className="font-mono text-rose-600 shrink-0">-{s.hostCommissionAmountSar.toFixed(2)} {currencyLabel}</span>
+              <span className="font-mono text-rose-600 dark:text-rose-400 shrink-0">-{s.hostCommissionAmountSar.toFixed(2)} {currencyLabel}</span>
             </div>
             {s.platformWelcomeBonusSubsidySar > 0 && (
-              <div className="flex justify-between gap-2 text-violet-700">
+              <div className="flex justify-between gap-2 text-purple-700 dark:text-purple-300 font-medium">
                 <span>{t("Welcome Bonus Subsidy (Platform-borne)", "دعم مكافأة الترحيب (على المنصة)")}</span>
                 <span className="font-mono shrink-0">-{s.platformWelcomeBonusSubsidySar.toFixed(2)} {currencyLabel}</span>
               </div>
             )}
-            <div className="flex justify-between font-bold text-sm text-emerald-700">
+            <div className="flex justify-between font-bold text-sm text-emerald-600 dark:text-emerald-400">
               <span>{t("Host Net Payout", "صافي مستحق المضيف")}</span>
               <span className="font-mono shrink-0">{s.hostNetPayoutSar.toFixed(2)} {currencyLabel}</span>
             </div>
-            <div className="flex justify-between font-bold text-on-surface">
+            <div className="flex justify-between font-bold text-slate-900 dark:text-slate-100">
               <span>{t("Platform Net Revenue", "صافي إيراد المنصة")}</span>
               <span className="font-mono shrink-0">{s.platformNetRevenueSar.toFixed(2)} {currencyLabel}</span>
             </div>
@@ -217,11 +217,11 @@ export function BookingSettlementSections({
         </div>
       </section>
 
-      <section className="rounded-2xl bg-surface-container-lowest border border-surface-container p-5 space-y-3 shadow-2xs">
-        <div className="flex flex-wrap items-center justify-between gap-2 pb-2.5 border-b border-surface-container">
+      <section className="rounded-2xl bg-white dark:bg-[#0E0D16] border border-slate-200/90 dark:border-slate-800 p-5 space-y-3 shadow-xs">
+        <div className="flex flex-wrap items-center justify-between gap-2 pb-2.5 border-b border-slate-100 dark:border-slate-800">
           <div className="flex items-center gap-2">
-            <Landmark className="w-4 h-4 text-status-emerald" />
-            <h3 className="font-title-sm text-sm font-black text-on-surface">
+            <Landmark className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+            <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-slate-100">
               {t("Host Disbursement & SAMA SARIE Status", "حالة التحويل البنكي للمضيف (سريع)")}
             </h3>
           </div>
@@ -232,37 +232,37 @@ export function BookingSettlementSections({
                 onOpenFinancials();
                 onClose();
               }}
-              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-primary/10 hover:bg-primary/15 text-primary text-xs font-bold transition cursor-pointer print:hidden"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-purple-50 dark:bg-purple-950/60 hover:bg-purple-100 dark:hover:bg-purple-900/50 text-[#4F2396] dark:text-purple-300 text-xs font-semibold transition cursor-pointer print:hidden border border-purple-200 dark:border-purple-800/60"
             >
               <span>{t("Open Financials & Payouts", "فتح سجل المدفوعات")}</span>
-              <ExternalLink className="w-3 h-3" />
+              <ExternalLink className="w-3.5 h-3.5" />
             </button>
           )}
         </div>
 
         {payout ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-            <div className="p-3 rounded-xl bg-surface-container-low">
-              <span className="text-[11px] text-outline block">{t("Payout Voucher", "مرجع الصرف")}</span>
-              <span className="font-mono font-bold text-primary">{payout.reference}</span>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs sm:text-sm">
+            <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-100 dark:border-slate-800">
+              <span className="text-xs text-slate-500 dark:text-slate-400 block">{t("Payout Voucher", "مرجع الصرف")}</span>
+              <span className="font-mono font-bold text-[#4F2396] dark:text-purple-300 text-sm">{payout.reference}</span>
             </div>
-            <div className="p-3 rounded-xl bg-surface-container-low">
-              <span className="text-[11px] text-outline block">{t("Disbursement Status", "حالة الصرف")}</span>
-              <span className="font-bold text-on-surface capitalize">{payout.status.replace(/_/g, " ")}</span>
+            <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-100 dark:border-slate-800">
+              <span className="text-xs text-slate-500 dark:text-slate-400 block">{t("Disbursement Status", "حالة الصرف")}</span>
+              <span className="font-bold text-slate-900 dark:text-slate-100 capitalize">{payout.status.replace(/_/g, " ")}</span>
             </div>
-            <div className="p-3 rounded-xl bg-surface-container-low">
-              <span className="text-[11px] text-outline block">{t("Beneficiary Bank", "البنك المستفيد")}</span>
-              <span className="font-semibold text-on-surface">{payout.bankName || t("Not Configured", "غير محدد")}</span>
+            <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-100 dark:border-slate-800">
+              <span className="text-xs text-slate-500 dark:text-slate-400 block">{t("Beneficiary Bank", "البنك المستفيد")}</span>
+              <span className="font-semibold text-slate-900 dark:text-slate-100">{payout.bankName || t("Not Configured", "غير محدد")}</span>
             </div>
-            <div className="p-3 rounded-xl bg-surface-container-low">
-              <span className="text-[11px] text-outline block">{t("Destination IBAN", "رقم الآيبان")}</span>
-              <span className="font-mono font-bold text-on-surface break-all" dir="ltr">
+            <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-100 dark:border-slate-800">
+              <span className="text-xs text-slate-500 dark:text-slate-400 block">{t("Destination IBAN", "رقم الآيبان")}</span>
+              <span className="font-mono font-bold text-slate-900 dark:text-slate-100 break-all text-xs sm:text-sm" dir="ltr">
                 {payout.iban || t("Host IBAN pending setup", "بانتظار إضافة الآيبان من المضيف")}
               </span>
             </div>
           </div>
         ) : (
-          <p className="text-xs text-on-surface-variant bg-surface-container-low p-3 rounded-xl">{selectedBooking.payoutStatus}</p>
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-900/60 border border-slate-100 dark:border-slate-800 p-3 rounded-xl">{selectedBooking.payoutStatus}</p>
         )}
       </section>
     </>

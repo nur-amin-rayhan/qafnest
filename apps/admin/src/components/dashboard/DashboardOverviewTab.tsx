@@ -52,10 +52,10 @@ export function DashboardOverviewTab({
       {/* Clean Page Title */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-[#111827]">
+          <h1 className="text-xl sm:text-2xl font-semibold tracking-tight text-slate-900 dark:text-slate-100">
             {t("Dashboard", "لوحة التحكم")}
           </h1>
-          <p className="text-xs text-gray-500 mt-0.5">
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
             {t(
               "Live overview of bookings, property approvals, and payouts.",
               "نظرة عامة مباشرة على الحجوزات واعتماد العقارات والمدفوعات."
@@ -67,7 +67,7 @@ export function DashboardOverviewTab({
           <button
             type="button"
             onClick={() => setActiveTab("properties-management")}
-            className="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg bg-amber-50 border border-amber-200 text-amber-800 hover:bg-amber-100 text-xs font-semibold transition cursor-pointer"
+            className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-lg bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 text-amber-800 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900/50 text-xs font-semibold transition cursor-pointer"
           >
             <span className="w-2 h-2 rounded-full bg-amber-500" />
             <span>

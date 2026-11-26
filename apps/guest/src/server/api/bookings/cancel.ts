@@ -112,7 +112,7 @@ export async function POST(
     body = (await request.json()) as Record<string, unknown>;
   } catch {}
 
-  const reason = String(body.reason || "Guest requested self-service cancellation via portal");
+  const reason = String(body.reason || "Admin-processed booking cancellation");
   const wasPaid = booking.payment_status === "success" || booking.payment_status === "paid";
 
   const quote = calculateCancellationRefundQuote({
@@ -126,7 +126,7 @@ export async function POST(
       ? "failed"
       : booking.payment_status;
 
-  // 1. Update Supabase (guests can cancel bookings, but paid bookings carry zero refund)
+  // 1. Update Supabase (guests can cancel bookings only via admin support)
   const { data: updated, error: updErr } = await supabase
     .from("bookings")
     .update({
@@ -139,7 +139,8 @@ export async function POST(
     .maybeSingle();
 
   if (updErr || !updated) {
-    return NextResponse.json({ error: updErr?.message || "Failed to cancel booking" }, { status: 500 });
+    console.error("[bookings cancel] update failed:", updErr);
+    return NextResponse.json({ error: "Failed to cancel booking." }, { status: 500 });
   }
 
   // Release overnight property_availability dates when no other active booking occupies them
@@ -153,7 +154,7 @@ export async function POST(
           .from("bookings")
           .select("check_in, check_out")
           .eq("property_id", booking.property_id)
-          .in("status", ["confirmed", "completed"])
+          .in("status", ["confirmed", "checked_in", "completed"])
           .neq("id", booking.id);
         for (let i = 0; i < numNights; i++) {
           const dayIso = new Date(startMs + i * 86_400_000).toISOString().slice(0, 10);
@@ -187,7 +188,7 @@ export async function POST(
       refundPercentage: quote.refundPercentage,
       penaltyAmount: quote.penaltyAmount,
       cancellationReason: reason,
-      actor: "guest",
+      actor: "admin",
       policyTier: quote.policyTier,
     });
   }
@@ -200,15 +201,15 @@ export async function POST(
 
     recordUserActivity({
       userId: authUser.id,
-      userName: authUser.email?.split("@")[0] || "Guest",
-      role: "guest",
+      userName: authUser.email?.split("@")[0] || "Admin",
+      role: "admin",
       category: "booking",
-      action: "guest_cancelled_booking",
-      title: `Guest cancelled booking #${ref}`,
-      details: `${propTitle || "Property"} · Non-refundable (0 SAR refunded)`,
+      action: "admin_cancelled_booking",
+      title: `Cancelled booking #${ref}`,
+      details: `${propTitle || "Property"} · Refund ${quote.refundAmount} SAR`,
       targetId: booking.id,
       targetLabel: ref,
-      actor: authUser.email || "Guest Self-Service",
+      actor: authUser.email || "QafNest Support",
     });
   } catch {}
 

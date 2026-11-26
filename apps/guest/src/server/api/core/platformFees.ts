@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import {
   getServerPlatformFeeConfig,
   getServerEffectiveGuestFeeConfig,
+  hydratePlatformFeeConfig,
 } from "@qafnest/shared/platformFeeStore";
 
 
@@ -12,6 +13,7 @@ const NO_STORE_HEADERS = {
 
 export async function GET(request: Request) {
   try {
+    await hydratePlatformFeeConfig();
     const { searchParams } = new URL(request.url);
     const category = searchParams.get("category") || undefined;
 

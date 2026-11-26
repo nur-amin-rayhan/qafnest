@@ -13,6 +13,8 @@ interface HostPhoneInputStepProps {
   onSubmit: (e: React.FormEvent) => void;
   t: (en: string, ar: string) => string;
   effectiveLang: "ar" | "en";
+  authMode?: "signin" | "signup";
+  onToggleAuthMode?: () => void;
 }
 
 export default function HostPhoneInputStep({
@@ -25,15 +27,17 @@ export default function HostPhoneInputStep({
   onSubmit,
   t,
   effectiveLang,
+  authMode = "signin",
+  onToggleAuthMode,
 }: HostPhoneInputStepProps) {
   return (
-    <form onSubmit={onSubmit} className="space-y-4">
+    <form onSubmit={onSubmit} className="space-y-5">
       <div>
-        <label className="mb-2 block text-xs font-extrabold text-slate-700">
+        <label className="mb-2 block text-xs font-semibold text-slate-700">
           {t("Saudi Mobile Number", "رقم الجوال السعودي")}
         </label>
-        <div className="flex items-center gap-2" dir="ltr">
-          <div className="flex shrink-0 items-center gap-1.5 rounded-2xl border border-slate-200 bg-slate-100 px-3.5 py-3 text-xs font-black text-slate-900">
+        <div className="flex items-center gap-2.5" dir="ltr">
+          <div className="flex shrink-0 items-center gap-1.5 rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-3 text-xs font-semibold text-slate-800">
             <span className="text-base">🇸🇦</span>
             <span>+966</span>
           </div>
@@ -45,28 +49,28 @@ export default function HostPhoneInputStep({
             placeholder="5X XXX XXXX"
             maxLength={10}
             autoFocus
-            className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-900 outline-none placeholder:text-slate-400 focus:border-[#4F2396] focus:bg-white"
+            className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-900 outline-none placeholder:text-slate-400 focus:border-[#4F2396] focus:ring-1 focus:ring-[#4F2396] transition"
           />
         </div>
-        <span className="mt-1 block text-[11px] font-medium text-slate-400">
+        <span className="mt-1.5 block text-[11px] font-normal text-slate-400">
           {t("Enter mobile number starting with 5 (e.g. 501234567)", "أدخل رقم الجوال يبدأ بـ 5 (مثال: 501234567)")}
         </span>
       </div>
 
       {/* Delivery Channel Radio */}
       <div>
-        <span className="mb-1.5 block text-xs font-extrabold text-slate-700">
+        <span className="mb-2 block text-xs font-semibold text-slate-700">
           {t("Send verification code via:", "إرسال رمز التحقق عبر:")}
         </span>
-        <div className="grid grid-cols-2 gap-2" role="radiogroup">
+        <div className="grid grid-cols-2 gap-2.5" role="radiogroup">
           <button
             type="button"
             role="radio"
             aria-checked={otpChannel === "sms"}
             onClick={() => setOtpChannel("sms")}
-            className={`inline-flex items-center justify-center gap-2 rounded-2xl border py-2.5 text-xs font-black transition cursor-pointer ${
+            className={`inline-flex items-center justify-center gap-2 rounded-xl border py-3 text-xs font-medium transition cursor-pointer ${
               otpChannel === "sms"
-                ? "border-[#4F2396] bg-violet-50 text-[#4F2396] ring-1 ring-[#4F2396]"
+                ? "border-[#4F2396] bg-violet-50/70 text-[#4F2396] font-semibold ring-1 ring-[#4F2396]"
                 : "border-slate-200 text-slate-600 hover:bg-slate-50"
             }`}
           >
@@ -78,9 +82,9 @@ export default function HostPhoneInputStep({
             role="radio"
             aria-checked={otpChannel === "whatsapp"}
             onClick={() => setOtpChannel("whatsapp")}
-            className={`inline-flex items-center justify-center gap-2 rounded-2xl border py-2.5 text-xs font-black transition cursor-pointer ${
+            className={`inline-flex items-center justify-center gap-2 rounded-xl border py-3 text-xs font-medium transition cursor-pointer ${
               otpChannel === "whatsapp"
-                ? "border-emerald-500 bg-emerald-50 text-emerald-800 ring-1 ring-emerald-500"
+                ? "border-emerald-600 bg-emerald-50/70 text-emerald-800 font-semibold ring-1 ring-emerald-600"
                 : "border-slate-200 text-slate-600 hover:bg-slate-50"
             }`}
           >
@@ -97,19 +101,51 @@ export default function HostPhoneInputStep({
       <button
         type="submit"
         disabled={loading}
-        className="mt-2 flex w-full items-center justify-center gap-2 rounded-2xl bg-[#FF9750] hover:bg-[#f58438] py-3.5 text-sm font-black text-[#2d1259] shadow-lg shadow-amber-500/20 transition active:scale-[0.98] disabled:opacity-60 cursor-pointer"
+        className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl bg-[#4F2396] hover:bg-[#3f1b7a] py-3.5 text-sm font-semibold text-white shadow-xs transition active:scale-[0.99] disabled:opacity-50 cursor-pointer"
       >
         {loading ? (
-          <LoaderCircle className="h-5 w-5 animate-spin" />
+          <LoaderCircle className="h-4 w-4 animate-spin" />
         ) : (
-          <ArrowRight size={16} className={effectiveLang === "ar" ? "rotate-180" : ""} />
+          <ArrowRight size={15} className={effectiveLang === "ar" ? "rotate-180" : ""} />
         )}
         <span>
           {loading
             ? t("Sending verification code...", "جارٍ إرسال الرمز…")
+            : authMode === "signup"
+            ? t("Send Code & Register", "إرسال رمز التحقق والتسجيل")
             : t("Send Verification Code", "إرسال رمز التحقق")}
         </span>
       </button>
+
+      {/* Switch between Sign In & Register + Helpful clarification note */}
+      <div className="pt-2 text-center text-xs">
+        <p className="text-slate-600">
+          {authMode === "signup"
+            ? t("Already have a host account?", "لديك حساب مضيف بالفعل؟")
+            : t("Don't have a host account?", "ليس لديك حساب مضيف؟")}
+          {" "}
+          <button
+            type="button"
+            onClick={onToggleAuthMode}
+            className="font-semibold text-[#4F2396] hover:underline cursor-pointer"
+          >
+            {authMode === "signup"
+              ? t("Sign In", "تسجيل الدخول")
+              : t("Register now", "سجل الآن")}
+          </button>
+        </p>
+        <p className="mt-1.5 text-[11px] font-normal text-slate-400 leading-relaxed">
+          {authMode === "signup"
+            ? t(
+                "Entering your mobile number will create and verify your host account automatically.",
+                "إدخال رقم الجوال سينشئ حسابك كمضيف ويوثقه تلقائياً فور تأكيد الرمز."
+              )
+            : t(
+                "Entering your mobile number will sign you in or create your host account automatically.",
+                "إدخال رقم الجوال يقوم بتسجيل الدخول أو إنشاء حسابك كمضيف تلقائياً."
+              )}
+        </p>
+      </div>
     </form>
   );
 }

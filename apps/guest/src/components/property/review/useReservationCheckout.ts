@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import type { User } from "@supabase/supabase-js";
-import { getFirebaseAuth, isFirebaseConfigured } from "@/lib/firebase/client";
+import type { Session, User } from "@supabase/supabase-js";
+import { getGuestAuthorizationHeaders } from "@/lib/auth/clientAuthHeaders";
+import { dispatchOpenIdentityModal } from "@/components/modals/GuestIdentityGateModal";
 import { isPropertyAvailable } from "@/lib/services/availability";
 import { requestSamsungPayWebToken } from "@/lib/services/samsungPayWeb";
 import type { Property } from "@/data/properties";
@@ -21,11 +22,13 @@ interface UseReservationCheckoutOptions {
   bookingCheckoutTime?: string;
   bookingGuestsCount: number;
   phoneVerified: boolean;
+  identityVerified: boolean;
   phoneOtpVerified: boolean;
   effectivePhone: string;
   effectiveName: string;
   effectiveEmail: string;
   user: User | null;
+  session?: Session | null;
   pricing: PricingBreakdown | null;
   totalAmount?: number;
   walletBalance?: number;
@@ -44,11 +47,13 @@ export function useReservationCheckout({
   bookingCheckoutTime,
   bookingGuestsCount,
   phoneVerified,
+  identityVerified,
   phoneOtpVerified,
   effectivePhone,
   effectiveName,
   effectiveEmail,
   user,
+  session,
   pricing,
   totalAmount = 0,
   walletBalance = 0,
@@ -93,7 +98,8 @@ export function useReservationCheckout({
   const effectiveCheckoutMethod: PaymentMethod | null =
     useWalletCredit && walletCanCoverFull && !paymentMethod ? "wallet" : paymentMethod;
 
-  const isPayDisabled = paymentBusy || !phoneVerified || !effectiveCheckoutMethod;
+  const isPayDisabled =
+    paymentBusy || !phoneVerified || !identityVerified || !effectiveCheckoutMethod;
 
   const handlePay = async () => {
     setPaymentMessage(null);
@@ -117,6 +123,16 @@ export function useReservationCheckout({
       document
         .getElementById("phone-verification")
         ?.scrollIntoView({ behavior: "smooth", block: "center" });
+      return;
+    }
+    if (!identityVerified) {
+      setPaymentMessage(
+        label(
+          "Verify your Saudi National ID or Iqama via Nafath / Elm Yaqeen before completing your booking.",
+          "يرجى توثيق الهوية الوطنية أو الإقامة عبر نفاذ / علم يقين قبل إتمام الحجز."
+        )
+      );
+      dispatchOpenIdentityModal();
       return;
     }
     if (!effectiveCheckoutMethod) {
@@ -202,13 +218,7 @@ export function useReservationCheckout({
         }
       }
 
-      let token: string | undefined;
-      try {
-        if (isFirebaseConfigured()) {
-          const fbUser = getFirebaseAuth().currentUser;
-          if (fbUser) token = await fbUser.getIdToken();
-        }
-      } catch {}
+      const authHeaders = await getGuestAuthorizationHeaders(session);
 
       const activeLocale: "en" | "ar" = label("en", "ar") === "en" ? "en" : "ar";
 
@@ -216,7 +226,7 @@ export function useReservationCheckout({
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          ...authHeaders,
         },
         body: JSON.stringify({
           locale: activeLocale,
@@ -276,6 +286,8 @@ export function useReservationCheckout({
             result.code === "profile_details_required" ? "profile" : "code"
           );
           setOtpModalOpen(true);
+        } else if (result.code === "identity_verification_required") {
+          dispatchOpenIdentityModal();
         }
         const isCouponError =
           result.code === "promotions_disabled" ||
@@ -314,6 +326,9 @@ export function useReservationCheckout({
         if (isCouponError) {
           msgEn = result.message || "Coupon code is invalid or no longer eligible.";
           msgAr = ((result as Record<string, unknown>).messageAr as string) || result.message || "كود الخصم غير صالح أو لم يعد مستوفياً للشروط.";
+        } else if (result.code === "identity_verification_required") {
+          msgEn = "Verify your Saudi National ID or Iqama via Nafath / Elm Yaqeen to complete your booking.";
+          msgAr = "يجب توثيق الهوية الوطنية أو الإقامة عبر نفاذ / علم يقين لإتمام الحجز.";
         } else if (result.code === "phone_verification_required") {
           msgEn = "Your mobile verification session has expired. Verify your number again to continue.";
           msgAr = "انتهت جلسة التحقق من رقم الجوال. تحقق من رقمك مرة أخرى للمتابعة.";

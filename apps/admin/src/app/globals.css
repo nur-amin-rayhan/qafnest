@@ -1,4 +1,10 @@
-@import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap');
+@font-face {
+  font-family: 'Material Symbols Outlined';
+  font-style: normal;
+  font-weight: 100 700;
+  font-display: block;
+  src: url('/fonts/material-symbols-outlined.ttf') format('truetype');
+}
 
 @tailwind base;
 @tailwind components;
@@ -15,9 +21,10 @@
 }
 
 .material-symbols-outlined {
-  font-family: 'Material Symbols Outlined', sans-serif;
+  font-family: 'Material Symbols Outlined' !important;
   font-weight: normal;
   font-style: normal;
+  font-size: 24px;
   line-height: 1;
   letter-spacing: normal;
   text-transform: none;
@@ -34,3 +41,139 @@
   display: none;
 }
 
+/* ==========================================================================
+   Admin Hub Unified Dark Mode Palette
+   ========================================================================== */
+.dark {
+  color-scheme: dark;
+}
+
+/* Base Surfaces & Containers */
+.dark .bg-surface-container-lowest,
+.dark .bg-white {
+  background-color: #0E0D16 !important;
+}
+
+.dark .bg-surface-container-low,
+.dark .bg-slate-50 {
+  background-color: #141320 !important;
+}
+
+.dark .bg-surface-container,
+.dark .bg-slate-100 {
+  background-color: #1A1928 !important;
+}
+
+.dark .bg-surface-container-high,
+.dark .bg-slate-200 {
+  background-color: #222134 !important;
+}
+
+.dark .bg-primary-fixed {
+  background-color: rgba(79, 35, 150, 0.3) !important;
+  color: #D8B4FE !important;
+}
+
+/* Typography & Contrast */
+.dark .text-on-surface,
+.dark .text-slate-900,
+.dark .text-slate-800,
+.dark .text-[#111827] {
+  color: #F8FAFC !important;
+}
+
+.dark .text-on-surface-variant,
+.dark .text-slate-600,
+.dark .text-slate-500,
+.dark .text-gray-500 {
+  color: #94A3B8 !important;
+}
+
+.dark .text-outline,
+.dark .text-slate-400 {
+  color: #64748B !important;
+}
+
+.dark .text-primary {
+  color: #DDD6FE !important;
+}
+
+.dark .text-primary-container {
+  color: #E9D5FF !important;
+}
+
+.dark .bg-primary\/10,
+.dark .bg-primary\/5 {
+  background-color: rgba(79, 35, 150, 0.2) !important;
+}
+
+.dark .border-primary\/20,
+.dark .border-primary\/30,
+.dark .border-primary\/40 {
+  border-color: rgba(168, 85, 247, 0.3) !important;
+}
+
+/* Borders & Dividers */
+.dark .border-surface-container,
+.dark .border-surface-container-high,
+.dark .border-slate-200,
+.dark .border-slate-100,
+.dark .border-[#E5E7EB] {
+  border-color: #1E293B !important;
+}
+
+.dark .divide-slate-100 > :not([hidden]) ~ :not([hidden]),
+.dark .divide-slate-200 > :not([hidden]) ~ :not([hidden]),
+.dark .divide-surface-container-low > :not([hidden]) ~ :not([hidden]) {
+  border-color: #1E293B !important;
+}
+
+/* Interactive Inputs */
+.dark input:not([type="checkbox"]):not([type="radio"]),
+.dark select,
+.dark textarea {
+  background-color: #141320 !important;
+  color: #F8FAFC !important;
+  border-color: #1E293B !important;
+}
+
+.dark input::placeholder,
+.dark textarea::placeholder {
+  color: #64748B !important;
+}
+
+/* Status Badges in Dark Mode */
+.dark .bg-emerald-50 {
+  background-color: rgba(6, 78, 59, 0.35) !important;
+}
+.dark .text-emerald-700,
+.dark .text-emerald-800 {
+  color: #34D399 !important;
+}
+.dark .border-emerald-200 {
+  border-color: rgba(5, 150, 105, 0.35) !important;
+}
+
+.dark .bg-amber-50 {
+  background-color: rgba(120, 53, 15, 0.35) !important;
+}
+.dark .text-amber-800,
+.dark .text-amber-900,
+.dark .text-amber-700 {
+  color: #FCD34D !important;
+}
+.dark .border-amber-200 {
+  border-color: rgba(217, 119, 6, 0.35) !important;
+}
+
+.dark .bg-rose-50 {
+  background-color: rgba(136, 19, 55, 0.35) !important;
+}
+.dark .text-rose-700,
+.dark .text-rose-800,
+.dark .text-rose-900 {
+  color: #FDA4AF !important;
+}
+.dark .border-rose-200 {
+  border-color: rgba(225, 29, 72, 0.35) !important;
+}

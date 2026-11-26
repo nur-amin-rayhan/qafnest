@@ -12,17 +12,32 @@ for (const envPath of [".env.local", "apps/guest/.env.local", "apps/admin/.env.l
   }
 }
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://uolrxgcxzbdsmvszuoyz.supabase.co";
-const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || "dummy-anon-key-for-offline-test";
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
+const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim() || "";
+const hasLiveDb = Boolean(supabaseUrl && serviceKey);
+const requireLiveDb = process.env.REQUIRE_LIVE_DB_TESTS === "1";
 
-const supabase = createClient(supabaseUrl, serviceKey || anonKey);
+const supabase = hasLiveDb ? createClient(supabaseUrl, serviceKey) : null;
 
 console.log("====================================================");
 console.log("🛡️  VERIFYING SEC-01 TO SEC-09 SECURITY REMEDIATIONS");
 console.log("====================================================");
 
 async function run() {
+  let passedTests = 0;
+  let skippedTests = 0;
+  let failedTests = 0;
+
+  let propertyId = "";
+  if (supabase) {
+    const { data: liveProp } = await supabase
+      .from("properties")
+      .select("id")
+      .limit(1)
+      .maybeSingle();
+    propertyId = liveProp?.id || "";
+  }
+
   // -------------------------------------------------------------------------
   // SEC-04 Test: Webhook Signature Verification
   // -------------------------------------------------------------------------
@@ -50,59 +65,68 @@ async function run() {
   assert.strictEqual(verifyMyFatoorahSignature(payload, invalidSignature, testSecret), false, "Tampered signature must fail");
   assert.strictEqual(verifyMyFatoorahSignature(payload, null, testSecret), false, "Missing signature must fail");
   console.log("✔ SEC-04 PASS: HMAC SHA-256 signature validation is cryptographically sound and timing-safe.");
+  passedTests++;
 
   // -------------------------------------------------------------------------
   // SEC-01 Test: Amount Mismatch Guard in Callback
   // -------------------------------------------------------------------------
   console.log("\n[TEST 2: SEC-01 Amount Mismatch Protection]");
   const testBookingRef = `QAF-SEC01-${Date.now().toString().slice(-4)}`;
-  const propertyId = "b6885404-5f62-4a57-8165-3ac56298a9dc"; // Wadi Hanifa Sunset Chalet
 
-  const { data: testBooking, error: insertErr } = await supabase
-    .from("bookings")
-    .insert({
-      booking_reference: testBookingRef,
-      property_id: propertyId,
-      guest_id: "00000000-0000-0000-0000-000000000001",
-      auth_subject: "00000000-0000-0000-0000-000000000001",
-      check_in: "2027-01-10",
-      check_out: "2027-01-12",
-      total_nights: 2,
-      guests_count: 2,
-      total_price: 2500.00,
-      status: "pending",
-      payment_status: "initiated",
-    })
-    .select()
-    .single();
-
-  if (insertErr) {
-    console.warn("Notice: could not insert test booking for SEC-01 test:", insertErr.message);
+  if (!supabase) {
+    console.warn("⏭ SEC-01 SKIPPED: SUPABASE_SERVICE_ROLE_KEY not configured for DB integration test.");
+    skippedTests++;
+  } else if (!propertyId) {
+    console.error("✖ SEC-01 FAIL: No property row found in Supabase to run DB test.");
+    failedTests++;
   } else {
-    // Attempt RPC confirmation with underpayment: 10 SAR instead of 2500 SAR
-    const { data: rpcRes } = await supabase.rpc("confirm_verified_booking", {
-      p_booking_ref: testBookingRef,
-      p_payment_id: "test_underpay_sec01",
-      p_gateway: "Mada",
-      p_amount: 10.00, // Underpayment
-      p_pin: "9999",
-    });
-
-    assert.strictEqual(rpcRes?.success, false, "confirm_verified_booking must reject underpayment");
-    assert.strictEqual(rpcRes?.error, "amount_mismatch", "Error must be amount_mismatch");
-
-    // Verify booking is still pending (not confirmed!)
-    const { data: freshBooking } = await supabase
+    const { error: insertErr } = await supabase
       .from("bookings")
-      .select("status, payment_status")
-      .eq("booking_reference", testBookingRef)
+      .insert({
+        booking_reference: testBookingRef,
+        property_id: propertyId,
+        guest_id: "00000000-0000-0000-0000-000000000001",
+        auth_subject: "00000000-0000-0000-0000-000000000001",
+        check_in: "2027-01-10",
+        check_out: "2027-01-12",
+        total_nights: 2,
+        guests_count: 2,
+        total_price: 2500.00,
+        status: "pending",
+        payment_status: "initiated",
+      })
+      .select()
       .single();
 
-    assert.strictEqual(freshBooking.status, "pending", "Booking status must remain pending upon underpayment");
-    console.log("✔ SEC-01 PASS: Amount mismatch is strictly rejected; booking cannot be confirmed with forged amount.");
+    if (insertErr) {
+      console.error("✖ SEC-01 FAIL: could not insert test booking:", insertErr.message);
+      failedTests++;
+    } else {
+      try {
+        const { data: rpcRes } = await supabase.rpc("confirm_verified_booking", {
+          p_booking_ref: testBookingRef,
+          p_payment_id: "test_underpay_sec01",
+          p_gateway: "Mada",
+          p_amount: 10.00,
+          p_pin: "9999",
+        });
 
-    // Clean up
-    await supabase.from("bookings").delete().eq("booking_reference", testBookingRef);
+        assert.strictEqual(rpcRes?.success, false, "confirm_verified_booking must reject underpayment");
+        assert.strictEqual(rpcRes?.error, "amount_mismatch", "Error must be amount_mismatch");
+
+        const { data: freshBooking } = await supabase
+          .from("bookings")
+          .select("status, payment_status")
+          .eq("booking_reference", testBookingRef)
+          .single();
+
+        assert.strictEqual(freshBooking.status, "pending", "Booking status must remain pending upon underpayment");
+        console.log("✔ SEC-01 PASS: Amount mismatch is strictly rejected; booking cannot be confirmed with forged amount.");
+        passedTests++;
+      } finally {
+        await supabase.from("bookings").delete().eq("booking_reference", testBookingRef);
+      }
+    }
   }
 
   // -------------------------------------------------------------------------
@@ -112,47 +136,61 @@ async function run() {
   const testPinRef = `QAF-SEC02-${Date.now().toString().slice(-4)}`;
   const expectedPin = "4829";
 
-  const { data: confirmedBooking } = await supabase
-    .from("bookings")
-    .insert({
-      booking_reference: testPinRef,
-      property_id: propertyId,
-      guest_id: "00000000-0000-0000-0000-000000000001",
-      auth_subject: "00000000-0000-0000-0000-000000000001",
-      check_in: "2027-02-10",
-      check_out: "2027-02-12",
-      total_nights: 2,
-      guests_count: 2,
-      total_price: 1500.00,
-      status: "confirmed",
-      payment_status: "success",
-      payment_id: "pay_initial_123",
-      smart_lock_pin: expectedPin,
-    })
-    .select()
-    .single();
-
-  if (confirmedBooking) {
-    const { data: dupRpc } = await supabase.rpc("confirm_verified_booking", {
-      p_booking_ref: testPinRef,
-      p_payment_id: "pay_initial_123",
-      p_gateway: "Mada",
-      p_amount: 1500.00,
-      p_pin: "9999",
-    });
-
-    assert.strictEqual(dupRpc?.already_confirmed, true, "Already confirmed booking must be detected");
-
-    const { data: checkBooking } = await supabase
+  if (!supabase) {
+    console.warn("⏭ SEC-02 SKIPPED: SUPABASE_SERVICE_ROLE_KEY not configured for DB integration test.");
+    skippedTests++;
+  } else if (!propertyId) {
+    console.error("✖ SEC-02 FAIL: No property row found in Supabase to run DB test.");
+    failedTests++;
+  } else {
+    const { data: confirmedBooking, error: sec02Err } = await supabase
       .from("bookings")
-      .select("smart_lock_pin")
-      .eq("booking_reference", testPinRef)
+      .insert({
+        booking_reference: testPinRef,
+        property_id: propertyId,
+        guest_id: "00000000-0000-0000-0000-000000000001",
+        auth_subject: "00000000-0000-0000-0000-000000000001",
+        check_in: "2027-02-10",
+        check_out: "2027-02-12",
+        total_nights: 2,
+        guests_count: 2,
+        total_price: 1500.00,
+        status: "confirmed",
+        payment_status: "success",
+        payment_id: "pay_initial_123",
+        smart_lock_pin: expectedPin,
+      })
+      .select()
       .single();
 
-    assert.strictEqual(checkBooking.smart_lock_pin, expectedPin, "Existing PIN must NOT be clobbered by concurrent request");
-    console.log(`✔ SEC-02 PASS: Existing smart lock PIN (${expectedPin}) is preserved across duplicate/concurrent events.`);
+    if (sec02Err || !confirmedBooking) {
+      console.error("✖ SEC-02 FAIL: could not insert test booking:", sec02Err?.message || "unknown error");
+      failedTests++;
+    } else {
+      try {
+        const { data: dupRpc } = await supabase.rpc("confirm_verified_booking", {
+          p_booking_ref: testPinRef,
+          p_payment_id: "pay_initial_123",
+          p_gateway: "Mada",
+          p_amount: 1500.00,
+          p_pin: "9999",
+        });
 
-    await supabase.from("bookings").delete().eq("booking_reference", testPinRef);
+        assert.strictEqual(dupRpc?.already_confirmed, true, "Already confirmed booking must be detected");
+
+        const { data: checkBooking } = await supabase
+          .from("bookings")
+          .select("smart_lock_pin")
+          .eq("booking_reference", testPinRef)
+          .single();
+
+        assert.strictEqual(checkBooking.smart_lock_pin, expectedPin, "Existing PIN must NOT be clobbered by concurrent request");
+        console.log(`✔ SEC-02 PASS: Existing smart lock PIN (${expectedPin}) is preserved across duplicate/concurrent events.`);
+        passedTests++;
+      } finally {
+        await supabase.from("bookings").delete().eq("booking_reference", testPinRef);
+      }
+    }
   }
 
   // -------------------------------------------------------------------------
@@ -163,49 +201,63 @@ async function run() {
   const guestAId = "00000000-0000-0000-0000-000000000001";
   const guestBId = "00000000-0000-0000-0000-000000000099";
 
-  const { data: holdBooking } = await supabase
-    .from("bookings")
-    .insert({
-      booking_reference: holdRef,
-      property_id: propertyId,
-      guest_id: guestAId,
-      auth_subject: guestAId,
-      check_in: "2027-03-01",
-      check_out: "2027-03-05",
-      total_nights: 4,
-      guests_count: 2,
-      total_price: 3000.00,
-      status: "pending",
-      payment_status: "initiated",
-      created_at: new Date().toISOString(),
-    })
-    .select()
-    .single();
-
-  if (holdBooking) {
-    const fifteenMinutesAgo = new Date(Date.now() - 15 * 60 * 1000).toISOString();
-
-    const { data: conflicting } = await supabase
+  if (!supabase) {
+    console.warn("⏭ SEC-03 SKIPPED: SUPABASE_SERVICE_ROLE_KEY not configured for DB integration test.");
+    skippedTests++;
+  } else if (!propertyId) {
+    console.error("✖ SEC-03 FAIL: No property row found in Supabase to run DB test.");
+    failedTests++;
+  } else {
+    const { data: holdBooking, error: holdErr } = await supabase
       .from("bookings")
-      .select("id, check_in, check_out, status, guest_id, auth_subject, created_at")
-      .eq("property_id", propertyId)
-      .lt("check_in", "2027-03-04")
-      .gt("check_out", "2027-03-02")
-      .or(`status.in.(confirmed,completed),and(status.eq.pending,created_at.gt.${fifteenMinutesAgo})`);
+      .insert({
+        booking_reference: holdRef,
+        property_id: propertyId,
+        guest_id: guestAId,
+        auth_subject: guestAId,
+        check_in: "2027-03-01",
+        check_out: "2027-03-05",
+        total_nights: 4,
+        guests_count: 2,
+        total_price: 3000.00,
+        status: "pending",
+        payment_status: "initiated",
+        created_at: new Date().toISOString(),
+      })
+      .select()
+      .single();
 
-    const isHeldByAnother = conflicting?.some(
-      (b) => b.status === "pending" && b.guest_id !== guestBId
-    );
-    assert.strictEqual(isHeldByAnother, true, "Guest B must be blocked by Guest A's active ephemeral hold");
+    if (holdErr || !holdBooking) {
+      console.error("✖ SEC-03 FAIL: could not insert hold booking:", holdErr?.message || "unknown error");
+      failedTests++;
+    } else {
+      try {
+        const fifteenMinutesAgo = new Date(Date.now() - 15 * 60 * 1000).toISOString();
 
-    const isHeldAgainstGuestA = conflicting?.some(
-      (b) => b.status === "pending" && b.guest_id !== guestAId
-    );
-    assert.strictEqual(isHeldAgainstGuestA, false, "Guest A must NOT be blocked by their own pending session");
+        const { data: conflicting } = await supabase
+          .from("bookings")
+          .select("id, check_in, check_out, status, guest_id, auth_subject, created_at")
+          .eq("property_id", propertyId)
+          .lt("check_in", "2027-03-04")
+          .gt("check_out", "2027-03-02")
+          .or(`status.in.(confirmed,completed),and(status.eq.pending,created_at.gt.${fifteenMinutesAgo})`);
 
-    console.log("✔ SEC-03 PASS: 15-minute ephemeral hold prevents double-booking while permitting user retries.");
+        const isHeldByAnother = conflicting?.some(
+          (b) => b.status === "pending" && b.guest_id !== guestBId
+        );
+        assert.strictEqual(isHeldByAnother, true, "Guest B must be blocked by Guest A's active ephemeral hold");
 
-    await supabase.from("bookings").delete().eq("booking_reference", holdRef);
+        const isHeldAgainstGuestA = conflicting?.some(
+          (b) => b.status === "pending" && b.guest_id !== guestAId
+        );
+        assert.strictEqual(isHeldAgainstGuestA, false, "Guest A must NOT be blocked by their own pending session");
+
+        console.log("✔ SEC-03 PASS: 15-minute ephemeral hold prevents double-booking while permitting user retries.");
+        passedTests++;
+      } finally {
+        await supabase.from("bookings").delete().eq("booking_reference", holdRef);
+      }
+    }
   }
 
   // -------------------------------------------------------------------------
@@ -223,6 +275,7 @@ async function run() {
   assert.strictEqual(UUID_REGEX.test(customUuid), true, "RFC UUID must pass");
   assert.strictEqual(UUID_REGEX.test(nonUuidRef), false, "Booking reference must not be identified as UUID");
   console.log("✔ SEC-05 PASS: Standard UUID regex correctly validates all RFC 4122 and dev UUIDs without silent drops.");
+  passedTests++;
 
   // -------------------------------------------------------------------------
   // SEC-06 Test: 30-Minute Checkout Expiry Window
@@ -230,43 +283,49 @@ async function run() {
   console.log("\n[TEST 6: SEC-06 Extended 30-Minute Checkout Expiry Window]");
   assert.strictEqual(CHECKOUT_EXPIRY_MINUTES, 30, "CHECKOUT_EXPIRY_MINUTES must be extended to 30 minutes");
   console.log(`✔ SEC-06 PASS: Checkout session expiry is ${CHECKOUT_EXPIRY_MINUTES} minutes, preventing premature dropouts during 3DS/Nafath.`);
+  passedTests++;
 
   // -------------------------------------------------------------------------
   // SEC-07 Test: Compare-And-Swap (CAS) Coupon Quota Guard
   // -------------------------------------------------------------------------
   console.log("\n[TEST 7: SEC-07 CAS Coupon Concurrency Guard]");
-  // Test atomic CAS logic: update with .eq("used_count", currentCount)
-  const { data: testCoupon } = await supabase
-    .from("coupons")
-    .select("id, code, used_count, usage_limit")
-    .ilike("code", "QAF10")
-    .single();
-
-  if (testCoupon) {
-    const current = Number(testCoupon.used_count) || 0;
-    // Attempt increment with matching count (CAS SUCCESS)
-    const { data: casSuccess } = await supabase
+  if (!supabase) {
+    console.warn("⏭ SEC-07 SKIPPED: SUPABASE_SERVICE_ROLE_KEY not configured for DB integration test.");
+    skippedTests++;
+  } else {
+    const { data: testCoupon } = await supabase
       .from("coupons")
-      .update({ used_count: current + 1 })
-      .eq("id", testCoupon.id)
-      .eq("used_count", current)
-      .select("id");
+      .select("id, code, used_count, usage_limit")
+      .limit(1)
+      .maybeSingle();
 
-    assert.strictEqual(casSuccess?.length, 1, "CAS update with matching count must succeed");
+    if (!testCoupon) {
+      console.warn("⏭ SEC-07 SKIPPED: No coupon row available in DB for CAS check.");
+      skippedTests++;
+    } else {
+      const current = Number(testCoupon.used_count) || 0;
+      const { data: casSuccess } = await supabase
+        .from("coupons")
+        .update({ used_count: current + 1 })
+        .eq("id", testCoupon.id)
+        .eq("used_count", current)
+        .select("id");
 
-    // Attempt second update with STALE count (CAS COLLISION REJECTION)
-    const { data: casCollision } = await supabase
-      .from("coupons")
-      .update({ used_count: current + 2 })
-      .eq("id", testCoupon.id)
-      .eq("used_count", current) // Stale predicate
-      .select("id");
+      assert.strictEqual(casSuccess?.length, 1, "CAS update with matching count must succeed");
 
-    assert.strictEqual(casCollision?.length, 0, "CAS update with stale count must affect 0 rows (no lost updates)");
+      const { data: casCollision } = await supabase
+        .from("coupons")
+        .update({ used_count: current + 2 })
+        .eq("id", testCoupon.id)
+        .eq("used_count", current)
+        .select("id");
 
-    // Revert test increment
-    await supabase.from("coupons").update({ used_count: current }).eq("id", testCoupon.id);
-    console.log("✔ SEC-07 PASS: CAS optimistic concurrency guard prevents lost updates and race condition overconsumption.");
+      assert.strictEqual(casCollision?.length, 0, "CAS update with stale count must affect 0 rows (no lost updates)");
+
+      await supabase.from("coupons").update({ used_count: current }).eq("id", testCoupon.id);
+      console.log("✔ SEC-07 PASS: CAS optimistic concurrency guard prevents lost updates and race condition overconsumption.");
+      passedTests++;
+    }
   }
 
   // -------------------------------------------------------------------------
@@ -292,12 +351,12 @@ async function run() {
   assert.strictEqual(masked.bookingRef, "QAF-2DXHTP", "Non-PII booking reference must be preserved");
   assert.strictEqual(masked.amount, 2599.00, "Non-PII amount must be preserved");
   console.log("✔ SEC-08 PASS: PII sanitizer correctly masks customer phone, email, name, card, and PIN in logs.");
+  passedTests++;
 
   // -------------------------------------------------------------------------
   // SEC-09 Test: Dummy Email Elimination
   // -------------------------------------------------------------------------
   console.log("\n[TEST 9: SEC-09 Elimination of Hardcoded Dummy Email]");
-  // Test function reproducing the updated payload assembly
   function prepareMyFatoorahPayload(input) {
     const payload = {};
     const validEmail = input.customerEmail && input.customerEmail.includes("@")
@@ -315,10 +374,14 @@ async function run() {
   const payloadWithValidEmail = prepareMyFatoorahPayload({ customerEmail: "verified@client.sa" });
   assert.strictEqual(payloadWithValidEmail.CustomerEmail, "verified@client.sa", "Valid email must be passed");
   console.log("✔ SEC-09 PASS: Dummy email 'guest@qafnest.com' successfully removed from payment payloads.");
+  passedTests++;
 
   console.log("\n====================================================");
-  console.log("🎉 ALL 9 SECURITY REMEDIATIONS VERIFIED SUCCESSFULLY!");
+  console.log(`📊 SECURITY REMEDIATION SUMMARY: Passed=${passedTests}, Skipped=${skippedTests}, Failed=${failedTests}`);
   console.log("====================================================");
+  if (failedTests > 0 || (requireLiveDb && skippedTests > 0)) {
+    process.exit(1);
+  }
 }
 
 run().catch((err) => {

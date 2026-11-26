@@ -6,7 +6,7 @@ import { getAdminOrServerClient } from "@/lib/supabase/service";
 import { translateReviewContent } from "@/lib/services/translationService";
 
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const reviewFields = "id, property_id, guest_id, guest_subject, guest_display_name, title, comment, title_ar, comment_ar, rating, cleanliness_rating, accuracy_rating, checkin_rating, value_rating, services_rating, property_state_rating, created_at, is_sample, is_verified_stay, admin_reply, admin_reply_by, admin_reply_at, admin_reply_ar";
+const reviewFields = "id, property_id, guest_display_name, title, comment, title_ar, comment_ar, rating, cleanliness_rating, accuracy_rating, checkin_rating, value_rating, services_rating, property_state_rating, created_at, is_sample, is_verified_stay, admin_reply, admin_reply_by, admin_reply_at, admin_reply_ar";
 
 export async function GET(request: Request) {
   const params = new URL(request.url).searchParams;

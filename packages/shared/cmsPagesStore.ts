@@ -25,8 +25,8 @@ export const DEFAULT_CMS_PAGES: Record<string, CmsPageRecord> = {
         id: "platform-role",
         titleEn: "1. Binding Agreement & Intermediary Platform Role",
         titleAr: "١. الاتفاقية الملزمة ودور المنصة الوسيط",
-        contentEn: "QafNest is a licensed Saudi digital hospitality marketplace (Ministry of Tourism License #73102999) connecting property owners and authorized operators (Hosts) with travelers seeking short-term residential stays across chalets, villas, resorts (istirahat), apartments, farms, and camps (Guests). QafNest does not own or physically manage listed accommodations; each confirmed booking creates a direct accommodation agreement between Guest and Host.",
-        contentAr: "قاف نست منصة إلكترونية سعودية مرخصة من وزارة السياحة (ترخيص رقم 73102999) تعمل كوسيط تقني يربط بين المضيفين وأصحاب الوحدات المرخصة والضيوف الباحثين عن إقامات قصيرة في الشاليهات والفلل والاستراحات والشقق والمزارع والمخيمات. لا تمتلك المنصة العقارات المعروضة أو تديرها مباشرة، وينشئ كل حجز مؤكد عقد إقامة ملزماً بين الضيف والمضيف.",
+        contentEn: "QafNest is a Saudi digital hospitality marketplace connecting property owners and authorized operators (Hosts) with travelers seeking short-term residential stays across chalets, villas, resorts (istirahat), apartments, farms, and camps (Guests). QafNest does not own or physically manage listed accommodations; each confirmed booking creates a direct accommodation agreement between Guest and Host.",
+        contentAr: "قاف نست منصة إلكترونية سعودية تعمل كوسيط تقني يربط بين المضيفين وأصحاب الوحدات المرخصة والضيوف الباحثين عن إقامات قصيرة في الشاليهات والفلل والاستراحات والشقق والمزارع والمخيمات. لا تمتلك المنصة العقارات المعروضة أو تديرها مباشرة، وينشئ كل حجز مؤكد عقد إقامة ملزماً بين الضيف والمضيف.",
       },
       {
         id: "accounts-verification",
@@ -200,7 +200,7 @@ export const DEFAULT_CMS_PAGES: Record<string, CmsPageRecord> = {
       financeEmail: "",
       addressEn: QAFNEST_SUPPORT_CONTACT.hqAddressEn,
       addressAr: QAFNEST_SUPPORT_CONTACT.hqAddressAr,
-      licenseNumber: "Ministry of Tourism License #73102999",
+      licenseNumber: "",
     },
   },
 };

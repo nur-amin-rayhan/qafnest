@@ -2,18 +2,26 @@
 
 import { useState, useEffect, useMemo } from "react";
 import type { AdminCoupon } from "../PromotionsTab";
-import { DEFAULT_COUPONS } from "./promotionsConstants";
 import { useCouponModalForm } from "./useCouponModalForm";
 
 import { adminPath } from "@/lib/adminUrl";
+
+// Module-level in-memory cache for instant promotions rendering
+let cachedCoupons: AdminCoupon[] | null = null;
+let cachedPromotionsEnabled = true;
+
+export function updateCachedCoupons(newCoupons: AdminCoupon[]) {
+  cachedCoupons = newCoupons;
+}
+
 interface UsePromotionsManagerOptions {
   triggerToast: (msg: string) => void;
   t: (en: string, ar: string) => string;
 }
 
 export function usePromotionsManager({ triggerToast, t }: UsePromotionsManagerOptions) {
-  const [coupons, setCoupons] = useState<AdminCoupon[]>([]);
-  const [promotionsEnabled, setPromotionsEnabled] = useState(true);
+  const [coupons, setCoupons] = useState<AdminCoupon[]>(() => cachedCoupons || []);
+  const [promotionsEnabled, setPromotionsEnabled] = useState(() => cachedPromotionsEnabled);
   const [loading, setLoading] = useState(false);
   const [filterStatus, setFilterStatus] = useState<"all" | "active" | "paused" | "expired">("all");
   const [searchQuery, setSearchQuery] = useState("");
@@ -23,22 +31,29 @@ export function usePromotionsManager({ triggerToast, t }: UsePromotionsManagerOp
   // Load live coupons on mount
   useEffect(() => {
     async function fetchCoupons() {
-      setLoading(true);
+      const isSilent = Boolean(cachedCoupons !== null);
+      if (!isSilent) {
+        setLoading(true);
+      }
       try {
         const res = await fetch(adminPath("/api/admin/coupons"));
         if (res.ok) {
           const data = await res.json();
           if (Array.isArray(data.coupons)) {
             setCoupons(data.coupons);
+            cachedCoupons = data.coupons;
           }
           if (typeof data.promotionsEnabled === "boolean") {
             setPromotionsEnabled(data.promotionsEnabled);
+            cachedPromotionsEnabled = data.promotionsEnabled;
           }
         }
       } catch {
         // Fallback to defaults
       } finally {
-        setLoading(false);
+        if (!isSilent) {
+          setLoading(false);
+        }
       }
     }
     fetchCoupons();

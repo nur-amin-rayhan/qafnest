@@ -70,6 +70,7 @@ export async function fetchRemoteSharedState<T = unknown>(keyName: string): Prom
         {
           headers: serviceHeaders(cfg.serviceKey, { Accept: "application/json" }),
           cache: "no-store",
+          signal: AbortSignal.timeout(3500),
         }
       );
       if (res.ok) {
@@ -92,6 +93,7 @@ export async function fetchRemoteSharedState<T = unknown>(keyName: string): Prom
       {
         headers: serviceHeaders(cfg.serviceKey),
         cache: "no-store",
+        signal: AbortSignal.timeout(3500),
       }
     );
     if (!res.ok) return null;
@@ -120,6 +122,7 @@ export async function pushRemoteSharedState(keyName: string, data: unknown): Pro
           value: data,
           updated_at: new Date().toISOString(),
         }),
+        signal: AbortSignal.timeout(4000),
       });
       if (res.ok) {
         tableAvailable = true;
@@ -143,6 +146,7 @@ export async function pushRemoteSharedState(keyName: string, data: unknown): Pro
           "x-upsert": "true",
         }),
         body: JSON.stringify(data),
+        signal: AbortSignal.timeout(4000),
       }
     );
     if (storageRes.ok) synced = true;

@@ -123,21 +123,21 @@ export function PropertyHeaderSection({
             {title}
           </h1>
 
-          {/* Prominent High-Visibility Property Metadata Section (Gathern Benchmark Style) */}
-          <div className="mt-4 flex flex-wrap items-stretch gap-2.5 sm:gap-3">
-            {/* Rating Card */}
-            <div className="flex items-center gap-2.5 rounded-2xl border border-slate-200/90 bg-white px-3.5 py-2.5 shadow-2xs dark:border-white/10 dark:bg-[#12101a]">
-              <div className="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-amber-50 text-amber-600 dark:bg-amber-950/40 dark:text-amber-400">
-                <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
+          {/* Unified High-Visibility Key Property Metrics (Minimalist Gathern/Airbnb Style) */}
+          <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3 max-w-3xl">
+            {/* 1. Rating Card */}
+            <div className="flex items-center gap-2.5 rounded-xl border border-slate-200/90 bg-white px-3.5 py-2.5 shadow-2xs dark:border-slate-800 dark:bg-[#110F18] transition hover:border-slate-300">
+              <div className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-amber-50 text-amber-500 dark:bg-amber-950/40 dark:text-amber-400">
+                <Star className="h-4 w-4 fill-amber-400 text-amber-500" />
               </div>
-              <div>
-                <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+              <div className="min-w-0">
+                <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
                   {anchorLabel("Rating", "التقييم")}
                 </div>
-                <div className="text-xs sm:text-sm font-black text-slate-900 dark:text-white">
+                <div className="text-xs sm:text-sm font-black text-slate-900 dark:text-white whitespace-nowrap" suppressHydrationWarning>
                   {reviewStats.total > 0 ? (
                     <>
-                      {reviewStats.average.toFixed(1)}
+                      <span>{reviewStats.average.toFixed(1)}</span>
                       <span className="text-[10px] font-bold text-slate-400"> / 10</span>
                       <span className="ms-1 text-[11px] font-semibold text-slate-500">
                         ({reviewStats.total})
@@ -150,46 +150,45 @@ export function PropertyHeaderSection({
               </div>
             </div>
 
-            {/* Unit Area Card */}
-            {property.areaSqm && (
-              <div className="flex items-center gap-2.5 rounded-2xl border border-violet-200/90 bg-violet-50/50 px-3.5 py-2.5 shadow-2xs dark:border-violet-500/25 dark:bg-violet-950/30">
-                <div className="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-violet-100 text-[#4F2396] dark:bg-violet-900/50 dark:text-violet-300">
+            {/* 2. Unit Area Card */}
+            {property.areaSqm ? (
+              <div className="flex items-center gap-2.5 rounded-xl border border-slate-200/90 bg-white px-3.5 py-2.5 shadow-2xs dark:border-slate-800 dark:bg-[#110F18] transition hover:border-slate-300">
+                <div className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-purple-50 text-[#4F2396] dark:bg-purple-950/40 dark:text-purple-300">
                   <Maximize2 className="h-4 w-4" />
                 </div>
-                <div>
-                  <div className="text-[10px] font-bold uppercase tracking-wider text-[#4F2396] dark:text-violet-300">
-                    {anchorLabel("Unit Area", "المساحة")}
+                <div className="min-w-0">
+                  <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                    {anchorLabel("Area", "المساحة")}
                   </div>
-                  <div className="text-xs sm:text-sm font-black text-slate-900 dark:text-white">
-                    {property.areaSqm} <span className="text-[11px] font-bold text-slate-500">m² / م²</span>
+                  <div className="text-xs sm:text-sm font-black text-slate-900 dark:text-white whitespace-nowrap">
+                    {property.areaSqm} <span className="text-[11px] font-bold text-slate-500">m²</span>
                   </div>
                 </div>
               </div>
-            )}
+            ) : null}
 
-            {/* Guest Capacity Card */}
-            <div className="flex items-center gap-2.5 rounded-2xl border border-emerald-200/90 bg-emerald-50/50 px-3.5 py-2.5 shadow-2xs dark:border-emerald-500/25 dark:bg-emerald-950/30">
-              <div className="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-emerald-100 text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-300">
+            {/* 3. Capacity Card */}
+            <div className="flex items-center gap-2.5 rounded-xl border border-slate-200/90 bg-white px-3.5 py-2.5 shadow-2xs dark:border-slate-800 dark:bg-[#110F18] transition hover:border-slate-300">
+              <div className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-purple-50 text-[#4F2396] dark:bg-purple-950/40 dark:text-purple-300">
                 <Users className="h-4 w-4" />
               </div>
-              <div>
-                <div className="text-[10px] font-bold uppercase tracking-wider text-emerald-800 dark:text-emerald-300">
+              <div className="min-w-0">
+                <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
                   {anchorLabel("Capacity", "السعة")}
                 </div>
-                <div className="text-xs sm:text-sm font-black text-slate-900 dark:text-white">
-                  {property.guestPolicy ||
-                    anchorLabel(`Up to ${capacity} Guests`, `حتى ${capacity} ضيوف`)}
+                <div className="text-xs sm:text-sm font-black text-slate-900 dark:text-white whitespace-nowrap">
+                  {anchorLabel(`Up to ${capacity} Guests`, `حتى ${capacity} ضيوف`)}
                 </div>
               </div>
             </div>
 
-            {/* Location Card (Strictly localized) */}
-            <div className="flex items-center gap-2.5 rounded-2xl border border-slate-200/90 bg-white px-3.5 py-2.5 shadow-2xs dark:border-white/10 dark:bg-[#12101a] max-w-full sm:max-w-xs">
-              <div className="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-rose-50 text-rose-500 dark:bg-rose-950/40 dark:text-rose-400">
+            {/* 4. Location Card */}
+            <div className="flex items-center gap-2.5 rounded-xl border border-slate-200/90 bg-white px-3.5 py-2.5 shadow-2xs dark:border-slate-800 dark:bg-[#110F18] transition hover:border-slate-300">
+              <div className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-rose-50 text-rose-500 dark:bg-rose-950/40 dark:text-rose-400">
                 <MapPin className="h-4 w-4" />
               </div>
               <div className="min-w-0">
-                <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
                   {anchorLabel("Location", "الموقع")}
                 </div>
                 <div className="truncate text-xs sm:text-sm font-black text-slate-900 dark:text-white" title={district}>

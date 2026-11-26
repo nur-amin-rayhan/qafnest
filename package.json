@@ -18,6 +18,8 @@
     "build:cms": "npm --prefix apps/cms run build",
     "build:admin": "npm --prefix apps/admin run build",
     "lint": "npm --prefix apps/guest run lint && npm --prefix apps/host run lint && npm --prefix apps/cms run lint && npm --prefix apps/admin run lint",
+    "typecheck": "npx tsc --noEmit -p apps/guest/tsconfig.json && npx tsc --noEmit -p apps/host/tsconfig.json && npx tsc --noEmit -p apps/cms/tsconfig.json && npx tsc --noEmit -p apps/admin/tsconfig.json",
+    "test:unit": "node scripts/test-granular-pricing.mjs && node --import ./scripts/register-ts.mjs scripts/test-numeric-unit-codes.mjs && node --import ./scripts/register-ts.mjs scripts/test-booking-slot-controls.mjs && node --import ./scripts/register-ts.mjs scripts/test-time-slots-availability.mjs && node scripts/test-sec-patches.mjs",
     "design:audit": "node scripts/design-audit.mjs",
     "design:fix": "node scripts/design-audit.mjs --fix",
     "test:e2e": "node scripts/e2e-finance-test.mjs"

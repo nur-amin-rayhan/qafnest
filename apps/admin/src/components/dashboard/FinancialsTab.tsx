@@ -19,7 +19,7 @@ interface FinancialsTabProps {
 }
 
 export function FinancialsTab({}: FinancialsTabProps) {
-  const { lang, dir, t } = useAdminAuth();
+  const { dir, t } = useAdminAuth();
   const [showSarieBatchModal, setShowSarieBatchModal] = useState(false);
   const [settlingBatch, setSettlingBatch] = useState(false);
 
@@ -68,33 +68,79 @@ export function FinancialsTab({}: FinancialsTabProps) {
     loadFinancials();
   };
 
+  const handleExportHostLedgersCsv = () => {
+    if (!hostLedgers || hostLedgers.length === 0) return;
+    const headers = [
+      "Host ID",
+      "Host Name",
+      "Email",
+      "Phone",
+      "Bank Name",
+      "IBAN",
+      "Properties Count",
+      "Bookings Count",
+      "Gross Listing (SAR)",
+      "Net Income (SAR)",
+      "Paid Out (SAR)",
+      "Due Payable (SAR)",
+      "On Hold (SAR)",
+      "Platform Net (SAR)",
+    ];
+    const rows = hostLedgers.map((h) => [
+      `"${h.hostId}"`,
+      `"${(h.hostName || "").replace(/"/g, '""')}"`,
+      `"${h.hostEmail || ""}"`,
+      `"${h.hostPhone || ""}"`,
+      `"${h.bankName || ""}"`,
+      `"${h.iban || ""}"`,
+      h.propertiesCount,
+      h.bookingsCount,
+      h.grossListingEarnings.toFixed(2),
+      h.hostNetEarnings.toFixed(2),
+      h.totalPaidOut.toFixed(2),
+      h.pendingDueAmount.toFixed(2),
+      h.onHoldAmount.toFixed(2),
+      h.platformNetFromHost.toFixed(2),
+    ]);
+    const csvContent = "\uFEFF" + [headers.join(","), ...rows.map((r) => r.join(","))].join("\r\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `qafnest_host_ledgers_${new Date().toISOString().split("T")[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   return (
-    <div dir={dir} className="bg-surface-container-lowest p-4 sm:p-6 rounded-2xl shadow-sm space-y-6 overflow-x-hidden">
+    <div dir={dir} className="bg-white dark:bg-[#0E0D16] border border-slate-200/90 dark:border-slate-800 p-4 sm:p-6 rounded-xl shadow-xs space-y-6 overflow-x-hidden">
       {/* Toast Alert */}
       {toastMsg && (
-        <div className="fixed top-20 start-1/2 -translate-x-1/2 z-50 flex items-center gap-2 rounded-2xl bg-on-surface px-5 py-3 text-xs sm:text-sm font-bold text-surface shadow-2xl">
-          <CheckCircle2 size={16} className="text-status-emerald shrink-0" />
+        <div className="fixed top-20 start-1/2 -translate-x-1/2 z-50 flex items-center gap-2 rounded-xl bg-slate-900 dark:bg-slate-100 px-5 py-3 text-xs sm:text-sm font-semibold text-white dark:text-slate-900 shadow-2xl">
+          <CheckCircle2 size={16} className="text-emerald-500 shrink-0" />
           <span>{toastMsg}</span>
         </div>
       )}
 
       {/* Header */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-surface-container-high pb-4">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-slate-200/80 dark:border-slate-800 pb-4">
         <div>
           <div className="flex items-center gap-2">
-            <h2 className="font-display-md text-xl sm:text-2xl font-black text-on-surface">
+            <h2 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-slate-100">
               {t("Financials & Tax Invoices Hub", "مركز المالية والفوترة الضريبية")}
             </h2>
             <button
               type="button"
               onClick={() => loadFinancials()}
-              className="rounded-xl p-1 text-outline hover:text-on-surface cursor-pointer"
+              className="rounded-lg p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer transition-colors"
               title={t("Refresh Financial Data", "تحديث البيانات المالية")}
             >
-              <RefreshCw size={14} className={loading ? "animate-spin text-primary" : ""} />
+              <RefreshCw size={14} className={loading ? "animate-spin text-[#4F2396]" : ""} />
             </button>
           </div>
-          <p className="text-xs text-on-surface-variant mt-1">
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
             {t(
               "Real-time reconciliation, 24-hour host payout SLA reminders, ZATCA VAT, and SAMA SARIE bank disbursements.",
               "المطابقة اللحظية، تذكير صرف أرباح المضيفين خلال ٢٤ ساعة، ضريبة زاتكا والتحويل عبر سريع."
@@ -104,15 +150,15 @@ export function FinancialsTab({}: FinancialsTabProps) {
 
         {/* Section Navigation Tabs & Export Button */}
         <div className="flex flex-wrap items-center gap-2.5">
-          <div className="flex flex-wrap items-center gap-1 bg-surface-container p-1 rounded-xl">
+          <div className="inline-flex p-1 bg-slate-100 dark:bg-slate-800/80 rounded-lg overflow-x-auto max-w-full">
             <button
               type="button"
               data-testid="admin-fin-tab-overall"
               onClick={() => setActiveSection("payouts")}
-              className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition cursor-pointer ${
+              className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs transition-all cursor-pointer whitespace-nowrap ${
                 activeSection === "payouts"
-                  ? "bg-surface-container-lowest text-primary shadow-xs"
-                  : "text-on-surface-variant hover:text-on-surface"
+                  ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-xs font-semibold"
+                  : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 font-medium"
               }`}
             >
               <Wallet size={13} />
@@ -122,10 +168,10 @@ export function FinancialsTab({}: FinancialsTabProps) {
               type="button"
               data-testid="admin-fin-tab-hosts"
               onClick={() => setActiveSection("hosts")}
-              className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition cursor-pointer ${
+              className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs transition-all cursor-pointer whitespace-nowrap ${
                 activeSection === "hosts"
-                  ? "bg-surface-container-lowest text-primary shadow-xs"
-                  : "text-on-surface-variant hover:text-on-surface"
+                  ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-xs font-semibold"
+                  : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 font-medium"
               }`}
             >
               <Users size={13} />
@@ -135,10 +181,10 @@ export function FinancialsTab({}: FinancialsTabProps) {
               type="button"
               data-testid="admin-fin-tab-invoices"
               onClick={() => setActiveSection("invoices")}
-              className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition cursor-pointer ${
+              className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs transition-all cursor-pointer whitespace-nowrap ${
                 activeSection === "invoices"
-                  ? "bg-surface-container-lowest text-primary shadow-xs"
-                  : "text-on-surface-variant hover:text-on-surface"
+                  ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-xs font-semibold"
+                  : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 font-medium"
               }`}
             >
               <FileSpreadsheet size={13} />
@@ -148,10 +194,10 @@ export function FinancialsTab({}: FinancialsTabProps) {
               type="button"
               data-testid="admin-fin-tab-fees"
               onClick={() => setActiveSection("fees")}
-              className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition cursor-pointer ${
+              className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs transition-all cursor-pointer whitespace-nowrap ${
                 activeSection === "fees"
-                  ? "bg-surface-container-lowest text-primary shadow-xs"
-                  : "text-on-surface-variant hover:text-on-surface"
+                  ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-xs font-semibold"
+                  : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 font-medium"
               }`}
             >
               <Percent size={13} />
@@ -159,38 +205,61 @@ export function FinancialsTab({}: FinancialsTabProps) {
             </button>
           </div>
 
-          {activeSection === "payouts" && (
-            <div className="flex flex-wrap items-center gap-2">
-              <button
-                type="button"
-                onClick={() => setShowSarieBatchModal(true)}
-                className="inline-flex items-center gap-1.5 rounded-xl bg-status-emerald text-white hover:bg-emerald-700 px-3.5 py-2 text-xs font-bold transition cursor-pointer shadow-xs shrink-0"
-                title={t("Process SAMA SARIE Settlement with Legal Bank Txn #", "صرف دفعات سريع المستحقة بالرقم المرجعي")}
-              >
-                <Zap size={14} />
-                <span>{t("SAMA Settle All", "صرف دفعات سريع")}</span>
-              </button>
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setShowSarieBatchModal(true)}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 py-1.5 text-xs font-semibold transition cursor-pointer shadow-xs shrink-0"
+              title={t("Process SAMA SARIE Settlement with Legal Bank Txn #", "صرف دفعات سريع المستحقة بالرقم المرجعي")}
+            >
+              <Zap size={14} />
+              <span>{t("SAMA Settle All", "صرف دفعات سريع")}</span>
+            </button>
+
+            {activeSection === "payouts" && (
               <button
                 type="button"
                 onClick={handleExportCsv}
-                className="inline-flex items-center gap-2 rounded-xl border border-surface-container-high bg-surface-container hover:bg-surface-container-high px-3.5 py-2 text-xs font-bold text-on-surface transition cursor-pointer shrink-0 shadow-xs"
+                className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 px-3.5 py-1.5 text-xs font-medium text-slate-700 dark:text-slate-200 transition cursor-pointer shrink-0 shadow-xs"
               >
-                <Download size={14} className="text-primary" />
+                <Download size={14} className="text-slate-500 dark:text-slate-400" />
                 <span>{t("Export SARIE Batch (.CSV)", "تصدير ملف سريع (.CSV)")}</span>
               </button>
-            </div>
-          )}
+            )}
 
-          {activeSection === "invoices" && (
-            <button
-              type="button"
-              onClick={handleExportTaxJournal}
-              className="inline-flex items-center gap-2 rounded-xl border border-surface-container-high bg-surface-container hover:bg-surface-container-high px-4 py-2 text-xs font-bold text-on-surface transition cursor-pointer shrink-0 shadow-xs"
-            >
-              <Download size={14} className="text-status-emerald" />
-              <span>{t("Export ZATCA Tax Journal (.CSV)", "تصدير سجل ضريبة زاتكا (.CSV)")}</span>
-            </button>
-          )}
+            {activeSection === "hosts" && (
+              <button
+                type="button"
+                onClick={handleExportHostLedgersCsv}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 px-3.5 py-1.5 text-xs font-medium text-slate-700 dark:text-slate-200 transition cursor-pointer shrink-0 shadow-xs"
+              >
+                <Download size={14} className="text-slate-500 dark:text-slate-400" />
+                <span>{t("Export Host Ledgers (.CSV)", "تصدير سجل المضيفين (.CSV)")}</span>
+              </button>
+            )}
+
+            {activeSection === "invoices" && (
+              <button
+                type="button"
+                onClick={handleExportTaxJournal}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 px-3.5 py-1.5 text-xs font-medium text-slate-700 dark:text-slate-200 transition cursor-pointer shrink-0 shadow-xs"
+              >
+                <Download size={14} className="text-emerald-600 dark:text-emerald-400" />
+                <span>{t("Export ZATCA Tax Journal (.CSV)", "تصدير سجل ضريبة زاتكا (.CSV)")}</span>
+              </button>
+            )}
+
+            {activeSection === "fees" && (
+              <button
+                type="button"
+                onClick={handleExportCsv}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 px-3.5 py-1.5 text-xs font-medium text-slate-700 dark:text-slate-200 transition cursor-pointer shrink-0 shadow-xs"
+              >
+                <Download size={14} className="text-slate-500 dark:text-slate-400" />
+                <span>{t("Export SARIE Batch (.CSV)", "تصدير ملف سريع (.CSV)")}</span>
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
@@ -234,10 +303,10 @@ export function FinancialsTab({}: FinancialsTabProps) {
       ) : (
         <>
           {/* Filter and Search Ribbon */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2">
+          <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-3 pt-2">
             {/* Sub-Filters */}
             {activeSection === "payouts" ? (
-              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 scrollbar-none">
+              <div className="inline-flex p-1 bg-slate-100 dark:bg-slate-800/80 rounded-lg overflow-x-auto max-w-full">
                 {[
                   { id: "all", labelEn: "All Payouts", labelAr: "كل المدفوعات" },
                   { id: "host_requested", labelEn: "Host Requests", labelAr: "طلبات المضيفين" },
@@ -252,10 +321,10 @@ export function FinancialsTab({}: FinancialsTabProps) {
                     key={tab.id}
                     type="button"
                     onClick={() => setStatusFilter(tab.id)}
-                    className={`rounded-xl px-3.5 py-1.5 text-xs font-bold transition cursor-pointer shrink-0 ${
+                    className={`px-3 py-1.5 rounded-md text-xs sm:text-sm transition-all whitespace-nowrap cursor-pointer ${
                       statusFilter === tab.id
-                        ? "bg-primary text-on-primary shadow-xs"
-                        : "bg-surface-container-low text-on-surface-variant hover:bg-surface-container"
+                        ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-xs font-semibold"
+                        : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 font-medium"
                     }`}
                   >
                     {t(tab.labelEn, tab.labelAr)}
@@ -263,7 +332,7 @@ export function FinancialsTab({}: FinancialsTabProps) {
                 ))}
               </div>
             ) : (
-              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 scrollbar-none">
+              <div className="inline-flex p-1 bg-slate-100 dark:bg-slate-800/80 rounded-lg overflow-x-auto max-w-full">
                 {[
                   { id: "all", labelEn: "All Tax Invoices", labelAr: "كل الفواتير الضريبية" },
                   { id: "guest_stay", labelEn: "Guest Stay Invoices", labelAr: "فواتير إقامة الضيوف" },
@@ -273,10 +342,10 @@ export function FinancialsTab({}: FinancialsTabProps) {
                     key={tab.id}
                     type="button"
                     onClick={() => setInvoiceTypeFilter(tab.id)}
-                    className={`rounded-xl px-3.5 py-1.5 text-xs font-bold transition cursor-pointer shrink-0 ${
+                    className={`px-3 py-1.5 rounded-md text-xs sm:text-sm transition-all whitespace-nowrap cursor-pointer ${
                       invoiceTypeFilter === tab.id
-                        ? "bg-primary text-on-primary shadow-xs"
-                        : "bg-surface-container-low text-on-surface-variant hover:bg-surface-container"
+                        ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-xs font-semibold"
+                        : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 font-medium"
                     }`}
                   >
                     {t(tab.labelEn, tab.labelAr)}
@@ -287,7 +356,7 @@ export function FinancialsTab({}: FinancialsTabProps) {
 
             {/* Search Input */}
             <div className="relative min-w-[240px] sm:min-w-[280px]">
-              <Search size={14} className="absolute inset-y-0 start-3 my-auto text-outline" />
+              <Search size={16} className="absolute inset-y-0 start-3 my-auto text-slate-400 dark:text-slate-500" />
               <input
                 type="text"
                 value={searchQuery}
@@ -297,7 +366,7 @@ export function FinancialsTab({}: FinancialsTabProps) {
                     ? t("Search host, property, IBAN...", "ابحث بالمضيف، العقار، الآيبان...")
                     : t("Search invoice #, guest, ref...", "ابحث برقم الفاتورة، الضيف، المرجع...")
                 }
-                className="w-full rounded-xl border border-surface-container-high bg-surface-container-low py-2 ps-9 pe-3 text-xs font-semibold text-on-surface outline-none focus:border-primary focus:bg-surface-container-lowest"
+                className="w-full h-10 ps-9 pe-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-[#4F2396]"
               />
             </div>
           </div>
@@ -321,18 +390,17 @@ export function FinancialsTab({}: FinancialsTabProps) {
       )}
 
       {/* Compliance Strip */}
-      <div className="rounded-2xl border border-surface-container-high bg-surface-container-low p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-on-surface-variant">
+      <div className="rounded-xl border border-slate-200/90 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-slate-600 dark:text-slate-400">
         <div className="flex items-center gap-2">
-          <ShieldCheck size={18} className="text-status-emerald shrink-0" />
+          <ShieldCheck size={18} className="text-emerald-500 shrink-0" />
           <span>
-            <strong>{t("ZATCA Phase 2 E-Invoicing Active:", "الفوترة الإلكترونية (المرحلة ٢ - زاتكا) نشطة:")}</strong>{" "}
+            <strong className="text-slate-900 dark:text-slate-100">{t("ZATCA Phase 2 E-Invoicing Active:", "الفوترة الإلكترونية (المرحلة ٢ - زاتكا) نشطة:")}</strong>{" "}
             {t(
               "All guest stay & commission invoices produce cryptographic TLV stamps & QR verification.",
               "كافة فواتير الإقامة والعمولات تصدر مشفرة بختم رقمي ورمز QR معتمد."
             )}
           </span>
         </div>
-        <span className="font-mono text-[11px] text-outline">CR 1010648921 · VAT 310123456700003</span>
       </div>
 
       <BatchSettlementTxnModal

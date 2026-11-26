@@ -9,9 +9,9 @@ export async function GET() {
       { headers: { "Cache-Control": "no-store, max-age=0" } }
     );
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : "Failed to load CMS workspace";
+    console.error("[cmsWorkspace] load error:", err);
     return NextResponse.json(
-      { success: false, error: message },
+      { success: false, error: "Failed to load CMS workspace." },
       { status: 500, headers: { "Cache-Control": "no-store" } }
     );
   }

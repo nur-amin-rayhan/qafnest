@@ -15,10 +15,7 @@ import type { PropertyDeletionReasonCode } from "@qafnest/shared";
 import { DeletePropertyModal } from "@/components/dashboard/properties/DeletePropertyModal";
 import { deleteHostPropertyRequest } from "@/lib/hostPropertyActions";
 import { getVisibleWizardSteps, WIZARD_STEPS } from "@/components/listing-wizard/types";
-import {
-  DRAFT_STORAGE_KEY,
-  useWizardDraft,
-} from "@/components/listing-wizard/useWizardDraft";
+import { useWizardDraft } from "@/components/listing-wizard/useWizardDraft";
 import { useWizardSubmit } from "@/components/listing-wizard/useWizardSubmit";
 import { localizeHostPath } from "@/lib/hostLocale";
 
@@ -42,7 +39,6 @@ function NewPropertyWizardInner() {
     adminFeedback,
     loadingEdit,
     draftError,
-    setDraftError,
     saveToLocal,
     updateDraft,
     updateBedroomsCount,

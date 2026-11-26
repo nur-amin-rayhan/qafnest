@@ -58,28 +58,28 @@ export function WalletTopUpModal({
   t: (en: string, ar: string) => string;
 }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
-      <div className="relative w-full max-w-md rounded-3xl bg-white dark:bg-[#0E0E1A] border border-slate-200 dark:border-white/10 p-6 sm:p-7 shadow-2xl">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/55">
+      <div className="relative w-full max-w-md rounded-2xl bg-white dark:bg-[#14141C] border border-slate-200 dark:border-slate-800 p-6 shadow-xl">
         <button
           type="button"
           onClick={onClose}
-          className="absolute top-5 right-5 rtl:right-auto rtl:left-5 text-slate-400 hover:text-slate-600 dark:hover:text-white cursor-pointer"
+          className="absolute top-5 end-5 text-slate-400 hover:text-slate-600 dark:hover:text-white cursor-pointer"
         >
           <X size={20} />
         </button>
 
         <div className="flex items-center gap-3 mb-5">
-          <div className="w-10 h-10 rounded-2xl bg-purple-50 dark:bg-purple-950/40 text-[#4F2396] dark:text-purple-300 flex items-center justify-center">
+          <div className="w-10 h-10 rounded-xl bg-purple-50 dark:bg-purple-950/40 text-[#4F2396] dark:text-purple-300 flex items-center justify-center">
             <PlusCircle size={20} />
           </div>
           <div>
-            <h3 className="text-lg font-black text-slate-900 dark:text-white">
+            <h3 className="text-base font-semibold text-slate-900 dark:text-white">
               {t("Top Up Wallet Balance", "شحن رصيد المحفظة")}
             </h3>
             <p className="text-xs text-slate-500">
               {t(
-                "Instant top-up via Mada, Apple Pay, Google Pay, STC Pay, or Cards",
-                "شحن فوري عبر مدى، Apple Pay، Google Pay، STC Pay، أو البطاقات"
+                "Top up via Mada, Apple Pay, Google Pay, STC Pay, or Card",
+                "الشحن عبر مدى أو Apple Pay أو Google Pay أو STC Pay أو البطاقة"
               )}
             </p>
           </div>
@@ -105,20 +105,20 @@ export function WalletTopUpModal({
                   setTopUpAmount(amt);
                   setCustomAmount("");
                 }}
-                className={`py-2.5 rounded-xl text-xs font-black transition-all cursor-pointer ${
+                className={`py-2.5 rounded-xl text-xs font-semibold tabular-nums transition-colors cursor-pointer ${
                   topUpAmount === amt && !customAmount
-                    ? "bg-[#4F2396] text-white shadow-md shadow-purple-900/20"
-                    : "bg-slate-100 dark:bg-white/5 text-slate-700 dark:text-slate-300 hover:bg-slate-200"
+                    ? "bg-[#4F2396] text-white"
+                    : "bg-slate-100 dark:bg-white/5 text-slate-800 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-white/10"
                 }`}
               >
-                {amt} SAR
+                <bdi dir="ltr">{amt} SAR</bdi>
               </button>
             ))}
           </div>
         </div>
 
         <div className="mb-5">
-          <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+          <label className="block text-xs font-medium text-slate-800 dark:text-slate-300 mb-1">
             {t("Or enter custom amount", "أو أدخل مبلغاً مخصصاً")}
           </label>
           <div className="relative">
@@ -129,28 +129,28 @@ export function WalletTopUpModal({
               placeholder={t("e.g. 750", "مثال: 750")}
               value={customAmount}
               onChange={(e) => setCustomAmount(e.target.value)}
-              className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 text-slate-900 dark:text-white font-mono text-sm focus:outline-hidden focus:border-[#4F2396]"
+              className="w-full px-4 py-2.5 rounded-xl border border-slate-300 dark:border-white/15 bg-white dark:bg-[#06060B] text-slate-900 dark:text-white placeholder:text-slate-500 font-mono text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[#4F2396]/35 focus:border-[#4F2396]"
             />
-            <span className="absolute right-3 rtl:right-auto rtl:left-3 top-2.5 text-xs font-bold text-slate-400">
+            <span className="absolute end-3 top-2.5 text-xs font-semibold text-slate-600 dark:text-slate-400">
               SAR
             </span>
           </div>
         </div>
 
         {isEligibleForTopupBonus && (
-          <div className="mb-5 p-3 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-500/20 flex items-center gap-2.5 text-xs text-amber-800 dark:text-amber-300 font-bold">
-            <Sparkles size={16} className="text-[#FF9750] shrink-0" />
+          <div className="mb-5 p-3 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-500/20 flex items-center gap-2.5 text-xs text-amber-900 dark:text-amber-300 font-medium">
+            <Sparkles size={16} className="text-amber-600 dark:text-[#FF9750] shrink-0" />
             <span>
               {t(
-                "You will earn +250 Bonus Loyalty Points on this 500+ SAR top-up!",
-                "ستحصل على +250 نقطة مكافأة مجانية فورية مع شحن 500 ر.س فما فوق!"
+                "You will earn +250 Bonus Loyalty Points on this 500+ SAR top-up.",
+                "ستحصل على +250 نقطة مكافأة إضافية عند شحن 500 ر.س فأكثر."
               )}
             </span>
           </div>
         )}
 
         <div className="mb-6">
-          <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2">
+          <label className="block text-xs font-medium text-slate-800 dark:text-slate-300 mb-2">
             {t("Payment Method", "طريقة الدفع")}
           </label>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
@@ -159,10 +159,10 @@ export function WalletTopUpModal({
                 key={opt.id}
                 type="button"
                 onClick={() => setTopUpMethod(opt.id)}
-                className={`${opt.spanFull ? "col-span-2 sm:col-span-2" : ""} py-3 px-2 rounded-xl text-xs font-bold flex flex-col items-center gap-1.5 transition-all cursor-pointer ${
+                className={`${opt.spanFull ? "col-span-2 sm:col-span-2" : ""} py-3 px-2 rounded-xl text-xs font-semibold flex flex-col items-center gap-1.5 transition-colors cursor-pointer ${
                   topUpMethod === opt.id
-                    ? "border-2 border-[#4F2396] bg-purple-50/50 dark:bg-purple-950/30 text-[#4F2396] dark:text-purple-300"
-                    : "border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-400"
+                    ? "border-2 border-[#4F2396] bg-[#F4EEFF] dark:bg-purple-950/30 text-[#4F2396] dark:text-purple-300"
+                    : "border border-slate-300 dark:border-white/15 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5"
                 }`}
               >
                 <OfficialPaymentIcon name={opt.iconName} heightClass="h-7" />
@@ -176,7 +176,7 @@ export function WalletTopUpModal({
           <button
             type="button"
             onClick={onClose}
-            className="flex-1 py-3 rounded-xl border border-slate-200 dark:border-white/10 text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-50 cursor-pointer"
+            className="flex-1 py-3 rounded-xl border border-slate-300 dark:border-white/15 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 cursor-pointer"
           >
             {t("Cancel", "إلغاء")}
           </button>
@@ -185,7 +185,7 @@ export function WalletTopUpModal({
             type="button"
             disabled={isSubmitting || effectiveAmount < 10}
             onClick={onSubmit}
-            className="flex-1 py-3 rounded-xl bg-gradient-to-r from-[#4F2396] to-[#7c3aed] text-white text-xs font-bold shadow-md shadow-purple-900/20 hover:opacity-95 disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer"
+            className="flex-1 py-3 rounded-xl bg-[#4F2396] hover:bg-[#3d1979] text-white text-xs font-semibold disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer transition-colors"
           >
             {isSubmitting ? (
               <>
@@ -216,42 +216,42 @@ export function WalletRedeemModal({
   t: (en: string, ar: string) => string;
 }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
-      <div className="relative w-full max-w-md rounded-3xl bg-white dark:bg-[#0E0E1A] border border-slate-200 dark:border-white/10 p-6 sm:p-7 shadow-2xl">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/55">
+      <div className="relative w-full max-w-md rounded-2xl bg-white dark:bg-[#0E0E1A] border border-slate-200 dark:border-white/10 p-6 shadow-xl">
         <button
           type="button"
           onClick={onClose}
-          className="absolute top-5 right-5 rtl:right-auto rtl:left-5 text-slate-400 hover:text-slate-600 dark:hover:text-white cursor-pointer"
+          className="absolute top-5 end-5 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white cursor-pointer"
         >
           <X size={20} />
         </button>
 
         <div className="flex items-center gap-3 mb-5">
-          <div className="w-10 h-10 rounded-2xl bg-amber-50 dark:bg-amber-950/40 text-amber-500 flex items-center justify-center">
+          <div className="w-10 h-10 rounded-xl bg-amber-50 dark:bg-amber-950/40 text-amber-600 flex items-center justify-center">
             <Gift size={20} />
           </div>
           <div>
-            <h3 className="text-lg font-black text-slate-900 dark:text-white">
+            <h3 className="text-base font-semibold text-slate-900 dark:text-white">
               {t("Redeem Loyalty Points", "استبدال نقاط المكافآت")}
             </h3>
-            <p className="text-xs text-slate-500">
-              {t("Convert points directly into SAR wallet balance", "حوّل نقاطك مباشرة إلى رصيد نقدي في محفظتك")}
+            <p className="text-xs text-slate-600 dark:text-slate-400">
+              {t("Convert points into SAR wallet balance", "حوّل نقاطك إلى رصيد في محفظتك")}
             </p>
           </div>
         </div>
 
-        <div className="p-4 rounded-2xl bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/10 mb-5">
+        <div className="p-4 rounded-xl bg-[#F9F8FD] dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 mb-5">
           <div className="flex items-center justify-between text-xs mb-2">
-            <span className="text-slate-500">{t("Available Points", "النقاط المتاحة")}:</span>
-            <span className="font-black text-slate-900 dark:text-white">{loyaltyPoints} Pts</span>
+            <span className="text-slate-600 dark:text-slate-400">{t("Available Points", "النقاط المتاحة")}:</span>
+            <span className="font-semibold text-slate-900 dark:text-white tabular-nums">{loyaltyPoints} Pts</span>
           </div>
           <div className="flex items-center justify-between text-xs mb-2">
-            <span className="text-slate-500">{t("Conversion Rate", "معدل التحويل")}:</span>
-            <span className="font-bold text-emerald-600">100 Pts = 10.00 SAR</span>
+            <span className="text-slate-600 dark:text-slate-400">{t("Conversion Rate", "معدل التحويل")}:</span>
+            <span className="font-semibold text-emerald-700 dark:text-emerald-400">100 Pts = 10.00 SAR</span>
           </div>
-          <div className="pt-2 border-t border-slate-200 dark:border-white/10 flex items-center justify-between text-sm font-bold">
+          <div className="pt-2 border-t border-slate-200 dark:border-white/10 flex items-center justify-between text-sm font-semibold">
             <span>{t("You will receive", "ستحصل على")}:</span>
-            <span className="font-black text-emerald-600 font-mono" dir="ltr">
+            <span className="font-semibold text-emerald-700 dark:text-emerald-400 font-mono tabular-nums" dir="ltr">
               +{(Math.floor(loyaltyPoints / 100) * 10).toFixed(2)} SAR
             </span>
           </div>
@@ -259,7 +259,7 @@ export function WalletRedeemModal({
 
         <p
           className={`text-xs mb-5 leading-relaxed ${
-            loyaltyPoints < 100 ? "text-rose-500 font-bold" : "text-slate-500"
+            loyaltyPoints < 100 ? "text-rose-700 dark:text-rose-400 font-medium" : "text-slate-600 dark:text-slate-400"
           }`}
         >
           {loyaltyPoints < 100
@@ -268,8 +268,8 @@ export function WalletRedeemModal({
                 "تحتاج إلى ١٠٠ نقطة على الأقل لإجراء عملية الاستبدال."
               )
             : t(
-                "The SAR credit will be added immediately to your wallet balance and can be used on your next reservation.",
-                "سيتم إضافة المبلغ المالي فوراً إلى رصيد محفظتك ويمكنك استخدامه في حجزك القادم."
+                "The SAR credit will be added to your wallet balance for future stays.",
+                "سيتم إضافة المبلغ إلى رصيد محفظتك لاستخدامه في حجوزاتك القادمة."
               )}
         </p>
 
@@ -277,7 +277,7 @@ export function WalletRedeemModal({
           <button
             type="button"
             onClick={onClose}
-            className="flex-1 py-3 rounded-xl border border-slate-200 dark:border-white/10 text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-50 cursor-pointer"
+            className="flex-1 py-3 rounded-xl border border-slate-300 dark:border-white/15 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 cursor-pointer"
           >
             {t("Cancel", "إلغاء")}
           </button>
@@ -286,7 +286,7 @@ export function WalletRedeemModal({
             type="button"
             disabled={isSubmitting || loyaltyPoints < 100}
             onClick={onConfirm}
-            className="flex-1 py-3 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 text-xs font-black shadow-md shadow-amber-900/20 hover:opacity-95 disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer"
+            className="flex-1 py-3 rounded-xl bg-[#4F2396] hover:bg-[#3d1979] text-white text-xs font-semibold disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer transition-colors"
           >
             {isSubmitting ? (
               <>

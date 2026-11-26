@@ -67,8 +67,9 @@ export async function GET(request: NextRequest) {
       query,
     ]);
     if (bookingsError) {
+      console.error("[bookings list] query failed:", bookingsError);
       return NextResponse.json(
-        { code: "bookings_query_failed", message: bookingsError.message },
+        { code: "bookings_query_failed", message: "Failed to load bookings." },
         { status: 500 }
       );
     }
@@ -174,8 +175,9 @@ export async function GET(request: NextRequest) {
       count: enrichedBookings.length,
     });
   } catch (err: unknown) {
+    console.error("[bookings list] server error:", err);
     return NextResponse.json(
-      { code: "server_error", message: err instanceof Error ? err.message : "Error" },
+      { code: "server_error", message: "Failed to load bookings." },
       { status: 500 }
     );
   }

@@ -2,11 +2,12 @@
 
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { LoaderCircle, RefreshCw } from "lucide-react";
+import { useHostAuth } from "@/context/HostAuthContext";
+import { getHostRequestHeaders } from "@/lib/hostPropertyActions";
 import {
   AnalyticsMetrics,
   MonthlyRevenueItem,
   PropertyPerformanceItem,
-  CategoryRatings,
 } from "./analytics/types";
 import { AnalyticsKpiStrip } from "./analytics/AnalyticsKpiStrip";
 import { MonthlyRevenueChart } from "./analytics/MonthlyRevenueChart";
@@ -19,12 +20,11 @@ interface HostAnalyticsDashboardProps {
 }
 
 export default function HostAnalyticsDashboard({ lang, t }: HostAnalyticsDashboardProps) {
+  const { user } = useHostAuth();
   const [metrics, setMetrics] = useState<AnalyticsMetrics | null>(null);
   const [monthlyRevenue, setMonthlyRevenue] = useState<MonthlyRevenueItem[]>([]);
-  const [_categoryRatings, setCategoryRatings] = useState<CategoryRatings | null>(null);
   const [propertyPerformance, setPropertyPerformance] = useState<PropertyPerformanceItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [_error, setError] = useState<string | null>(null);
 
   // Timeframe and Property Filter
   const [timeframe, setTimeframe] = useState<"30d" | "90d" | "year" | "all">("all");
@@ -33,22 +33,22 @@ export default function HostAnalyticsDashboard({ lang, t }: HostAnalyticsDashboa
   const fetchAnalytics = useCallback(async () => {
     setLoading(true);
     try {
+      const headers = await getHostRequestHeaders(user?.id);
       const url = `/api/host/analytics?timeframe=${timeframe}&propertyId=${selectedPropertyId}`;
-      const res = await fetch(url, { cache: "no-store" });
+      const res = await fetch(url, { headers, cache: "no-store" });
       if (!res.ok) throw new Error("Failed to load analytics");
       const data = await res.json();
       if (data.success) {
         setMetrics(data.metrics || null);
         setMonthlyRevenue(data.monthlyRevenue || []);
-        setCategoryRatings(data.categoryRatings || null);
         setPropertyPerformance(data.propertyPerformance || []);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Error fetching analytics");
+      console.warn("Error fetching analytics:", err);
     } finally {
       setLoading(false);
     }
-  }, [timeframe, selectedPropertyId]);
+  }, [timeframe, selectedPropertyId, user?.id]);
 
   useEffect(() => {
     fetchAnalytics();

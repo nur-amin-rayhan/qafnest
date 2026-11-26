@@ -10,6 +10,8 @@ import {
   MessageCircle,
   ArrowRight,
 } from "lucide-react";
+import { useAuth } from "@/context/AuthContext";
+import { dispatchOpenIdentityModal } from "@/components/modals/GuestIdentityGateModal";
 import type { OtpChannel } from "./types";
 
 interface ReservationGuestVerificationProps {
@@ -55,27 +57,31 @@ export default function ReservationGuestVerification({
   recaptchaContainerRef,
   label,
 }: ReservationGuestVerificationProps) {
+  const { profile, user: authUser } = useAuth();
+  const identityVerified = Boolean(profile?.is_verified || authUser?.app_metadata?.is_verified);
+  const resolvedName = profile?.full_name?.trim() || effectiveName;
+
   return (
     <section
       id="phone-verification"
-      className="mt-6 scroll-mt-28 rounded-3xl border border-violet-200/85 bg-white p-5 shadow-[0_12px_35px_rgba(109,40,217,0.06)] dark:border-violet-500/20 dark:bg-[#12101a] sm:p-6"
+      className="mt-6 scroll-mt-28 rounded-2xl border border-slate-200/85 bg-white p-5 shadow-xs dark:border-slate-800 dark:bg-[#110F18] sm:p-6"
     >
       <div className="flex flex-wrap items-start justify-between gap-3 sm:gap-4">
         <div>
-          <div className="flex items-center gap-2 text-violet-700 dark:text-violet-300">
+          <div className="flex items-center gap-2 text-[#4F2396] dark:text-purple-300">
             <ShieldCheck className="h-5 w-5" />
-            <h2 className="text-lg font-bold text-gray-950 dark:text-white">
+            <h2 className="text-lg font-bold text-slate-900 dark:text-white">
               {label("Guest Information", "بيانات الضيف")}
             </h2>
           </div>
           {phoneVerified ? (
-            <div className="mt-3 space-y-1">
-              <p className="text-base font-extrabold text-gray-900 dark:text-white">
-                {effectiveName}
+            <div className="mt-3 space-y-1.5">
+              <p className="text-base font-semibold text-gray-900 dark:text-white">
+                {resolvedName}
               </p>
               <p className="text-xs text-gray-600 dark:text-gray-300">
                 {label("Verified mobile", "رقم الجوال المتحقق منه")}:{" "}
-                <strong dir="ltr" className="text-gray-900 dark:text-white font-mono">
+                <strong dir="ltr" className="text-gray-900 dark:text-white font-mono tabular-nums">
                   {reservationPhone}
                 </strong>
               </p>
@@ -84,6 +90,23 @@ export default function ReservationGuestVerification({
                   {label("Email address", "البريد الإلكتروني")}:{" "}
                   <span dir="ltr">{effectiveEmail}</span>
                 </p>
+              )}
+              {!identityVerified && (
+                <div className="mt-2.5 flex flex-wrap items-center justify-between gap-2.5 rounded-xl border border-amber-200 bg-amber-50 px-3.5 py-2.5 text-xs text-amber-900 dark:border-amber-500/20 dark:bg-amber-950/30 dark:text-amber-200">
+                  <span>
+                    {label(
+                      "Verify Saudi National ID or Iqama via Nafath / Elm Yaqeen before payment.",
+                      "يرجى توثيق الهوية الوطنية أو الإقامة عبر نفاذ / علم يقين قبل الدفع."
+                    )}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={dispatchOpenIdentityModal}
+                    className="rounded-lg bg-[#4F2396] px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-[#3d1979] cursor-pointer"
+                  >
+                    {label("Verify ID Now", "توثيق الهوية الآن")}
+                  </button>
+                </div>
               )}
             </div>
           ) : user ? (
@@ -119,9 +142,17 @@ export default function ReservationGuestVerification({
           )}
         </div>
         {phoneVerified ? (
-          <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-700 dark:bg-emerald-400/10 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-500/20">
+          <span
+            className={`inline-flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold ${
+              identityVerified
+                ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/20 dark:bg-emerald-400/10 dark:text-emerald-300"
+                : "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-500/20 dark:bg-amber-400/10 dark:text-amber-300"
+            }`}
+          >
             <CheckCircle2 className="h-4 w-4" />
-            {label("Signed In & Verified", "تم تسجيل الدخول والتوثيق")}
+            {identityVerified
+              ? label("Verified · Nafath / Yaqeen", "موثق · نفاذ / يقين")
+              : label("Mobile Verified · ID Pending", "الجوال موثق · الهوية معلقة")}
           </span>
         ) : null}
       </div>

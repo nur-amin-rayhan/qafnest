@@ -125,7 +125,8 @@ export async function GET(request: NextRequest) {
   }
 
   if (error) {
-    return NextResponse.json({ code: "properties_read_failed", message: error.message }, { status: 500 });
+    console.error("[admin properties GET] failed:", error);
+    return NextResponse.json({ code: "properties_read_failed", message: "Failed to load properties." }, { status: 500 });
   }
 
   const rows = data || [];
@@ -140,16 +141,7 @@ export async function GET(request: NextRequest) {
   const profileMap = new Map<string, HostMetaFallback>();
   if (hostIds.length > 0) {
     try {
-      const [{ data: profs }, authRes] = await Promise.all([
-        supabase.from("profiles").select("*").in("id", hostIds),
-        supabase.auth.admin.listUsers({ page: 1, perPage: 500 }).catch(() => ({ data: { users: [] } })),
-      ]);
-
-      const authById = new Map<string, Record<string, any>>();
-      for (const u of (authRes as { data?: { users?: Array<Record<string, any>> } })?.data?.users || []) {
-        authById.set(String(u.id), u);
-      }
-
+      const { data: profs } = await supabase.from("profiles").select("*").in("id", hostIds);
       const profById = new Map<string, Record<string, any>>();
       for (const prof of (profs || []) as Array<Record<string, any>>) {
         if (prof?.id) profById.set(String(prof.id), prof);
@@ -157,22 +149,14 @@ export async function GET(request: NextRequest) {
 
       for (const hid of hostIds) {
         const prof = profById.get(hid);
-        const authU = authById.get(hid);
-        const meta = (authU?.user_metadata || {}) as Record<string, unknown>;
         profileMap.set(hid, {
-          full_name: String(prof?.full_name || meta.full_name || meta.name || "").trim() || undefined,
-          business_name: String(prof?.business_name || meta.business_name || meta.company || "").trim() || undefined,
-          phone: String(prof?.phone || authU?.phone || meta.phone || "").trim() || undefined,
-          email: String(prof?.email || authU?.email || meta.contact_email || "").trim() || undefined,
-          city: String(prof?.city || meta.city || "").trim() || undefined,
-          address: String(prof?.address || meta.address || "").trim() || undefined,
-          is_verified: Boolean(
-            prof?.is_verified ||
-              prof?.nafath_verified_at ||
-              meta.is_verified ||
-              authU?.email_confirmed_at ||
-              authU?.phone_confirmed_at
-          ),
+          full_name: String(prof?.full_name || "").trim() || undefined,
+          business_name: String(prof?.business_name || "").trim() || undefined,
+          phone: String(prof?.phone || "").trim() || undefined,
+          email: String(prof?.email || "").trim() || undefined,
+          city: String(prof?.city || "").trim() || undefined,
+          address: String(prof?.address || "").trim() || undefined,
+          is_verified: Boolean(prof?.is_verified || prof?.nafath_verified_at),
         });
       }
     } catch {}
@@ -280,9 +264,9 @@ export async function PATCH(request: NextRequest) {
       });
 
       if (!Array.isArray(results)) {
-        const message = results.error instanceof Error ? results.error.message : "Bulk update failed";
+        console.error("[admin properties PATCH] bulk partial failure:", results.error);
         return NextResponse.json(
-          { code: "bulk_property_update_failed", message },
+          { code: "bulk_property_update_failed", message: "Bulk update failed." },
           { status: 500 }
         );
       }
@@ -299,8 +283,9 @@ export async function PATCH(request: NextRequest) {
         .select("id, status, is_approved, external_host_id");
 
       if (bulkError) {
+        console.error("[admin properties PATCH] bulk update failed:", bulkError);
         return NextResponse.json(
-          { code: "bulk_property_update_failed", message: bulkError.message },
+          { code: "bulk_property_update_failed", message: "Bulk update failed." },
           { status: 500 }
         );
       }
@@ -371,8 +356,9 @@ export async function PATCH(request: NextRequest) {
     .single();
 
   if (error) {
+    console.error("[admin properties PATCH] single update failed:", error);
     return NextResponse.json(
-      { code: "property_status_update_failed", message: error.message },
+      { code: "property_status_update_failed", message: "Failed to update property status." },
       { status: 500 }
     );
   }

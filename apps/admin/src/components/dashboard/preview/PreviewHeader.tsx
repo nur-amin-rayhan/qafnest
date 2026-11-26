@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { Search, ShieldCheck } from "lucide-react";
 
 interface PreviewHeaderProps {
   cityName: string;
@@ -37,7 +38,7 @@ export function PreviewHeader({ cityName, capacity, t }: PreviewHeaderProps) {
             {t(`${capacity} ضيوف كحد أقصى`, `Up to ${capacity} guests`)}
           </span>
           <span className="flex h-6 w-6 items-center justify-center rounded-full bg-violet-700 text-white ms-2">
-            <span className="material-symbols-outlined text-[14px]">search</span>
+            <Search size={13} />
           </span>
         </div>
 
@@ -45,8 +46,8 @@ export function PreviewHeader({ cityName, capacity, t }: PreviewHeaderProps) {
           <span className="rounded-full bg-violet-100/70 px-3 py-1 font-bold text-violet-700 dark:bg-violet-900/40 dark:text-violet-300">
             SAR (ر.س)
           </span>
-          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-surface-container font-bold text-on-surface border border-outline/20">
-            <span className="material-symbols-outlined text-[20px]">admin_panel_settings</span>
+          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+            <ShieldCheck size={18} />
           </div>
         </div>
       </div>

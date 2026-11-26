@@ -101,7 +101,7 @@ export function DateRangeDropdown({
               className="p-1 rounded-full hover:bg-gray-100 dark:hover:bg-white/10 text-gray-600 dark:text-gray-300 transition-colors cursor-pointer"
               aria-label="Previous Month"
             >
-              <ChevronLeft className="w-4 h-4" />
+              <ChevronLeft className="w-4 h-4 rtl:rotate-180" />
             </button>
           ) : (
             <div className="w-6" />
@@ -118,7 +118,7 @@ export function DateRangeDropdown({
               className="p-1 rounded-full hover:bg-gray-100 dark:hover:bg-white/10 text-gray-600 dark:text-gray-300 transition-colors cursor-pointer"
               aria-label="Next Month"
             >
-              <ChevronRight className="w-4 h-4" />
+              <ChevronRight className="w-4 h-4 rtl:rotate-180" />
             </button>
           ) : (
             <>
@@ -128,7 +128,7 @@ export function DateRangeDropdown({
                 className="sm:hidden p-1 rounded-full hover:bg-gray-100 dark:hover:bg-white/10 text-gray-600 dark:text-gray-300 transition-colors cursor-pointer"
                 aria-label="Next Month"
               >
-                <ChevronRight className="w-4 h-4" />
+                <ChevronRight className="w-4 h-4 rtl:rotate-180" />
               </button>
               <div className="hidden sm:block w-6" />
             </>
@@ -161,7 +161,7 @@ export function DateRangeDropdown({
 
   return (
     <div
-      className={`relative flex-[1.4] min-w-0 lg:min-w-[230px] border-b lg:border-b-0 lg:border-e border-gray-200/80 dark:border-white/10 transition-all ${
+      className={`relative w-full flex-[1.4] min-w-0 lg:min-w-[230px] border-b lg:border-b-0 lg:border-e border-gray-200/80 dark:border-white/10 transition-all ${
         isOpen ? "z-50" : "z-10"
       }`}
     >
@@ -194,7 +194,7 @@ export function DateRangeDropdown({
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 8, scale: 0.98 }}
             transition={{ duration: 0.15 }}
-            className="absolute top-full mt-2.5 left-1/2 -translate-x-1/2 lg:left-auto lg:right-0 rtl:lg:right-auto rtl:lg:left-0 lg:translate-x-0 w-[calc(100vw-2rem)] sm:w-auto max-w-[680px] z-[100] rounded-3xl bg-white dark:bg-[#0E0E1A] shadow-[0_20px_50px_rgba(0,0,0,0.25)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.85)] border border-gray-200/80 dark:border-white/15 p-4 sm:p-5 overflow-hidden"
+            className="absolute top-full mt-2.5 inset-x-0 mx-auto w-[calc(100vw-2.5rem)] max-w-[310px] sm:max-w-[620px] sm:w-auto lg:inset-x-auto lg:right-0 rtl:lg:right-auto rtl:lg:left-0 lg:max-w-[680px] z-[100] rounded-3xl bg-white dark:bg-[#0E0E1A] shadow-[0_20px_50px_rgba(0,0,0,0.25)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.85)] border border-gray-200/80 dark:border-white/15 p-4 sm:p-5 overflow-hidden"
           >
             <div className="flex flex-col sm:flex-row gap-6">
               {renderMonthCalendar(leftYear, leftMonth, false)}
@@ -204,12 +204,12 @@ export function DateRangeDropdown({
               </div>
             </div>
 
-            <div className="mt-4 pt-3 border-t border-gray-100 dark:border-white/10 flex items-center justify-between text-xs text-gray-500">
-              <span>{calendarHelpLabel}</span>
+            <div className="mt-4 pt-3 border-t border-gray-100 dark:border-white/10 flex items-center justify-between gap-2 text-xs text-gray-500">
+              <span className="text-[11px] text-gray-500 dark:text-gray-400 truncate min-w-0 pr-2 rtl:pr-0 rtl:pl-2">{calendarHelpLabel}</span>
               <button
                 type="button"
                 onClick={onClose}
-                className="font-bold text-purple-700 dark:text-purple-400 hover:underline cursor-pointer"
+                className="font-bold text-xs text-purple-700 dark:text-purple-400 hover:underline cursor-pointer shrink-0"
               >
                 {doneLabel}
               </button>

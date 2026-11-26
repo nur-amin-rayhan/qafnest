@@ -16,7 +16,7 @@ import { SecuritySessionsCard } from "./SecuritySessionsCard";
 
 interface SecuritySettingsTabProps extends BaseTabProps {
   security: HostSecuritySettings;
-  onUpdatePassword: (password: string) => Promise<boolean>;
+  onUpdatePassword: (password: string, currentPassword?: string) => Promise<boolean>;
   onSignOutOtherSessions: () => Promise<void>;
 }
 
@@ -24,7 +24,6 @@ export function SecuritySettingsTab({
   security,
   onUpdatePassword,
   onSignOutOtherSessions,
-  lang,
   t,
   isSaving,
 }: SecuritySettingsTabProps) {
@@ -32,7 +31,6 @@ export function SecuritySettingsTab({
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [twoFactor, setTwoFactor] = useState(security.twoFactorEnabled);
   const [passwordError, setPasswordError] = useState<string | null>(null);
   const [passwordSuccess, setPasswordSuccess] = useState(false);
 
@@ -53,6 +51,16 @@ export function SecuritySettingsTab({
     setPasswordError(null);
     setPasswordSuccess(false);
 
+    if (!currentPassword.trim()) {
+      setPasswordError(
+        t(
+          "Please enter your current password to confirm this change.",
+          "يرجى إدخال كلمة المرور الحالية لتأكيد التغيير."
+        )
+      );
+      return;
+    }
+
     if (newPassword.length < 8) {
       setPasswordError(
         t(
@@ -72,7 +80,7 @@ export function SecuritySettingsTab({
       return;
     }
 
-    const ok = await onUpdatePassword(newPassword);
+    const ok = await onUpdatePassword(newPassword, currentPassword);
     if (ok) {
       setCurrentPassword("");
       setNewPassword("");
@@ -231,37 +239,21 @@ export function SecuritySettingsTab({
               <h3 className="text-base sm:text-lg font-black text-slate-900">
                 {t(
                   "Two-Factor Authentication (2FA)",
-                  "التحقق بخطوتين عبر رسائل SMS (2FA)"
+                  "التحقق بخطوتين (2FA)"
                 )}
               </h3>
               <p className="text-xs text-slate-500 font-medium">
                 {t(
-                  "Require an SMS OTP verification code upon every host portal login.",
-                  "طلب رمز تحقق أمان فوري عبر رسائل الجوال عند كل عملية تسجيل دخول للمضيف."
+                  "Authenticator app (TOTP) 2FA controls are coming soon. Phone OTP login remains active.",
+                  "إعدادات تطبيق المصادقة الثنائية (TOTP) ستتوفر قريباً. تسجيل الدخول برمز الجوال نشط."
                 )}
               </p>
             </div>
           </div>
 
-          <button
-            type="button"
-            role="switch"
-            aria-checked={twoFactor}
-            onClick={() => setTwoFactor(!twoFactor)}
-            className={`relative inline-flex h-6 w-11 shrink-0 rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out cursor-pointer ${
-              twoFactor ? "bg-emerald-600" : "bg-slate-200"
-            }`}
-          >
-            <span
-              className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
-                twoFactor
-                  ? lang === "ar"
-                    ? "-translate-x-5"
-                    : "translate-x-5"
-                  : "translate-x-0"
-              }`}
-            />
-          </button>
+          <span className="inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-[11px] font-black text-amber-800 shrink-0">
+            {t("Authenticator App: Coming Soon", "تطبيق المصادقة: قريباً")}
+          </span>
         </div>
 
         <div className="mt-4 flex items-center gap-3 rounded-2xl bg-slate-50 p-4 border border-slate-200/80">

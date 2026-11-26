@@ -33,6 +33,14 @@ export interface MyFatoorahSupplierProbe {
   message: string;
 }
 
+// Module-level in-memory cache for instant financial tab rendering
+let cachedFinMetrics: AdminFinancialMetrics | null = null;
+let cachedFinPayouts: AdminPayoutRecord[] | null = null;
+let cachedFinHostLedgers: AdminHostLedger[] | null = null;
+let cachedFinPolicy: HostPayoutPolicy | null = null;
+let cachedFinReminders: PayoutReminderSummary | null = null;
+let cachedFinInvoices: AdminTaxInvoiceRecord[] | null = null;
+
 export function useAdminFinancials() {
   const [loading, setLoading] = useState(false);
   const [activeSection, setActiveSectionState] = useState<"payouts" | "hosts" | "invoices" | "fees">("payouts");
@@ -88,24 +96,27 @@ export function useAdminFinancials() {
     [activeSection, syncUrlParams]
   );
 
-  const [metrics, setMetrics] = useState<AdminFinancialMetrics>({
-    totalGrossVolume: 0,
-    platformCommission: 0,
-    vatCollected: 0,
-    disbursedTotal: 0,
-    pendingTotal: 0,
-    commissionRate: 20,
-    vatRate: 15,
-  });
-  const [payouts, setPayouts] = useState<AdminPayoutRecord[]>([]);
-  const [hostLedgers, setHostLedgers] = useState<AdminHostLedger[]>([]);
-  const [policy, setPolicy] = useState<HostPayoutPolicy>(DEFAULT_HOST_PAYOUT_POLICY);
-  const [serverReminders, setServerReminders] = useState<PayoutReminderSummary | null>(null);
+  const [metrics, setMetrics] = useState<AdminFinancialMetrics>(
+    () =>
+      cachedFinMetrics || {
+        totalGrossVolume: 0,
+        platformCommission: 0,
+        vatCollected: 0,
+        disbursedTotal: 0,
+        pendingTotal: 0,
+        commissionRate: 20,
+        vatRate: 15,
+      }
+  );
+  const [payouts, setPayouts] = useState<AdminPayoutRecord[]>(() => cachedFinPayouts || []);
+  const [hostLedgers, setHostLedgers] = useState<AdminHostLedger[]>(() => cachedFinHostLedgers || []);
+  const [policy, setPolicy] = useState<HostPayoutPolicy>(() => cachedFinPolicy || DEFAULT_HOST_PAYOUT_POLICY);
+  const [serverReminders, setServerReminders] = useState<PayoutReminderSummary | null>(() => cachedFinReminders);
   const [supplierProbe, setSupplierProbe] = useState<MyFatoorahSupplierProbe | null>(null);
   const [probingSuppliers, setProbingSuppliers] = useState(false);
   const [sendingReminders, setSendingReminders] = useState(false);
 
-  const [invoices, setInvoices] = useState<AdminTaxInvoiceRecord[]>([]);
+  const [invoices, setInvoices] = useState<AdminTaxInvoiceRecord[]>(() => cachedFinInvoices || []);
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [invoiceTypeFilter, setInvoiceTypeFilter] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
@@ -124,24 +135,45 @@ export function useAdminFinancials() {
   };
 
   const loadFinancials = useCallback(async () => {
-    setLoading(true);
+    const isSilent = Boolean(cachedFinPayouts !== null);
+    if (!isSilent) {
+      setLoading(true);
+    }
     try {
       const res = await fetch(adminPath("/api/admin/financials"), { cache: "no-store" });
       if (res.ok) {
         const data = await res.json();
-        if (data.metrics) setMetrics(data.metrics);
-        if (Array.isArray(data.payouts)) setPayouts(data.payouts);
-        if (Array.isArray(data.hostLedgers)) setHostLedgers(data.hostLedgers);
-        if (data.policy) setPolicy(data.policy);
-        if (data.reminders) setServerReminders(data.reminders);
+        if (data.metrics) {
+          setMetrics(data.metrics);
+          cachedFinMetrics = data.metrics;
+        }
+        if (Array.isArray(data.payouts)) {
+          setPayouts(data.payouts);
+          cachedFinPayouts = data.payouts;
+        }
+        if (Array.isArray(data.hostLedgers)) {
+          setHostLedgers(data.hostLedgers);
+          cachedFinHostLedgers = data.hostLedgers;
+        }
+        if (data.policy) {
+          setPolicy(data.policy);
+          cachedFinPolicy = data.policy;
+        }
+        if (data.reminders) {
+          setServerReminders(data.reminders);
+          cachedFinReminders = data.reminders;
+        }
         if (Array.isArray(data.invoices)) {
           setInvoices(data.invoices);
+          cachedFinInvoices = data.invoices;
         }
       }
     } catch {
       // Ignore network blip
     } finally {
-      setLoading(false);
+      if (!isSilent) {
+        setLoading(false);
+      }
     }
   }, []);
 

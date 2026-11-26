@@ -1,8 +1,10 @@
 "use client";
 
 import React from "react";
+import type { Session } from "@supabase/supabase-js";
 import {
   ShieldCheck,
+  ShieldAlert,
   CheckCircle2,
   AlertCircle,
   LoaderCircle,
@@ -13,6 +15,7 @@ import { ProfileContactCard } from "./profile/ProfileContactCard";
 import { ProfilePersonalDetailsCard } from "./profile/ProfilePersonalDetailsCard";
 
 interface ProfileTabProps {
+  session: Session | null;
   nationalIdVerified: boolean;
   iqamaVerified: boolean;
   emailVerified: boolean;
@@ -37,7 +40,7 @@ interface ProfileTabProps {
   editEmail: string;
   setEditEmail: (val: string) => void;
   editPhone: string;
-  setEditPhone: (val: string) => void;
+  onPhoneVerified: (newPhone: string, identityResetRequired: boolean) => void;
   editFullName: string;
   setEditFullName: (val: string) => void;
   editCity: string;
@@ -59,6 +62,7 @@ interface ProfileTabProps {
 }
 
 export default function ProfileTab({
+  session,
   nationalIdVerified,
   iqamaVerified,
   emailVerified,
@@ -78,7 +82,7 @@ export default function ProfileTab({
   editEmail,
   setEditEmail,
   editPhone,
-  setEditPhone,
+  onPhoneVerified,
   editFullName,
   setEditFullName,
   editCity,
@@ -91,68 +95,62 @@ export default function ProfileTab({
   language,
   t,
 }: ProfileTabProps) {
+  const isIdentityVerified = nationalIdVerified || iqamaVerified;
+
   return (
     <div className="space-y-6">
-      {/* Header with Title and Overall Verification Status */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-6 border-b border-slate-100 dark:border-white/10 gap-3">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-5 border-b border-slate-200 dark:border-white/[0.08] gap-3">
         <div>
-          <h2 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white">
-            {t("Guest Profile & Identity Settings", "إعدادات الملف الشخصي وتوثيق الهوية")}
+          <h2 className="text-lg sm:text-xl font-semibold text-slate-900 dark:text-white">
+            {t("Profile & Identity", "الملف الشخصي وتوثيق الهوية")}
           </h2>
-          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
+          <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 mt-1">
             {t(
-              "Manage your verified identity, email, Saudi National ID, and Iqama under Ministry of Tourism regulations.",
-              "إدارة بياناتك الرسمية، البريد الإلكتروني، الهوية الوطنية، والإقامة المعتمدة وفق لوائح وزارة السياحة السعودية."
+              "Verify your mobile and Saudi ID or Iqama via Nafath / Elm Yaqeen to unlock bookings.",
+              "وثّق رقم الجوال والهوية الوطنية أو الإقامة عبر نفاذ / علم يقين لإتمام الحجوزات."
             )}
           </p>
         </div>
-        <div className="flex items-center gap-2 shrink-0">
-          {nationalIdVerified || iqamaVerified ? (
-            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 text-xs font-bold">
-              <ShieldCheck size={16} className="text-emerald-500" />
-              <span>{t("Identity Verified · Level 3", "الهوية موثقة رسميًا · المستوى 3")}</span>
+        <div className="shrink-0">
+          {isIdentityVerified ? (
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-emerald-50 border border-emerald-200 dark:bg-emerald-500/15 dark:border-emerald-500/30 text-emerald-800 dark:text-emerald-300 text-xs font-medium">
+              <ShieldCheck size={14} />
+              <span>{t("Identity verified", "الهوية موثقة")}</span>
             </span>
           ) : (
-            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-800 text-amber-700 dark:text-amber-300 text-xs font-bold">
-              <ShieldCheck size={16} className="text-amber-500" />
-              <span>{t("Pending ID Verification", "بانتظار توثيق الهوية")}</span>
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-amber-50 border border-amber-200 dark:bg-amber-500/15 dark:border-amber-500/30 text-amber-800 dark:text-amber-300 text-xs font-medium">
+              <ShieldAlert size={14} />
+              <span>{t("Verification required", "يتطلب التوثيق")}</span>
             </span>
           )}
         </div>
       </div>
 
-      {/* Notifications & Status Banners */}
       {profileSavedMsg && (
-        <div className="p-4 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-200 text-sm font-bold flex items-center gap-2.5">
-          <CheckCircle2 size={18} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
-          <span>
-            {t(
-              "Profile and verification details updated successfully!",
-              "تم حفظ وتحديث بيانات الملف الشخصي بنجاح!"
-            )}
-          </span>
+        <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 dark:bg-emerald-500/15 dark:border-emerald-500/30 text-emerald-800 dark:text-emerald-200 text-xs font-medium flex items-center gap-2">
+          <CheckCircle2 size={16} className="shrink-0" />
+          <span>{t("Profile saved", "تم حفظ الملف الشخصي")}</span>
         </div>
       )}
 
       {idVerificationMsg && (
         <div
-          className={`p-4 rounded-2xl border text-sm font-bold flex items-center gap-2.5 ${
+          className={`p-3.5 rounded-xl border text-xs font-medium flex items-center gap-2 ${
             idVerificationMsg.type === "success"
-              ? "bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-200"
-              : "bg-rose-50 dark:bg-rose-950/40 border-rose-200 dark:border-rose-800 text-rose-800 dark:text-rose-200"
+              ? "bg-emerald-50 border-emerald-200 dark:bg-emerald-500/15 dark:border-emerald-500/30 text-emerald-800 dark:text-emerald-200"
+              : "bg-rose-50 border-rose-200 dark:bg-rose-500/15 dark:border-rose-500/30 text-rose-800 dark:text-rose-200"
           }`}
         >
           {idVerificationMsg.type === "success" ? (
-            <CheckCircle2 size={18} className="text-emerald-600 shrink-0" />
+            <CheckCircle2 size={16} className="shrink-0" />
           ) : (
-            <AlertCircle size={18} className="text-rose-600 shrink-0" />
+            <AlertCircle size={16} className="shrink-0" />
           )}
           <span>{idVerificationMsg.text}</span>
         </div>
       )}
 
-      <form onSubmit={handleSaveProfile} className="space-y-6">
-        {/* CARD 1: OFFICIAL SAUDI IDENTITY VERIFICATION (NATIONAL ID & IQAMA) */}
+      <form onSubmit={handleSaveProfile} className="space-y-5">
         <ProfileIdentityCard
           primaryIdType={primaryIdType}
           setPrimaryIdType={setPrimaryIdType}
@@ -162,6 +160,7 @@ export default function ProfileTab({
           setEditNationalId={setEditNationalId}
           editIqama={editIqama}
           setEditIqama={setEditIqama}
+          editPhone={editPhone}
           verifyingNationalId={verifyingNationalId}
           verifyingIqama={verifyingIqama}
           fieldErrors={fieldErrors}
@@ -171,58 +170,48 @@ export default function ProfileTab({
           t={t}
         />
 
-        {/* CARD 2: CONTACT & EMAIL VERIFICATION */}
         <ProfileContactCard
+          session={session}
+          language={language}
           editEmail={editEmail}
           setEditEmail={setEditEmail}
           emailVerified={emailVerified}
           verifyingEmail={verifyingEmail}
           editPhone={editPhone}
-          setEditPhone={setEditPhone}
+          onPhoneVerified={onPhoneVerified}
           fieldErrors={fieldErrors}
           setFieldErrors={setFieldErrors}
           handleVerifyEmail={handleVerifyEmail}
           t={t}
         />
 
-        {/* CARD 3: PERSONAL DETAILS & CITY */}
         <ProfilePersonalDetailsCard
           editFullName={editFullName}
           setEditFullName={setEditFullName}
           editCity={editCity}
           setEditCity={setEditCity}
+          isIdentityVerified={isIdentityVerified}
           language={language}
           fieldErrors={fieldErrors}
           setFieldErrors={setFieldErrors}
           t={t}
         />
 
-        {/* FORM ACTIONS: SAVE CHANGES BUTTON */}
-        <div className="pt-2 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <p className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
-            <ShieldCheck size={14} className="text-emerald-500 shrink-0" />
-            <span>
-              {t(
-                "Verified by Saudi Ministry of Tourism (MOT 73102999)",
-                "موثق ومعتمد من وزارة السياحة بترخيص 73102999"
-              )}
-            </span>
-          </p>
-
+        <div className="pt-1 flex justify-end">
           <button
             type="submit"
             disabled={savingProfile}
-            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-2xl bg-[#4F2396] hover:bg-[#3f1c79] text-white font-black px-8 py-3.5 text-sm shadow-md transition disabled:opacity-50 cursor-pointer active:scale-95"
+            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-xl bg-[#4F2396] hover:bg-[#3f1c79] text-white font-medium px-6 py-2.5 text-sm transition-colors disabled:opacity-50 cursor-pointer min-h-[44px]"
           >
             {savingProfile ? (
               <>
                 <LoaderCircle size={16} className="animate-spin" />
-                <span>{t("Saving Changes...", "جارٍ الحفظ...")}</span>
+                <span>{t("Saving...", "جارٍ الحفظ...")}</span>
               </>
             ) : (
               <>
                 <Check size={16} />
-                <span>{t("Save Profile Changes", "حفظ وتحديث الملف الشخصي")}</span>
+                <span>{t("Save changes", "حفظ التغييرات")}</span>
               </>
             )}
           </button>

@@ -128,9 +128,11 @@ export function CmsUsersModule({
 
   const generateRandomPassword = () => {
     const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$%";
+    const randomBytes = new Uint32Array(12);
+    window.crypto.getRandomValues(randomBytes);
     let pwd = "Qaf#";
-    for (let i = 0; i < 8; i++) {
-      pwd += chars.charAt(Math.floor(Math.random() * chars.length));
+    for (let i = 0; i < randomBytes.length; i++) {
+      pwd += chars.charAt(randomBytes[i] % chars.length);
     }
     if (editing) {
       setEditing({ ...editing, password: pwd });
@@ -172,8 +174,9 @@ export function CmsUsersModule({
     setSaving(true);
     try {
       const nowIso = new Date().toISOString();
+      const { password: _omittedPassword, ...safeEditing } = editing;
       const updated: CmsUserRecord = {
-        ...editing,
+        ...safeEditing,
         email: cleanEmail,
         status: editing.status || "active",
         createdAt: editing.createdAt || nowIso,

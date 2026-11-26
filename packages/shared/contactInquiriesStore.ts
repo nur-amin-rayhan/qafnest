@@ -1,6 +1,13 @@
 import crypto from "crypto";
 import nodemailer from "nodemailer";
-import { readSharedJsonFile, writeSharedJsonFile } from "./serverJsonStore";
+import {
+  hydrateSharedJsonFile,
+  persistSharedJsonFile,
+  readSharedJsonFile,
+  writeSharedJsonFile,
+} from "./serverJsonStore";
+import { escapeHtml } from "./escapeHtml";
+import { sendEmail, buildInquiryAutoReplyHtml } from "./emailService";
 
 export type ContactInquiryStatus = "new" | "in_progress" | "resolved";
 export type ContactInquiryDeliveryStatus = "sent" | "stored_only" | "failed";
@@ -50,12 +57,12 @@ interface ContactStoreDoc {
 }
 
 export const DEFAULT_CONTACT_FORM_SETTINGS: ContactFormSettings = {
-  recipientEmail: "qafnest@gmail.com",
+  recipientEmail: "support@qafnest.com",
   emailForwardingEnabled: true,
-  autoReplyEnabled: false,
-  subjectPrefix: "[QafNest Contact]",
+  autoReplyEnabled: true,
+  subjectPrefix: "[QafNest Support]",
   responseSlaHours: 2,
-  updatedAt: "2026-11-14T20:00:00.000Z",
+  updatedAt: "2026-11-22T20:00:00.000Z",
   updatedBy: "System Default",
 };
 
@@ -78,41 +85,50 @@ function normalizeEmailOrDefault(email: string | undefined, fallback: string): s
   return isValidEmail(trimmed) ? trimmed : fallback;
 }
 
+function normalizeContactDoc(parsed: unknown): ContactStoreDoc {
+  const doc = (parsed || {}) as Partial<ContactStoreDoc>;
+  return {
+    settings: {
+      ...DEFAULT_CONTACT_FORM_SETTINGS,
+      ...(doc.settings || {}),
+      recipientEmail: normalizeEmailOrDefault(
+        doc.settings?.recipientEmail,
+        DEFAULT_CONTACT_FORM_SETTINGS.recipientEmail
+      ),
+    },
+    inquiries: Array.isArray(doc.inquiries) ? doc.inquiries : [],
+  };
+}
+
+function defaultContactDoc(): ContactStoreDoc {
+  return {
+    settings: { ...DEFAULT_CONTACT_FORM_SETTINGS },
+    inquiries: [],
+  };
+}
+
+export async function hydrateContactInquiriesStore(): Promise<ContactStoreDoc> {
+  return hydrateSharedJsonFile<ContactStoreDoc>(
+    CONTACT_STORE_FILE,
+    defaultContactDoc,
+    normalizeContactDoc
+  );
+}
+
+export async function persistContactInquiriesStore(): Promise<boolean> {
+  return persistSharedJsonFile(CONTACT_STORE_FILE, readDoc());
+}
+
 function readDoc(): ContactStoreDoc {
   return readSharedJsonFile<ContactStoreDoc>(
     CONTACT_STORE_FILE,
-    () => ({
-      settings: { ...DEFAULT_CONTACT_FORM_SETTINGS },
-      inquiries: [],
-    }),
-    (parsed) => {
-      const doc = (parsed || {}) as Partial<ContactStoreDoc>;
-      return {
-        settings: {
-          ...DEFAULT_CONTACT_FORM_SETTINGS,
-          ...(doc.settings || {}),
-          recipientEmail: normalizeEmailOrDefault(
-            doc.settings?.recipientEmail,
-            DEFAULT_CONTACT_FORM_SETTINGS.recipientEmail
-          ),
-        },
-        inquiries: Array.isArray(doc.inquiries) ? doc.inquiries : [],
-      };
-    }
+    defaultContactDoc,
+    normalizeContactDoc
   );
 }
 
 function writeDoc(doc: ContactStoreDoc): void {
   writeSharedJsonFile(CONTACT_STORE_FILE, doc);
-}
-
-function escapeHtml(value: string): string {
-  return value
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
 }
 
 function maskEmail(email: string): string {
@@ -295,79 +311,132 @@ export async function submitContactInquiry(input: {
   let emailError: string | undefined;
 
   if (doc.settings.emailForwardingEnabled) {
-    const transporter = createGmailTransporter();
-    if (!transporter) {
-      emailError =
-        "Gmail SMTP credentials (GMAIL_USER / GMAIL_APP_PASSWORD) are not configured on the server yet; inquiry saved to CMS Inbox.";
-      inquiry.deliveryStatus = "stored_only";
-      inquiry.deliveryError = emailError;
-    } else {
-      const { from } = resolveSmtpCredentials();
-      const mailSubject = `${doc.settings.subjectPrefix} ${subjectReadable} (#${ticketNumber}) - ${inquiry.name}`;
-      const textBody = [
-        `New QafNest Contact Inquiry (${ticketNumber})`,
-        `============================================`,
-        `Name: ${inquiry.name}`,
-        `Phone: ${inquiry.phone || "Not provided"}`,
-        `Email: ${inquiry.email || "Not provided"}`,
-        `Category: ${subjectReadable}`,
-        `Source: ${inquiry.source} (${inquiry.locale.toUpperCase()})`,
-        `Submitted At: ${now}`,
-        ``,
-        `Message:`,
-        inquiry.message,
-      ].join("\n");
+    const resendApiKey = (process.env.RESEND_API_KEY || "").trim();
+    const mailSubject = `${doc.settings.subjectPrefix} ${subjectReadable} (#${ticketNumber}) - ${inquiry.name}`;
+    const textBody = [
+      `New QafNest Contact Inquiry (${ticketNumber})`,
+      `============================================`,
+      `Name: ${inquiry.name}`,
+      `Phone: ${inquiry.phone || "Not provided"}`,
+      `Email: ${inquiry.email || "Not provided"}`,
+      `Category: ${subjectReadable}`,
+      `Source: ${inquiry.source} (${inquiry.locale.toUpperCase()})`,
+      `Submitted At: ${now}`,
+      ``,
+      `Message:`,
+      inquiry.message,
+    ].join("\n");
 
-      const htmlBody = `
-        <div style="font-family: Arial, sans-serif; max-width: 620px; margin: 0 auto; padding: 20px; border: 1px solid #e5e7eb; border-radius: 12px;">
-          <h2 style="margin: 0 0 12px; color: #4F2396;">New Contact Us Inquiry &mdash; #${escapeHtml(ticketNumber)}</h2>
-          <table style="width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 16px;">
-            <tr><td style="padding: 6px 0; color: #6b7280;"><strong>Name:</strong></td><td style="padding: 6px 0;">${escapeHtml(inquiry.name)}</td></tr>
-            <tr><td style="padding: 6px 0; color: #6b7280;"><strong>Phone:</strong></td><td style="padding: 6px 0;">${escapeHtml(inquiry.phone || "Not provided")}</td></tr>
-            <tr><td style="padding: 6px 0; color: #6b7280;"><strong>Email:</strong></td><td style="padding: 6px 0;">${escapeHtml(inquiry.email || "Not provided")}</td></tr>
-            <tr><td style="padding: 6px 0; color: #6b7280;"><strong>Category:</strong></td><td style="padding: 6px 0;">${escapeHtml(subjectReadable)}</td></tr>
-            <tr><td style="padding: 6px 0; color: #6b7280;"><strong>Source:</strong></td><td style="padding: 6px 0;">${escapeHtml(inquiry.source)} (${escapeHtml(inquiry.locale.toUpperCase())})</td></tr>
-          </table>
-          <div style="background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; padding: 14px; font-size: 14px; line-height: 1.6; white-space: pre-wrap;">${escapeHtml(inquiry.message)}</div>
-        </div>
-      `;
+    const htmlBody = `
+      <div style="font-family: Arial, sans-serif; max-width: 620px; margin: 0 auto; padding: 20px; border: 1px solid #e5e7eb; border-radius: 12px;">
+        <h2 style="margin: 0 0 12px; color: #4F2396;">New Contact Us Inquiry &mdash; #${escapeHtml(ticketNumber)}</h2>
+        <table style="width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 16px;">
+          <tr><td style="padding: 6px 0; color: #6b7280;"><strong>Name:</strong></td><td style="padding: 6px 0;">${escapeHtml(inquiry.name)}</td></tr>
+          <tr><td style="padding: 6px 0; color: #6b7280;"><strong>Phone:</strong></td><td style="padding: 6px 0;">${escapeHtml(inquiry.phone || "Not provided")}</td></tr>
+          <tr><td style="padding: 6px 0; color: #6b7280;"><strong>Email:</strong></td><td style="padding: 6px 0;">${escapeHtml(inquiry.email || "Not provided")}</td></tr>
+          <tr><td style="padding: 6px 0; color: #6b7280;"><strong>Category:</strong></td><td style="padding: 6px 0;">${escapeHtml(subjectReadable)}</td></tr>
+          <tr><td style="padding: 6px 0; color: #6b7280;"><strong>Source:</strong></td><td style="padding: 6px 0;">${escapeHtml(inquiry.source)} (${escapeHtml(inquiry.locale.toUpperCase())})</td></tr>
+        </table>
+        <div style="background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; padding: 14px; font-size: 14px; line-height: 1.6; white-space: pre-wrap;">${escapeHtml(inquiry.message)}</div>
+      </div>
+    `;
 
+    // Priority 1: High-reliability Resend API
+    if (resendApiKey) {
       try {
-        const info = await transporter.sendMail({
-          from: `"QafNest Support" <${from}>`,
+        const sendResult = await sendEmail({
           to: doc.settings.recipientEmail,
           replyTo: inquiry.email || undefined,
           subject: mailSubject,
           text: textBody,
           html: htmlBody,
+          from: "QafNest Operations <support@qafnest.com>",
         });
-        emailSent = true;
-        inquiry.deliveryStatus = "sent";
-        inquiry.messageId = info.messageId;
 
-        if (doc.settings.autoReplyEnabled && inquiry.email) {
-          await transporter
-            .sendMail({
-              from: `"QafNest Support" <${from}>`,
+        if (sendResult.success) {
+          emailSent = true;
+          inquiry.deliveryStatus = "sent";
+          inquiry.messageId = sendResult.messageId;
+
+          // Auto-reply to submitter with branded ticket confirmation
+          if (doc.settings.autoReplyEnabled && inquiry.email) {
+            const autoReplyHtml = buildInquiryAutoReplyHtml({
+              name: inquiry.name,
+              ticketNumber,
+              subjectTitle: subjectReadable,
+              message: inquiry.message,
+              locale: inquiry.locale,
+            });
+
+            await sendEmail({
               to: inquiry.email,
               replyTo: doc.settings.recipientEmail,
               subject:
                 inquiry.locale === "ar"
-                  ? `تم استلام رسالتك في قاف نست (#${ticketNumber})`
-                  : `We received your QafNest inquiry (#${ticketNumber})`,
-              text:
-                inquiry.locale === "ar"
-                  ? `مرحباً ${inquiry.name}،\n\nشكراً لتواصلك مع قاف نست. تم تسجيل طلبك برقم #${ticketNumber} وسيتواصل معك فريقنا خلال ${doc.settings.responseSlaHours} ساعة.\n\nفريق قاف نست`
-                  : `Hello ${inquiry.name},\n\nThank you for contacting QafNest. Your ticket #${ticketNumber} has been received and our team will respond within ${doc.settings.responseSlaHours} hours.\n\nQafNest Support`,
-            })
-            .catch(() => {});
+                  ? `تم استلام استفسارك بنجاح (#${ticketNumber}) - دعم قاف نست`
+                  : `We received your inquiry (#${ticketNumber}) - QafNest Support`,
+              html: autoReplyHtml,
+              from: "QafNest Support <support@qafnest.com>",
+            }).catch(() => {});
+          }
+        } else {
+          emailError = sendResult.error || "Failed sending inquiry notification via Resend";
+          inquiry.deliveryStatus = "failed";
+          inquiry.deliveryError = emailError;
         }
       } catch (err: unknown) {
-        emailError = err instanceof Error ? err.message : "Failed sending email via Gmail SMTP";
+        emailError = err instanceof Error ? err.message : "Network error calling Resend email API";
         inquiry.deliveryStatus = "failed";
         inquiry.deliveryError = emailError;
       }
+    } else {
+      // Priority 2: Fallback to nodemailer SMTP
+      const transporter = createGmailTransporter();
+      if (!transporter) {
+        emailError =
+          "No outbound email provider configured (set RESEND_API_KEY or SMTP credentials). Inquiry saved to CMS Inbox.";
+        inquiry.deliveryStatus = "stored_only";
+        inquiry.deliveryError = emailError;
+      } else {
+        const { from } = resolveSmtpCredentials();
+        try {
+          const info = await transporter.sendMail({
+            from: `"QafNest Support" <${from}>`,
+            to: doc.settings.recipientEmail,
+            replyTo: inquiry.email || undefined,
+            subject: mailSubject,
+            text: textBody,
+            html: htmlBody,
+          });
+          emailSent = true;
+          inquiry.deliveryStatus = "sent";
+          inquiry.messageId = info.messageId;
+
+          if (doc.settings.autoReplyEnabled && inquiry.email) {
+            await transporter
+              .sendMail({
+                from: `"QafNest Support" <${from}>`,
+                to: inquiry.email,
+                replyTo: doc.settings.recipientEmail,
+                subject:
+                  inquiry.locale === "ar"
+                    ? `تم استلام رسالتك في قاف نست (#${ticketNumber})`
+                    : `We received your QafNest inquiry (#${ticketNumber})`,
+                text:
+                  inquiry.locale === "ar"
+                    ? `مرحباً ${inquiry.name}،\n\nشكراً لتواصلك مع قاف نست. تم تسجيل طلبك برقم #${ticketNumber} وسيتواصل معك فريقنا خلال ${doc.settings.responseSlaHours} ساعة.\n\nفريق قاف نست`
+                    : `Hello ${inquiry.name},\n\nThank you for contacting QafNest. Your ticket #${ticketNumber} has been received and our team will respond within ${doc.settings.responseSlaHours} hours.\n\nQafNest Support`,
+              })
+              .catch(() => {});
+          }
+        } catch (err: unknown) {
+          emailError = err instanceof Error ? err.message : "Failed sending email via Gmail SMTP";
+          inquiry.deliveryStatus = "failed";
+          inquiry.deliveryError = emailError;
+        }
+      }
     }
+  }
 
     const latestDoc = readDoc();
     const targetIdx = latestDoc.inquiries.findIndex((item) => item.id === inquiry.id);
@@ -375,7 +444,6 @@ export async function submitContactInquiry(input: {
       latestDoc.inquiries[targetIdx] = inquiry;
       writeDoc(latestDoc);
     }
-  }
 
   return { inquiry, emailSent, emailError };
 }

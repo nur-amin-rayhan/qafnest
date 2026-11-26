@@ -95,18 +95,18 @@ export function PreviewPricingSidebar({
                 <button
                   type="button"
                   onClick={() => setNights(Math.max(1, nights - 1))}
-                  className="w-7 h-7 rounded-lg bg-surface-container flex items-center justify-center font-bold text-sm cursor-pointer"
+                  className="w-7 h-7 rounded-lg bg-slate-200/80 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 flex items-center justify-center font-bold text-sm cursor-pointer transition-colors"
                   aria-label="Decrease nights"
                 >
                   -
                 </button>
-                <span className="font-bold text-violet-700 dark:text-violet-300 px-1">
+                <span className="font-bold text-[#4F2396] dark:text-purple-300 px-1">
                   {nights} {t(nights === 1 ? "ليلة" : "ليال", nights === 1 ? "night" : "nights")}
                 </span>
                 <button
                   type="button"
                   onClick={() => setNights(nights + 1)}
-                  className="w-7 h-7 rounded-lg bg-surface-container flex items-center justify-center font-bold text-sm cursor-pointer"
+                  className="w-7 h-7 rounded-lg bg-slate-200/80 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 flex items-center justify-center font-bold text-sm cursor-pointer transition-colors"
                   aria-label="Increase nights"
                 >
                   +
@@ -125,7 +125,7 @@ export function PreviewPricingSidebar({
                 <button
                   type="button"
                   onClick={() => setGuestsCount(Math.max(1, guestsCount - 1))}
-                  className="w-7 h-7 rounded-lg bg-surface-container flex items-center justify-center font-bold text-sm cursor-pointer"
+                  className="w-7 h-7 rounded-lg bg-slate-200/80 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 flex items-center justify-center font-bold text-sm cursor-pointer transition-colors"
                   aria-label="Decrease guests"
                 >
                   -
@@ -136,7 +136,7 @@ export function PreviewPricingSidebar({
                 <button
                   type="button"
                   onClick={() => setGuestsCount(Math.min(capacity, guestsCount + 1))}
-                  className="w-7 h-7 rounded-lg bg-surface-container flex items-center justify-center font-bold text-sm cursor-pointer"
+                  className="w-7 h-7 rounded-lg bg-slate-200/80 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 flex items-center justify-center font-bold text-sm cursor-pointer transition-colors"
                   aria-label="Increase guests"
                 >
                   +

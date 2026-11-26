@@ -4,7 +4,9 @@ import {
   deleteContactInquiry,
   getContactSettings,
   getGmailSmtpRuntimeStatus,
+  hydrateContactInquiriesStore,
   listContactInquiries,
+  persistContactInquiriesStore,
   saveContactSettings,
   sendContactTestEmail,
   updateContactInquiry,
@@ -27,6 +29,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  await hydrateContactInquiriesStore();
   return NextResponse.json({
     success: true,
     settings: getContactSettings(),
@@ -42,6 +45,7 @@ export async function POST(request: NextRequest) {
   }
 
   try {
+    await hydrateContactInquiriesStore();
     const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;
     const action = String(body.action || "");
 
@@ -63,6 +67,7 @@ export async function POST(request: NextRequest) {
         },
         admin.email
       );
+      await persistContactInquiriesStore();
       return NextResponse.json({
         success: true,
         settings: updated,
@@ -93,6 +98,7 @@ export async function POST(request: NextRequest) {
       if (!updated) {
         return NextResponse.json({ error: "Inquiry not found" }, { status: 404 });
       }
+      await persistContactInquiriesStore();
       return NextResponse.json({ success: true, inquiry: updated });
     }
 
@@ -102,13 +108,59 @@ export async function POST(request: NextRequest) {
       if (!ok) {
         return NextResponse.json({ error: "Inquiry not found" }, { status: 404 });
       }
+      await persistContactInquiriesStore();
       return NextResponse.json({ success: true });
     }
 
     return NextResponse.json({ error: "Unknown action" }, { status: 400 });
   } catch (err: unknown) {
+    console.error("[cms contact POST] error:", err);
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Failed to update contact CMS state" },
+      { error: "Failed to update contact CMS state" },
+      { status: 500 }
+    );
+  }
+}
+
+export async function PUT(request: NextRequest) {
+  const admin = getVerifiedCmsAdmin(request);
+  if (!admin) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  try {
+    await hydrateContactInquiriesStore();
+    const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;
+    const emailCandidate =
+      typeof body.email === "string" && body.email.includes("@")
+        ? body.email.trim()
+        : typeof body.recipientEmail === "string" && body.recipientEmail.includes("@")
+        ? body.recipientEmail.trim()
+        : undefined;
+
+    const updated = saveContactSettings(
+      {
+        recipientEmail: emailCandidate,
+        ...(typeof body.emailForwardingEnabled === "boolean"
+          ? { emailForwardingEnabled: body.emailForwardingEnabled }
+          : {}),
+        ...(typeof body.autoReplyEnabled === "boolean"
+          ? { autoReplyEnabled: body.autoReplyEnabled }
+          : {}),
+      },
+      admin.email
+    );
+    await persistContactInquiriesStore();
+
+    return NextResponse.json({
+      success: true,
+      settings: updated,
+      smtp: getGmailSmtpRuntimeStatus(),
+    });
+  } catch (err: unknown) {
+    console.error("[cms contact PUT] error:", err);
+    return NextResponse.json(
+      { error: "Failed to update contact settings" },
       { status: 500 }
     );
   }

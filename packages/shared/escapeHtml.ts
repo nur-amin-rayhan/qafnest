@@ -1,6 +1,6 @@
 /**
- * Shared HTML, attribute, XML, and Blog rich-text escaping/sanitization helpers
- * used across invoice HTML/PDF renderers, ZATCA UBL XML generators, and CMS blogs.
+ * Shared HTML, attribute, CSV, JSON-LD, XML, and safe href escaping helpers
+ * (pure JS with zero DOM/Node runtime dependencies so Edge Middleware stays safe).
  */
 
 export function escapeHtml(value: unknown): string {
@@ -12,7 +12,35 @@ export function escapeHtml(value: unknown): string {
     .replace(/'/g, "&#39;");
 }
 
-export function sanitizeHrefUrl(rawUrl: string | null | undefined, allowedProtocols: string[] = ["http:", "https:", "mailto:", "tel:"]): string {
+/**
+ * Neutralizes spreadsheet formula injection (=, +, -, @, tab, CR) and quotes RFC 4180 CSV cells.
+ */
+export function sanitizeCsvCell(value: unknown): string {
+  let raw = String(value ?? "");
+  if (/^[=+\-@\t\r]/.test(raw)) {
+    raw = `'${raw}`;
+  }
+  if (/[",\r\n]/.test(raw)) {
+    return `"${raw.replace(/"/g, '""')}"`;
+  }
+  return raw;
+}
+
+/**
+ * Serializes JSON-LD safely inside <script type="application/ld+json"> tags,
+ * escaping '<' and Unicode line separators so </script> breakouts are impossible.
+ */
+export function safeJsonLdStringify(data: unknown): string {
+  return JSON.stringify(data)
+    .replace(/</g, "\\u003c")
+    .replace(/\u2028/g, "\\u2028")
+    .replace(/\u2029/g, "\\u2029");
+}
+
+export function sanitizeHrefUrl(
+  rawUrl: string | null | undefined,
+  allowedProtocols: string[] = ["http:", "https:", "mailto:", "tel:"]
+): string {
   const trimmed = String(rawUrl || "").trim();
   if (!trimmed) return "";
   if (trimmed.startsWith("/") && !trimmed.startsWith("//") && !trimmed.startsWith("/\\")) {
@@ -20,7 +48,11 @@ export function sanitizeHrefUrl(rawUrl: string | null | undefined, allowedProtoc
   }
   try {
     const parsed = new URL(trimmed);
-    if (allowedProtocols.includes(parsed.protocol.toLowerCase())) {
+    const proto = parsed.protocol.toLowerCase();
+    if (allowedProtocols.includes(proto)) {
+      if (proto === "data:" && !/^data:image\/(?:png|jpeg|jpg|webp|avif|gif);base64,/i.test(trimmed)) {
+        return "";
+      }
       return parsed.toString();
     }
     return "";
@@ -30,20 +62,19 @@ export function sanitizeHrefUrl(rawUrl: string | null | undefined, allowedProtoc
 }
 
 /**
- * Strips executable elements (`<script>`, `<iframe>`, `<object>`, `<embed>`, `<svg onload=...>`,
- * inline event handlers `on*=`, and `javascript:`/`vbscript:`/`data:text/html` URIs) from CMS HTML.
+ * Sanitizes rich HTML content by stripping dangerous tags and scripts
+ * while preserving safe formatting tags (h1-h6, p, ul, ol, li, strong, em, blockquote, a, img).
  */
-export function sanitizeRichHtml(rawHtml: unknown): string {
-  let html = String(rawHtml ?? "");
-  if (!html) return "";
-
-  html = html
-    .replace(/<!--[\s\S]*?-->/g, "")
-    .replace(/<\s*(script|iframe|object|embed|applet|meta|link|base|form)\b[^>]*>[\s\S]*?<\s*\/\s*\1\s*>/gi, "")
-    .replace(/<\s*(script|iframe|object|embed|applet|meta|link|base|form)\b[^>]*\/?>/gi, "")
-    .replace(/<\s*svg\b[^>]*>[\s\S]*?<\s*\/\s*svg\s*>/gi, "")
-    .replace(/\s+on[a-z]+\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/gi, "")
-    .replace(/(href|src|xlink:href|action|formaction)\s*=\s*(["'])\s*(?:javascript:|vbscript:|data:(?!image\/(?:png|jpe?g|webp|gif);base64,))[\s\S]*?\2/gi, '$1="#"');
-
-  return html;
+export function sanitizeRichHtml(html: string): string {
+  if (typeof html !== "string") return "";
+  return html
+    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "")
+    .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, "")
+    .replace(/<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi, "")
+    .replace(/<object\b[^<]*(?:(?!<\/object>)<[^<]*)*<\/object>/gi, "")
+    .replace(/<embed\b[^<]*(?:(?!<\/embed>)<[^<]*)*<\/embed>/gi, "")
+    .replace(/\son\w+\s*=\s*(['"]).*?\1/gi, "")
+    .replace(/\son\w+\s*=\s*[^\s>]+/gi, "")
+    .replace(/javascript:/gi, "");
 }
+

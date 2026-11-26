@@ -1,4 +1,5 @@
 import { generateZatcaTlvBase64, QAFNEST_ZATCA_DEFAULTS } from "@qafnest/shared";
+import { sanitizeCsvCell } from "@qafnest/shared/escapeHtml";
 import { getZatcaInvoiceRecords } from "@qafnest/shared/zatcaStore";
 import { getServerPlatformFeeConfig } from "@qafnest/shared/platformFeeStore";
 import { resolveBookingSettlement } from "@qafnest/shared/bookingFinancialsStore";
@@ -77,7 +78,10 @@ export async function getLiveAdminInvoices(): Promise<AdminTaxInvoiceRecord[]> {
       }
 
       bookings = (bookingRows || []).filter(
-        (b: any) => b.status === "confirmed" || b.status === "completed"
+        (b: any) =>
+          b.status === "confirmed" ||
+          b.status === "checked_in" ||
+          b.status === "completed"
       );
 
       const profileIds = Array.from(
@@ -245,8 +249,8 @@ export async function getLiveAdminInvoices(): Promise<AdminTaxInvoiceRecord[]> {
     }
   }
 
-  if (!results.some((i) => i.id === "inv_adm_001")) {
-    results.unshift(DEFAULT_TEST_ADMIN_INVOICE);
+  if (process.env.NODE_ENV !== "production" && !results.some((i) => i.id === DEFAULT_TEST_ADMIN_INVOICE.id)) {
+    results.push(DEFAULT_TEST_ADMIN_INVOICE);
   }
 
   return results;
@@ -272,20 +276,20 @@ export function generateZatcaJournalCsv(
   ];
 
   const rows = invoices.map((inv) => [
-    inv.invoiceNumber,
-    inv.type,
-    inv.issueDate,
-    inv.bookingReference,
-    `"${(inv.clientName || "").replace(/"/g, '""')}"`,
-    inv.clientRole,
-    `"${(inv.propertyTitle || "").replace(/"/g, '""')}"`,
+    sanitizeCsvCell(inv.invoiceNumber),
+    sanitizeCsvCell(inv.type),
+    sanitizeCsvCell(inv.issueDate),
+    sanitizeCsvCell(inv.bookingReference),
+    sanitizeCsvCell(inv.clientName || ""),
+    sanitizeCsvCell(inv.clientRole),
+    sanitizeCsvCell(inv.propertyTitle || ""),
     inv.taxableAmount.toFixed(2),
-    "15%",
+    `${Math.round((Number.isFinite(inv.vatRate) ? inv.vatRate : 0.15) * 100)}%`,
     inv.vatAmount.toFixed(2),
     inv.totalAmount.toFixed(2),
-    `"${(inv.paymentMethod || "").replace(/"/g, '""')}"`,
-    inv.zatcaStatus.toUpperCase(),
+    sanitizeCsvCell(inv.paymentMethod || ""),
+    sanitizeCsvCell(inv.zatcaStatus.toUpperCase()),
   ]);
 
-  return [headers.join(","), ...rows.map((r) => r.join(","))].join("\r\n");
+  return [headers.map(sanitizeCsvCell).join(","), ...rows.map((r) => r.join(","))].join("\r\n");
 }

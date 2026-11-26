@@ -1,4 +1,9 @@
-import { readRootJsonFile, writeRootJsonFile } from "./serverJsonStore";
+import {
+  readRootJsonFile,
+  writeRootJsonFile,
+  hydrateRootJsonFile,
+  persistRootJsonFile,
+} from "./serverJsonStore";
 
 export interface StoredCoupon {
   id: string;
@@ -25,6 +30,14 @@ export interface PromotionState {
 
 const PROMOTIONS_STORE_FILE = ".qafnest-promotions.json";
 
+function normalizePromotionState(parsed: unknown): PromotionState {
+  const candidate = parsed as Partial<PromotionState> | null;
+  return {
+    promotionsEnabled: candidate?.promotionsEnabled !== false,
+    coupons: Array.isArray(candidate?.coupons) ? candidate.coupons : [],
+  };
+}
+
 export function getPromotionState(): PromotionState {
   return readRootJsonFile<PromotionState>(
     PROMOTIONS_STORE_FILE,
@@ -32,16 +45,25 @@ export function getPromotionState(): PromotionState {
       promotionsEnabled: true,
       coupons: [],
     }),
-    (parsed) => {
-      const candidate = parsed as Partial<PromotionState> | null;
-      return {
-        promotionsEnabled: candidate?.promotionsEnabled !== false,
-        coupons: Array.isArray(candidate?.coupons) ? candidate.coupons : [],
-      };
-    }
+    normalizePromotionState
   );
 }
 
 export function savePromotionState(state: PromotionState): void {
   writeRootJsonFile(PROMOTIONS_STORE_FILE, state);
+}
+
+export async function hydratePromotionState(): Promise<PromotionState> {
+  return hydrateRootJsonFile<PromotionState>(
+    PROMOTIONS_STORE_FILE,
+    () => ({
+      promotionsEnabled: true,
+      coupons: [],
+    }),
+    normalizePromotionState
+  );
+}
+
+export async function persistPromotionState(state: PromotionState): Promise<boolean> {
+  return persistRootJsonFile(PROMOTIONS_STORE_FILE, state);
 }

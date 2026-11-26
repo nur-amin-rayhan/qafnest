@@ -7,7 +7,6 @@ import { Heart, ArrowRight, LoaderCircle } from "lucide-react";
 import Navbar from "@/components/common/Navbar";
 import Footer from "@/components/common/Footer";
 import SearchPropertyCard from "@/components/search/SearchPropertyCard";
-import BookingModal from "@/components/modals/BookingModal";
 import AuthModal from "@/components/modals/AuthModal";
 import SearchModal from "@/components/modals/SearchModal";
 import { useAuth } from "@/context/AuthContext";
@@ -123,7 +122,6 @@ export default function WishlistPage() {
       </div>
 
       <Footer />
-      <BookingModal />
       <AuthModal />
       <SearchModal />
     </div>

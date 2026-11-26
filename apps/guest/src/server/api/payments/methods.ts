@@ -10,12 +10,13 @@ export async function GET() {
       ...capabilities,
     });
   } catch (err: unknown) {
+    console.error("[payment methods] error:", err);
     return NextResponse.json(
       {
         success: false,
         provider: "MyFatoorah",
         configured: false,
-        error: err instanceof Error ? err.message : "Could not check payment methods.",
+        error: "Could not check payment methods.",
       },
       { status: 500 }
     );

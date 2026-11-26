@@ -34,7 +34,7 @@ export function InvoicesLedgerTable({ invoices }: InvoicesLedgerTableProps) {
     return (
       <div
         dir={dir}
-        className="py-16 text-center text-xs font-bold text-on-surface-variant bg-surface-container-low rounded-2xl border border-surface-container-high"
+        className="py-16 text-center text-xs font-medium text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-900/60 rounded-xl border border-slate-200/90 dark:border-slate-800"
       >
         {t("No tax invoices matching the current filter criteria.", "لا توجد فواتير ضريبية مطابقة لمعايير البحث الحالية.")}
       </div>
@@ -47,11 +47,11 @@ export function InvoicesLedgerTable({ invoices }: InvoicesLedgerTableProps) {
     <>
       <div
         dir={dir}
-        className="border border-surface-container-high rounded-2xl overflow-hidden bg-surface-container-lowest shadow-xs"
+        className="border border-slate-200/90 dark:border-slate-800 rounded-xl overflow-hidden bg-white dark:bg-[#0E0D16] shadow-xs"
       >
         <div className="overflow-x-auto">
-          <table className="min-w-[740px] w-full text-xs text-start">
-            <thead className="bg-surface-container text-on-surface font-extrabold border-b border-surface-container-high">
+          <table className="min-w-[740px] w-full text-xs sm:text-sm text-start">
+            <thead className="bg-slate-50/90 dark:bg-slate-900/90 text-slate-600 dark:text-slate-400 font-semibold border-b border-slate-200/80 dark:border-slate-800 text-xs">
               <tr>
                 <th className="p-3.5 text-start">{t("Invoice # / Date", "رقم الفاتورة / التاريخ")}</th>
                 <th className="p-3.5 text-start">{t("Type", "النوع")}</th>
@@ -63,26 +63,26 @@ export function InvoicesLedgerTable({ invoices }: InvoicesLedgerTableProps) {
                 <th className="p-3.5 text-end">{t("Action", "الإجراء")}</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-surface-container font-medium text-on-surface">
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80 text-slate-900 dark:text-slate-100">
               {invoices.map((inv) => (
                 <tr
                   key={inv.id}
                   onClick={() => setSelectedInvoice(inv)}
-                  className="hover:bg-surface-container-low/70 transition cursor-pointer"
+                  className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition cursor-pointer"
                 >
                   {/* Invoice # / Date */}
                   <td className="p-3.5">
-                    <span className="font-mono font-bold text-on-surface block">{inv.invoiceNumber}</span>
-                    <span className="text-[11px] text-on-surface-variant block mt-0.5">{inv.issueDate}</span>
+                    <span className="font-mono font-semibold text-slate-900 dark:text-slate-100 text-sm block">{inv.invoiceNumber}</span>
+                    <span className="text-xs text-slate-500 dark:text-slate-400 block mt-0.5">{inv.issueDate}</span>
                   </td>
 
                   {/* Type */}
                   <td className="p-3.5">
                     <span
-                      className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-bold ${
+                      className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold border ${
                         inv.type === "guest_stay"
-                          ? "bg-violet-50 text-primary border border-violet-200"
-                          : "bg-emerald-50 text-status-emerald border border-emerald-200"
+                          ? "bg-purple-50 dark:bg-purple-950/60 text-[#4F2396] dark:text-purple-300 border-purple-200 dark:border-purple-800"
+                          : "bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800"
                       }`}
                     >
                       {inv.type === "guest_stay"
@@ -93,33 +93,33 @@ export function InvoicesLedgerTable({ invoices }: InvoicesLedgerTableProps) {
 
                   {/* Client / Booking */}
                   <td className="p-3.5">
-                    <span className="font-bold text-on-surface block truncate max-w-[180px]">
+                    <span className="font-semibold text-slate-900 dark:text-slate-100 text-sm block truncate max-w-[200px]">
                       {inv.clientName}
                     </span>
-                    <span className="text-[11px] text-on-surface-variant font-mono block mt-0.5">
+                    <span className="text-xs text-slate-500 dark:text-slate-400 font-mono block mt-0.5">
                       {t("Ref:", "المرجع:")} {inv.bookingReference} · {inv.propertyTitle}
                     </span>
                   </td>
 
                   {/* Taxable */}
-                  <td className="p-3.5 text-end font-mono">
+                  <td className="p-3.5 text-end font-mono text-slate-900 dark:text-slate-100 text-sm">
                     {currencyLabel} {inv.taxableAmount.toLocaleString("en-US", { minimumFractionDigits: 2 })}
                   </td>
 
                   {/* VAT */}
-                  <td className="p-3.5 text-end font-mono text-status-emerald">
+                  <td className="p-3.5 text-end font-mono font-medium text-emerald-600 dark:text-emerald-400 text-sm">
                     {currencyLabel} {inv.vatAmount.toLocaleString("en-US", { minimumFractionDigits: 2 })}
                   </td>
 
                   {/* Total */}
-                  <td className="p-3.5 text-end font-mono font-black text-on-surface text-sm">
+                  <td className="p-3.5 text-end font-mono font-bold text-slate-900 dark:text-slate-100 text-sm sm:text-base">
                     {currencyLabel} {inv.totalAmount.toLocaleString("en-US", { minimumFractionDigits: 2 })}
                   </td>
 
                   {/* ZATCA Status */}
                   <td className="p-3.5 text-center">
-                    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-status-emerald border border-emerald-200">
-                      <ShieldCheck size={12} />
+                    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 dark:bg-emerald-950/60 px-2.5 py-0.5 text-xs font-semibold text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+                      <ShieldCheck size={13} />
                       <span className="capitalize">
                         {inv.zatcaStatus === "cleared"
                           ? t("Cleared", "معتمدة")
@@ -137,17 +137,17 @@ export function InvoicesLedgerTable({ invoices }: InvoicesLedgerTableProps) {
                         type="button"
                         onClick={(e) => handleDirectDownload(e, inv)}
                         disabled={downloadingId === inv.id}
-                        className="inline-flex items-center gap-1.5 rounded-xl border border-surface-container-high bg-surface-container hover:bg-surface-container-high px-3 py-1.5 text-xs font-bold text-on-surface hover:text-primary transition shadow-xs cursor-pointer disabled:opacity-50"
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 px-3 py-1.5 text-xs font-medium text-slate-700 dark:text-slate-200 transition shadow-xs cursor-pointer disabled:opacity-50"
                         title={t("Download PDF Tax Invoice Directly", "تنزيل الفاتورة الضريبية PDF مباشرة")}
                       >
                         {downloadingId === inv.id ? (
                           <>
-                            <Loader2 size={13} className="text-primary animate-spin" />
+                            <Loader2 size={13} className="text-[#4F2396] animate-spin" />
                             <span>{t("Downloading...", "جارٍ التنزيل...")}</span>
                           </>
                         ) : (
                           <>
-                            <Download size={13} className="text-primary" />
+                            <Download size={13} className="text-slate-500 dark:text-slate-400" />
                             <span>{t("Download", "تنزيل")}</span>
                           </>
                         )}
@@ -158,7 +158,7 @@ export function InvoicesLedgerTable({ invoices }: InvoicesLedgerTableProps) {
                           e.stopPropagation();
                           setSelectedInvoice(inv);
                         }}
-                        className="inline-flex items-center gap-1.5 rounded-xl border border-surface-container-high bg-surface-container hover:bg-surface-container-high px-3 py-1.5 text-xs font-bold text-on-surface transition cursor-pointer"
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 px-3 py-1.5 text-xs font-medium text-slate-700 dark:text-slate-200 transition cursor-pointer"
                       >
                         <Eye size={13} />
                         <span>{t("View", "عرض")}</span>

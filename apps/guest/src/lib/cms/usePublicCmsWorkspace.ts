@@ -37,11 +37,16 @@ export function usePublicCmsWorkspace(): {
   workspace: PublicCmsWorkspace | null;
   loading: boolean;
 } {
-  const [workspace, setWorkspace] = useState<PublicCmsWorkspace | null>(cachedWorkspace);
-  const [loading, setLoading] = useState<boolean>(!cachedWorkspace);
+  // Always initialize with null so client-side initial hydration pass matches SSR HTML exactly
+  const [workspace, setWorkspace] = useState<PublicCmsWorkspace | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
 
   useEffect(() => {
     let active = true;
+    if (cachedWorkspace) {
+      setWorkspace(cachedWorkspace);
+      setLoading(false);
+    }
     void fetchPublicWorkspace().then((ws) => {
       if (!active) return;
       if (ws) setWorkspace(ws);
@@ -55,17 +60,8 @@ export function usePublicCmsWorkspace(): {
   return { workspace, loading };
 }
 
-/** Strips unsafe script/event/javascript: vectors from CMS HTML before rendering. */
-export function sanitizeCmsHtml(rawHtml?: string | null): string {
-  if (!rawHtml) return "";
-  return String(rawHtml)
-    .replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi, "")
-    .replace(/<iframe[\s\S]*?>[\s\S]*?<\/iframe>/gi, "")
-    .replace(/<object[\s\S]*?>[\s\S]*?<\/object>/gi, "")
-    .replace(/<embed[^>]*>/gi, "")
-    .replace(/\son[a-z]+\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/gi, "")
-    .replace(/(href|src)\s*=\s*(['"])\s*javascript:[^'"]*\2/gi, '$1="#"');
-}
+/** Re-export DOMPurify-backed shared HTML sanitizer so all CMS callers share one implementation. */
+export { sanitizeRichHtml as sanitizeCmsHtml } from "@qafnest/shared/sanitizeRichHtml";
 
 const LEGACY_STUBS = [
   "QafNest complies with Saudi Personal Data Protection Law (PDPL) to safeguard guest and host information.",

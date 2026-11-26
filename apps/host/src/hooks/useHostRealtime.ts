@@ -85,12 +85,11 @@ export function useHostRealtime({
           const oldRow = payload.old as Record<string, unknown> | undefined;
           const targetPropId = String(newRow?.property_id || oldRow?.property_id || "");
           const currentProps = propertyIdsRef.current;
-          const matchesHostProperty =
-            currentProps.length === 0 || (targetPropId && currentProps.includes(targetPropId));
+          const matchesHostProperty = Boolean(targetPropId && currentProps.includes(targetPropId));
           if (matchesHostProperty) {
             onBookingChangeRef.current?.(payload);
 
-            if (newRow && targetPropId && currentProps.includes(targetPropId)) {
+            if (newRow) {
               const ref = String(newRow.booking_reference || "QAF-BOOKING");
               if (payload.eventType === "INSERT") {
                 addAlert({
@@ -198,21 +197,14 @@ export function useHostRealtime({
         if (status === "SUBSCRIBED") {
           setIsConnected(true);
         } else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED") {
-          // Gracefully fallback to connected because background HTTP sync is active
-          setIsConnected(true);
+          setIsConnected(false);
         }
       });
-
-    // Fallback: If status hasn't arrived within 1500ms, mark connected since background poller is active
-    const fallbackTimer = setTimeout(() => {
-      if (mounted) setIsConnected(true);
-    }, 1500);
 
     channelRef.current = channel;
 
     return () => {
       mounted = false;
-      clearTimeout(fallbackTimer);
       if (channelRef.current) {
         void supabase.removeChannel(channelRef.current);
         channelRef.current = null;

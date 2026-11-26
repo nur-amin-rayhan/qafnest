@@ -663,9 +663,18 @@ export function CmsGlobalsModule({
 
   // ==================== 4. CONTACT US (Screenshot 19) ====================
   if (kind === "contact-us") {
-    const c = globals.contactUs;
+    const c = globals?.contactUs || {
+      phone: "",
+      address: { en: "", ar: "" },
+      supportEmail: "",
+      generalEmail: "",
+      businessEmail: "",
+      facebook: "",
+      instagram: "",
+      whatsapp: "",
+    };
     const patchC = (patch: Partial<typeof c>) =>
-      setGlobals((g) => ({ ...g, contactUs: { ...g.contactUs, ...patch } }));
+      setGlobals((g) => ({ ...g, contactUs: { ...(g.contactUs || c), ...patch } }));
 
     return (
       <div className="space-y-5 max-w-4xl">
@@ -674,14 +683,14 @@ export function CmsGlobalsModule({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <label className="text-xs font-medium">Phone Number</label>
-              <input value={c.phone} onChange={(e) => patchC({ phone: e.target.value })} className={inputCls} />
+              <input value={c.phone || ""} onChange={(e) => patchC({ phone: e.target.value })} className={inputCls} />
             </div>
             <div className="space-y-1.5">
               <label className="text-xs font-medium">Address ({locale.toUpperCase()})</label>
               <input
-                value={c.address[locale]}
+                value={c.address?.[locale] || ""}
                 dir={isAr ? "rtl" : "ltr"}
-                onChange={(e) => patchC({ address: { ...c.address, [locale]: e.target.value } })}
+                onChange={(e) => patchC({ address: { ...(c.address || { en: "", ar: "" }), [locale]: e.target.value } })}
                 className={inputCls}
               />
             </div>
@@ -690,30 +699,30 @@ export function CmsGlobalsModule({
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-1.5">
               <label className="text-xs font-medium">Support Email</label>
-              <input value={c.supportEmail} onChange={(e) => patchC({ supportEmail: e.target.value })} className={inputCls} />
+              <input value={c.supportEmail || ""} onChange={(e) => patchC({ supportEmail: e.target.value })} className={inputCls} />
             </div>
             <div className="space-y-1.5">
               <label className="text-xs font-medium">General Email</label>
-              <input value={c.generalEmail} onChange={(e) => patchC({ generalEmail: e.target.value })} className={inputCls} />
+              <input value={c.generalEmail || ""} onChange={(e) => patchC({ generalEmail: e.target.value })} className={inputCls} />
             </div>
             <div className="space-y-1.5">
               <label className="text-xs font-medium">Business Email</label>
-              <input value={c.businessEmail} onChange={(e) => patchC({ businessEmail: e.target.value })} className={inputCls} />
+              <input value={c.businessEmail || ""} onChange={(e) => patchC({ businessEmail: e.target.value })} className={inputCls} />
             </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2 border-t border-gray-200 dark:border-[#222634]">
             <div className="space-y-1.5">
               <label className="text-xs font-medium">Facebook URL</label>
-              <input value={c.facebook} onChange={(e) => patchC({ facebook: e.target.value })} className={inputCls} />
+              <input value={c.facebook || ""} onChange={(e) => patchC({ facebook: e.target.value })} className={inputCls} />
             </div>
             <div className="space-y-1.5">
               <label className="text-xs font-medium">Instagram URL</label>
-              <input value={c.instagram} onChange={(e) => patchC({ instagram: e.target.value })} className={inputCls} />
+              <input value={c.instagram || ""} onChange={(e) => patchC({ instagram: e.target.value })} className={inputCls} />
             </div>
             <div className="space-y-1.5">
               <label className="text-xs font-medium">WhatsApp Link / Number</label>
-              <input value={c.whatsapp} onChange={(e) => patchC({ whatsapp: e.target.value })} className={inputCls} />
+              <input value={c.whatsapp || ""} onChange={(e) => patchC({ whatsapp: e.target.value })} className={inputCls} />
             </div>
           </div>
         </div>

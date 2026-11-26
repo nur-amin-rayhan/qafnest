@@ -107,7 +107,7 @@ export async function POST(request: NextRequest) {
     if (body.kind === "booking" && (body.id || body.reference)) {
       const q = dbClient
         .from("bookings")
-        .select("id, booking_reference, total_price, status, payment_status, guest_id, auth_subject, payment_method")
+        .select("id, booking_reference, property_id, total_price, status, payment_status, guest_id, auth_subject, payment_method")
         .limit(1);
       const { data: booking } = await (isUuidId && body.id
         ? q.eq("id", body.id)
@@ -147,7 +147,7 @@ export async function POST(request: NextRequest) {
       const total = Number(booking.total_price) || 0;
       const isPaid =
         booking.payment_status === "success" ||
-        ["confirmed", "completed"].includes(String(booking.status || "").toLowerCase());
+        ["confirmed", "checked_in", "completed"].includes(String(booking.status || "").toLowerCase());
 
       if (total <= 0 || !isPaid) {
         return NextResponse.json(
@@ -156,12 +156,24 @@ export async function POST(request: NextRequest) {
         );
       }
 
+      let dbPropertyTitle = "QafNest Stay Accommodation";
+      if (booking.property_id) {
+        const { data: propRow } = await dbClient
+          .from("properties")
+          .select("title")
+          .eq("id", booking.property_id)
+          .maybeSingle();
+        if (propRow?.title) {
+          dbPropertyTitle = String(propRow.title).trim();
+        }
+      }
+
       const result = await dispatchBookingZatcaInvoice({
         bookingId: booking.id,
         bookingRef: booking.booking_reference || booking.id.slice(0, 8).toUpperCase(),
         totalWithVat: total,
         buyerName: authUser.name || "Valued Guest Customer",
-        propertyTitle: body.propertyTitle || "Vacation Rental Accommodation",
+        propertyTitle: dbPropertyTitle,
         paymentMethod: booking.payment_method || "card",
       });
 
@@ -246,7 +258,10 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ code: "invalid_request" }, { status: 400 });
   } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : "Failed to verify ZATCA invoice";
-    return NextResponse.json({ code: "server_error", message: msg }, { status: 500 });
+    console.error("[invoicesZatca POST] error:", err);
+    return NextResponse.json(
+      { code: "server_error", message: "Failed to verify ZATCA invoice." },
+      { status: 500 }
+    );
   }
 }

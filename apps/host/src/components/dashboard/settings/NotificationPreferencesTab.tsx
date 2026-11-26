@@ -28,8 +28,17 @@ export function NotificationPreferencesTab({
 }: NotificationPreferencesTabProps) {
   const [form, setForm] = useState<HostNotificationSettings>(notifications);
 
-  const toggle = (key: keyof HostNotificationSettings) => {
-    setForm((prev) => ({ ...prev, [key]: !prev[key] }));
+  const toggle = async (key: keyof HostNotificationSettings) => {
+    const nextVal = !form[key];
+    setForm((prev) => ({ ...prev, [key]: nextVal }));
+    if (key === "pushAlerts" && nextVal) {
+      try {
+        const { requestPushNotificationToken } = await import("@/lib/firebase/messaging");
+        await requestPushNotificationToken();
+      } catch (err) {
+        console.warn("[Host Push] Failed to request token:", err);
+      }
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {

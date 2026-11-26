@@ -82,6 +82,14 @@ export async function POST(
       return NextResponse.json({ error: "Transfer reference number is required." }, { status: 400 });
     }
 
+    const bookingAmount = Number(booking.total_price);
+    if (!Number.isFinite(bookingAmount) || bookingAmount <= 0) {
+      return NextResponse.json(
+        { error: "Booking total price is invalid for a bank transfer claim." },
+        { status: 400 }
+      );
+    }
+
     await hydrateSharedJsonFile("helpline-transfer-claims.json", () => ({}));
     const claim = recordTransferClaim({
       bookingRef: resolvedRef,
@@ -89,7 +97,7 @@ export async function POST(
       transferReference,
       bankName: String(body.bankName || "Saudi National Bank (SNB)"),
       senderName: String(body.senderName || authUser.email?.split("@")[0] || "Guest"),
-      amount: Number(booking.total_price) || Number(body.amount) || 0,
+      amount: bookingAmount,
     });
 
     try {
@@ -113,8 +121,9 @@ export async function POST(
       claim,
     });
   } catch (err: unknown) {
+    console.error("[transferClaim] error:", err);
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Error recording claim" },
+      { error: "Failed to record bank transfer claim." },
       { status: 500 }
     );
   }

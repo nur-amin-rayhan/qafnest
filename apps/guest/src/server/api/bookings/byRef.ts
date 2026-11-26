@@ -10,6 +10,7 @@ import {
 import { createClient } from "@/lib/supabase/server";
 import { getAdminOrServerClient } from "@/lib/supabase/service";
 import { verifyGuestSession } from "@/lib/auth/serverAuth";
+import { verifyBookingSlipToken } from "@qafnest/shared/portalSessionEdge";
 
 export async function GET(
   request: NextRequest,
@@ -63,7 +64,7 @@ export async function GET(
   // 3. Security & Access Control:
   // Strictly enforce authorization:
   // - Caller is the verified owner of the booking (matching UID or verified phone number)
-  // - OR caller provides authoritative payment transaction proof (paymentId matching booking.payment_id)
+  // - OR caller presents a valid HMAC-signed short-lived confirmation slip token
   const isOwner = Boolean(
     authUser && (
       booking.guest_id === authUser.id ||
@@ -72,14 +73,16 @@ export async function GET(
     )
   );
 
-  const paymentIdQuery = request.nextUrl.searchParams.get("paymentId")?.trim();
-  const hasPaymentProof = Boolean(
-    paymentIdQuery &&
-    booking.payment_id &&
-    paymentIdQuery === booking.payment_id
+  const slipToken =
+    request.headers.get("x-booking-slip")?.trim() ||
+    request.nextUrl.searchParams.get("slip")?.trim() ||
+    null;
+  const bookingKey = String(booking.booking_reference || booking.id);
+  const hasSignedSlip = Boolean(
+    slipToken && (await verifyBookingSlipToken(slipToken, bookingKey, booking.payment_id))
   );
 
-  if (!isOwner && !hasPaymentProof) {
+  if (!isOwner && !hasSignedSlip) {
     return NextResponse.json(
       { code: "unauthorized", message: "You are not authorized to view this booking." },
       { status: 403 }

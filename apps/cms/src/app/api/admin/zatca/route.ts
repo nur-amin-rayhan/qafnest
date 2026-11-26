@@ -56,8 +56,8 @@ export async function GET(request: NextRequest) {
       recentInvoices,
     });
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : "Failed to load ZATCA configuration";
-    return NextResponse.json({ success: false, error: message }, { status: 500 });
+    console.error("[cms admin zatca GET] error:", err);
+    return NextResponse.json({ success: false, error: "Failed to load ZATCA configuration" }, { status: 500 });
   }
 }
 

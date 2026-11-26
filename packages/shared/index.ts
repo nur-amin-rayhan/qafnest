@@ -50,7 +50,7 @@ export const ECOSYSTEM_URLS = {
 
 export const QAFNEST_SUPPORT_CONTACT = {
   localPhone: "0576707709",
-  displayPhone: "0576707709",
+  displayPhone: "+966576707709",
   e164Phone: "+966576707709",
   internationalDisplay: "+966 57 670 7709",
   whatsappDigits: "966576707709",
@@ -61,7 +61,11 @@ export const QAFNEST_SUPPORT_CONTACT = {
   hqAddressAr: "5040 أبو مسعود البدري، 8121، حي طيبة، جدة 23835، المملكة العربية السعودية",
 } as const;
 
+// NOTE: Keep server-only modules (such as ./emailService) out of the client barrel
+// to prevent pulling Node built-ins like nodemailer into Next.js client bundles.
+
 // Re-export Design System & Taste Skill Specifications
+
 export * from "./design-system";
 export * from "./taste";
 export * from "./phone";
@@ -81,4 +85,5 @@ export * from "./saudiCities";
 export * from "./propertyDeletionConfig";
 export * from "./unitCode";
 export * from "./propertyBilingual";
+export * from "./escapeHtml";
 

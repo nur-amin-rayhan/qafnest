@@ -11,8 +11,19 @@ import {
   clearPendingWalletSplit,
   refundSettledWalletSplit,
 } from "@/lib/services/walletService";
-import { dispatchBookingZatcaInvoice } from "@/lib/services/zatcaReportingHelper";
-import { getBookingFinancialSnapshot } from "@qafnest/shared/bookingFinancialsStore";
+import {
+  dispatchBookingZatcaInvoice,
+} from "@/lib/services/zatcaReportingHelper";
+import {
+  getBookingFinancialSnapshot,
+  hydrateBookingFinancialsStore,
+} from "@qafnest/shared/bookingFinancialsStore";
+import {
+  createBookingRefundRecord,
+  hydrateBookingRefundStore,
+  persistBookingRefundStore,
+} from "@qafnest/shared/bookingRefundStore";
+import { signBookingSlipToken } from "@qafnest/shared/portalSessionEdge";
 import { acquirePropertyBookingLock } from "@qafnest/shared/bookingSlotStore";
 import {
   DEFAULT_CHECKIN_TIME,
@@ -187,13 +198,14 @@ async function handleCallback(request: NextRequest) {
                 }
               } catch {}
 
+              const slipToken = await signBookingSlipToken(bookingRef, String(paymentId));
               return {
                 redirect: buildSafeCallbackRedirect(canonicalOrigin, rawPropertyId, {
                   confirmed: "true",
                   bookingRef,
                   amount: String(paidAmount),
                   gateway: gatewayName,
-                  paymentId: String(paymentId),
+                  slip: slipToken,
                 }),
               };
             }
@@ -203,7 +215,7 @@ async function handleCallback(request: NextRequest) {
                 .from("bookings")
                 .select("id, check_in, check_out, checkin_time, checkout_time")
                 .eq("property_id", bookingRecord.property_id)
-                .in("status", ["confirmed", "completed"])
+                .in("status", ["confirmed", "checked_in", "completed"])
                 .neq("id", bookingRecord.id)
                 .lte("check_in", bookingRecord.check_out)
                 .gte("check_out", bookingRecord.check_in);
@@ -218,7 +230,7 @@ async function handleCallback(request: NextRequest) {
                   .from("bookings")
                   .select("id, check_in, check_out")
                   .eq("property_id", bookingRecord.property_id)
-                  .in("status", ["confirmed", "completed"])
+                  .in("status", ["confirmed", "checked_in", "completed"])
                   .neq("id", bookingRecord.id)
                   .lte("check_in", bookingRecord.check_out)
                   .gte("check_out", bookingRecord.check_in);
@@ -242,12 +254,50 @@ async function handleCallback(request: NextRequest) {
                 );
               });
 
-              if (hasSlotConflict) {
+              let hasBlockedNight = false;
+              if (!hasSlotConflict && bookingRecord.check_out > bookingRecord.check_in) {
+                const { data: blockedRows } = await dbClient
+                  .from("property_availability")
+                  .select("date")
+                  .eq("property_id", bookingRecord.property_id)
+                  .eq("is_available", false)
+                  .gte("date", bookingRecord.check_in)
+                  .lt("date", bookingRecord.check_out)
+                  .limit(1);
+                hasBlockedNight = Boolean(blockedRows && blockedRows.length > 0);
+              }
+
+              if (hasSlotConflict || hasBlockedNight) {
+                await refundSettledWalletSplit(bookingRef, "Late payment conflict after reservation timeout");
                 await clearPendingWalletSplit(bookingRef);
+                await hydrateBookingRefundStore();
+                createBookingRefundRecord({
+                  bookingRef,
+                  guestId: bookingRecord.guest_id ? String(bookingRecord.guest_id) : undefined,
+                  totalBookingPrice: Number(bookingRecord.total_price || paidAmount),
+                  refundAmount: paidAmount,
+                  refundPercentage: 100,
+                  penaltyAmount: 0,
+                  cancellationReason: "Automatic refund queued: dates became unavailable before gateway settlement completed.",
+                  actor: "admin",
+                  policyTier: "admin_override",
+                  refundMethod: "original_card",
+                });
+                await persistBookingRefundStore();
+                try {
+                  await dbClient
+                    .from("bookings")
+                    .update({
+                      status: "refund_requested",
+                      payment_id: String(paymentId),
+                      updated_at: new Date().toISOString(),
+                    })
+                    .eq("id", bookingRecord.id);
+                } catch {}
                 return {
                   redirect: buildSafeCallbackRedirect(canonicalOrigin, rawPropertyId, {
                     payment_error: "booking_timeout_refund_required",
-                    message: "Booking reservation timed out and property was rebooked. Automatic refund required.",
+                    message: "Booking reservation timed out and property was rebooked. Automatic refund queued.",
                     bookingRef,
                   }),
                 };
@@ -262,6 +312,7 @@ async function handleCallback(request: NextRequest) {
               gatewayName,
             });
             if (!paymentVerification.ok) {
+              await refundSettledWalletSplit(bookingRef, paymentVerification.message);
               await clearPendingWalletSplit(bookingRef);
               return {
                 redirect: buildSafeCallbackRedirect(canonicalOrigin, rawPropertyId, {
@@ -287,20 +338,40 @@ async function handleCallback(request: NextRequest) {
 
             if (rpcResult && rpcResult.success === false) {
               if (rpcResult.error === "booking_already_paid") {
+                const slipToken = await signBookingSlipToken(bookingRef, String(paymentId));
                 return {
                   redirect: buildSafeCallbackRedirect(canonicalOrigin, rawPropertyId, {
                     confirmed: "true",
                     bookingRef,
                     amount: String(paymentVerification.totalConfirmedAmount),
                     gateway: paymentVerification.effectiveGatewayLabel,
-                    paymentId: String(paymentId),
+                    slip: slipToken,
                   }),
                 };
               }
-              if (paymentVerification.isSplit) {
-                await refundSettledWalletSplit(bookingRef, `Confirmation rejected (${rpcResult.error || "conflict"})`);
-              } else {
-                await clearPendingWalletSplit(bookingRef);
+              await refundSettledWalletSplit(bookingRef, `Confirmation rejected (${rpcResult.error || "conflict"})`);
+              await clearPendingWalletSplit(bookingRef);
+              if (rpcResult.error === "booking_slot_overlap" || rpcResult.error === "property_date_blocked") {
+                await hydrateBookingRefundStore();
+                createBookingRefundRecord({
+                  bookingRef,
+                  guestId: bookingRecord.guest_id ? String(bookingRecord.guest_id) : undefined,
+                  totalBookingPrice: Number(bookingRecord.total_price || paidAmount),
+                  refundAmount: paidAmount,
+                  refundPercentage: 100,
+                  penaltyAmount: 0,
+                  cancellationReason: `Automatic refund queued due to atomic booking conflict (${rpcResult.error}).`,
+                  actor: "admin",
+                  policyTier: "admin_override",
+                  refundMethod: "original_card",
+                });
+                await persistBookingRefundStore();
+                try {
+                  await dbClient
+                    .from("bookings")
+                    .update({ status: "refund_requested", payment_id: String(paymentId), updated_at: new Date().toISOString() })
+                    .eq("id", bookingRecord.id);
+                } catch {}
               }
               return {
                 redirect: buildSafeCallbackRedirect(canonicalOrigin, rawPropertyId, {
@@ -330,9 +401,22 @@ async function handleCallback(request: NextRequest) {
                 .maybeSingle();
 
               if (casErr || !updatedBooking) {
-                if (paymentVerification.isSplit) {
-                  await refundSettledWalletSplit(bookingRef, "Database confirmation conflict");
-                }
+                await refundSettledWalletSplit(bookingRef, "Database confirmation conflict");
+                await clearPendingWalletSplit(bookingRef);
+                await hydrateBookingRefundStore();
+                createBookingRefundRecord({
+                  bookingRef,
+                  guestId: bookingRecord.guest_id ? String(bookingRecord.guest_id) : undefined,
+                  totalBookingPrice: Number(bookingRecord.total_price || paidAmount),
+                  refundAmount: paidAmount,
+                  refundPercentage: 100,
+                  penaltyAmount: 0,
+                  cancellationReason: "Automatic refund queued due to database confirmation conflict.",
+                  actor: "admin",
+                  policyTier: "admin_override",
+                  refundMethod: "original_card",
+                });
+                await persistBookingRefundStore();
                 return {
                   redirect: buildSafeCallbackRedirect(canonicalOrigin, rawPropertyId, {
                     payment_error: "booking_slot_overlap",
@@ -368,6 +452,7 @@ async function handleCallback(request: NextRequest) {
                 console.warn("Could not insert host notification:", notifErr);
               }
 
+              await hydrateBookingFinancialsStore().catch(() => undefined);
               const finSnap = getBookingFinancialSnapshot(bookingRef) || getBookingFinancialSnapshot(bookingRecord.id);
               const guestIdentifier = bookingRecord.guest_id || bookingRecord.auth_subject;
 
@@ -457,12 +542,13 @@ async function handleCallback(request: NextRequest) {
         }
       }
 
+      const slipToken = bookingRef ? await signBookingSlipToken(bookingRef, String(paymentId)) : null;
       return buildSafeCallbackRedirect(canonicalOrigin, rawPropertyId, {
         confirmed: "true",
         bookingRef: bookingRef || null,
         amount: String(confirmedAmount),
         gateway: confirmedGateway,
-        paymentId: String(paymentId),
+        ...(slipToken ? { slip: slipToken } : {}),
       });
     } else {
       const failureReason =
@@ -471,7 +557,17 @@ async function handleCallback(request: NextRequest) {
         statusResult.Message ||
         "Payment was not completed";
 
-      if (bookingRef && (!gatewayCustomerRef || gatewayCustomerRef === bookingRef)) {
+      // Only cancel when gateway authoritatively reports Failed/Canceled for this exact bookingRef
+      const isAuthoritativeFailure = Boolean(
+        statusResult.IsSuccess &&
+        invoiceData &&
+        bookingRef &&
+        gatewayCustomerRef === bookingRef &&
+        (invoiceData.InvoiceStatus === "Failed" || invoiceData.InvoiceStatus === "Canceled")
+      );
+
+      if (isAuthoritativeFailure && bookingRef) {
+        await refundSettledWalletSplit(bookingRef, "Gateway payment failed or cancelled");
         await clearPendingWalletSplit(bookingRef);
         try {
           await dbClient

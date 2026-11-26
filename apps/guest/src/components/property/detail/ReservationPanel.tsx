@@ -53,7 +53,7 @@ export interface ReservationPanelProps {
   onCheckoutChange: (value: string) => void;
   onCheckoutTimeChange: (value: string) => void;
   onGuestsChange: (value: number) => void;
-  onReserve: () => void;
+  onReserve: (couponCode?: string) => void;
   compact?: boolean;
 }
 
@@ -103,6 +103,10 @@ export default function ReservationPanel({
     offerDiscountAmount,
     riyalLabel,
     splitInstallment,
+    appliedCoupon,
+    couponDiscount,
+    handleApplyCoupon,
+    handleRemoveCoupon,
   } = useReservationPricing({
     property,
     checkinDate,
@@ -161,7 +165,7 @@ export default function ReservationPanel({
   };
 
   return (
-    <section className="relative overflow-hidden rounded-3xl border border-violet-200/90 bg-white p-5 shadow-[0_18px_55px_rgba(70,35,130,0.12)] dark:border-violet-500/25 dark:bg-[#12101a] dark:shadow-[0_18px_55px_rgba(0,0,0,0.4)] sm:p-6">
+    <section className="relative overflow-hidden rounded-2xl border border-slate-200/90 bg-white p-5 shadow-lg dark:border-slate-800 dark:bg-[#110F18] sm:p-6">
       {!property.isApproved && property.status !== "approved" && (
         <div className="mb-4 rounded-2xl border border-amber-500/40 bg-amber-500/10 p-3.5 text-xs">
           <div className="flex items-center gap-2 font-bold text-amber-600 dark:text-amber-300 mb-1">
@@ -252,7 +256,7 @@ export default function ReservationPanel({
       <div className="border-t border-slate-100 pt-5 pb-3 dark:border-white/10">
         <button
           type="button"
-          onClick={onReserve}
+          onClick={() => onReserve(appliedCoupon || undefined)}
           disabled={!isAvailable}
           className={`flex w-full items-center justify-center gap-2 rounded-2xl py-4 text-base font-black uppercase tracking-wider text-white transition active:scale-[0.99] cursor-pointer ${
             !isAvailable
@@ -279,6 +283,10 @@ export default function ReservationPanel({
             offerDiscountAmount={offerDiscountAmount}
             previewPricing={previewPricing}
             riyalLabel={riyalLabel}
+            appliedCoupon={appliedCoupon}
+            couponDiscount={couponDiscount}
+            onApplyCoupon={handleApplyCoupon}
+            onRemoveCoupon={handleRemoveCoupon}
           />
         )}
       </div>

@@ -60,10 +60,10 @@ export function ReservationDateSection({
   } = calendarState;
 
   return (
-    <div className="border-t border-violet-100/90 py-4 dark:border-violet-500/20">
+    <div className="border-t border-slate-200/80 py-4 dark:border-slate-800">
       <div className="mb-2.5 flex items-center justify-between text-xs sm:text-[13px]">
-        <span className="inline-flex items-center gap-1.5 font-extrabold text-gray-950 dark:text-white">
-          <CalendarDays className="h-3.5 w-3.5 text-violet-600 dark:text-violet-400" />
+        <span className="inline-flex items-center gap-1.5 font-bold text-slate-900 dark:text-white">
+          <CalendarDays className="h-3.5 w-3.5 text-[#4F2396] dark:text-purple-300" />
           {isTwelveHourStay
             ? language === "ar"
               ? "إقامة 12 ساعة (12 ص – 12 م)"
@@ -76,15 +76,15 @@ export function ReservationDateSection({
             setSelectingField("checkin");
             setCalendarOpen((prev) => !prev);
           }}
-          className="font-semibold text-violet-600 hover:text-violet-800 dark:text-violet-300 dark:hover:text-violet-200 transition-colors cursor-pointer"
+          className="font-semibold text-[#4F2396] hover:text-[#431c82] dark:text-purple-300 dark:hover:text-purple-200 transition-colors cursor-pointer"
         >
           {language === "ar" ? "يمكنك تعديل التاريخ" : "You can edit the date"}
         </button>
       </div>
 
       {/* Date Inputs Box */}
-      <div className="rounded-2xl border-2 border-slate-200/90 bg-white p-1 shadow-xs dark:border-violet-500/30 dark:bg-[#161224]">
-        <div className="grid grid-cols-2 divide-x rtl:divide-x-reverse divide-slate-200/90 dark:divide-violet-500/30">
+      <div className="rounded-2xl border border-slate-200/90 bg-slate-50/60 p-1 shadow-xs dark:border-slate-800 dark:bg-[#110F18]">
+        <div className="grid grid-cols-2 divide-x rtl:divide-x-reverse divide-slate-200/90 dark:divide-slate-800">
           <button
             type="button"
             onClick={() => {
@@ -94,14 +94,17 @@ export function ReservationDateSection({
             }}
             className={`text-left rtl:text-right px-3.5 py-2.5 transition rounded-xl cursor-pointer ${
               calendarOpen && selectingField === "checkin"
-                ? "bg-violet-50 dark:bg-violet-500/20 ring-2 ring-inset ring-violet-500"
-                : "hover:bg-slate-50 dark:hover:bg-white/5"
+                ? "bg-purple-50/80 dark:bg-purple-950/40 ring-1 ring-inset ring-[#4F2396]/40 dark:ring-purple-400/40"
+                : "hover:bg-slate-100/60 dark:hover:bg-white/5"
             }`}
           >
-            <span className="block text-[11px] font-semibold text-gray-500 dark:text-violet-300/80">
+            <span className="block text-[11px] font-semibold text-slate-500 dark:text-slate-400">
               {language === "ar" ? "تاريخ الوصول" : "Check-in Date"}
             </span>
-            <span className="mt-1 block text-xs sm:text-[13px] font-extrabold leading-snug text-violet-950 dark:text-white">
+            <span
+              suppressHydrationWarning
+              className="mt-1 block text-xs sm:text-[13px] font-bold leading-snug text-slate-900 dark:text-white"
+            >
               {formatGathernDate(checkinDate, language)}
             </span>
           </button>
@@ -115,14 +118,17 @@ export function ReservationDateSection({
             }}
             className={`text-left rtl:text-right px-3.5 py-2.5 transition rounded-xl cursor-pointer ${
               calendarOpen && selectingField === "checkout"
-                ? "bg-violet-50 dark:bg-violet-500/20 ring-2 ring-inset ring-violet-500"
-                : "hover:bg-slate-50 dark:hover:bg-white/5"
+                ? "bg-purple-50/80 dark:bg-purple-950/40 ring-1 ring-inset ring-[#4F2396]/40 dark:ring-purple-400/40"
+                : "hover:bg-slate-100/60 dark:hover:bg-white/5"
             }`}
           >
-            <span className="block text-[11px] font-semibold text-gray-500 dark:text-violet-300/80">
+            <span className="block text-[11px] font-semibold text-slate-500 dark:text-slate-400">
               {language === "ar" ? "تاريخ المغادرة" : "Check-out Date"}
             </span>
-            <span className="mt-1 block text-xs sm:text-[13px] font-extrabold leading-snug text-violet-950 dark:text-white">
+            <span
+              suppressHydrationWarning
+              className="mt-1 block text-xs sm:text-[13px] font-bold leading-snug text-slate-900 dark:text-white"
+            >
               {formatGathernDate(checkoutDate, language)}
             </span>
           </button>

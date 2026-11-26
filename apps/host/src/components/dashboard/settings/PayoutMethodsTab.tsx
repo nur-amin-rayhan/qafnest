@@ -10,6 +10,7 @@ import {
   Loader2,
   AlertCircle,
   CreditCard,
+  Trash2,
 } from "lucide-react";
 import {
   detectSaudiBank,
@@ -44,7 +45,7 @@ export function PayoutMethodsTab({
   const [minThreshold, setMinThreshold] = useState(
     payout.minimumPayoutThreshold || 100
   );
-  const [autoDisburse, setAutoDisburse] = useState(payout.autoDisburse ?? true);
+  const autoDisburse = payout.autoDisburse ?? true;
   const [ibanError, setIbanError] = useState<string | null>(null);
 
   const detectedBank = detectSaudiBank(ibanInput);
@@ -83,7 +84,7 @@ export function PayoutMethodsTab({
               {payout.iban && payout.isVerified ? (
                 <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-0.5 text-[11px] font-extrabold text-emerald-700">
                   <CheckCircle2 size={13} className="text-emerald-600" />
-                  <span>{t("SAMA SARIE Verified", "معتمد وموثق لدى سريع")}</span>
+                  <span>{t("IBAN Format Verified (MOD-97)", "صيغة الآيبان صحيحة (MOD-97)")}</span>
                 </span>
               ) : (
                 <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2.5 py-0.5 text-[11px] font-extrabold text-amber-700">
@@ -171,6 +172,33 @@ export function PayoutMethodsTab({
             )}
           </div>
         </div>
+
+        {/* Quick Actions: Clear / Delete Account */}
+        {payout.iban && (
+          <div className="mt-4 pt-4 border-t border-slate-100 flex items-center justify-between">
+            <span className="text-xs text-slate-500 font-medium">
+              {t("Need to change or disconnect this account?", "هل ترغب في تغيير أو حذف هذا الحساب؟")}
+            </span>
+            <button
+              type="button"
+              onClick={async () => {
+                setIbanInput("");
+                setHolderInput("");
+                await onSave({
+                  iban: "",
+                  accountHolder: "",
+                  payoutSchedule: schedule,
+                  minimumPayoutThreshold: minThreshold,
+                  autoDisburse,
+                });
+              }}
+              className="inline-flex items-center gap-1.5 text-xs font-bold text-rose-600 hover:text-rose-700 hover:underline cursor-pointer transition"
+            >
+              <Trash2 size={13} />
+              <span>{t("Delete Bank Account", "حذف الحساب البنكي")}</span>
+            </button>
+          </div>
+        )}
       </div>
 
       {/* 2. Payout Schedule Preferences Card */}

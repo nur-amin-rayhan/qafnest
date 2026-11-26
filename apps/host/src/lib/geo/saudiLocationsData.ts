@@ -1,4 +1,4 @@
-import { SAUDI_ALL_CITIES, resolveSaudiCity } from "@qafnest/shared";
+import { SAUDI_ALL_CITIES } from "@qafnest/shared";
 
 export interface DistrictInfo {
   id: string; // Arabic name, e.g. "حي الملقا"

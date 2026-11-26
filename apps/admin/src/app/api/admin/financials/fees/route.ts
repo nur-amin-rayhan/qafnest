@@ -2,9 +2,16 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAdminSession, isAdminRequest } from "@/lib/adminApi";
 import {
   getServerPlatformFeeConfig,
+  hydratePlatformFeeConfig,
+  persistPlatformFeeConfig,
   updateServerPlatformFeeConfig,
   calculateServerPlatformFee,
 } from "@qafnest/shared/platformFeeStore";
+import {
+  hydrateSignupSecurityStore,
+  persistSignupSecurityStore,
+  updateSignupSecurityPolicy,
+} from "@qafnest/shared/signupSecurityStore";
 
 export const dynamic = "force-dynamic";
 
@@ -21,11 +28,18 @@ export async function GET(request: NextRequest) {
     );
   }
 
+  await hydratePlatformFeeConfig().catch(() => undefined);
   const { searchParams } = request.nextUrl;
   const simulateAmount = searchParams.get("simulate_amount");
 
   if (simulateAmount) {
-    const amount = Number(simulateAmount) || 1000;
+    const amount = Number(simulateAmount);
+    if (!Number.isFinite(amount) || amount <= 0) {
+      return NextResponse.json(
+        { code: "invalid_amount", message: "Simulation amount must be a positive number." },
+        { status: 400, headers: NO_STORE_HEADERS }
+      );
+    }
     const category = searchParams.get("category") || undefined;
     const isNew = searchParams.get("is_new_host") === "true";
     const calculation = calculateServerPlatformFee(amount, category, isNew);
@@ -52,7 +66,16 @@ export async function POST(request: NextRequest) {
   }
 
   try {
+    await hydratePlatformFeeConfig().catch(() => undefined);
     const body = await request.json();
+    const parseFinite = (val: unknown, label: string, min: number, max?: number): number => {
+      const n = Number(val);
+      if (!Number.isFinite(n) || n < min || (max !== undefined && n > max)) {
+        throw new Error(`Invalid numeric value for ${label}`);
+      }
+      return n;
+    };
+
     const guestFeeMode =
       body?.guestFeeMode === "fixed_amount" || body?.guestFeeMode === "percentage"
         ? body.guestFeeMode
@@ -68,25 +91,31 @@ export async function POST(request: NextRequest) {
     else delete feeUpdates.guestFeeMode;
 
     if (body?.guestServiceFeePercent !== undefined) {
-      feeUpdates.guestServiceFeePercent = Math.max(0, Number(body.guestServiceFeePercent) || 0);
+      feeUpdates.guestServiceFeePercent = parseFinite(body.guestServiceFeePercent, "guestServiceFeePercent", 0, 100);
     } else {
       delete feeUpdates.guestServiceFeePercent;
     }
 
     if (body?.guestFixedFeeAmountSar !== undefined) {
-      feeUpdates.guestFixedFeeAmountSar = Math.max(0, Number(body.guestFixedFeeAmountSar) || 0);
+      feeUpdates.guestFixedFeeAmountSar = parseFinite(body.guestFixedFeeAmountSar, "guestFixedFeeAmountSar", 0);
     } else {
       delete feeUpdates.guestFixedFeeAmountSar;
     }
 
     if (body?.baseCommissionPercent !== undefined) {
-      feeUpdates.baseCommissionPercent = Math.max(0, Math.min(80, Number(body.baseCommissionPercent) || 0));
+      feeUpdates.baseCommissionPercent = parseFinite(body.baseCommissionPercent, "baseCommissionPercent", 0, 80);
     } else {
       delete feeUpdates.baseCommissionPercent;
     }
 
+    if (body?.vatRatePercent !== undefined) {
+      feeUpdates.vatRatePercent = parseFinite(body.vatRatePercent, "vatRatePercent", 0, 100);
+    } else {
+      delete feeUpdates.vatRatePercent;
+    }
+
     if (body?.welcomeBonusAmountSar !== undefined) {
-      feeUpdates.welcomeBonusAmountSar = Math.max(0, Number(body.welcomeBonusAmountSar) || 0);
+      feeUpdates.welcomeBonusAmountSar = parseFinite(body.welcomeBonusAmountSar, "welcomeBonusAmountSar", 0);
     } else {
       delete feeUpdates.welcomeBonusAmountSar;
     }
@@ -98,6 +127,23 @@ export async function POST(request: NextRequest) {
     }
 
     const updated = updateServerPlatformFeeConfig(feeUpdates);
+    await persistPlatformFeeConfig(updated).catch(() => undefined);
+
+    if (
+      typeof feeUpdates.welcomeBonusAmountSar === "number" ||
+      typeof feeUpdates.welcomeBonusEnabled === "boolean"
+    ) {
+      await hydrateSignupSecurityStore().catch(() => undefined);
+      updateSignupSecurityPolicy({
+        ...(typeof feeUpdates.welcomeBonusAmountSar === "number"
+          ? { welcomeBonusAmountSar: feeUpdates.welcomeBonusAmountSar }
+          : {}),
+        ...(typeof feeUpdates.welcomeBonusEnabled === "boolean"
+          ? { welcomeBonusEnabled: feeUpdates.welcomeBonusEnabled }
+          : {}),
+      });
+      await persistSignupSecurityStore().catch(() => undefined);
+    }
 
     const guestSummary =
       updated.guestFeeMode === "fixed_amount"

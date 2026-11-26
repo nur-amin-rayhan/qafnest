@@ -7,7 +7,6 @@ import { localizePath } from "@/lib/localization/localeHelper";
 import Navbar from "@/components/common/Navbar";
 import Footer from "@/components/common/Footer";
 import SmoothScroll from "@/components/common/SmoothScroll";
-import BookingModal from "@/components/modals/BookingModal";
 import AuthModal from "@/components/modals/AuthModal";
 import SearchFiltersBar from "@/components/search/SearchFiltersBar";
 import PopularCitiesSection from "@/components/search/PopularCitiesSection";
@@ -198,7 +197,6 @@ function SearchContent() {
       <Footer />
 
       {/* Modals */}
-      <BookingModal />
       <AuthModal />
       <FilterModal
         isOpen={isFilterModalOpen}

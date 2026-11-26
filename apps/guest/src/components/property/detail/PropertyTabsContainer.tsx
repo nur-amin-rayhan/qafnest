@@ -51,7 +51,7 @@ export function PropertyTabsContainer({
     <>
       {/* Tab navigation buttons */}
       <div
-        className="sticky top-[72px] z-20 mt-7 flex w-fit max-w-full items-center gap-1 overflow-x-auto no-scrollbar rounded-2xl border border-violet-200/85 bg-white/95 p-1.5 shadow-md shadow-violet-900/5 backdrop-blur sm:rounded-full dark:border-violet-500/30 dark:bg-[#12101a]/95"
+        className="sticky top-[72px] z-20 mt-7 flex w-fit max-w-full items-center gap-1.5 overflow-x-auto no-scrollbar rounded-full border border-slate-200 bg-white/95 p-1.5 shadow-xs backdrop-blur dark:border-slate-800 dark:bg-[#0E0D16]/95"
         role="tablist"
         aria-label={anchorLabel("Property details", "تفاصيل العقار")}
       >
@@ -79,10 +79,10 @@ export function PropertyTabsContainer({
               selectTab(nextTab.id);
               document.getElementById(`property-tab-${nextTab.id}`)?.focus();
             }}
-            className={`shrink-0 rounded-full px-4 py-2.5 text-xs font-semibold transition cursor-pointer ${
+            className={`shrink-0 rounded-full px-4 py-2 text-xs font-bold transition-all cursor-pointer ${
               activeTab === tab.id
-                ? "bg-gradient-to-r from-violet-600 via-purple-600 to-fuchsia-600 text-white shadow-sm shadow-violet-600/25"
-                : "text-gray-700 hover:bg-violet-50 hover:text-violet-700 dark:text-gray-300 dark:hover:bg-violet-400/10 dark:hover:text-violet-300"
+                ? "bg-[#4F2396] text-white shadow-xs"
+                : "text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-white"
             }`}
           >
             {tab.label}

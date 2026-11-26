@@ -150,16 +150,31 @@ async function runTests() {
   // --- SECTION 4: LIVE HTTP API INTEGRATION ---
   console.log("\n--- SECTION 4: LIVE AVAILABILITY API CHECK ---");
 
+  const guestBaseUrl = (process.env.TEST_GUEST_BASE_URL || "http://localhost:3000").replace(/\/$/, "");
+  const requireLiveApi = process.env.REQUIRE_LIVE_API_TESTS === "1";
   try {
-    const res = await fetch("http://localhost:3000/api/properties/kidia-falcon-ridge/availability");
-    assert(res.status === 200, "GET /api/properties/:id/availability returns HTTP 200");
-    const json = await res.json();
-    assert(Array.isArray(json.checkoutDates), "API response contains checkoutDates array");
-    assert(typeof json.checkoutCutoff === "string", "API response contains checkoutCutoff");
-    assert(Array.isArray(json.timeSlotBookings), "API response contains timeSlotBookings array");
-    assert(json.todayStatus && typeof json.todayStatus.isCheckoutDay === "boolean", "API response contains todayStatus object");
+    const res = await fetch(`${guestBaseUrl}/api/properties/kidia-falcon-ridge/availability`);
+    const contentType = res.headers.get("content-type") || "";
+    if (!contentType.includes("application/json")) {
+      if (requireLiveApi) {
+        assert(false, `Expected JSON from ${guestBaseUrl}/api/properties/:id/availability, got ${res.status} (${contentType})`);
+      } else {
+        console.warn(`Notice: Local Guest API check skipped (status ${res.status}, non-JSON response on ${guestBaseUrl}).`);
+      }
+    } else {
+      assert(res.status === 200, "GET /api/properties/:id/availability returns HTTP 200");
+      const json = await res.json();
+      assert(Array.isArray(json.checkoutDates), "API response contains checkoutDates array");
+      assert(typeof json.checkoutCutoff === "string", "API response contains checkoutCutoff");
+      assert(Array.isArray(json.timeSlotBookings), "API response contains timeSlotBookings array");
+      assert(json.todayStatus && typeof json.todayStatus.isCheckoutDay === "boolean", "API response contains todayStatus object");
+    }
   } catch (err) {
-    console.warn("Notice: Local server check skipped or unreachable:", err.message);
+    if (requireLiveApi) {
+      assert(false, `Live Guest API check failed: ${err.message}`);
+    } else {
+      console.warn("Notice: Local server check skipped or unreachable:", err.message);
+    }
   }
 
   // --- SECTION 5: CHECKOUT RATE CALCULATION & CONFLICT ENFORCEMENT ---

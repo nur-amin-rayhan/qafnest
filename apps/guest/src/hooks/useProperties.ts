@@ -23,7 +23,7 @@ export function useProperties() {
       setLoading(false);
     }
 
-    listProperties().then((result) => {
+    listProperties({ refresh: true }).then((result) => {
       if (!active) return;
       setProperties(result);
       setLoading(false);

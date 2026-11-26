@@ -5,12 +5,9 @@ import { useParams, useRouter } from "next/navigation";
 import { PropertyFullPagePreview } from "@/components/dashboard/PropertyFullPagePreview";
 import { PropertyReviewModal } from "@/components/dashboard/PropertyReviewModal";
 import { PropertyItem } from "@/components/dashboard/types";
-import { createClient } from "@/lib/supabase/client";
 import { useAdminAuth } from "@/context/AdminAuthContext";
 
 import { adminPath } from "@/lib/adminUrl";
-// Fallback catalog of properties if running without DB connection
-const MOCK_PROPERTIES: PropertyItem[] = [];
 
 export default function AdminPropertyPreviewPage() {
   const { t, dir } = useAdminAuth();
@@ -18,9 +15,8 @@ export default function AdminPropertyPreviewPage() {
   const router = useRouter();
   const id = decodeURIComponent(params.id || "");
 
-  const initialMock = MOCK_PROPERTIES.find((p) => p.id === id || p.slug === id) || null;
-  const [property, setProperty] = useState<PropertyItem | null>(initialMock);
-  const [loading, setLoading] = useState(() => !initialMock);
+  const [property, setProperty] = useState<PropertyItem | null>(null);
+  const [loading, setLoading] = useState(true);
   const [reviewModalTarget, setReviewModalTarget] = useState<PropertyItem | null>(null);
 
   useEffect(() => {
@@ -28,7 +24,9 @@ export default function AdminPropertyPreviewPage() {
 
     async function loadProperty() {
       try {
-        const res = await fetch(adminPath(`/api/admin/properties?id=${encodeURIComponent(id)}`), { cache: "no-store" });
+        const res = await fetch(adminPath(`/api/admin/properties?id=${encodeURIComponent(id)}`), {
+          cache: "no-store",
+        });
         if (res.ok) {
           const json = await res.json();
           if (json.property && active) {
@@ -38,30 +36,11 @@ export default function AdminPropertyPreviewPage() {
           }
         }
       } catch {
-        // Fallback to client or mock
+        // Property lookup failed
       }
 
-      try {
-        const supabase = createClient();
-        const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
-        const { data, error } = await supabase
-          .from("properties")
-          .select("*")
-          .eq(isUuid ? "id" : "slug", id)
-          .single();
-
-        if (!error && data && active) {
-          setProperty(data as PropertyItem);
-          setLoading(false);
-          return;
-        }
-      } catch {
-        // Fallback to local catalog
-      }
-
-      const fallback = MOCK_PROPERTIES.find((p) => p.id === id || p.slug === id);
       if (active) {
-        setProperty(fallback || null);
+        setProperty(null);
         setLoading(false);
       }
     }

@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminDataClient, isAdminRequest } from "@/lib/adminApi";
-import { getPromotionState, savePromotionState } from "@qafnest/shared/promotionStore";
+import {
+  getPromotionState,
+  hydratePromotionState,
+  persistPromotionState,
+} from "@qafnest/shared/promotionStore";
 
 export async function POST(request: NextRequest) {
   if (!isAdminRequest(request)) {
@@ -8,6 +12,7 @@ export async function POST(request: NextRequest) {
   }
 
   try {
+    await hydratePromotionState().catch(() => undefined);
     const body = await request.json();
     const action = body.action;
     const target = body.target || (action === "toggle_promotions" ? "global" : action === "toggle_coupon" ? "coupon" : undefined);
@@ -21,19 +26,21 @@ export async function POST(request: NextRequest) {
     if (target === "global" && typeof enabled === "boolean") {
       const isEnabled = enabled;
       if (supabase) {
-        try {
-          await supabase
-            .from("platform_settings")
-            .upsert({
-              key: "promotions_enabled",
-              value: isEnabled,
-              updated_at: new Date().toISOString(),
-            });
-        } catch {}
+        const { error: upsertErr } = await supabase
+          .from("platform_settings")
+          .upsert({
+            key: "promotions_enabled",
+            value: isEnabled,
+            updated_at: new Date().toISOString(),
+          });
+        if (upsertErr) {
+          console.error("[admin coupons toggle] platform_settings upsert failed:", upsertErr);
+          return NextResponse.json({ code: "db_update_failed" }, { status: 500 });
+        }
       }
 
       localState.promotionsEnabled = isEnabled;
-      savePromotionState(localState);
+      await persistPromotionState(localState);
 
       return NextResponse.json({
         success: true,
@@ -46,22 +53,31 @@ export async function POST(request: NextRequest) {
     if (target === "coupon" && couponId && typeof enabled === "boolean") {
       const isEnabled = enabled;
       if (supabase) {
-        try {
-          await supabase
-            .from("coupons")
-            .update({
-              is_active: isEnabled,
-              updated_at: new Date().toISOString(),
-            })
-            .eq("id", couponId);
-        } catch {}
+        const { data: updatedCoupon, error: couponErr } = await supabase
+          .from("coupons")
+          .update({
+            is_active: isEnabled,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", couponId)
+          .select("id")
+          .maybeSingle();
+        if (couponErr) {
+          console.error("[admin coupons toggle] coupon update failed:", couponErr);
+          return NextResponse.json({ code: "db_update_failed" }, { status: 500 });
+        }
+        if (!updatedCoupon) {
+          return NextResponse.json({ code: "coupon_not_found" }, { status: 404 });
+        }
       }
 
       const matchIdx = localState.coupons.findIndex((c) => c.id === couponId || c.code === couponId);
       if (matchIdx !== -1) {
         localState.coupons[matchIdx].is_active = isEnabled;
         localState.coupons[matchIdx].updated_at = new Date().toISOString();
-        savePromotionState(localState);
+        await persistPromotionState(localState);
+      } else if (!supabase) {
+        return NextResponse.json({ code: "coupon_not_found" }, { status: 404 });
       }
 
       return NextResponse.json({

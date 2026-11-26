@@ -19,8 +19,8 @@ export function TodayAvailabilityBadge({
 
   if (status.isCurrentlyOccupied) {
     return (
-      <div className="mb-4 rounded-2xl border border-amber-500/30 bg-gradient-to-r from-amber-500/15 via-amber-500/10 to-transparent p-3.5 text-xs">
-        <div className="flex items-center gap-2 font-extrabold text-amber-700 dark:text-amber-300">
+      <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50/80 p-3.5 text-xs dark:border-amber-900/40 dark:bg-amber-950/30">
+        <div className="flex items-center gap-2 font-bold text-amber-700 dark:text-amber-300">
           <Clock className="h-4 w-4 shrink-0 animate-pulse text-amber-600 dark:text-amber-400" />
           <span>
             {isAr
@@ -38,8 +38,8 @@ export function TodayAvailabilityBadge({
   }
 
   return (
-    <div className="mb-4 rounded-2xl border border-emerald-500/35 bg-gradient-to-r from-emerald-500/15 via-emerald-500/10 to-transparent p-3.5 text-xs">
-      <div className="flex items-center gap-2 font-extrabold text-emerald-700 dark:text-emerald-300">
+    <div className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50/80 p-3.5 text-xs dark:border-emerald-900/40 dark:bg-emerald-950/30">
+      <div className="flex items-center gap-2 font-bold text-emerald-700 dark:text-emerald-300">
         <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
         <span className="flex items-center gap-1.5">
           {isAr ? "متاح لتسجيل الوصول اليوم" : "Available for Check-in Today"}

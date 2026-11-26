@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
+import { Download, Headphones, Calendar as CalendarIcon, ListOrdered, CalendarX } from "lucide-react";
 import { useAdminAuth } from "@/context/AdminAuthContext";
 import type { BookingItem, PropertyItem, SelectedBookingDetail } from "./types";
 import { BookingLedgerRow } from "./bookings/BookingLedgerRow";
@@ -37,107 +38,124 @@ export function BookingsTab({
   const { dir, lang, t } = useAdminAuth();
   const [viewMode, setViewMode] = useState<"ledger" | "calendar">("ledger");
 
+  const handleExportCsv = () => {
+    const esc = (v: unknown) => {
+      const s = String(v ?? "");
+      return /[",\r\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+    };
+    const headers = [
+      "Booking_Ref",
+      "Property",
+      "Guest",
+      "Phone",
+      "Check_In",
+      "Check_Out",
+      "Nights",
+      "Amount_SAR",
+      "Status",
+      "Payment_Status",
+    ];
+    const rows = filteredBookings.map((b) => [
+      b.booking_reference || b.id,
+      b.property_title || "",
+      b.guest_name || "",
+      b.guest_phone || "",
+      b.check_in || "",
+      b.check_out || "",
+      b.total_nights ?? 1,
+      Number(b.total_price ?? 0).toFixed(2),
+      b.status || "",
+      b.payment_status || "",
+    ]);
+    const csvContent =
+      "\uFEFF" +
+      [headers.map(esc).join(","), ...rows.map((r) => r.map(esc).join(","))].join("\r\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `qafnest-bookings-${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    triggerToast(
+      t(
+        `Exported ${filteredBookings.length} bookings to CSV.`,
+        `تم تصدير ${filteredBookings.length} حجوزات إلى ملف CSV.`
+      )
+    );
+  };
+
   return (
-    <div dir={dir} className="flex flex-col w-full gap-space-lg">
-      {/* Top Control Bar & Breadcrumb Action Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-space-md">
-        <div className="flex flex-col">
-          <div className="flex items-center gap-space-xs text-outline font-label-sm text-label-sm uppercase tracking-wider mb-1">
-            <span>{t("Portfolio Ops", "عمليات الحجوزات")}</span>
-            <span className="material-symbols-outlined text-[14px]">chevron_right</span>
-            <span className="text-primary font-bold">{t("Reservations & Stays", "الحجوزات والإقامات")}</span>
-          </div>
-          <h1 className="font-headline-lg text-headline-lg text-on-surface tracking-tight">
-            {t("Reservations & Stays", "الحجوزات والإقامات")}
+    <div dir={dir} className="flex flex-col w-full">
+      {/* Top Header & Actions */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+        <div>
+          <h1 className="text-xl font-semibold text-slate-900 dark:text-slate-100 tracking-tight">
+            {t("Reservations & bookings", "الحجوزات والإقامات")}
           </h1>
-          <p className="font-body-md text-body-md text-on-surface-variant">
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
             {t(
-              "Live booking ledger, real-time guest flows, and settlement compliance across all centralized regional properties.",
-              "سجل الحجوزات المباشر، متابعة الضيوف الفورية، ومطابقة التسويات المالية لجميع العقارات."
+              "Live booking ledger, guest flows, and payment settlement across regional properties.",
+              "سجل الحجوزات المباشر، متابعة الضيوف، ومطابقة التسويات المالية لجميع العقارات."
             )}
           </p>
         </div>
 
-        {/* Actions & Calendar View Switcher */}
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="flex items-center rounded-xl bg-surface-container-lowest border border-surface-container p-1 shadow-xs">
+        {/* View Switcher & Action Buttons */}
+        <div className="flex items-center gap-2.5 flex-wrap">
+          {/* Mode Switcher */}
+          <div className="inline-flex p-0.5 bg-slate-100 dark:bg-slate-800 rounded-lg">
             <button
               type="button"
               onClick={() => setViewMode("ledger")}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
+              className={`h-8 px-3 rounded-md text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer ${
                 viewMode === "ledger"
-                  ? "bg-primary-container text-on-primary shadow-xs"
-                  : "text-on-surface-variant hover:text-on-surface"
+                  ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-xs font-semibold"
+                  : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100"
               }`}
             >
-              {t("Bookings Ledger", "سجل الحجوزات")}
+              <ListOrdered size={14} strokeWidth={1.5} />
+              <span>{t("Ledger", "السجل")}</span>
             </button>
             <button
               type="button"
               onClick={() => setViewMode("calendar")}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer flex items-center gap-1.5 ${
+              className={`h-8 px-3 rounded-md text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer ${
                 viewMode === "calendar"
-                  ? "bg-primary-container text-on-primary shadow-xs"
-                  : "text-on-surface-variant hover:text-on-surface"
+                  ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-xs font-semibold"
+                  : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100"
               }`}
             >
-              <span className="material-symbols-outlined text-[16px]">calendar_month</span>
-              {t("Calendar & Slot Controls", "التقويم والتحكم بالفترات")}
+              <CalendarIcon size={14} strokeWidth={1.5} />
+              <span>{t("Calendar", "التقويم")}</span>
             </button>
           </div>
+
+          {/* Export CSV */}
+          <button
+            type="button"
+            onClick={handleExportCsv}
+            className="h-8 px-3 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer shadow-xs"
+          >
+            <Download size={14} strokeWidth={1.5} className="text-slate-500 dark:text-slate-400" />
+            <span>{t("Export", "تصدير")}</span>
+          </button>
+
+          {/* Helpline Booking */}
           <Link
             href="/helpline"
             data-testid="open-manual-booking-btn"
-            className="h-10 flex items-center gap-2 px-4 rounded-xl bg-status-emerald text-white font-title-sm text-xs font-bold shadow-xs hover:bg-emerald-700 transition-all cursor-pointer"
+            className="h-8 px-3.5 rounded-lg bg-[#4F2396] hover:bg-[#3d1a75] text-white text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer shadow-xs"
           >
-            <span className="material-symbols-outlined text-[18px]">support_agent</span>
-            <span>{t("+ Helpline Booking", "+ حجز هاتفي يدوي")}</span>
+            <Headphones size={14} strokeWidth={1.5} />
+            <span>{t("Helpline booking", "حجز هاتفي")}</span>
           </Link>
-          <button
-            type="button"
-            onClick={() => {
-              const esc = (v: unknown) => {
-                const s = String(v ?? "");
-                return /[",\r\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
-              };
-              const headers = ["Booking_Ref", "Property", "Guest", "Phone", "Check_In", "Check_Out", "Nights", "Amount_SAR", "Status", "Payment_Status"];
-              const rows = filteredBookings.map((b) => [
-                b.booking_reference || b.id,
-                b.property_title || "",
-                b.guest_name || "",
-                b.guest_phone || "",
-                b.check_in || "",
-                b.check_out || "",
-                b.total_nights ?? 1,
-                Number(b.total_price ?? 0).toFixed(2),
-                b.status || "",
-                b.payment_status || "",
-              ]);
-              const csvContent =
-                "\uFEFF" +
-                [headers.map(esc).join(","), ...rows.map((r) => r.map(esc).join(","))].join("\r\n");
-              const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-              const url = URL.createObjectURL(blob);
-              const link = document.createElement("a");
-              link.href = url;
-              link.download = `qafnest-bookings-${new Date().toISOString().slice(0, 10)}.csv`;
-              document.body.appendChild(link);
-              link.click();
-              document.body.removeChild(link);
-              URL.revokeObjectURL(url);
-              triggerToast(
-                t(`Exported ${filteredBookings.length} booking rows to CSV.`, `تم تصدير ${filteredBookings.length} حجوزات إلى ملف CSV.`)
-              );
-            }}
-            className="h-10 flex items-center gap-2 px-4 rounded-xl bg-primary-container text-on-primary font-title-sm text-xs font-bold shadow-xs hover:bg-primary transition-all cursor-pointer"
-          >
-            <span className="material-symbols-outlined text-[18px]">download</span>
-            <span>{t("Export CSV", "تصدير CSV")}</span>
-          </button>
         </div>
       </div>
 
-      {/* Key Metrics Row (4 Asymmetric KPI Bento) */}
+      {/* KPI Bento Strip */}
       <BookingKpiStrip bookings={bookings} t={t} />
 
       {viewMode === "calendar" ? (
@@ -149,7 +167,7 @@ export function BookingsTab({
         />
       ) : (
         <>
-          {/* Filter and View Selection Ribbon */}
+          {/* Filter ribbon */}
           <BookingFilterRibbon
             bookings={bookings}
             bookingStatusFilter={bookingStatusFilter}
@@ -159,92 +177,99 @@ export function BookingsTab({
             t={t}
           />
 
-          {/* Primary Interactive Reservations Container */}
-          <div className="w-full overflow-hidden bg-surface-container-lowest rounded-xl shadow-sm border border-surface-container/60">
-        {/* Desktop Table View (xl+) */}
-        <div className="hidden xl:block w-full overflow-x-auto">
-          <table className="table-fixed w-full min-w-[860px] border-collapse text-start">
-            <colgroup>
-              <col style={{ width: "27%" }} />
-              <col style={{ width: "25%" }} />
-              <col style={{ width: "20%" }} />
-              <col style={{ width: "16%" }} />
-              <col style={{ width: "12%" }} />
-            </colgroup>
-            <thead>
-              <tr className="bg-surface-container-low text-outline font-label-sm text-label-sm uppercase tracking-wider border-b border-surface-container/60">
-                <th className="py-3 px-4 text-start font-semibold">
-                  {t("Booking & Guest", "الحجز والضيف")}
-                </th>
-                <th className="py-3 px-4 text-start font-semibold">
-                  {t("Property & Chalet", "العقار والشاليه")}
-                </th>
-                <th className="py-3 px-4 text-start font-semibold">
-                  {t("Stay Window", "فترة الإقامة")}
-                </th>
-                <th className="py-3 px-4 text-start font-semibold">
-                  {t("Amount & State", "المبلغ والحالة")}
-                </th>
-                <th className="py-3 px-3 text-end font-semibold">{t("Actions", "الإجراءات")}</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-surface-container/60 text-body-sm font-body-sm">
+          {/* Ledger Table Container */}
+          <div className="w-full overflow-hidden bg-white dark:bg-[#0E0D16] rounded-xl border border-slate-200/90 dark:border-slate-800 shadow-xs mb-6">
+            {/* Desktop Table */}
+            <div className="hidden lg:block w-full overflow-x-auto">
+              <table className="table-fixed w-full min-w-[860px] border-collapse text-start">
+                <colgroup>
+                  <col style={{ width: "27%" }} />
+                  <col style={{ width: "26%" }} />
+                  <col style={{ width: "20%" }} />
+                  <col style={{ width: "15%" }} />
+                  <col style={{ width: "12%" }} />
+                </colgroup>
+                <thead>
+                  <tr className="bg-slate-50/75 dark:bg-slate-900/60 border-b border-slate-200/80 dark:border-slate-800 text-[11px] font-medium text-slate-500 dark:text-slate-400 select-none">
+                    <th className="py-2.5 px-4 text-start font-medium">
+                      {t("Booking & guest", "الحجز والضيف")}
+                    </th>
+                    <th className="py-2.5 px-4 text-start font-medium">
+                      {t("Property & unit", "العقار والوحدة")}
+                    </th>
+                    <th className="py-2.5 px-4 text-start font-medium">
+                      {t("Stay dates", "فترة الإقامة")}
+                    </th>
+                    <th className="py-2.5 px-4 text-start font-medium">
+                      {t("Amount & status", "المبلغ والحالة")}
+                    </th>
+                    <th className="py-2.5 px-4 text-end font-medium">
+                      {t("Actions", "الإجراءات")}
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-xs text-slate-800 dark:text-slate-200">
+                  {filteredBookings.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} className="py-14 text-center">
+                        <div className="flex flex-col items-center justify-center gap-2 text-slate-400">
+                          <CalendarX size={28} strokeWidth={1.25} className="text-slate-300 dark:text-slate-600" />
+                          <p className="text-xs text-slate-500 dark:text-slate-400">
+                            {t("No reservations found in this view.", "لا توجد حجوزات في هذا العرض.")}
+                          </p>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredBookings.map((b) => (
+                      <BookingLedgerRow
+                        key={b.id}
+                        b={b}
+                        setSelectedBooking={setSelectedBooking}
+                        t={t}
+                      />
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Mobile & Tablet Card Layout (< lg) */}
+            <div className="block lg:hidden w-full divide-y divide-slate-100 dark:divide-slate-800">
               {filteredBookings.length === 0 ? (
-                <tr>
-                  <td colSpan={5} className="py-12 text-center text-outline">
-                    {t("No reservations found in this view.", "لا توجد حجوزات في هذا العرض.")}
-                  </td>
-                </tr>
+                <div className="py-12 text-center text-slate-400 text-xs">
+                  {t("No reservations found in this view.", "لا توجد حجوزات في هذا العرض.")}
+                </div>
               ) : (
                 filteredBookings.map((b) => (
-                  <BookingLedgerRow
-                    key={b.id}
-                    b={b}
-                    setSelectedBooking={setSelectedBooking}
-                    t={t}
-                  />
+                  <BookingMobileCard key={b.id} b={b} setSelectedBooking={setSelectedBooking} />
                 ))
               )}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Mobile & Tablet Card Layout (< xl) */}
-        <div className="block xl:hidden w-full divide-y divide-surface-container/60">
-          {filteredBookings.length === 0 ? (
-            <div className="py-12 text-center text-outline">
-              {t("No reservations found in this view.", "لا توجد حجوزات في هذا العرض.")}
             </div>
-          ) : (
-            filteredBookings.map((b) => (
-              <BookingMobileCard key={b.id} b={b} setSelectedBooking={setSelectedBooking} />
-            ))
-          )}
-        </div>
 
-        {/* Table Footer */}
-        <div className="flex flex-col sm:flex-row items-center justify-between px-4 py-3 bg-surface-container-low font-body-sm text-body-sm text-on-surface-variant border-t border-surface-container/60 gap-2">
-          <div className="flex items-center gap-2">
-            <span>
-              {t(
-                `Showing ${filteredBookings.length === 0 ? 0 : 1} to ${filteredBookings.length} of ${bookings.length} stays`,
-                `عرض ${filteredBookings.length === 0 ? 0 : 1} إلى ${filteredBookings.length} من أصل ${bookings.length} إقامات`
-              )}
-            </span>
-            <span className="text-outline">•</span>
-            <span className="text-outline">{t("Synced with database", "متزامن مع قاعدة البيانات")}</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <button className="px-2.5 py-1 rounded bg-primary-container text-on-primary font-semibold text-xs">
-              1
-            </button>
-            {filteredBookings.length > 10 && (
-              <button className="px-2.5 py-1 rounded text-on-surface hover:bg-surface-container text-xs">
-                2
-              </button>
-            )}
-          </div>
-        </div>
+            {/* Table Footer */}
+            <div className="flex flex-col sm:flex-row items-center justify-between px-4 py-2.5 bg-slate-50/75 dark:bg-slate-900/60 border-t border-slate-200/80 dark:border-slate-800 text-xs text-slate-500 dark:text-slate-400 gap-2">
+              <div className="flex items-center gap-2">
+                <span>
+                  {t("Showing", "عرض")}{" "}
+                  <span className="font-mono tabular-nums font-medium text-slate-800 dark:text-slate-200">
+                    {filteredBookings.length}
+                  </span>{" "}
+                  {t("of", "من")}{" "}
+                  <span className="font-mono tabular-nums">{bookings.length}</span>{" "}
+                  {t("total stays", "إجمالي الإقامات")}
+                </span>
+                <span className="text-slate-300 dark:text-slate-600">•</span>
+                <span className="text-slate-400 dark:text-slate-500">
+                  {t("Real-time ledger", "سجل فوري")}
+                </span>
+              </div>
+              <div className="flex items-center gap-1">
+                <span className="h-6 px-2 rounded bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-mono text-[11px] flex items-center justify-center font-medium">
+                  1
+                </span>
+              </div>
+            </div>
           </div>
         </>
       )}

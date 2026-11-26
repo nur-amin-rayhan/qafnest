@@ -123,6 +123,7 @@ export function usePropertyDetailState({
     property.checkinTime,
     property.checkoutTime,
     capacity,
+    guestsCount,
     setCheckinDate,
     setCheckinTime,
     setCheckoutDate,
@@ -169,13 +170,16 @@ export function usePropertyDetailState({
     }
   };
 
-  const handleReserve = () => {
+  const handleReserve = (couponCode?: string) => {
     const reservationParams = new URLSearchParams(searchParamString);
     reservationParams.set("check_in", checkinDate);
     reservationParams.set("check_out", checkoutDate);
     reservationParams.set("check_in_time", checkinTime);
     reservationParams.set("check_out_time", checkoutTime);
     reservationParams.set("guests", String(selectedGuestsCount));
+    if (couponCode) {
+      reservationParams.set("coupon", couponCode);
+    }
     router.push(propertyReservationHref(property.id, reservationParams));
   };
 

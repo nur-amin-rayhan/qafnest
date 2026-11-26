@@ -1,26 +1,43 @@
 # Caddy reverse proxy configuration for QafNest on Hetzner VPS (Subdomain Isolation)
 # Copy to /etc/caddy/Caddyfile and reload with: sudo systemctl reload caddy
 
+(security_headers) {
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Frame-Options "DENY"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		Permissions-Policy "camera=(), microphone=(), geolocation=(self)"
+		-Server
+		-X-Powered-By
+	}
+}
+
 www.qafnest.com {
+	import security_headers
 	redir https://qafnest.com{uri} permanent
 }
 
 qafnest.com {
+	import security_headers
 	encode gzip zstd
 	reverse_proxy 127.0.0.1:3000
 }
 
 business.qafnest.com {
+	import security_headers
 	encode gzip zstd
 	reverse_proxy 127.0.0.1:3001
 }
 
 cms.qafnest.com {
+	import security_headers
 	encode gzip zstd
 	reverse_proxy 127.0.0.1:3002
 }
 
 admin.qafnest.com {
+	import security_headers
 	encode gzip zstd
 	reverse_proxy 127.0.0.1:3003
 }

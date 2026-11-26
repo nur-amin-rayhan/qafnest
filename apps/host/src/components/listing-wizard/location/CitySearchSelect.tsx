@@ -77,7 +77,7 @@ export function CitySearchSelect({ value, onSelect, lang, t }: CitySearchSelectP
   };
 
   return (
-    <div ref={containerRef} className="relative flex flex-col sm:flex-row sm:items-center gap-2">
+    <div ref={containerRef} className="relative z-30 flex flex-col sm:flex-row sm:items-center gap-2">
       <label className="text-xs font-black text-slate-700 shrink-0">
         {t("City", "المدينة")} <span className="text-rose-500">*</span>
       </label>

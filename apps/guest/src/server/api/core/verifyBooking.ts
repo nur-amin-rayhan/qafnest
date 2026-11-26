@@ -1,19 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import {
   getVerificationSession,
+  hydrateHelplineVerificationStore,
+  persistHelplineVerificationStore,
+  toPublicHelplineSession,
   verifySessionOtp,
   verifySessionIdentity,
 } from "@qafnest/shared/helplineVerificationStore";
-import { hydrateSharedJsonFile, persistSharedJsonFile } from "@qafnest/shared/serverJsonStore";
-
-const VERIFICATIONS_FILE = "helpline-verifications.json";
 
 export async function GET(
-  request: NextRequest,
+  _request: NextRequest,
   context: { params: Promise<{ token: string }> }
 ) {
   const { token } = await context.params;
-  await hydrateSharedJsonFile(VERIFICATIONS_FILE, () => ({}));
+  await hydrateHelplineVerificationStore();
   const session = getVerificationSession(token);
   if (!session) {
     return NextResponse.json({ error: "Verification link is invalid or expired." }, { status: 404 });
@@ -21,17 +21,7 @@ export async function GET(
 
   return NextResponse.json({
     success: true,
-    session: {
-      token: session.token,
-      phoneNumber: session.phoneNumber,
-      guestName: session.guestName,
-      nationalId: session.nationalId ? `${session.nationalId.slice(0, 3)}****${session.nationalId.slice(-3)}` : null,
-      idType: session.idType,
-      otpVerified: session.otpVerified,
-      identityVerified: session.identityVerified,
-      completed: session.completed,
-      verificationMethod: session.verificationMethod,
-    },
+    session: toPublicHelplineSession(session),
   });
 }
 
@@ -40,7 +30,7 @@ export async function POST(
   context: { params: Promise<{ token: string }> }
 ) {
   const { token } = await context.params;
-  await hydrateSharedJsonFile(VERIFICATIONS_FILE, () => ({}));
+  await hydrateHelplineVerificationStore();
   const session = getVerificationSession(token);
   if (!session) {
     return NextResponse.json({ error: "Verification session not found" }, { status: 404 });
@@ -53,42 +43,49 @@ export async function POST(
     if (action === "verify_otp") {
       const code = String(body.code || "").trim();
       const res = verifySessionOtp(token, code);
-      if (!res.success) {
+      if (!res.success || !res.session) {
+        await persistHelplineVerificationStore().catch(() => undefined);
         return NextResponse.json({ error: res.error }, { status: 400 });
       }
-      const all = await hydrateSharedJsonFile(VERIFICATIONS_FILE, () => ({}));
-      if (res.session) (all as Record<string, unknown>)[token] = res.session;
-      await persistSharedJsonFile(VERIFICATIONS_FILE, all);
+      await persistHelplineVerificationStore();
       return NextResponse.json({
         success: true,
         message: "Mobile phone verified successfully.",
-        session: res.session ? { ...res.session, devOtpCode: undefined } : undefined,
+        session: toPublicHelplineSession(res.session),
       });
     }
 
     if (action === "verify_identity") {
+      if (!session.otpVerified) {
+        return NextResponse.json(
+          { error: "Please verify your mobile OTP before completing identity verification." },
+          { status: 400 }
+        );
+      }
       const nationalId = String(body.nationalId || "").trim();
       const fullName = body.fullName ? String(body.fullName).trim() : undefined;
-      const res = verifySessionIdentity(token, {
+      const res = await verifySessionIdentity(token, {
         nationalId,
         fullName,
         provider: "yakeen",
       });
-      if (!res.success) {
-        return NextResponse.json({ error: res.error }, { status: 400 });
+      if (!res.success || !res.session) {
+        return NextResponse.json(
+          { error: res.error },
+          { status: res.statusCode || 400 }
+        );
       }
-      const all = await hydrateSharedJsonFile(VERIFICATIONS_FILE, () => ({}));
-      if (res.session) (all as Record<string, unknown>)[token] = res.session;
-      await persistSharedJsonFile(VERIFICATIONS_FILE, all);
+      await persistHelplineVerificationStore();
       return NextResponse.json({
         success: true,
-        message: "National ID / Iqama verified with Elm Yaqeen & Nafath portal.",
-        session: res.session ? { ...res.session, devOtpCode: undefined } : undefined,
+        message: "National ID / Iqama verified successfully.",
+        session: toPublicHelplineSession(res.session),
       });
     }
 
     return NextResponse.json({ error: "Invalid action" }, { status: 400 });
   } catch (err: unknown) {
-    return NextResponse.json({ error: err instanceof Error ? err.message : "Error" }, { status: 500 });
+    console.error("[verifyBooking] error:", err);
+    return NextResponse.json({ error: "Verification service error." }, { status: 500 });
   }
 }

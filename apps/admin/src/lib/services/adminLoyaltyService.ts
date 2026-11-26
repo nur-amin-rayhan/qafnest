@@ -1,4 +1,9 @@
-import { readRootJsonFile, writeRootJsonFile } from "@qafnest/shared/serverJsonStore";
+import {
+  hydrateRootJsonFile,
+  persistRootJsonFile,
+  readRootJsonFile,
+  writeRootJsonFile,
+} from "@qafnest/shared/serverJsonStore";
 
 export interface LoyaltySettings {
   loyaltyEnabled: boolean;
@@ -26,6 +31,9 @@ export interface LoyaltyStoreState {
   wallets: Record<string, unknown>;
   activeOffers: LoyaltyOffer[];
   loyaltySettings?: LoyaltySettings;
+  pendingSplits?: Record<string, unknown>;
+  pendingTopUps?: Record<string, unknown>;
+  processedTopUpPaymentIds?: string[];
 }
 
 const DEFAULT_LOYALTY_SETTINGS: LoyaltySettings = {
@@ -45,29 +53,55 @@ function defaultLoyaltyStoreState(): LoyaltyStoreState {
     wallets: {},
     activeOffers: DEFAULT_OFFERS,
     loyaltySettings: DEFAULT_LOYALTY_SETTINGS,
+    pendingSplits: {},
+    pendingTopUps: {},
+    processedTopUpPaymentIds: [],
   };
+}
+
+function normalizeLoyaltyStoreState(parsed: unknown): LoyaltyStoreState {
+  const candidate = parsed as Partial<LoyaltyStoreState> | null;
+  if (candidate && typeof candidate.wallets === "object" && candidate.wallets !== null) {
+    return {
+      ...candidate,
+      wallets: candidate.wallets || {},
+      activeOffers: Array.isArray(candidate.activeOffers) ? candidate.activeOffers : [],
+      loyaltySettings: candidate.loyaltySettings || DEFAULT_LOYALTY_SETTINGS,
+      pendingSplits:
+        candidate.pendingSplits && typeof candidate.pendingSplits === "object"
+          ? candidate.pendingSplits
+          : {},
+      pendingTopUps:
+        candidate.pendingTopUps && typeof candidate.pendingTopUps === "object"
+          ? candidate.pendingTopUps
+          : {},
+      processedTopUpPaymentIds: Array.isArray(candidate.processedTopUpPaymentIds)
+        ? candidate.processedTopUpPaymentIds
+        : [],
+    };
+  }
+  return defaultLoyaltyStoreState();
 }
 
 function loadStore(): LoyaltyStoreState {
   return readRootJsonFile<LoyaltyStoreState>(
     WALLET_STORE_FILE,
     defaultLoyaltyStoreState,
-    (parsed) => {
-      const candidate = parsed as Partial<LoyaltyStoreState> | null;
-      if (candidate && typeof candidate.wallets === "object" && candidate.wallets !== null) {
-        return {
-          wallets: candidate.wallets || {},
-          activeOffers: Array.isArray(candidate.activeOffers) ? candidate.activeOffers : [],
-          loyaltySettings: candidate.loyaltySettings || DEFAULT_LOYALTY_SETTINGS,
-        };
-      }
-      return defaultLoyaltyStoreState();
-    }
+    normalizeLoyaltyStoreState
   );
 }
 
-function saveStore(state: LoyaltyStoreState): void {
+export async function hydrateAdminLoyaltyStore(): Promise<LoyaltyStoreState> {
+  return hydrateRootJsonFile<LoyaltyStoreState>(
+    WALLET_STORE_FILE,
+    defaultLoyaltyStoreState,
+    normalizeLoyaltyStoreState
+  );
+}
+
+async function saveStore(state: LoyaltyStoreState): Promise<void> {
   writeRootJsonFile(WALLET_STORE_FILE, state);
+  await persistRootJsonFile(WALLET_STORE_FILE, state).catch(() => undefined);
 }
 
 export function getAdminLoyaltyConfig() {
@@ -95,26 +129,29 @@ export function getAdminLoyaltyConfig() {
   };
 }
 
-export function updateAdminLoyaltySettings(settings: Partial<LoyaltySettings>): LoyaltySettings {
+export async function updateAdminLoyaltySettings(settings: Partial<LoyaltySettings>): Promise<LoyaltySettings> {
+  await hydrateAdminLoyaltyStore();
   const store = loadStore();
   store.loyaltySettings = {
     ...(store.loyaltySettings || DEFAULT_LOYALTY_SETTINGS),
     ...settings,
   };
-  saveStore(store);
+  await saveStore(store);
   return store.loyaltySettings;
 }
 
-export function toggleAdminLoyaltyOffer(offerId: string, isActive: boolean): LoyaltyOffer[] {
+export async function toggleAdminLoyaltyOffer(offerId: string, isActive: boolean): Promise<LoyaltyOffer[]> {
+  await hydrateAdminLoyaltyStore();
   const store = loadStore();
   store.activeOffers = store.activeOffers.map((o) =>
     o.id === offerId ? { ...o, isActive } : o
   );
-  saveStore(store);
+  await saveStore(store);
   return store.activeOffers;
 }
 
-export function saveAdminLoyaltyOffer(offer: Partial<LoyaltyOffer> & { id?: string }): LoyaltyOffer[] {
+export async function saveAdminLoyaltyOffer(offer: Partial<LoyaltyOffer> & { id?: string }): Promise<LoyaltyOffer[]> {
+  await hydrateAdminLoyaltyStore();
   const store = loadStore();
   const id = offer.id || `offer-${Date.now()}`;
   const existingIdx = store.activeOffers.findIndex((o) => o.id === id);
@@ -139,13 +176,14 @@ export function saveAdminLoyaltyOffer(offer: Partial<LoyaltyOffer> & { id?: stri
     store.activeOffers.push(fullOffer);
   }
 
-  saveStore(store);
+  await saveStore(store);
   return store.activeOffers;
 }
 
-export function deleteAdminLoyaltyOffer(offerId: string): LoyaltyOffer[] {
+export async function deleteAdminLoyaltyOffer(offerId: string): Promise<LoyaltyOffer[]> {
+  await hydrateAdminLoyaltyStore();
   const store = loadStore();
   store.activeOffers = store.activeOffers.filter((o) => o.id !== offerId);
-  saveStore(store);
+  await saveStore(store);
   return store.activeOffers;
 }

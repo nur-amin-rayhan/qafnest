@@ -6,7 +6,6 @@ import {
   PlusCircle,
   CreditCard,
   Trash2,
-  ShieldCheck,
   X,
   Loader2,
   AlertCircle,
@@ -32,13 +31,11 @@ export default function PaymentMethodsTab({ t }: PaymentMethodsTabProps) {
   const [savedCards, setSavedCards] = useState<SavedCard[]>([]);
   const [loadingCards, setLoadingCards] = useState(true);
   const [addCardModalOpen, setAddCardModalOpen] = useState(false);
-  const [samsungAvailable, setSamsungAvailable] = useState(false);
 
   // Form states
   const [cardholderName, setCardholderName] = useState("");
   const [cardNumber, setCardNumber] = useState("");
   const [expiry, setExpiry] = useState("");
-  const [cvv, setCvv] = useState("");
   const [isDefault, setIsDefault] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
@@ -66,14 +63,6 @@ export default function PaymentMethodsTab({ t }: PaymentMethodsTabProps) {
 
   useEffect(() => {
     fetchCards();
-    fetch("/api/payments/methods")
-      .then((r) => (r.ok ? r.json() : null))
-      .then((d) => {
-        if (d?.methods?.samsung?.available) {
-          setSamsungAvailable(true);
-        }
-      })
-      .catch(() => {});
   }, [fetchCards, user?.id]);
 
   const handleFormatCardNumber = (val: string) => {
@@ -111,10 +100,6 @@ export default function PaymentMethodsTab({ t }: PaymentMethodsTabProps) {
       setFormError(t("Invalid expiry date (MM/YY)", "تاريخ الانتهاء غير صحيح (شهر/سنة)"));
       return;
     }
-    if (cvv.length < 3) {
-      setFormError(t("CVV security code is required", "رمز الأمان CVV مطلوب"));
-      return;
-    }
 
     setIsSaving(true);
     try {
@@ -124,10 +109,9 @@ export default function PaymentMethodsTab({ t }: PaymentMethodsTabProps) {
         headers: { "Content-Type": "application/json", ...authHeaders },
         body: JSON.stringify({
           cardholderName,
-          cardNumber: cleanNum,
+          last4: cleanNum.slice(-4),
           expiryMonth: month,
           expiryYear: year,
-          cvv,
           brand: detectCardBrand(cleanNum),
           isDefault,
         }),
@@ -158,7 +142,6 @@ export default function PaymentMethodsTab({ t }: PaymentMethodsTabProps) {
       setCardholderName("");
       setCardNumber("");
       setExpiry("");
-      setCvv("");
       setAddCardModalOpen(false);
       void fetchCards();
     } catch (err: unknown) {
@@ -250,17 +233,17 @@ export default function PaymentMethodsTab({ t }: PaymentMethodsTabProps) {
   };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-slate-100 dark:border-white/10">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-slate-200 dark:border-slate-800">
         <div>
-          <h2 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white">
+          <h2 className="text-lg sm:text-xl font-semibold text-slate-900 dark:text-white">
             {t("Payment Methods & Saved Cards", "طرق الدفع والبطاقات المحفوظة")}
           </h2>
           <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
             {t(
-              "Save your cards for 1-click booking checkout like Amazon and Tabby.",
-              "احفظ بطاقاتك البنكية لإتمام حجوزاتك بنقرة واحدة سريعة دون الحاجة لإعادة إدخال البيانات."
+              "Manage your saved Mada, Visa, Mastercard, and American Express cards.",
+              "إدارة بطاقات مدى وفيزا وماستركارد وأمريكان إكسبرس المحفوظة لحجوزاتك."
             )}
           </p>
         </div>
@@ -272,22 +255,22 @@ export default function PaymentMethodsTab({ t }: PaymentMethodsTabProps) {
             setFormSuccess(null);
             setAddCardModalOpen(true);
           }}
-          className="flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-[#4F2396] text-white font-bold text-xs shadow-md shadow-purple-900/20 hover:opacity-95 transition-all cursor-pointer"
+          className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#4F2396] text-white font-semibold text-xs hover:bg-[#3d1979] transition-colors cursor-pointer"
         >
-          <PlusCircle size={16} />
-          <span>{t("Add New Card", "+ إضافة بطاقة جديدة")}</span>
+          <PlusCircle size={15} />
+          <span>{t("Add Card", "إضافة بطاقة")}</span>
         </button>
       </div>
 
       {/* Success / Error Notification Alerts */}
       {formSuccess && (
-        <div className="flex items-center gap-3 p-4 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-500/20 text-emerald-800 dark:text-emerald-300 text-sm font-semibold">
+        <div className="flex items-center gap-3 p-4 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-500/20 text-emerald-800 dark:text-emerald-300 text-sm font-medium">
           <CheckCircle2 size={18} className="text-emerald-600 shrink-0" />
           <span>{formSuccess}</span>
         </div>
       )}
       {cardActionError && (
-        <div className="flex items-center gap-3 p-4 rounded-2xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-500/20 text-rose-800 dark:text-rose-300 text-sm font-semibold">
+        <div className="flex items-center gap-3 p-4 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-500/20 text-rose-800 dark:text-rose-300 text-sm font-medium">
           <AlertCircle size={18} className="text-rose-600 shrink-0" />
           <span>{cardActionError}</span>
         </div>
@@ -295,32 +278,32 @@ export default function PaymentMethodsTab({ t }: PaymentMethodsTabProps) {
 
       {/* Saved Cards List */}
       <div>
-        <h3 className="text-base font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
-          <CreditCard className="w-5 h-5 text-[#4F2396] dark:text-purple-400" />
-          <span>{t("Your Saved Cards (1-Click Checkout)", "بطاقاتك المحفوظة (سداد فوري بنقرة واحدة)")}</span>
+        <h3 className="text-sm font-semibold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
+          <CreditCard className="w-4 h-4 text-[#4F2396] dark:text-purple-400" />
+          <span>{t("Saved Cards", "البطاقات المحفوظة")}</span>
         </h3>
 
         {loadingCards ? (
-          <div className="p-8 text-center rounded-2xl bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5">
+          <div className="p-8 text-center rounded-2xl bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-slate-800">
             <Loader2 className="w-6 h-6 animate-spin text-[#4F2396] mx-auto mb-2" />
             <p className="text-xs text-slate-400">{t("Loading your cards...", "جارٍ تحميل البطاقات...")}</p>
           </div>
         ) : savedCards.length === 0 ? (
-          <div className="p-8 text-center rounded-2xl bg-slate-50 dark:bg-white/5 border border-dashed border-slate-200 dark:border-white/10">
+          <div className="p-8 text-center rounded-2xl bg-slate-50 dark:bg-white/5 border border-dashed border-slate-200 dark:border-slate-800">
             <CreditCard className="w-10 h-10 text-slate-300 dark:text-slate-600 mx-auto mb-2" />
-            <p className="text-sm font-bold text-slate-700 dark:text-slate-300">
+            <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">
               {t("No cards saved yet", "لا توجد بطاقات محفوظة حتى الآن")}
             </p>
             <p className="text-xs text-slate-400 mt-1 max-w-sm mx-auto">
               {t(
-                "Add your Mada, Visa, or Mastercard to pay instantly during reservation checkout without re-typing card details.",
-                "أضف بطاقة مدى أو فيزا أو ماستركارد ليتم سداد حجوزاتك القادمة فوراً وبأمان بنقرة واحدة."
+                "Add a Mada, Visa, or Mastercard for faster booking checkout.",
+                "أضف بطاقة مدى أو فيزا أو ماستركارد لإتمام الحجز بسرعة."
               )}
             </p>
             <button
               type="button"
               onClick={() => setAddCardModalOpen(true)}
-              className="mt-4 inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-purple-100 dark:bg-purple-900/40 text-[#4F2396] dark:text-purple-300 font-bold text-xs hover:bg-purple-200 transition-colors cursor-pointer"
+              className="mt-4 inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-purple-100 dark:bg-purple-900/40 text-[#4F2396] dark:text-purple-300 font-semibold text-xs hover:bg-purple-200 transition-colors cursor-pointer"
             >
               <PlusCircle size={14} />
               <span>{t("Add your first card", "إضافة بطاقتك الأولى")}</span>
@@ -329,24 +312,15 @@ export default function PaymentMethodsTab({ t }: PaymentMethodsTabProps) {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {savedCards.map((card) => {
-              const brandColor =
-                card.brand === "mada"
-                  ? "from-emerald-700 to-teal-900"
-                  : card.brand === "visa"
-                  ? "from-blue-700 to-indigo-900"
-                  : card.brand === "amex"
-                  ? "from-sky-600 to-blue-900"
-                  : "from-amber-600 to-rose-900";
-
               return (
                 <div
                   key={card.id}
-                  className={`relative overflow-hidden rounded-2xl p-5 text-white shadow-lg bg-gradient-to-tr ${brandColor} flex flex-col justify-between min-h-[170px] border border-white/15`}
+                  className="rounded-2xl p-5 bg-slate-900 dark:bg-slate-800/90 text-white border border-slate-800 dark:border-slate-700 flex flex-col justify-between min-h-[164px]"
                 >
                   <div className="flex items-center justify-between gap-2">
                     <OfficialPaymentIcon name={card.brand} heightClass="h-7" />
                     {card.isDefault ? (
-                      <span className="flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-400 text-slate-950 text-[10px] font-black">
+                      <span className="flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[10px] font-semibold">
                         <Check size={12} />
                         {t("Default", "الافتراضية")}
                       </span>
@@ -355,7 +329,7 @@ export default function PaymentMethodsTab({ t }: PaymentMethodsTabProps) {
                         type="button"
                         disabled={settingDefaultId === card.id}
                         onClick={() => handleSetDefaultCard(card.id)}
-                        className="px-2.5 py-1 rounded-full bg-white/15 hover:bg-white/25 text-white text-[10px] font-bold transition cursor-pointer disabled:opacity-50"
+                        className="px-2.5 py-1 rounded-full bg-white/10 hover:bg-white/20 text-white text-[10px] font-semibold transition cursor-pointer disabled:opacity-50"
                       >
                         {settingDefaultId === card.id
                           ? t("Setting...", "جاري التعيين...")
@@ -364,7 +338,7 @@ export default function PaymentMethodsTab({ t }: PaymentMethodsTabProps) {
                     )}
                   </div>
 
-                  <div className="my-4 font-mono text-lg sm:text-xl font-bold tracking-widest" dir="ltr">
+                  <div className="my-4 font-mono text-lg font-semibold tabular-nums tracking-wider" dir="ltr">
                     •••• •••• •••• {card.last4}
                   </div>
 
@@ -415,148 +389,34 @@ export default function PaymentMethodsTab({ t }: PaymentMethodsTabProps) {
         )}
       </div>
 
-      {/* Accepted Gateways & Compliances */}
-      <div>
-        <h3 className="text-base font-bold text-slate-900 dark:text-white mb-4">
-          {t("Supported Payment Channels & Compliance", "بوابات السداد المعتمدة والتوافق الأمني")}
-        </h3>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {/* Mada */}
-          <div className="p-4 rounded-2xl border border-slate-200 dark:border-white/10 bg-slate-50/50 dark:bg-white/5 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <OfficialPaymentIcon name="mada" heightClass="h-9" />
-              <div>
-                <p className="text-sm font-bold text-slate-900 dark:text-white">
-                  {t("Mada Debit Cards", "بطاقات مدى البنكية")}
-                </p>
-                <p className="text-xs text-slate-500">{t("0% Gateway fees", "بدون أي رسوم إضافية")}</p>
-              </div>
-            </div>
-            <CheckCircle2 size={18} className="text-emerald-500" />
-          </div>
-
-          {/* Apple Pay */}
-          <div className="p-4 rounded-2xl border border-slate-200 dark:border-white/10 bg-slate-50/50 dark:bg-white/5 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <OfficialPaymentIcon name="apple" heightClass="h-9" />
-              <div>
-                <p className="text-sm font-bold text-slate-900 dark:text-white">Apple Pay</p>
-                <p className="text-xs text-slate-500">{t("1-Tap Express", "سداد فوري بنقرة واحدة")}</p>
-              </div>
-            </div>
-            <CheckCircle2 size={18} className="text-emerald-500" />
-          </div>
-
-          {/* Google Pay */}
-          <div className="p-4 rounded-2xl border border-slate-200 dark:border-white/10 bg-slate-50/50 dark:bg-white/5 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <OfficialPaymentIcon name="google" heightClass="h-9" />
-              <div>
-                <p className="text-sm font-bold text-slate-900 dark:text-white">Google Pay</p>
-                <p className="text-xs text-slate-500">{t("Web & Android Express", "دفع سريع عبر الويب وأندرويد")}</p>
-              </div>
-            </div>
-            <CheckCircle2 size={18} className="text-emerald-500" />
-          </div>
-
-          {/* STC Pay */}
-          <div className="p-4 rounded-2xl border border-slate-200 dark:border-white/10 bg-slate-50/50 dark:bg-white/5 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <OfficialPaymentIcon name="stcpay" heightClass="h-9" />
-              <div>
-                <p className="text-sm font-bold text-slate-900 dark:text-white">STC Pay</p>
-                <p className="text-xs text-slate-500">{t("Saudi Mobile Wallet (SAR)", "محفظة الجوال السعودية (ر.س)")}</p>
-              </div>
-            </div>
-            <CheckCircle2 size={18} className="text-emerald-500" />
-          </div>
-
-          {/* Samsung Pay (shown only when activated) */}
-          {samsungAvailable && (
-            <div className="p-4 rounded-2xl border border-slate-200 dark:border-white/10 bg-slate-50/50 dark:bg-white/5 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-[#1428A0] text-white font-black text-[10px] flex items-center justify-center">
-                  S Pay
-                </div>
-                <div>
-                  <p className="text-sm font-bold text-slate-900 dark:text-white">Samsung Pay</p>
-                  <p className="text-xs text-slate-500">{t("QR on Desktop · Biometric on Galaxy", "QR على الكمبيوتر · البصمة على سامسونج")}</p>
-                </div>
-              </div>
-              <CheckCircle2 size={18} className="text-emerald-500" />
-            </div>
-          )}
-
-          {/* Tabby */}
-          <div className="p-4 rounded-2xl border border-slate-200 dark:border-white/10 bg-slate-50/50 dark:bg-white/5 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-emerald-400 text-slate-950 font-black text-xs flex items-center justify-center">
-                tabby
-              </div>
-              <div>
-                <p className="text-sm font-bold text-slate-900 dark:text-white">Tabby (تابي)</p>
-                <p className="text-xs text-slate-500">{t("Split in 4 payments", "قسّم على ٤ دفعات بدون فوائد")}</p>
-              </div>
-            </div>
-            <CheckCircle2 size={18} className="text-emerald-500" />
-          </div>
-
-          {/* Tamara */}
-          <div className="p-4 rounded-2xl border border-slate-200 dark:border-white/10 bg-slate-50/50 dark:bg-white/5 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-[#FF9750] text-slate-950 font-black text-xs flex items-center justify-center">
-                tamara
-              </div>
-              <div>
-                <p className="text-sm font-bold text-slate-900 dark:text-white">Tamara (تمارا)</p>
-                <p className="text-xs text-slate-500">{t("Pay in 4 with 0% interest", "ادفع على ٤ دفعات ميسرة")}</p>
-              </div>
-            </div>
-            <CheckCircle2 size={18} className="text-emerald-500" />
-          </div>
-        </div>
-      </div>
-
-      {/* PCI-DSS Security Card */}
-      <div className="p-4 rounded-2xl bg-purple-50 dark:bg-purple-950/20 border border-purple-200 dark:border-purple-800/30 text-xs text-[#4F2396] dark:text-purple-300 flex items-center gap-3">
-        <ShieldCheck size={20} className="shrink-0 text-emerald-600" />
-        <span>
-          {t(
-            "Cards are securely tokenized following PCI-DSS Level 1 compliance. CVV codes are never stored on our servers.",
-            "يتم حفظ وتشفير البطاقات بنظام الرموز المشفرة (Tokenization) المعتمد من البنك المركزي وPCI-DSS Level 1 دون تخزين رمز الأمان."
-          )}
-        </span>
-      </div>
-
       {/* ===================== ADD CARD MODAL ===================== */}
       {addCardModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
-          <div className="relative w-full max-w-md rounded-3xl bg-white dark:bg-[#0E0E1A] border border-slate-200 dark:border-white/10 p-6 sm:p-7 shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/55">
+          <div className="relative w-full max-w-md rounded-2xl bg-white dark:bg-[#0E0E1A] border border-slate-200 dark:border-white/10 p-6 shadow-xl">
             <button
               type="button"
               onClick={() => setAddCardModalOpen(false)}
-              className="absolute top-5 right-5 rtl:right-auto rtl:left-5 text-slate-400 hover:text-slate-600 dark:hover:text-white cursor-pointer"
+              className="absolute top-5 end-5 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white cursor-pointer"
             >
               <X size={20} />
             </button>
 
             <div className="flex items-center gap-3 mb-5">
-              <div className="w-10 h-10 rounded-2xl bg-purple-50 dark:bg-purple-950/40 text-[#4F2396] dark:text-purple-300 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-xl bg-[#F4EEFF] dark:bg-purple-950/40 text-[#4F2396] dark:text-purple-300 flex items-center justify-center">
                 <CreditCard size={20} />
               </div>
               <div>
-                <h3 className="text-lg font-black text-slate-900 dark:text-white">
+                <h3 className="text-base font-semibold text-slate-900 dark:text-white">
                   {t("Save New Payment Card", "إضافة بطاقة دفع جديدة")}
                 </h3>
-                <p className="text-xs text-slate-500">
+                <p className="text-xs text-slate-600 dark:text-slate-400">
                   {t("Mada, Visa, or Mastercard for fast checkout", "مدى، فيزا، أو ماستركارد لسداد أسرع")}
                 </p>
               </div>
             </div>
 
             {formError && (
-              <div className="mb-4 flex items-center gap-2 p-3 rounded-xl bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 text-xs font-bold border border-rose-200 dark:border-rose-500/20">
+              <div className="mb-4 flex items-center gap-2 p-3 rounded-xl bg-rose-50 dark:bg-rose-950/40 text-rose-800 dark:text-rose-300 text-xs font-medium border border-rose-200 dark:border-rose-500/20">
                 <AlertCircle size={16} />
                 <span>{formError}</span>
               </div>
@@ -564,7 +424,7 @@ export default function PaymentMethodsTab({ t }: PaymentMethodsTabProps) {
 
             <form onSubmit={handleSaveCard} className="space-y-4">
               <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                <label className="block text-xs font-medium text-slate-800 dark:text-slate-300 mb-1">
                   {t("Cardholder Name", "اسم حامل البطاقة (كما هو مدون عليها)")}
                 </label>
                 <input
@@ -573,17 +433,17 @@ export default function PaymentMethodsTab({ t }: PaymentMethodsTabProps) {
                   placeholder={t("e.g. MOHAMMED AL-OTAIBI", "مثال: محمد العتيبي")}
                   value={cardholderName}
                   onChange={(e) => setCardholderName(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 text-slate-900 dark:text-white text-xs font-bold focus:outline-hidden focus:border-[#4F2396]"
+                  className="w-full px-4 py-2.5 rounded-xl border border-slate-300 dark:border-white/15 bg-white dark:bg-[#06060B] text-slate-900 dark:text-white placeholder:text-slate-500 text-xs font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-[#4F2396]/35 focus:border-[#4F2396]"
                 />
               </div>
 
               <div>
                 <div className="flex items-center justify-between mb-1">
-                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                  <label className="text-xs font-medium text-slate-800 dark:text-slate-300">
                     {t("Card Number", "رقم البطاقة (١٦ رقماً)")}
                   </label>
                   {liveDetectedBrand && liveDetectedMeta && (
-                    <span className="text-[10px] font-black uppercase text-[#4F2396] dark:text-purple-300">
+                    <span className="text-[10px] font-semibold uppercase text-[#4F2396] dark:text-purple-300">
                       {t(liveDetectedMeta.labelEn, liveDetectedMeta.labelAr)}
                     </span>
                   )}
@@ -595,14 +455,14 @@ export default function PaymentMethodsTab({ t }: PaymentMethodsTabProps) {
                     placeholder="0000 0000 0000 0000"
                     value={cardNumber}
                     onChange={(e) => handleFormatCardNumber(e.target.value)}
-                    className="w-full px-4 py-2.5 ltr:pr-16 rtl:pl-16 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 text-slate-900 dark:text-white font-mono text-sm tracking-wider focus:outline-hidden focus:border-[#4F2396]"
+                    className="w-full px-4 py-2.5 ltr:pr-16 rtl:pl-16 rounded-xl border border-slate-300 dark:border-white/15 bg-white dark:bg-[#06060B] text-slate-900 dark:text-white placeholder:text-slate-500 font-mono tabular-nums text-sm tracking-wider focus:outline-none focus-visible:ring-2 focus-visible:ring-[#4F2396]/35 focus:border-[#4F2396]"
                     dir="ltr"
                   />
-                  <div className="pointer-events-none absolute right-2.5 rtl:right-auto rtl:left-2.5 top-1/2 -translate-y-1/2 flex items-center">
+                  <div className="pointer-events-none absolute end-2.5 top-1/2 -translate-y-1/2 flex items-center">
                     {liveDetectedBrand ? (
                       <OfficialPaymentIcon name={liveDetectedBrand} heightClass="h-6" />
                     ) : (
-                      <CreditCard className="text-slate-400 w-4 h-4 mr-1" />
+                      <CreditCard className="text-slate-500 w-4 h-4 me-1" />
                     )}
                   </div>
                 </div>
@@ -630,9 +490,9 @@ export default function PaymentMethodsTab({ t }: PaymentMethodsTabProps) {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-center">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                  <label className="block text-xs font-medium text-slate-800 dark:text-slate-300 mb-1">
                     {t("Expiry Date (MM/YY)", "تاريخ الانتهاء (شهر/سنة)")}
                   </label>
                   <input
@@ -641,25 +501,13 @@ export default function PaymentMethodsTab({ t }: PaymentMethodsTabProps) {
                     placeholder="MM/YY"
                     value={expiry}
                     onChange={(e) => handleFormatExpiry(e.target.value)}
-                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 text-slate-900 dark:text-white font-mono text-xs text-center focus:outline-hidden focus:border-[#4F2396]"
+                    className="w-full px-4 py-2.5 rounded-xl border border-slate-300 dark:border-white/15 bg-white dark:bg-[#06060B] text-slate-900 dark:text-white placeholder:text-slate-500 font-mono text-xs text-center focus:outline-none focus-visible:ring-2 focus-visible:ring-[#4F2396]/35 focus:border-[#4F2396]"
                     dir="ltr"
                   />
                 </div>
 
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                    {t("CVV Code", "رمز الأمان (CVV)")}
-                  </label>
-                  <input
-                    type="password"
-                    maxLength={4}
-                    required
-                    placeholder="•••"
-                    value={cvv}
-                    onChange={(e) => setCvv(e.target.value.replace(/\D/g, ""))}
-                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 text-slate-900 dark:text-white font-mono text-xs text-center focus:outline-hidden focus:border-[#4F2396]"
-                    dir="ltr"
-                  />
+                <div className="rounded-xl bg-[#F9F8FD] dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 px-3 py-2.5 text-[11px] text-slate-600 dark:text-slate-400">
+                  {t("CVV is requested only during live checkout and is never stored.", "يُطلب رمز الأمان CVV عند الدفع فقط ولا يُخزَّن على خوادمنا.")}
                 </div>
               </div>
 
@@ -671,7 +519,7 @@ export default function PaymentMethodsTab({ t }: PaymentMethodsTabProps) {
                   onChange={(e) => setIsDefault(e.target.checked)}
                   className="rounded text-[#4F2396] focus:ring-[#4F2396]"
                 />
-                <label htmlFor="default-check" className="text-xs font-semibold text-slate-600 dark:text-slate-400 cursor-pointer">
+                <label htmlFor="default-check" className="text-xs font-medium text-slate-700 dark:text-slate-300 cursor-pointer">
                   {t("Set as default card for future bookings", "تعيين كبطاقة افتراضية للحجوزات القادمة")}
                 </label>
               </div>
@@ -680,7 +528,7 @@ export default function PaymentMethodsTab({ t }: PaymentMethodsTabProps) {
                 <button
                   type="button"
                   onClick={() => setAddCardModalOpen(false)}
-                  className="flex-1 py-3 rounded-xl border border-slate-200 dark:border-white/10 text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-50 cursor-pointer"
+                  className="flex-1 py-3 rounded-xl border border-slate-300 dark:border-white/15 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 cursor-pointer"
                 >
                   {t("Cancel", "إلغاء")}
                 </button>
@@ -688,7 +536,7 @@ export default function PaymentMethodsTab({ t }: PaymentMethodsTabProps) {
                 <button
                   type="submit"
                   disabled={isSaving}
-                  className="flex-1 py-3 rounded-xl bg-gradient-to-r from-[#4F2396] to-[#7c3aed] text-white text-xs font-bold shadow-md shadow-purple-900/20 hover:opacity-95 disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer"
+                  className="flex-1 py-3 rounded-xl bg-[#4F2396] hover:bg-[#3d1979] text-white text-xs font-semibold disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer transition-colors"
                 >
                   {isSaving ? (
                     <>

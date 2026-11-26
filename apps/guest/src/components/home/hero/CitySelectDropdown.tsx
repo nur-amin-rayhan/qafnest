@@ -36,7 +36,7 @@ export function CitySelectDropdown({
 
   return (
     <div
-      className={`relative flex-1 min-w-0 lg:min-w-[180px] border-b lg:border-b-0 lg:border-e border-gray-200/80 dark:border-white/10 transition-all ${
+      className={`relative w-full flex-1 min-w-0 lg:min-w-[180px] border-b lg:border-b-0 lg:border-e border-gray-200/80 dark:border-white/10 transition-all ${
         isOpen ? "z-50" : "z-10"
       }`}
     >

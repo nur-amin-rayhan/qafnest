@@ -21,6 +21,7 @@ import type { SharedBlogPost, BlogSeoConfig } from "@qafnest/shared";
 
 import { cmsPath } from "@/lib/cmsUrl";
 import { ECOSYSTEM_URLS } from "@qafnest/shared";
+import { sanitizeRichHtml } from "@qafnest/shared/sanitizeRichHtml";
 interface CmsArticlesTabProps {
   t: (en: string, ar: string) => string;
 }
@@ -277,7 +278,16 @@ export function CmsArticlesTab({ t }: CmsArticlesTabProps) {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {blogs.map((b) => (
+            {loading ? (
+              <div className="col-span-full py-12 text-center text-xs font-semibold text-gray-500 animate-pulse">
+                {t("Loading articles...", "جاري تحميل المقالات...")}
+              </div>
+            ) : blogs.length === 0 ? (
+              <div className="col-span-full py-12 text-center text-xs font-semibold text-gray-500">
+                {t("No articles found.", "لم يتم العثور على أي مقالات.")}
+              </div>
+            ) : (
+              blogs.map((b) => (
               <div
                 key={b.id}
                 className="rounded-2xl border border-white/10 bg-[#0C1018] overflow-hidden flex flex-col justify-between group hover:border-teal-500/40 transition-all shadow-md"
@@ -362,7 +372,7 @@ export function CmsArticlesTab({ t }: CmsArticlesTabProps) {
                   </div>
                 </div>
               </div>
-            ))}
+            )))}
           </div>
         </div>
       )}
@@ -654,7 +664,7 @@ export function CmsArticlesTab({ t }: CmsArticlesTabProps) {
                 dir={activeFormLang === "ar" ? "rtl" : "ltr"}
                 className="prose prose-invert max-w-none text-xs sm:text-sm text-gray-200 leading-relaxed space-y-3"
                 dangerouslySetInnerHTML={{
-                  __html: activeFormLang === "en" ? editingBlog.contentHtmlEn : editingBlog.contentHtmlAr,
+                  __html: sanitizeRichHtml(activeFormLang === "en" ? editingBlog.contentHtmlEn : editingBlog.contentHtmlAr),
                 }}
               />
             </div>

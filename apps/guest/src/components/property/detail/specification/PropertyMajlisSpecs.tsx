@@ -15,17 +15,19 @@ export default function PropertyMajlisSpecs({
   anchorLabel,
 }: PropertyMajlisSpecsProps) {
   return (
-    <div className="mt-4 rounded-3xl border border-violet-200/80 bg-violet-50/35 p-5 dark:border-violet-500/20 dark:bg-[#12101a]">
-      <div className="flex items-center gap-2 text-violet-800 dark:text-violet-300 font-bold text-sm mb-3">
-        <Sofa className="h-4 w-4 text-violet-600 dark:text-violet-400" />
+    <div className="mt-4 rounded-2xl border border-slate-200/85 bg-slate-50/60 p-4 sm:p-5 dark:border-slate-800 dark:bg-[#110F18]">
+      <div className="flex items-center gap-2.5 text-slate-900 dark:text-white font-bold text-sm mb-3.5">
+        <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-400">
+          <Sofa className="h-4 w-4" />
+        </span>
         <span>{anchorLabel("Living Rooms & Seating", "المجالس والجلسات")}</span>
       </div>
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
-        <div className="rounded-2xl border border-violet-200/70 bg-white p-3 dark:border-violet-500/20 dark:bg-[#161224]">
-          <span className="text-gray-500 dark:text-gray-400 block">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 text-xs">
+        <div className="rounded-xl border border-slate-200/70 bg-white p-3.5 dark:border-slate-800 dark:bg-slate-900/90 shadow-2xs">
+          <span className="text-slate-500 dark:text-slate-400 font-medium block">
             {anchorLabel("Main Majlis", "المجلس الرئيسي")}
           </span>
-          <span className="mt-0.5 block font-bold text-gray-900 dark:text-white">
+          <span className="mt-1 block font-bold text-slate-900 dark:text-white text-sm">
             {anchorLabel(
               `Seats up to ${majlisDetails.mainMajlisCapacity} persons`,
               `يسع لـ ${majlisDetails.mainMajlisCapacity} شخص`
@@ -33,11 +35,11 @@ export default function PropertyMajlisSpecs({
           </span>
         </div>
         {majlisDetails.outdoorSeatingCapacity && (
-          <div className="rounded-2xl border border-violet-200/70 bg-white p-3 dark:border-violet-500/20 dark:bg-[#161224]">
-            <span className="text-gray-500 dark:text-gray-400 block">
+          <div className="rounded-xl border border-slate-200/70 bg-white p-3.5 dark:border-slate-800 dark:bg-slate-900/90 shadow-2xs">
+            <span className="text-slate-500 dark:text-slate-400 font-medium block">
               {anchorLabel("Outdoor Seating", "الجلسة الخارجية")}
             </span>
-            <span className="mt-0.5 block font-bold text-gray-900 dark:text-white">
+            <span className="mt-1 block font-bold text-slate-900 dark:text-white text-sm">
               {anchorLabel(
                 `Seats up to ${majlisDetails.outdoorSeatingCapacity} persons`,
                 `تتسع لـ ${majlisDetails.outdoorSeatingCapacity} شخص`
@@ -45,11 +47,11 @@ export default function PropertyMajlisSpecs({
             </span>
           </div>
         )}
-        <div className="rounded-2xl border border-violet-200/70 bg-white p-3 dark:border-violet-500/20 dark:bg-[#161224]">
-          <span className="text-gray-500 dark:text-gray-400 block">
+        <div className="rounded-xl border border-slate-200/70 bg-white p-3.5 dark:border-slate-800 dark:bg-slate-900/90 shadow-2xs">
+          <span className="text-slate-500 dark:text-slate-400 font-medium block">
             {anchorLabel("Access", "نوع الإقامة")}
           </span>
-          <span className="mt-0.5 block font-bold text-gray-900 dark:text-white">{chaletFor}</span>
+          <span className="mt-1 block font-bold text-slate-900 dark:text-white text-sm">{chaletFor}</span>
         </div>
       </div>
     </div>

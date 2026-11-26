@@ -46,4 +46,5 @@ export {
   topUpWallet,
   updateLoyaltyOffers,
   updateLoyaltySettings,
+  withWalletLock,
 } from "./wallet/walletOperations";

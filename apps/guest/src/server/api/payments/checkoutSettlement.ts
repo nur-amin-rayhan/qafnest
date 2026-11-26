@@ -6,7 +6,11 @@ import { recordCouponUsage } from "@/lib/services/couponService";
 import { dispatchBookingZatcaInvoice } from "@/lib/services/zatcaReportingHelper";
 import { getFirebaseGuestProfile } from "@/lib/services/firebaseGuestProfileStore";
 import { DEFAULT_SAUDI_IDENTITY_CONFIG } from "@qafnest/shared/saudiIdentityConfig";
-import { getServerSaudiIdentityConfig } from "@qafnest/shared/saudiIdentityStore";
+import {
+  getServerSaudiIdentityConfig,
+  getVerifiedIdentityByUser,
+  hydrateVerifiedIdentityStore,
+} from "@qafnest/shared/saudiIdentityStore";
 import { hydrateSharedJsonFile } from "@qafnest/shared/serverJsonStore";
 import { calculateBookingSettlement } from "@qafnest/shared/platformFee";
 import { saveBookingFinancialSnapshot } from "@qafnest/shared/bookingFinancialsStore";
@@ -23,50 +27,52 @@ type PricingResult = ReturnType<typeof calculatePricingBreakdown>;
 type AdminDbClient = Awaited<ReturnType<typeof getAdminOrServerClient>>;
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-/** Verifies Saudi National ID or Iqama when CMS mandatory guest policy is active. */
+/** Verifies Saudi National ID or Iqama via Nafath / Elm Yaqeen before allowing checkout. */
 export async function checkMandatorySaudiIdentity(userId: string): Promise<NextResponse | null> {
-  await hydrateSharedJsonFile("saudi-identity-config.json", () => DEFAULT_SAUDI_IDENTITY_CONFIG);
+  await Promise.all([
+    hydrateSharedJsonFile("saudi-identity-config.json", () => DEFAULT_SAUDI_IDENTITY_CONFIG),
+    hydrateVerifiedIdentityStore(),
+  ]);
   const identityConfig = getServerSaudiIdentityConfig();
   if (!identityConfig.isMandatoryForGuests || !userId) return null;
 
-  let profileNationalId = "";
-  let metaVerified = false;
-  let metaIqama = "";
+  let serverVerified = Boolean(getVerifiedIdentityByUser(userId));
 
-  if (UUID_RE.test(userId)) {
+  if (!serverVerified && UUID_RE.test(userId)) {
     const dbAdmin = await getAdminOrServerClient();
-    const { data: profile } = await dbAdmin
+    const { data: profile, error: profErr } = await dbAdmin
       .from("profiles")
-      .select("national_id")
+      .select("is_verified")
       .eq("id", userId)
       .maybeSingle();
-    profileNationalId = profile?.national_id || "";
+    if (!profErr && profile?.is_verified === true) {
+      serverVerified = true;
+    }
 
     try {
       if (typeof (dbAdmin as any).auth?.admin?.getUserById === "function") {
         const { data: authRes } = await (dbAdmin as any).auth.admin.getUserById(userId);
-        const meta = (authRes?.user?.user_metadata || {}) as Record<string, unknown>;
-        metaVerified = Boolean(meta.is_verified);
-        metaIqama = typeof meta.iqama === "string" ? meta.iqama : "";
+        const appMeta = (authRes?.user?.app_metadata || {}) as Record<string, unknown>;
+        if (appMeta.is_verified === true) {
+          serverVerified = true;
+        }
       }
     } catch {
       // Optional auth metadata check
     }
-  } else {
+  } else if (!serverVerified) {
     const fbProfile = await getFirebaseGuestProfile(userId);
-    if (fbProfile) {
-      profileNationalId = fbProfile.national_id || "";
-      metaVerified = Boolean(fbProfile.is_verified);
-      metaIqama = fbProfile.iqama || "";
+    if (fbProfile?.is_verified === true) {
+      serverVerified = true;
     }
   }
 
-  if (!metaVerified && !profileNationalId && !metaIqama) {
+  if (!serverVerified) {
     return NextResponse.json(
       {
         code: "identity_verification_required",
         message:
-          "Saudi National ID or Iqama verification is required by policy before completing checkout (يجب التحقق من الهوية الوطنية أو الإقامة أولاً).",
+          "Saudi National ID or Iqama verification via Nafath / Elm Yaqeen is required before completing any booking order (يجب توثيق الهوية الوطنية أو الإقامة عبر نفاذ / علم يقين قبل إتمام أي طلب).",
       },
       { status: 403 }
     );
@@ -84,6 +90,9 @@ export function recordCheckoutFinancialSnapshot(params: {
   walletAppliedSar: number;
   welcomeBonusUsedSar: number;
   gatewayPaidSar: number;
+  guestName?: string | null;
+  guestPhone?: string | null;
+  guestEmail?: string | null;
 }): void {
   const settlement = calculateBookingSettlement({
     listingAmountSar: params.pricing.baseRate,
@@ -98,6 +107,9 @@ export function recordCheckoutFinancialSnapshot(params: {
   saveBookingFinancialSnapshot({
     bookingRef: params.bookingRef,
     bookingId: params.bookingId,
+    guestName: params.guestName || null,
+    guestPhone: params.guestPhone || null,
+    guestEmail: params.guestEmail || null,
     listingAmountSar: settlement.listingAmountSar,
     guestServiceFeeSar: settlement.guestServiceFeeSar,
     guestFeeMode: params.guestFee.feeMode,
@@ -236,6 +248,7 @@ export async function executeDirectWalletCheckout(params: {
     walletAppliedSar: params.totalPrice,
     welcomeBonusUsedSar: deductResult.welcomeBonusUsed,
     gatewayPaidSar: 0,
+    guestName: params.guestName,
   });
 
   const zatcaResult = await dispatchBookingZatcaInvoice({

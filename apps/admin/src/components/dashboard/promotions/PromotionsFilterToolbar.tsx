@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { Search } from "lucide-react";
 import type { AdminCoupon } from "../PromotionsTab";
 
 interface PromotionsFilterToolbarProps {
@@ -27,16 +28,16 @@ export function PromotionsFilterToolbar({
   ).length;
 
   return (
-    <div className="bg-surface-container-lowest rounded-xl shadow-sm p-3 border border-surface-container/60 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+    <div className="bg-white dark:bg-[#0E0D16] rounded-xl border border-slate-200/90 dark:border-slate-800 p-3 shadow-xs flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
       {/* Status Tabs */}
-      <div className="flex flex-wrap items-center gap-1.5 p-1 bg-surface-container-low rounded-xl">
+      <div className="inline-flex p-1 bg-slate-100 dark:bg-slate-800/80 rounded-lg overflow-x-auto max-w-full">
         <button
           type="button"
           onClick={() => setFilterStatus("all")}
-          className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+          className={`px-3 py-1.5 rounded-md text-xs sm:text-sm transition-all cursor-pointer whitespace-nowrap ${
             filterStatus === "all"
-              ? "bg-surface-container-lowest text-primary shadow-xs"
-              : "text-on-surface-variant hover:text-on-surface"
+              ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-xs font-semibold"
+              : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 font-medium"
           }`}
         >
           {t("All Codes", "كافة الأكواد")} ({coupons.length})
@@ -44,10 +45,10 @@ export function PromotionsFilterToolbar({
         <button
           type="button"
           onClick={() => setFilterStatus("active")}
-          className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+          className={`px-3 py-1.5 rounded-md text-xs sm:text-sm transition-all cursor-pointer whitespace-nowrap ${
             filterStatus === "active"
-              ? "bg-surface-container-lowest text-status-emerald shadow-xs"
-              : "text-on-surface-variant hover:text-on-surface"
+              ? "bg-white dark:bg-slate-900 text-emerald-700 dark:text-emerald-300 shadow-xs font-semibold"
+              : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 font-medium"
           }`}
         >
           {t("Active", "نشطة")} ({activeCount})
@@ -55,10 +56,10 @@ export function PromotionsFilterToolbar({
         <button
           type="button"
           onClick={() => setFilterStatus("paused")}
-          className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+          className={`px-3 py-1.5 rounded-md text-xs sm:text-sm transition-all cursor-pointer whitespace-nowrap ${
             filterStatus === "paused"
-              ? "bg-surface-container-lowest text-status-sand shadow-xs"
-              : "text-on-surface-variant hover:text-on-surface"
+              ? "bg-white dark:bg-slate-900 text-amber-700 dark:text-amber-300 shadow-xs font-semibold"
+              : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 font-medium"
           }`}
         >
           {t("Paused", "موقوفة")} ({pausedCount})
@@ -66,10 +67,10 @@ export function PromotionsFilterToolbar({
         <button
           type="button"
           onClick={() => setFilterStatus("expired")}
-          className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+          className={`px-3 py-1.5 rounded-md text-xs sm:text-sm transition-all cursor-pointer whitespace-nowrap ${
             filterStatus === "expired"
-              ? "bg-surface-container-lowest text-status-terracotta shadow-xs"
-              : "text-on-surface-variant hover:text-on-surface"
+              ? "bg-white dark:bg-slate-900 text-rose-700 dark:text-rose-300 shadow-xs font-semibold"
+              : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 font-medium"
           }`}
         >
           {t("Expired", "منتهية")} ({expiredCount})
@@ -78,15 +79,13 @@ export function PromotionsFilterToolbar({
 
       {/* Search */}
       <div className="relative min-w-[240px]">
-        <span className="material-symbols-outlined absolute start-3 top-1/2 -translate-y-1/2 text-outline text-[18px]">
-          search
-        </span>
+        <Search size={16} className="absolute start-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500" />
         <input
           type="text"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           placeholder={t("Search by coupon code or title...", "ابحث بكود الخصم أو العنوان...")}
-          className="w-full h-9 ps-9 pe-3 rounded-xl border border-surface-container bg-surface-container-low text-xs text-on-surface focus:outline-none focus:ring-2 focus:ring-primary"
+          className="w-full h-10 ps-9 pe-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-[#4F2396]"
         />
       </div>
     </div>

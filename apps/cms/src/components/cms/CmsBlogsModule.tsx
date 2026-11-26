@@ -542,6 +542,124 @@ export function CmsBlogsModule({
               />
             </div>
 
+            {/* Key Highlights / Features Card */}
+            <div className={cardCls}>
+              <div className="flex items-center justify-between pb-2 border-b border-gray-100 dark:border-white/5">
+                <div>
+                  <h3 className="text-sm font-semibold flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-[#2563EB]" />
+                    <span>{isAr ? "المميزات الرئيسية للمقال (Key Highlights)" : "Article Key Highlights & Features"}</span>
+                  </h3>
+                  <p className="text-[11px] text-gray-500">
+                    {isAr
+                      ? "أضف المميزات البارزة لتظهر كبطاقات مستقلة داخل المقال (مثل المسابح المدفأة، الدخول الذكي، والتراخيص)"
+                      : "Add key features highlighted inside the article (e.g. Heated Pools, Smart Keyless Locks, SAMA Payouts)"}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const current = draft.keyFeatures || [];
+                    setDraft({
+                      ...draft,
+                      keyFeatures: [
+                        ...current,
+                        {
+                          titleEn: "Feature Title",
+                          titleAr: "عنوان الميزة",
+                          descEn: "Brief description of this highlight...",
+                          descAr: "وصف مختصر لهذه الميزة...",
+                        },
+                      ],
+                    });
+                  }}
+                  className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold bg-[#2563EB]/10 text-[#2563EB] hover:bg-[#2563EB]/20 transition cursor-pointer"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>{isAr ? "إضافة ميزة" : "Add Highlight"}</span>
+                </button>
+              </div>
+
+              {(!draft.keyFeatures || draft.keyFeatures.length === 0) ? (
+                <div className="text-xs text-gray-400 italic p-4 border border-dashed rounded-lg text-center">
+                  {isAr
+                    ? "لم تتم إضافة مميزات رئيسية بعد. انقر على 'إضافة ميزة' للبدء."
+                    : "No key highlights added yet. Click 'Add Highlight' to specify feature points."}
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {draft.keyFeatures.map((feat, idx) => (
+                    <div
+                      key={idx}
+                      className="p-3.5 rounded-xl border border-gray-200 dark:border-[#222634] bg-gray-50/70 dark:bg-[#11131A] space-y-2 text-xs"
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-bold text-gray-500 text-[11px]">#{idx + 1}</span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const updated = (draft.keyFeatures || []).filter((_, i) => i !== idx);
+                            setDraft({ ...draft, keyFeatures: updated });
+                          }}
+                          className="text-red-500 hover:text-red-700 font-semibold text-[11px] cursor-pointer"
+                        >
+                          {isAr ? "حذف" : "Remove"}
+                        </button>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        <input
+                          value={feat.titleEn}
+                          onChange={(e) => {
+                            const updated = [...(draft.keyFeatures || [])];
+                            updated[idx] = { ...updated[idx], titleEn: e.target.value };
+                            setDraft({ ...draft, keyFeatures: updated });
+                          }}
+                          placeholder="Title (English) e.g. Heated Private Pools"
+                          className={inputCls}
+                        />
+                        <input
+                          value={feat.titleAr}
+                          dir="rtl"
+                          onChange={(e) => {
+                            const updated = [...(draft.keyFeatures || [])];
+                            updated[idx] = { ...updated[idx], titleAr: e.target.value };
+                            setDraft({ ...draft, keyFeatures: updated });
+                          }}
+                          placeholder="العنوان (بالعربية) مثل مسابح خاصة مدفأة"
+                          className={inputCls}
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        <input
+                          value={feat.descEn || ""}
+                          onChange={(e) => {
+                            const updated = [...(draft.keyFeatures || [])];
+                            updated[idx] = { ...updated[idx], descEn: e.target.value };
+                            setDraft({ ...draft, keyFeatures: updated });
+                          }}
+                          placeholder="Short description (English)..."
+                          className={inputCls}
+                        />
+                        <input
+                          value={feat.descAr || ""}
+                          dir="rtl"
+                          onChange={(e) => {
+                            const updated = [...(draft.keyFeatures || [])];
+                            updated[idx] = { ...updated[idx], descAr: e.target.value };
+                            setDraft({ ...draft, keyFeatures: updated });
+                          }}
+                          placeholder="وصف مختصر (بالعربية)..."
+                          className={inputCls}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
             {/* SEO Configuration Card */}
             <div className={cardCls}>
               <div className="flex items-center justify-between">
@@ -754,6 +872,32 @@ export function CmsBlogsModule({
                   onChange={(e) => setTagsInput(e.target.value)}
                   placeholder="Chalets, Riyadh, Tourism"
                   className={inputCls}
+                />
+              </div>
+            </div>
+
+            {/* Linked Property Card */}
+            <div className={cardCls}>
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-500">
+                {isAr ? "العقار المرتبط (Linked Property)" : "Linked Property"}
+              </h3>
+              <p className="text-[11px] text-gray-500">
+                {isAr
+                  ? "اربط هذا المقال بعقار محدد ليظهر كزر حجز مباشر للنزلاء"
+                  : "Link this article to a specific property for direct booking CTA"}
+              </p>
+              <div className="space-y-2">
+                <input
+                  value={draft.linkedPropertyTitle || ""}
+                  onChange={(e) => setDraft({ ...draft, linkedPropertyTitle: e.target.value })}
+                  placeholder="Property Title (e.g. Obhur Beachfront Villa)"
+                  className={inputCls}
+                />
+                <input
+                  value={draft.linkedPropertyId || ""}
+                  onChange={(e) => setDraft({ ...draft, linkedPropertyId: e.target.value })}
+                  placeholder="Property UUID or ID"
+                  className={`${inputCls} font-mono text-[11px]`}
                 />
               </div>
             </div>

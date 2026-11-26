@@ -105,7 +105,7 @@ export function CmsZatcaTab({ t }: { t: (en: string, ar: string) => string }) {
           setSellerNameEn(cfg.sellerNameEn || "QafNest Hospitality Platform LLC");
           setVatNumber(cfg.vatNumber || "310123456700003");
           setCrNumber(cfg.crNumber || "1010648921");
-          setLicenseNumber(cfg.licenseNumber || "73102999");
+          setLicenseNumber(cfg.licenseNumber || "");
           setOtp(cfg.otp || "123345");
           setCsidToken(cfg.csidToken || "");
           setCsidSecret(cfg.csidSecret || "");

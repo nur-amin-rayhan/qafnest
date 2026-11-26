@@ -33,9 +33,12 @@ const STATIC_PUBLIC_PATHS = [
   { path: "/about", changeFrequency: "weekly" as const, priority: 0.7 },
   { path: "/faq", changeFrequency: "weekly" as const, priority: 0.7 },
   { path: "/contact", changeFrequency: "monthly" as const, priority: 0.6 },
-  { path: "/terms", changeFrequency: "monthly" as const, priority: 0.5 },
-  { path: "/privacy", changeFrequency: "monthly" as const, priority: 0.5 },
-  { path: "/cookies", changeFrequency: "monthly" as const, priority: 0.4 },
+  { path: "/policies", changeFrequency: "monthly" as const, priority: 0.7 },
+  { path: "/policies/terms-and-conditions", changeFrequency: "monthly" as const, priority: 0.6 },
+  { path: "/policies/privacy-policy", changeFrequency: "monthly" as const, priority: 0.6 },
+  { path: "/policies/cookies-policy", changeFrequency: "monthly" as const, priority: 0.5 },
+  { path: "/policies/cancellation-refund-policy", changeFrequency: "monthly" as const, priority: 0.5 },
+  { path: "/policies/host-compliance-policy", changeFrequency: "monthly" as const, priority: 0.5 },
 ];
 
 const STANDARD_LEGAL_SLUGS = new Set([
@@ -46,6 +49,11 @@ const STANDARD_LEGAL_SLUGS = new Set([
   "cookies",
   "cookie-policy",
   "cookies-policy",
+  "cancellation",
+  "cancellation-refund-policy",
+  "host",
+  "host-compliance",
+  "host-compliance-policy",
 ]);
 
 function safeDate(raw?: string | null): Date {

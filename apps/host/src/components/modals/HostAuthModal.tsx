@@ -1,7 +1,7 @@
 "use client";
 
-import React from "react";
-import { X, Phone, Mail, ShieldCheck, Globe } from "lucide-react";
+import React, { useEffect } from "react";
+import { X, Phone, Mail, Globe } from "lucide-react";
 import { useHostAuth } from "@/context/HostAuthContext";
 import { localizeHostPath, sanitizeHostReturnPath } from "@/lib/hostLocale";
 import HostPhoneInputStep from "@/components/auth/HostPhoneInputStep";
@@ -13,6 +13,7 @@ import { useHostAuthFlow } from "@/components/auth/useHostAuthFlow";
 export default function HostAuthModal() {
   const {
     hostAuthModalOpen,
+    hostAuthMode,
     closeHostAuthModal,
     hostReturnUrl,
     lang,
@@ -20,11 +21,23 @@ export default function HostAuthModal() {
     toggleLang,
   } = useHostAuth();
 
+  // Close modal on Escape key press
+  useEffect(() => {
+    if (!hostAuthModalOpen) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") closeHostAuthModal();
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [hostAuthModalOpen, closeHostAuthModal]);
+
   const safeReturnTarget = hostReturnUrl
     ? localizeHostPath(sanitizeHostReturnPath(hostReturnUrl, "/app"), lang)
     : localizeHostPath("/app", lang);
 
   const {
+    authMode,
+    toggleAuthMode,
     activeTab,
     setActiveTab,
     phoneStep,
@@ -65,6 +78,7 @@ export default function HostAuthModal() {
   } = useHostAuthFlow({
     effectiveLang: lang,
     returnUrl: safeReturnTarget,
+    initialAuthMode: hostAuthMode,
     onSuccess: () => {
       closeHostAuthModal();
       if (hostReturnUrl) {
@@ -78,96 +92,107 @@ export default function HostAuthModal() {
   return (
     <div
       dir={lang === "ar" ? "rtl" : "ltr"}
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) closeHostAuthModal();
+      }}
     >
-      <div className="relative w-full max-w-[480px] rounded-[32px] bg-white p-6 sm:p-8 shadow-2xl border border-violet-100 text-slate-900 max-h-[92vh] overflow-y-auto">
-        {/* Top Controls: Language & Close */}
+      <div className="relative w-full max-w-[440px] rounded-2xl bg-white p-7 sm:p-8 shadow-2xl border border-slate-200/90 text-slate-900 max-h-[92vh] overflow-y-auto">
+        {/* Top Controls: Brand, Language & Close */}
         <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-          <button
-            type="button"
-            onClick={toggleLang}
-            className="inline-flex items-center gap-1.5 rounded-full border border-violet-200 bg-white px-3 py-1 text-xs font-black text-[#4F2396] hover:bg-violet-50 transition cursor-pointer"
-          >
-            <Globe size={13} className="text-[#FF9750]" />
-            <span>{lang === "ar" ? "English" : "العربية"}</span>
-          </button>
+          <div className="inline-flex items-center gap-1.5 select-none">
+            <span className="text-[20px] font-black tracking-[-0.05em] text-[#4F2396]">
+              Qaf<span className="text-[#7c3aed]">Nest</span>
+              <span className="text-[#FF9750]">.</span>
+            </span>
+            <span className="rounded-md bg-violet-100/80 px-2 py-0.5 text-[9px] font-bold tracking-wider uppercase text-[#4F2396]">
+              {t("BUSINESS", "أعمال")}
+            </span>
+          </div>
 
-          <button
-            type="button"
-            onClick={closeHostAuthModal}
-            className="rounded-full p-2 text-slate-400 hover:bg-slate-100 transition cursor-pointer"
-          >
-            <X size={18} />
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={toggleLang}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50 transition cursor-pointer"
+              title={lang === "ar" ? "Switch to English" : "التبديل إلى العربية"}
+            >
+              <Globe size={13} className="text-slate-500" />
+              <span>{lang === "ar" ? "English" : "العربية"}</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={closeHostAuthModal}
+              className="rounded-lg p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition cursor-pointer"
+              aria-label="Close"
+            >
+              <X size={18} />
+            </button>
+          </div>
         </div>
 
-        {/* Ministry of Tourism Trust Badge */}
-        <div className="mt-4 inline-flex items-center gap-2 rounded-full border border-violet-200 bg-violet-50 px-3.5 py-1 text-xs font-black text-[#4F2396]">
-          <ShieldCheck size={14} className="text-[#FF9750]" />
-          <span>{t("Verified Host Portal · Saudi Ministry of Tourism", "بوابة المضيفين المعتمدة · وزارة السياحة")}</span>
-        </div>
-
-        {/* Card Title & Subtitle */}
-        <h2 className="mt-3 text-xl sm:text-2xl font-black tracking-tight text-[#010112]">
+        {/* Card Title (Centered) */}
+        <h2 className="mt-5 text-xl sm:text-2xl font-bold tracking-tight text-slate-900 text-center mb-6">
           {phoneStep === "profile_details"
-            ? t("Complete Host Profile", "إكمال ملف المضيف")
+            ? t("Complete your profile", "استكمال ملف المضيف")
             : phoneStep === "otp_verify"
-            ? t("Verify Mobile Number", "التحقق من رقم الجوال")
+            ? t("Verify your phone number", "التحقق من رقم الجوال")
+            : authMode === "signup"
+            ? t("Register Your Property", "سجل عقارك وابدأ الاستضافة")
             : t("Host Partner Sign In", "تسجيل دخول المضيفين")}
         </h2>
-        <p className="mt-1 text-xs font-semibold leading-relaxed text-slate-500">
-          {phoneStep === "profile_details"
-            ? t("Add your name to finalize your host profile on QafNest.", "أدخل اسمك لاستكمال ملفك كمضيف معتمد على منصة قاف نست.")
-            : phoneStep === "otp_verify"
-            ? `${t("Enter the 6-digit verification code sent to ", "أدخل رمز التحقق المرسل إلى ")} ${sentPhoneDisplay}`
-            : t("Access your host dashboard to manage your properties and bookings.", "أدر عقاراتك، حجوزاتك، والتوافر، وأرباحك الشهرية بأمان.")}
-        </p>
+        {phoneStep === "otp_verify" && (
+          <p className="-mt-4 mb-6 text-center text-xs text-slate-500 font-normal">{sentPhoneDisplay}</p>
+        )}
 
         {/* Alerts */}
         {errorMsg && (
-          <div role="alert" className="mt-4 rounded-2xl border border-rose-200 bg-rose-50 p-3 text-xs font-bold text-rose-700">
+          <div role="alert" className="mb-5 rounded-xl border border-red-200 bg-red-50/70 p-3.5 text-xs font-medium leading-relaxed text-red-700">
             {errorMsg}
           </div>
         )}
         {successMsg && (
-          <div role="status" className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 p-3 text-xs font-bold text-emerald-800">
+          <div role="status" className="mb-5 rounded-xl border border-emerald-200 bg-emerald-50/70 p-3.5 text-xs font-medium leading-relaxed text-emerald-800">
             {successMsg}
           </div>
         )}
 
         {/* Tab Switcher: Phone vs Email */}
-        <div className="mt-5 grid grid-cols-2 gap-1.5 rounded-2xl bg-slate-100 p-1 text-xs font-black">
-          <button
-            type="button"
-            onClick={() => {
-              setActiveTab("phone");
-              setErrorMsg(null);
-            }}
-            className={`flex items-center justify-center gap-1.5 rounded-xl py-2 transition cursor-pointer ${
-              activeTab === "phone"
-                ? "bg-white text-[#4F2396] shadow-xs"
-                : "text-slate-600 hover:text-slate-900"
-            }`}
-          >
-            <Phone size={14} />
-            <span>{t("Mobile (OTP)", "رقم الجوال")}</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setActiveTab("email");
-              setErrorMsg(null);
-            }}
-            className={`flex items-center justify-center gap-1.5 rounded-xl py-2 transition cursor-pointer ${
-              activeTab === "email"
-                ? "bg-white text-[#4F2396] shadow-xs"
-                : "text-slate-600 hover:text-slate-900"
-            }`}
-          >
-            <Mail size={14} />
-            <span>{t("Email & Password", "البريد الإلكتروني")}</span>
-          </button>
-        </div>
+        {phoneStep === "phone_input" && (
+          <div className="mb-6 grid grid-cols-2 gap-1.5 rounded-xl bg-slate-100 p-1.5 text-xs font-medium text-slate-600">
+            <button
+              type="button"
+              onClick={() => {
+                setActiveTab("phone");
+                setErrorMsg(null);
+              }}
+              className={`flex items-center justify-center gap-1.5 rounded-lg py-2.5 transition cursor-pointer ${
+                activeTab === "phone"
+                  ? "bg-white text-slate-900 font-semibold shadow-2xs"
+                  : "text-slate-500 hover:text-slate-800"
+              }`}
+            >
+              <Phone size={13} />
+              <span>{t("Mobile OTP", "رقم الجوال")}</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setActiveTab("email");
+                setErrorMsg(null);
+              }}
+              className={`flex items-center justify-center gap-1.5 rounded-lg py-2.5 transition cursor-pointer ${
+                activeTab === "email"
+                  ? "bg-white text-slate-900 font-semibold shadow-2xs"
+                  : "text-slate-500 hover:text-slate-800"
+              }`}
+            >
+              <Mail size={13} />
+              <span>{t("Email & Password", "البريد الإلكتروني")}</span>
+            </button>
+          </div>
+        )}
 
         {/* TAB 1: PHONE LOGIN */}
         {activeTab === "phone" && (
@@ -183,6 +208,8 @@ export default function HostAuthModal() {
                 onSubmit={handleSendPhoneOtp}
                 t={t}
                 effectiveLang={lang}
+                authMode={authMode}
+                onToggleAuthMode={toggleAuthMode}
               />
             )}
 
@@ -198,6 +225,7 @@ export default function HostAuthModal() {
                 onResendOtp={handleSendPhoneOtp}
                 onChangeNumber={() => setPhoneStep("phone_input")}
                 t={t}
+                authMode={authMode}
               />
             )}
 

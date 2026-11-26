@@ -294,13 +294,14 @@ export async function validateAuthoritativeCoupon(
  * Increments the used_count for a successfully redeemed coupon in both Supabase and local store.
  * Uses atomic Compare-And-Swap (CAS) optimistic concurrency control to prevent race conditions (SEC-07).
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function recordCouponUsage(
   code: string,
   dbClientOrUserId?: any,
-  bookingRefOrUserId?: string,
+  _bookingRefOrUserId?: string,
   _bookingRef?: string
 ): Promise<void> {
+  void _bookingRefOrUserId;
+  void _bookingRef;
   const cleanCode = (code || "").trim().toUpperCase();
   if (!cleanCode) return;
 

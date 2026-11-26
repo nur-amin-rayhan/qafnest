@@ -33,7 +33,8 @@ export function parseTabFromPathname(pathname?: string | null): Module | null {
   const cleanPath = stripHostLocaleFromPathname(pathname);
   const segments = cleanPath.split("/").filter(Boolean);
   if (segments[0] === "app" && segments[1]) {
-    const candidate = segments[1].toLowerCase();
+    const rawCandidate = segments[1].toLowerCase();
+    const candidate = rawCandidate === "bookings" ? "reservations" : rawCandidate;
     if (isValidModule(candidate)) {
       return candidate;
     }

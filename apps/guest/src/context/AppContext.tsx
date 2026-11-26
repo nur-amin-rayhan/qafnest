@@ -4,20 +4,19 @@ import React, { createContext, useContext, useState } from "react";
 import { TRANSLATIONS } from "@/data/translations";
 import type {
   AppContextType,
-  BookingModalState,
   Currency,
   Language,
 } from "./app/appContextTypes";
 import { useWishlistSync } from "./app/useWishlistSync";
 import { getRiyadhDate, useAppPreferences } from "./app/useAppPreferences";
 
-export type { Language, Currency, BookingModalState, AppContextType };
+export type { Language, Currency, AppContextType };
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export function AppProvider({
   children,
-  initialLang = "en",
+  initialLang = "ar",
   initialTheme = "dark",
 }: {
   children: React.ReactNode;
@@ -51,21 +50,8 @@ export function AppProvider({
   const [rentMode, setRentMode] = useState<"daily" | "monthly">("daily");
   const [promoBannerVisible, setPromoBannerVisible] = useState<boolean>(true);
 
-  const [bookingModal, setBookingModal] = useState<BookingModalState>({
-    isOpen: false,
-    propertyTitle: "",
-    basePrice: 0,
-  });
   const [searchModalOpen, setSearchModalOpen] = useState<boolean>(false);
   const [appModalOpen, setAppModalOpen] = useState<boolean>(false);
-
-  const openBookingModal = (title: string, price: number) => {
-    setBookingModal({ isOpen: true, propertyTitle: title, basePrice: price });
-  };
-
-  const closeBookingModal = () => {
-    setBookingModal((prev) => ({ ...prev, isOpen: false }));
-  };
 
   const openSearchModal = () => setSearchModalOpen(true);
   const closeSearchModal = () => setSearchModalOpen(false);
@@ -114,9 +100,6 @@ export function AppProvider({
         setStayTiming,
         rentMode,
         setRentMode,
-        bookingModal,
-        openBookingModal,
-        closeBookingModal,
         searchModalOpen,
         openSearchModal,
         closeSearchModal,

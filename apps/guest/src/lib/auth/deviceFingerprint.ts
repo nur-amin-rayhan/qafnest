@@ -1,5 +1,7 @@
 "use client";
 
+import { getGuestAuthorizationHeaders } from "@/lib/auth/clientAuthHeaders";
+
 const DEVICE_STORAGE_KEY = "qafnest_device_id_v1";
 
 function hashString(input: string): string {
@@ -120,6 +122,7 @@ export async function claimWelcomeBonus(params?: {
   amountCredited: number;
   balance?: number;
   blocked?: boolean;
+  status?: number;
   message?: string;
 }> {
   try {
@@ -127,11 +130,15 @@ export async function claimWelcomeBonus(params?: {
     const headers: Record<string, string> = { "Content-Type": "application/json" };
     if (params?.accessToken) {
       headers.Authorization = `Bearer ${params.accessToken}`;
+    } else {
+      const resolvedHeaders = await getGuestAuthorizationHeaders();
+      Object.assign(headers, resolvedHeaders);
     }
 
     const res = await fetch("/api/auth/welcome-bonus", {
       method: "POST",
       cache: "no-store",
+      credentials: "same-origin",
       headers,
       body: JSON.stringify({
         deviceId,
@@ -159,6 +166,7 @@ export async function claimWelcomeBonus(params?: {
       amountCredited: Number(data.amountCredited) || 0,
       balance: typeof data.balance === "number" ? data.balance : undefined,
       blocked: Boolean(data.blocked || res.status === 403),
+      status: res.status,
       message: data.messageEn || data.message,
     };
   } catch {

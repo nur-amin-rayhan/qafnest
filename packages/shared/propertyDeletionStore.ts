@@ -229,3 +229,28 @@ export function finalizePropertyDeletionReview(params: {
   writeStore(store);
   return updated;
 }
+
+export function markDeletionRequestReadByHost(
+  idOrAll: string | "all",
+  hostId: string
+): void {
+  const store = readStore();
+  let changed = false;
+  store.requests = store.requests.map((r) => {
+    if (r.hostId === hostId) {
+      if (
+        idOrAll === "all" ||
+        r.id === idOrAll ||
+        `del-notif-${r.id}-${r.status}` === idOrAll
+      ) {
+        changed = true;
+        return { ...r, isReadByHost: true };
+      }
+    }
+    return r;
+  });
+  if (changed) {
+    writeStore(store);
+  }
+}
+

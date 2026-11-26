@@ -153,14 +153,19 @@ export function PersonalInformationTab({
             <div className="relative">
               <input
                 type="text"
-                required
                 dir="ltr"
+                readOnly={Boolean(profile.phone)}
+                aria-readonly={Boolean(profile.phone)}
                 value={phone}
-                onChange={(e) => setPhone(e.target.value)}
+                onChange={(e) => {
+                  if (!profile.phone) setPhone(e.target.value);
+                }}
                 placeholder="+966 5X XXX XXXX"
-                className="w-full rounded-2xl border border-slate-200 bg-slate-50/50 px-4 py-3 text-xs sm:text-sm font-bold text-slate-900 transition focus:border-violet-500 focus:bg-white focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-400 focus-visible:ring-offset-2"
+                className={`w-full rounded-2xl border border-slate-200 px-4 py-3 text-xs sm:text-sm font-bold text-slate-900 transition focus:border-violet-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-400 focus-visible:ring-offset-2 ${
+                  profile.phone ? "bg-slate-100 cursor-not-allowed text-slate-600" : "bg-slate-50/50 focus:bg-white"
+                }`}
               />
-              {Boolean(phone && profile.isVerified) && (
+              {Boolean(profile.phone) && (
                 <span className="absolute top-3 rtl:left-3.5 ltr:right-3.5 text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-lg border border-emerald-200">
                   {t("Verified", "موثق")}
                 </span>
@@ -173,14 +178,26 @@ export function PersonalInformationTab({
             <label className="block text-xs font-black text-slate-800 mb-1.5">
               {t("Email Address", "البريد الإلكتروني للإشعارات والفواتير")}
             </label>
-            <input
-              type="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="host@qafnest.com"
-              className="w-full rounded-2xl border border-slate-200 bg-slate-50/50 px-4 py-3 text-xs sm:text-sm font-bold text-slate-900 transition focus:border-violet-500 focus:bg-white focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-400 focus-visible:ring-offset-2"
-            />
+            <div className="relative">
+              <input
+                type="email"
+                readOnly={Boolean(profile.email)}
+                aria-readonly={Boolean(profile.email)}
+                value={email}
+                onChange={(e) => {
+                  if (!profile.email) setEmail(e.target.value);
+                }}
+                placeholder="host@qafnest.com"
+                className={`w-full rounded-2xl border border-slate-200 px-4 py-3 text-xs sm:text-sm font-bold text-slate-900 transition focus:border-violet-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-400 focus-visible:ring-offset-2 ${
+                  profile.email ? "bg-slate-100 cursor-not-allowed text-slate-600" : "bg-slate-50/50 focus:bg-white"
+                }`}
+              />
+              {Boolean(profile.email) && (
+                <span className="absolute top-3 rtl:left-3.5 ltr:right-3.5 text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-lg border border-emerald-200">
+                  {t("Linked", "مربوط")}
+                </span>
+              )}
+            </div>
           </div>
 
           {/* Primary City */}

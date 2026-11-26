@@ -5,6 +5,7 @@ import {
   readSharedJsonFile,
   writeSharedJsonFile,
 } from "./serverJsonStore";
+import { verifySaudiIdentityServer } from "./saudiIdentityStore";
 
 export interface HelplineVerificationSession {
   token: string;
@@ -18,7 +19,29 @@ export interface HelplineVerificationSession {
   isAccountActive: boolean;
   otpHash: string;
   otpAttempts?: number;
-  devOtpCode?: string; // stored for local dev convenience when SMS provider is in sandbox
+  otpSentAt: string;
+  otpExpiresAt: string;
+  otpVerified: boolean;
+  otpVerifiedAt?: string;
+  identityVerified: boolean;
+  identityVerifiedAt?: string;
+  identityProvider?: "yakeen" | "nafath" | "sandbox";
+  verificationReference?: string;
+  verificationMethod: "code" | "link";
+  completed: boolean;
+  consumedAt?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PublicHelplineVerificationSession {
+  token: string;
+  phoneNumber: string;
+  guestName?: string;
+  nationalId: string | null;
+  idType?: "national_id" | "iqama";
+  isExistingUser: boolean;
+  isAccountActive: boolean;
   otpSentAt: string;
   otpExpiresAt: string;
   otpVerified: boolean;
@@ -28,8 +51,38 @@ export interface HelplineVerificationSession {
   identityProvider?: "yakeen" | "nafath" | "sandbox";
   verificationMethod: "code" | "link";
   completed: boolean;
-  createdAt: string;
-  updatedAt: string;
+  consumed: boolean;
+}
+
+export function maskNationalId(nid?: string): string | null {
+  if (!nid) return null;
+  const clean = nid.trim();
+  if (clean.length < 6) return "****";
+  return `${clean.slice(0, 3)}****${clean.slice(-3)}`;
+}
+
+export function toPublicHelplineSession(
+  session: HelplineVerificationSession
+): PublicHelplineVerificationSession {
+  return {
+    token: session.token,
+    phoneNumber: session.phoneNumber,
+    guestName: session.guestName,
+    nationalId: maskNationalId(session.nationalId),
+    idType: session.idType,
+    isExistingUser: session.isExistingUser,
+    isAccountActive: session.isAccountActive,
+    otpSentAt: session.otpSentAt,
+    otpExpiresAt: session.otpExpiresAt,
+    otpVerified: session.otpVerified,
+    otpVerifiedAt: session.otpVerifiedAt,
+    identityVerified: session.identityVerified,
+    identityVerifiedAt: session.identityVerifiedAt,
+    identityProvider: session.identityProvider,
+    verificationMethod: session.verificationMethod,
+    completed: session.completed,
+    consumed: Boolean(session.consumedAt),
+  };
 }
 
 export interface BankTransferClaim {
@@ -106,8 +159,59 @@ function saveTransferClaims(records: Record<string, BankTransferClaim>) {
   writeSharedJsonFile(TRANSFER_CLAIMS_FILE_NAME, records);
 }
 
-function hashOtp(code: string): string {
-  return crypto.createHash("sha256").update(code.trim()).digest("hex");
+function hashOtp(token: string, code: string): string {
+  return crypto.createHmac("sha256", token).update(code.trim()).digest("hex");
+}
+
+export async function dispatchHelplineSms(params: {
+  phoneNumber: string;
+  otpCode: string;
+  verificationLink: string;
+  method: "code" | "link";
+}): Promise<{ dispatched: boolean; error?: string }> {
+  const webhookUrl = process.env.HELPLINE_SMS_WEBHOOK_URL?.trim();
+  if (!webhookUrl) {
+    if (process.env.NODE_ENV === "production") {
+      return {
+        dispatched: false,
+        error: "SMS gateway (HELPLINE_SMS_WEBHOOK_URL) is not configured for production delivery.",
+      };
+    }
+    return { dispatched: true };
+  }
+
+  try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 8000);
+    const res = await fetch(webhookUrl, {
+      method: "POST",
+      signal: controller.signal,
+      headers: {
+        "Content-Type": "application/json",
+        ...(process.env.HELPLINE_SMS_API_KEY?.trim()
+          ? { Authorization: `Bearer ${process.env.HELPLINE_SMS_API_KEY.trim()}` }
+          : {}),
+      },
+      body: JSON.stringify({
+        to: params.phoneNumber,
+        method: params.method,
+        message:
+          params.method === "link"
+            ? `QafNest verification link: ${params.verificationLink}`
+            : `Your QafNest verification code is ${params.otpCode}. Valid for 10 minutes.`,
+      }),
+    });
+    clearTimeout(timer);
+    if (!res.ok) {
+      return { dispatched: false, error: `SMS gateway responded with HTTP ${res.status}` };
+    }
+    return { dispatched: true };
+  } catch (err) {
+    return {
+      dispatched: false,
+      error: err instanceof Error ? err.message : "Failed to reach SMS gateway",
+    };
+  }
 }
 
 export function createVerificationSession(params: {
@@ -119,16 +223,15 @@ export function createVerificationSession(params: {
   isExistingUser?: boolean;
   isAccountActive?: boolean;
   method?: "code" | "link";
-}): HelplineVerificationSession {
+}): { session: HelplineVerificationSession; previewOtp?: string } {
   const records = loadVerifications();
-  const token = `HV-${Date.now().toString(36)}-${crypto.randomBytes(6).toString("hex")}`;
-  
-  // Generate random 6-digit OTP
-  const rawOtp = Math.floor(100000 + Math.random() * 900000).toString();
+  const token = `HV-${Date.now().toString(36)}-${crypto.randomBytes(8).toString("hex")}`;
+
+  // CSPRNG 6-digit OTP; NEVER persisted in plaintext
+  const rawOtp = crypto.randomInt(100000, 1000000).toString();
   const now = new Date();
   const expires = new Date(now.getTime() + 10 * 60 * 1000); // 10 minutes
 
-  // Identify national id type if provided
   let idType: "national_id" | "iqama" | undefined = undefined;
   if (params.nationalId) {
     if (params.nationalId.startsWith("1")) idType = "national_id";
@@ -145,8 +248,8 @@ export function createVerificationSession(params: {
     guestEmail: params.guestEmail,
     isExistingUser: Boolean(params.isExistingUser),
     isAccountActive: params.isAccountActive !== undefined ? params.isAccountActive : true,
-    otpHash: hashOtp(rawOtp),
-    devOtpCode: rawOtp, // visible in dev / helpline agent preview for quick testing
+    otpHash: hashOtp(token, rawOtp),
+    otpAttempts: 0,
     otpSentAt: now.toISOString(),
     otpExpiresAt: expires.toISOString(),
     otpVerified: false,
@@ -159,7 +262,13 @@ export function createVerificationSession(params: {
 
   records[token] = session;
   saveVerifications(records);
-  return session;
+
+  const allowPreview =
+    process.env.NODE_ENV !== "production" && process.env.HELPLINE_ALLOW_TEST_OTP === "true";
+  return {
+    session,
+    previewOtp: allowPreview ? rawOtp : undefined,
+  };
 }
 
 export function verifySessionOtp(token: string, enteredCode: string): { success: boolean; error?: string; session?: HelplineVerificationSession } {
@@ -169,23 +278,29 @@ export function verifySessionOtp(token: string, enteredCode: string): { success:
     return { success: false, error: "Verification session not found" };
   }
 
+  if (session.consumedAt) {
+    return { success: false, error: "Verification session has already been consumed." };
+  }
+
   if (new Date() > new Date(session.otpExpiresAt)) {
     return { success: false, error: "Verification code has expired. Please request a new code." };
   }
 
-  const enteredHash = hashOtp(enteredCode);
-  const attempts = Number((session as { otpAttempts?: number }).otpAttempts || 0);
+  const enteredHash = hashOtp(token, enteredCode);
+  const attempts = Number(session.otpAttempts || 0);
   if (attempts >= 5) {
     return { success: false, error: "Too many failed verification attempts. Request a new link." };
   }
-  const allowDevBypass =
-    typeof process !== "undefined" &&
-    process.env.NODE_ENV !== "production" &&
-    process.env.HELPLINE_ALLOW_TEST_OTP === "true" &&
-    enteredCode === session.devOtpCode;
 
-  if (enteredHash !== session.otpHash && !allowDevBypass) {
-    (session as { otpAttempts?: number }).otpAttempts = attempts + 1;
+  const hashBuf = Buffer.from(enteredHash, "hex");
+  const expectedBuf = Buffer.from(session.otpHash || "", "hex");
+  const isMatch =
+    hashBuf.length > 0 &&
+    hashBuf.length === expectedBuf.length &&
+    crypto.timingSafeEqual(hashBuf, expectedBuf);
+
+  if (!isMatch) {
+    session.otpAttempts = attempts + 1;
     session.updatedAt = new Date().toISOString();
     records[token] = session;
     saveVerifications(records);
@@ -203,25 +318,44 @@ export function verifySessionOtp(token: string, enteredCode: string): { success:
   return { success: true, session };
 }
 
-export function verifySessionIdentity(
+export async function verifySessionIdentity(
   token: string,
   params: {
     nationalId: string;
     fullName?: string;
     provider?: "yakeen" | "nafath" | "sandbox";
   }
-): { success: boolean; error?: string; session?: HelplineVerificationSession } {
+): Promise<{ success: boolean; error?: string; statusCode?: number; session?: HelplineVerificationSession }> {
   const records = loadVerifications();
   const session = records[token];
   if (!session) {
-    return { success: false, error: "Verification session not found" };
+    return { success: false, statusCode: 404, error: "Verification session not found" };
   }
 
-  const nid = params.nationalId.trim();
-  if (!/^(1|2)\d{9}$/.test(nid)) {
+  if (session.consumedAt) {
+    return { success: false, statusCode: 400, error: "Verification session has already been used." };
+  }
+
+  if (!session.otpVerified) {
     return {
       success: false,
-      error: "National ID must start with 1 (Citizen) or 2 (Resident Iqama) and contain exactly 10 digits.",
+      statusCode: 400,
+      error: "Mobile phone OTP must be verified before identity verification.",
+    };
+  }
+
+  const nid = params.nationalId.trim().replace(/\D/g, "");
+  const check = await verifySaudiIdentityServer({
+    idNumber: nid,
+    type: nid.startsWith("2") ? "iqama" : "national_id",
+    fullName: params.fullName || session.guestName,
+  });
+
+  if (!check.verified) {
+    return {
+      success: false,
+      statusCode: check.statusCode || 400,
+      error: check.error || "National ID / Iqama verification failed.",
     };
   }
 
@@ -233,7 +367,8 @@ export function verifySessionIdentity(
   }
   session.identityVerified = true;
   session.identityVerifiedAt = now;
-  session.identityProvider = params.provider || "yakeen";
+  session.identityProvider = check.provider;
+  session.verificationReference = check.reference;
   session.updatedAt = now;
   session.completed = session.otpVerified && session.identityVerified;
 
@@ -247,6 +382,17 @@ export function getVerificationSession(token: string): HelplineVerificationSessi
   return records[token] || null;
 }
 
+export function consumeVerificationToken(token: string): void {
+  const records = loadVerifications();
+  const session = records[token];
+  if (!session) return;
+  const now = new Date().toISOString();
+  session.consumedAt = now;
+  session.updatedAt = now;
+  records[token] = session;
+  saveVerifications(records);
+}
+
 export function validateBookingVerification(token: string): {
   valid: boolean;
   error?: string;
@@ -256,6 +402,10 @@ export function validateBookingVerification(token: string): {
   const session = records[token];
   if (!session) {
     return { valid: false, error: "Missing or invalid verification token." };
+  }
+
+  if (session.consumedAt) {
+    return { valid: false, error: "Verification token has already been used for a booking." };
   }
 
   if (!session.isAccountActive) {

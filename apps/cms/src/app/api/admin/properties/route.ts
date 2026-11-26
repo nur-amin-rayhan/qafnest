@@ -16,7 +16,8 @@ export async function GET(request: NextRequest) {
     .order("created_at", { ascending: false })
     .limit(200);
   if (error) {
-    return NextResponse.json({ code: "properties_read_failed", message: error.message }, { status: 500 });
+    console.error("[cms admin properties] read failed:", error);
+    return NextResponse.json({ code: "properties_read_failed", message: "Failed to read properties." }, { status: 500 });
   }
   return NextResponse.json({ properties: data || [] });
 }
@@ -51,7 +52,8 @@ export async function PATCH(request: NextRequest) {
     .select("id,status,is_approved")
     .single();
   if (error) {
-    return NextResponse.json({ code: "property_status_update_failed", message: error.message }, { status: 500 });
+    console.error("[cms admin properties] update failed:", error);
+    return NextResponse.json({ code: "property_status_update_failed", message: "Failed to update property status." }, { status: 500 });
   }
   return NextResponse.json({ property: data });
 }

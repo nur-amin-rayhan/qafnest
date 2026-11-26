@@ -1,6 +1,16 @@
 import crypto from "crypto";
 import { createClient } from "@/lib/supabase/server";
+import { getHostServiceRoleClient } from "@/lib/supabase/service";
 import { normalizeSaudiPhone, normalizePhoneInput } from "@qafnest/shared/phone";
+import {
+  parseCookieValue,
+  verifyPortalSessionTokenEdge,
+} from "@qafnest/shared/portalSessionEdge";
+import {
+  getRegisteredPortalRole,
+  registerPortalAccount,
+} from "@qafnest/shared/portalRegistryStore";
+import { readSharedJsonFile } from "@qafnest/shared/serverJsonStore";
 
 export interface VerifiedHostUser {
   id: string;
@@ -51,7 +61,9 @@ async function getGooglePublicCerts(): Promise<Record<string, string>> {
   }
 }
 
-export async function verifyFirebaseIdToken(token: string): Promise<VerifiedHostUser | null> {
+export async function verifyFirebaseTokenPayload(
+  token: string
+): Promise<Omit<VerifiedHostUser, "role" | "provider"> | null> {
   try {
     const parts = token.split(".");
     if (parts.length !== 3) return null;
@@ -98,10 +110,13 @@ export async function verifyFirebaseIdToken(token: string): Promise<VerifiedHost
 
     if (!payload.sub || typeof payload.sub !== "string") return null;
 
-    const rawPhone = typeof payload.phone_number === "string" && payload.phone_number.trim()
-      ? payload.phone_number.trim()
+    const rawPhone =
+      typeof payload.phone_number === "string" && payload.phone_number.trim()
+        ? payload.phone_number.trim()
+        : null;
+    const phone = rawPhone
+      ? normalizeSaudiPhone(rawPhone) || normalizePhoneInput(rawPhone)
       : null;
-    const phone = rawPhone ? (normalizeSaudiPhone(rawPhone) || normalizePhoneInput(rawPhone)) : null;
 
     return {
       id: payload.sub,
@@ -109,8 +124,6 @@ export async function verifyFirebaseIdToken(token: string): Promise<VerifiedHost
       isPhoneVerified: Boolean(phone),
       email: typeof payload.email === "string" ? payload.email : null,
       name: typeof payload.name === "string" ? payload.name : null,
-      role: "host",
-      provider: "firebase",
     };
   } catch (err) {
     console.warn("Exception during Firebase ID token verification:", err);
@@ -118,21 +131,120 @@ export async function verifyFirebaseIdToken(token: string): Promise<VerifiedHost
   }
 }
 
-function parseCookieValue(cookieHeader: string, cookieName: string): string | null {
-  if (!cookieHeader) return null;
-  for (const part of cookieHeader.split(";")) {
-    const eqIdx = part.indexOf("=");
-    if (eqIdx <= 0) continue;
-    const key = part.slice(0, eqIdx).trim();
-    if (key !== cookieName) continue;
-    const rawVal = part.slice(eqIdx + 1).trim();
-    try {
-      return decodeURIComponent(rawVal);
-    } catch {
-      return rawVal;
-    }
+export async function authorizeHostPortalAccount({
+  uid,
+  provider,
+  appMeta,
+  userMeta,
+  hasSignedHostCookie = false,
+  allowEnrollment = false,
+}: {
+  uid: string;
+  provider: "supabase" | "firebase";
+  appMeta?: Record<string, unknown> | null;
+  userMeta?: Record<string, unknown> | null;
+  hasSignedHostCookie?: boolean;
+  allowEnrollment?: boolean;
+}): Promise<boolean> {
+  const devGuestId =
+    process.env.NEXT_PUBLIC_DEV_GUEST_ID || "00000000-0000-0000-0000-000000000001";
+  if (!uid || uid === devGuestId) return false;
+  if (appMeta?.role === "guest" || appMeta?.role === "admin" || userMeta?.role === "guest") {
+    return false;
   }
-  return null;
+
+  const registeredRole = await getRegisteredPortalRole(uid);
+  if (registeredRole === "guest") return false;
+
+  if (appMeta?.role === "host" || registeredRole === "host" || hasSignedHostCookie) {
+    if (!registeredRole) {
+      const reg = await registerPortalAccount(uid, "host", provider);
+      if (!reg.ok) return false;
+    }
+    return true;
+  }
+
+  // Check guest/host footprint in database and Firebase guest store
+  const fbGuestMap = readSharedJsonFile<Record<string, unknown>>(
+    "firebase-guest-profiles.json",
+    () => ({})
+  );
+  if (fbGuestMap && typeof fbGuestMap === "object" && uid in fbGuestMap) {
+    await registerPortalAccount(uid, "guest", provider);
+    return false;
+  }
+
+  const adminDb = getHostServiceRoleClient();
+  if (adminDb) {
+    try {
+      const { data: ownedProp } = await adminDb
+        .from("properties")
+        .select("id")
+        .eq("host_id", uid)
+        .limit(1)
+        .maybeSingle();
+      if (ownedProp?.id) {
+        const reg = await registerPortalAccount(uid, "host", provider);
+        return reg.ok;
+      }
+
+      const { data: guestBooking } = await adminDb
+        .from("bookings")
+        .select("id")
+        .eq("guest_id", uid)
+        .limit(1)
+        .maybeSingle();
+      if (guestBooking?.id) {
+        await registerPortalAccount(uid, "guest", provider);
+        return false;
+      }
+
+      const { data: guestWallet } = await adminDb
+        .from("wallets")
+        .select("user_id")
+        .eq("user_id", uid)
+        .limit(1)
+        .maybeSingle();
+      if (guestWallet?.user_id) {
+        await registerPortalAccount(uid, "guest", provider);
+        return false;
+      }
+    } catch {}
+  }
+
+  // Only explicit host session onboarding endpoints (/api/host/auth/session, /auth/callback) may enroll new hosts
+  if (!allowEnrollment) {
+    return false;
+  }
+
+  const reg = await registerPortalAccount(uid, "host", provider);
+  if (!reg.ok) return false;
+
+  if (provider === "supabase" && adminDb) {
+    try {
+      await adminDb.auth.admin.updateUserById(uid, {
+        app_metadata: { ...(appMeta || {}), role: "host" },
+      });
+    } catch {}
+  }
+
+  return true;
+}
+
+export async function verifyFirebaseIdToken(token: string): Promise<VerifiedHostUser | null> {
+  const verified = await verifyFirebaseTokenPayload(token);
+  if (!verified) return null;
+  const allowed = await authorizeHostPortalAccount({
+    uid: verified.id,
+    provider: "firebase",
+    allowEnrollment: false,
+  });
+  if (!allowed) return null;
+  return {
+    ...verified,
+    role: "host",
+    provider: "firebase",
+  };
 }
 
 export async function verifyHostSession(request: Request): Promise<VerifiedHostUser | null> {
@@ -141,26 +253,64 @@ export async function verifyHostSession(request: Request): Promise<VerifiedHostU
   const cookieHeader = request.headers.get("cookie") || "";
   const hostSessionCookie = parseCookieValue(cookieHeader, "qafnest_has_host_session");
 
+  const signedHostCookie = hostSessionCookie
+    ? await verifyPortalSessionTokenEdge(hostSessionCookie, "host")
+    : null;
+  if (signedHostCookie) {
+    const allowed = await authorizeHostPortalAccount({
+      uid: signedHostCookie.sub,
+      provider: signedHostCookie.provider === "firebase" ? "firebase" : "supabase",
+      hasSignedHostCookie: true,
+    });
+    if (!allowed) return null;
+  }
+
   // 1. Check Authorization Bearer token via Firebase first, then Supabase
   if (bearer && bearer !== "dev_host_token") {
-    const fbUser = await verifyFirebaseIdToken(bearer);
-    if (fbUser) return fbUser;
+    const fbPayload = await verifyFirebaseTokenPayload(bearer);
+    if (fbPayload) {
+      const allowed = await authorizeHostPortalAccount({
+        uid: fbPayload.id,
+        provider: "firebase",
+        hasSignedHostCookie: signedHostCookie?.sub === fbPayload.id,
+        allowEnrollment: false,
+      });
+      if (!allowed) return null;
+      return {
+        ...fbPayload,
+        role: "host",
+        provider: "firebase",
+      };
+    }
 
     try {
       const supabase = await createClient();
       const { data: { user }, error } = await supabase.auth.getUser(bearer);
       if (!error && user) {
-        // Exclude guest accounts that share localhost auth cookies
-        const isGuest = user.user_metadata?.role === "guest" || user.id === "00000000-0000-0000-0000-000000000001";
-        if (!isGuest) {
-          const rawPhone = user.phone || (typeof user.user_metadata?.phone === "string" ? user.user_metadata.phone : null);
-          const phone = rawPhone ? (normalizeSaudiPhone(rawPhone) || normalizePhoneInput(rawPhone)) : null;
+        const allowed = await authorizeHostPortalAccount({
+          uid: user.id,
+          provider: "supabase",
+          appMeta: (user.app_metadata || {}) as Record<string, unknown>,
+          userMeta: (user.user_metadata || {}) as Record<string, unknown>,
+          hasSignedHostCookie: signedHostCookie?.sub === user.id,
+          allowEnrollment: false,
+        });
+        if (allowed) {
+          const rawPhone =
+            user.phone ||
+            (typeof user.user_metadata?.phone === "string" ? user.user_metadata.phone : null);
+          const phone = rawPhone
+            ? normalizeSaudiPhone(rawPhone) || normalizePhoneInput(rawPhone)
+            : null;
           return {
             id: user.id,
             phone,
             isPhoneVerified: Boolean(user.phone_confirmed_at || phone),
             email: user.email || null,
-            name: (typeof user.user_metadata?.full_name === "string" ? user.user_metadata.full_name : null) || null,
+            name:
+              (typeof user.user_metadata?.full_name === "string"
+                ? user.user_metadata.full_name
+                : null) || null,
             role: "host",
             provider: "supabase",
           };
@@ -174,17 +324,30 @@ export async function verifyHostSession(request: Request): Promise<VerifiedHostU
     const supabase = await createClient();
     const { data: { user }, error } = await supabase.auth.getUser();
     if (!error && user) {
-      // Exclude guest accounts that share localhost auth cookies
-      const isGuest = user.user_metadata?.role === "guest" || user.id === "00000000-0000-0000-0000-000000000001";
-      if (!isGuest) {
-        const rawPhone = user.phone || (typeof user.user_metadata?.phone === "string" ? user.user_metadata.phone : null);
-        const phone = rawPhone ? (normalizeSaudiPhone(rawPhone) || normalizePhoneInput(rawPhone)) : null;
+      const allowed = await authorizeHostPortalAccount({
+        uid: user.id,
+        provider: "supabase",
+        appMeta: (user.app_metadata || {}) as Record<string, unknown>,
+        userMeta: (user.user_metadata || {}) as Record<string, unknown>,
+        hasSignedHostCookie: signedHostCookie?.sub === user.id,
+        allowEnrollment: false,
+      });
+      if (allowed) {
+        const rawPhone =
+          user.phone ||
+          (typeof user.user_metadata?.phone === "string" ? user.user_metadata.phone : null);
+        const phone = rawPhone
+          ? normalizeSaudiPhone(rawPhone) || normalizePhoneInput(rawPhone)
+          : null;
         return {
           id: user.id,
           phone,
           isPhoneVerified: Boolean(user.phone_confirmed_at || phone),
           email: user.email || null,
-          name: (typeof user.user_metadata?.full_name === "string" ? user.user_metadata.full_name : null) || null,
+          name:
+            (typeof user.user_metadata?.full_name === "string"
+              ? user.user_metadata.full_name
+              : null) || null,
           role: "host",
           provider: "supabase",
         };
@@ -192,15 +355,23 @@ export async function verifyHostSession(request: Request): Promise<VerifiedHostU
     }
   } catch {}
 
-  // 3. Check signed Firebase ID token inside host session cookie
-  if (hostSessionCookie && hostSessionCookie !== "1" && hostSessionCookie !== "dev_host_token") {
-    const fbCookieUser = await verifyFirebaseIdToken(hostSessionCookie);
-    if (fbCookieUser) return fbCookieUser;
+  // 3. Check signed HttpOnly host portal session cookie
+  if (signedHostCookie) {
+    return {
+      id: signedHostCookie.sub,
+      phone: signedHostCookie.phone,
+      isPhoneVerified: Boolean(signedHostCookie.phone),
+      email: signedHostCookie.email,
+      name: signedHostCookie.name,
+      role: "host",
+      provider: signedHostCookie.provider === "firebase" ? "firebase" : "supabase",
+    };
   }
 
-  // 4. Local development fallback ONLY when explicit dev credentials are provided
+  // 4. Local development fallback strictly when NOT in production
   if (process.env.NODE_ENV !== "production") {
-    const devHostId = process.env.NEXT_PUBLIC_DEV_HOST_ID || "00000000-0000-0000-0000-000000000002";
+    const devHostId =
+      process.env.NEXT_PUBLIC_DEV_HOST_ID || "00000000-0000-0000-0000-000000000002";
     const devHeader = request.headers.get("x-dev-host-id");
     const devCookieFlag = parseCookieValue(cookieHeader, "qafnest_host_dev");
     if (

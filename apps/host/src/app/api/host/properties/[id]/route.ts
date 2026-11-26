@@ -67,6 +67,7 @@ export async function GET(
 
     const isDevBypass =
       process.env.NODE_ENV !== "production" &&
+      process.env.ALLOW_DEV_HOST_BYPASS === "true" &&
       (authUser.id === "00000000-0000-0000-0000-000000000002" ||
         authUser.id === "11111111-2222-4333-8444-555555555555" ||
         prop.host_id === "00000000-0000-0000-0000-000000000002" ||
@@ -141,6 +142,7 @@ export async function PUT(
 
     const isDevBypass =
       process.env.NODE_ENV !== "production" &&
+      process.env.ALLOW_DEV_HOST_BYPASS === "true" &&
       (authUser.id === "00000000-0000-0000-0000-000000000002" ||
         authUser.id === "11111111-2222-4333-8444-555555555555" ||
         existing.host_id === "00000000-0000-0000-0000-000000000002" ||
@@ -270,7 +272,7 @@ export async function PUT(
     let { data: updated, error: updateError } = await supabase
       .from("properties")
       .update(preparedUpdatePayload)
-      .eq("id", propertyId)
+      .eq("id", existing.id)
       .select("*")
       .single();
 
@@ -288,7 +290,7 @@ export async function PUT(
       const retry = await supabase
         .from("properties")
         .update(retryPayload)
-        .eq("id", propertyId)
+        .eq("id", existing.id)
         .select("*")
         .single();
       updated = retry.data;
@@ -296,8 +298,9 @@ export async function PUT(
     }
 
     if (updateError) {
+      console.error("[host properties PUT] update failed:", updateError);
       return NextResponse.json(
-        { code: "property_update_failed", message: updateError.message },
+        { code: "property_update_failed", message: "Failed to update property." },
         { status: 500 }
       );
     }
@@ -307,8 +310,9 @@ export async function PUT(
       property: updated ? extractBilingualPropertyFields(updated as Record<string, unknown>) : updated,
     });
   } catch (err) {
+    console.error("[host properties PUT] server error:", err);
     return NextResponse.json(
-      { code: "server_error", message: err instanceof Error ? err.message : "Error" },
+      { code: "server_error", message: "Failed to update property." },
       { status: 500 }
     );
   }
@@ -342,7 +346,7 @@ export async function DELETE(
 
     const { data: existing, error: checkError } = await supabase
       .from("properties")
-      .select("id, host_id, title, title_ar, city, city_name")
+      .select("id, host_id, status, title, title_ar, city, city_name")
       .eq(lookupCol, propertyId)
       .maybeSingle();
 
@@ -352,6 +356,7 @@ export async function DELETE(
 
     const isDevBypass =
       process.env.NODE_ENV !== "production" &&
+      process.env.ALLOW_DEV_HOST_BYPASS === "true" &&
       (authUser.id === "00000000-0000-0000-0000-000000000002" ||
         authUser.id === "11111111-2222-4333-8444-555555555555" ||
         existing.host_id === "00000000-0000-0000-0000-000000000002" ||
@@ -364,14 +369,24 @@ export async function DELETE(
       );
     }
 
+    if (existing.status === "archived") {
+      return NextResponse.json(
+        { code: "property_already_archived", message: "Property is already archived." },
+        { status: 409 }
+      );
+    }
+
+    const canonicalPropertyId = String(existing.id);
+
     // 1. Strict guard: block deletion or removal request while any active/upcoming/unchecked-out/unsettled stay exists
     const { eligibility, error: eligibilityError } = await checkHostPropertyDeletionEligibility(
       supabase,
-      propertyId
+      canonicalPropertyId
     );
     if (eligibilityError) {
+      console.error("[host properties DELETE] eligibility check failed:", eligibilityError);
       return NextResponse.json(
-        { code: "bookings_check_failed", message: eligibilityError },
+        { code: "bookings_check_failed", message: "Failed to verify active bookings." },
         { status: 500 }
       );
     }
@@ -405,8 +420,8 @@ export async function DELETE(
     }
 
     const createdRequest = createOrUpdatePendingDeletionRequest({
-      propertyId,
-      unitCode: getNumericUnitCode(propertyId),
+      propertyId: canonicalPropertyId,
+      unitCode: getNumericUnitCode(canonicalPropertyId),
       propertyTitle: String(existing.title || "Property"),
       propertyTitleAr: typeof existing.title_ar === "string" ? existing.title_ar : undefined,
       propertyCity: String(existing.city_name || existing.city || ""),
@@ -431,8 +446,9 @@ export async function DELETE(
       { status: 202 }
     );
   } catch (err) {
+    console.error("[host properties DELETE] server error:", err);
     return NextResponse.json(
-      { code: "server_error", message: err instanceof Error ? err.message : "Error" },
+      { code: "server_error", message: "Failed to submit deletion request." },
       { status: 500 }
     );
   }

@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { useHostAuth } from "@/context/HostAuthContext";
+import { getHostRequestHeaders } from "@/lib/hostPropertyActions";
 import type {
   HostRemittance,
   HostPayoutIban,
@@ -61,6 +63,7 @@ const DEFAULT_SETTLEMENT: HostSettlementSummary = {
 };
 
 export function useHostFinancials() {
+  const { user } = useHostAuth();
   const [selectedPropertyId, setSelectedPropertyId] = useState<string>("all");
   const [querySynced, setQuerySynced] = useState(false);
   const [propertyLedgers, setPropertyLedgers] = useState<HostPropertyFinanceSummary[]>([]);
@@ -82,8 +85,9 @@ export function useHostFinancials() {
       const targetProp = propertyOverride ?? selectedPropertyId;
       setLoading(true);
       try {
+        const headers = await getHostRequestHeaders(user?.id);
         const qs = targetProp && targetProp !== "all" ? `?propertyId=${encodeURIComponent(targetProp)}` : "";
-        const res = await fetch(`/api/host/financials${qs}`, { cache: "no-store" });
+        const res = await fetch(`/api/host/financials${qs}`, { headers, cache: "no-store" });
         if (res.ok) {
           const data = await res.json();
           if (data.kpis) setKpis(data.kpis);
@@ -102,7 +106,7 @@ export function useHostFinancials() {
         setLoading(false);
       }
     },
-    [selectedPropertyId]
+    [selectedPropertyId, user?.id]
   );
 
   const selectProperty = useCallback(
@@ -136,9 +140,10 @@ export function useHostFinancials() {
   }, [querySynced, loadFinancials]);
 
   const handleUpdateIban = async (newIban: string, accountHolder: string) => {
+    const authHeaders = await getHostRequestHeaders(user?.id);
     const res = await fetch("/api/host/financials", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...authHeaders },
       body: JSON.stringify({
         action: "update_iban",
         iban: newIban,
@@ -148,13 +153,27 @@ export function useHostFinancials() {
     const data = await res.json();
     if (!res.ok) throw new Error(data.message || "Failed to update IBAN");
     if (data.iban) setIban(data.iban);
-    triggerToast(data.message || "IBAN updated and verified successfully with SAMA.");
+    triggerToast(data.message || "IBAN checksum validated and saved.");
+  };
+
+  const handleDeleteIban = async () => {
+    const authHeaders = await getHostRequestHeaders(user?.id);
+    const res = await fetch("/api/host/financials", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...authHeaders },
+      body: JSON.stringify({ action: "delete_iban" }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || "Failed to remove IBAN");
+    setIban(data.iban || DEFAULT_IBAN);
+    triggerToast(data.message || "Bank account removed successfully.");
   };
 
   const handleRequestPayout = async (amount: number) => {
+    const authHeaders = await getHostRequestHeaders(user?.id);
     const res = await fetch("/api/host/financials", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...authHeaders },
       body: JSON.stringify({
         action: "request_payout",
         amount,
@@ -170,9 +189,10 @@ export function useHostFinancials() {
   };
 
   const handleUpdateSettlementSettings = async (settings: HostSettlementSettings) => {
+    const authHeaders = await getHostRequestHeaders(user?.id);
     const res = await fetch("/api/host/financials", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...authHeaders },
       body: JSON.stringify({
         action: "update_settlement_settings",
         settings,
@@ -200,6 +220,7 @@ export function useHostFinancials() {
     triggerToast,
     loadFinancials,
     handleUpdateIban,
+    handleDeleteIban,
     handleRequestPayout,
     handleUpdateSettlementSettings,
   };

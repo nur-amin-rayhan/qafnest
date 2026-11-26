@@ -1,4 +1,12 @@
+import crypto from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
+import { signPortalSessionToken } from "@qafnest/shared/portalSessionEdge";
+
+function timingSafeTextEqual(a: string, b: string): boolean {
+  const hashA = crypto.createHash("sha256").update(a).digest();
+  const hashB = crypto.createHash("sha256").update(b).digest();
+  return crypto.timingSafeEqual(hashA, hashB);
+}
 
 export async function POST(request: NextRequest) {
   if (process.env.NODE_ENV === "production") {
@@ -27,16 +35,13 @@ export async function POST(request: NextRequest) {
   )
     .trim()
     .toLowerCase();
-  const expectedPassword =
-    process.env.DEV_GUEST_PASSWORD ||
-    process.env.NEXT_PUBLIC_DEV_GUEST_PASSWORD ||
-    "";
+  const expectedPassword = process.env.DEV_GUEST_PASSWORD || "";
 
   if (
     !expectedEmail ||
     !expectedPassword ||
-    submittedEmail !== expectedEmail ||
-    submittedPassword !== expectedPassword
+    !timingSafeTextEqual(submittedEmail, expectedEmail) ||
+    !timingSafeTextEqual(submittedPassword, expectedPassword)
   ) {
     return NextResponse.json(
       { error: "Invalid development guest credentials." },
@@ -74,11 +79,25 @@ export async function POST(request: NextRequest) {
     role: "guest" as const,
   };
 
+  const signedDevToken = await signPortalSessionToken(
+    {
+      sub: devGuestId,
+      role: "guest",
+      provider: "dev",
+      phone: devGuestPhone || null,
+      email: expectedEmail,
+      name: devGuestName,
+    },
+    86400
+  );
+
   const response = NextResponse.json({ success: true, user, profile });
-  response.cookies.set("qafnest_has_session", "dev_guest_token", {
+  response.cookies.set("qafnest_has_session", signedDevToken || "dev_guest_token", {
+    httpOnly: true,
     path: "/",
     maxAge: 86400,
     sameSite: "lax",
+    secure: false,
   });
   return response;
 }

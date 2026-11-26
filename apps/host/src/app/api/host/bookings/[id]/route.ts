@@ -81,6 +81,16 @@ export async function PATCH(
     const isPaymentSettled =
       booking.payment_status === "success" || booking.payment_status === "paid";
     const allowedStatuses = ["confirmed", "cancelled", "pending", "checked_in", "completed"] as const;
+    const allowedTransitions: Record<string, string[]> = {
+      pending: ["cancelled"],
+      confirmed: ["checked_in", "completed", "cancelled"],
+      checked_in: ["completed"],
+      completed: [],
+      cancelled: [],
+      rejected: [],
+      refunded: [],
+      refund_requested: [],
+    };
 
     if (body.status !== undefined) {
       if (!(allowedStatuses as readonly string[]).includes(body.status)) {
@@ -88,6 +98,19 @@ export async function PATCH(
           { code: "invalid_status", message: "Unsupported booking status transition." },
           { status: 400 }
         );
+      }
+      const currentStatus = String(booking.status || "pending");
+      if (body.status !== currentStatus) {
+        const permitted = allowedTransitions[currentStatus] || [];
+        if (!permitted.includes(body.status)) {
+          return NextResponse.json(
+            {
+              code: "invalid_state_transition",
+              message: `Cannot transition booking from '${currentStatus}' to '${body.status}'.`,
+            },
+            { status: 409 }
+          );
+        }
       }
       if (
         (body.status === "confirmed" ||
@@ -144,7 +167,8 @@ export async function PATCH(
       .single();
 
     if (uErr) {
-      return NextResponse.json({ code: "update_failed", message: uErr.message }, { status: 500 });
+      console.error("[host booking PATCH] update failed:", uErr);
+      return NextResponse.json({ code: "update_failed", message: "Failed to update booking." }, { status: 500 });
     }
 
     // 3b. When a booking is cancelled by Host, release booked night slots & void pending payout
@@ -196,8 +220,9 @@ export async function PATCH(
       booking: updated,
     });
   } catch (err: unknown) {
+    console.error("[host booking PATCH] server error:", err);
     return NextResponse.json(
-      { code: "server_error", message: err instanceof Error ? err.message : "Unknown error" },
+      { code: "server_error", message: "Failed to update booking." },
       { status: 500 }
     );
   }

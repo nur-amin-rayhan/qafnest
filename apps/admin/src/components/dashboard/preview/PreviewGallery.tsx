@@ -2,7 +2,7 @@
 
 import React, { useEffect } from "react";
 import Image from "next/image";
-import { ChevronLeft, ChevronRight, Maximize2, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, Maximize2, X, Image as ImageIcon } from "lucide-react";
 
 interface PreviewGalleryProps {
   images: string[];
@@ -38,9 +38,9 @@ export function PreviewGallery({
   if (images.length === 0) {
     return (
       <section aria-label={t("صور العقار", "Property photos")} className="relative mt-6">
-        <div className="flex flex-col items-center justify-center rounded-3xl border border-dashed border-violet-200 bg-violet-50/20 py-16 text-center dark:border-violet-500/20 dark:bg-[#12101a]">
-          <span className="material-symbols-outlined text-4xl text-outline">photo_library</span>
-          <p className="mt-2 text-xs font-bold text-outline">
+        <div className="flex flex-col items-center justify-center rounded-3xl border border-dashed border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/40 py-16 text-center">
+          <ImageIcon className="w-10 h-10 text-slate-400 dark:text-slate-500 stroke-[1.5]" />
+          <p className="mt-2 text-xs sm:text-sm font-semibold text-slate-500 dark:text-slate-400">
             {t("لم يتم رفع صور لهذا العقار بعد", "No photos uploaded for this property yet")}
           </p>
         </div>

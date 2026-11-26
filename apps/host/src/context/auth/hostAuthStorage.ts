@@ -39,42 +39,64 @@ export interface HostAuthContextType {
 export const HOST_CACHE_KEY = "qafnest_cached_host_auth";
 export const HOST_COOKIE_KEY = "qafnest_has_host_session";
 
-export function setHostSessionCookie(tokenOrActive: string | boolean) {
+function clearLegacyHostCookies() {
+  if (typeof document === "undefined") return;
+  document.cookie = `${HOST_COOKIE_KEY}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax`;
+  document.cookie = `qafnest_host_dev=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax`;
+}
+
+export async function setHostSessionCookie(tokenOrActive: string | boolean): Promise<void> {
   if (typeof document === "undefined") return;
   try {
     const devHostId = process.env.NEXT_PUBLIC_DEV_HOST_ID || "00000000-0000-0000-0000-000000000002";
     const isDevMode = process.env.NODE_ENV !== "production";
+
     if (typeof tokenOrActive === "string" && tokenOrActive.length > 0) {
-      document.cookie = `${HOST_COOKIE_KEY}=${tokenOrActive}; path=/; max-age=86400; SameSite=Lax`;
-      if (isDevMode && (tokenOrActive === "dev_host_token" || document.cookie.includes("qafnest_host_dev=1"))) {
-        document.cookie = "qafnest_host_dev=1; path=/; max-age=86400; SameSite=Lax";
+      if (isDevMode && tokenOrActive === "dev_host_token") {
+        // Dev login already receives HttpOnly cookies from /api/host/auth/dev-login
+        return;
       }
+      await fetch("/api/host/auth/session", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${tokenOrActive}` },
+        credentials: "same-origin",
+      }).catch(() => {});
     } else if (tokenOrActive === true) {
       if (isFirebaseConfigured()) {
         const fbUser = getFirebaseAuth().currentUser;
         if (fbUser) {
-          void fbUser.getIdToken().then((token) => {
-            document.cookie = `${HOST_COOKIE_KEY}=${token}; path=/; max-age=86400; SameSite=Lax`;
-          });
+          const token = await fbUser.getIdToken().catch(() => null);
+          if (token) {
+            await fetch("/api/host/auth/session", {
+              method: "POST",
+              headers: { Authorization: `Bearer ${token}` },
+              credentials: "same-origin",
+            }).catch(() => {});
+          }
           return;
         }
       }
-      // Check dev host session in non-production
       if (isDevMode && typeof window !== "undefined") {
         const raw = localStorage.getItem(HOST_CACHE_KEY);
         if (raw) {
           try {
             const parsed = JSON.parse(raw);
             if (parsed?.user?.id === devHostId) {
-              document.cookie = "qafnest_host_dev=1; path=/; max-age=86400; SameSite=Lax";
-              document.cookie = `${HOST_COOKIE_KEY}=dev_host_token; path=/; max-age=86400; SameSite=Lax`;
+              return;
             }
           } catch {}
         }
       }
+      await fetch("/api/host/auth/session", {
+        method: "POST",
+        credentials: "same-origin",
+      }).catch(() => {});
     } else {
-      document.cookie = `${HOST_COOKIE_KEY}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax`;
-      document.cookie = `qafnest_host_dev=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax`;
+      clearLegacyHostCookies();
+      await fetch("/api/host/auth/session", {
+        method: "DELETE",
+        credentials: "same-origin",
+      }).catch(() => {});
     }
   } catch {}
 }
@@ -103,14 +125,12 @@ export function setCachedHostAuth(data: { user: User; profile: HostProfile } | n
     if (data) {
       localStorage.setItem(HOST_CACHE_KEY, JSON.stringify(data));
       if (process.env.NODE_ENV !== "production" && data.user?.id === devHostId) {
-        document.cookie = "qafnest_host_dev=1; path=/; max-age=86400; SameSite=Lax";
-        document.cookie = `${HOST_COOKIE_KEY}=dev_host_token; path=/; max-age=86400; SameSite=Lax`;
-      } else {
-        setHostSessionCookie(true);
+        return;
       }
+      void setHostSessionCookie(true);
     } else {
       localStorage.removeItem(HOST_CACHE_KEY);
-      setHostSessionCookie(false);
+      void setHostSessionCookie(false);
     }
   } catch {}
 }

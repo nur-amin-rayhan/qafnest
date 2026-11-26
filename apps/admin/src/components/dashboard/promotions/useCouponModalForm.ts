@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { AdminCoupon } from "../PromotionsTab";
+import { updateCachedCoupons } from "./usePromotionsManager";
 
 import { adminPath } from "@/lib/adminUrl";
 interface UseCouponModalFormOptions {
@@ -102,14 +103,20 @@ export function useCouponModalForm({
         const data = await res.json();
         const saved: AdminCoupon = data.coupon;
         if (editingCoupon) {
-          setCoupons((prev) =>
-            prev.map((c) => (c.id === editingCoupon.id ? { ...c, ...saved } : c))
-          );
+          setCoupons((prev) => {
+            const next = prev.map((c) => (c.id === editingCoupon.id ? { ...c, ...saved } : c));
+            updateCachedCoupons(next);
+            return next;
+          });
           triggerToast(
             t(`Coupon ${cleanCode} updated successfully.`, `تم تحديث كود ${cleanCode} بنجاح.`)
           );
         } else {
-          setCoupons((prev) => [saved, ...prev]);
+          setCoupons((prev) => {
+            const next = [saved, ...prev];
+            updateCachedCoupons(next);
+            return next;
+          });
           triggerToast(
             t(`Coupon ${cleanCode} created successfully.`, `تم إنشاء كود ${cleanCode} بنجاح.`)
           );
@@ -121,8 +128,8 @@ export function useCouponModalForm({
     } catch {
       // Local fallback
       if (editingCoupon) {
-        setCoupons((prev) =>
-          prev.map((c) =>
+        setCoupons((prev) => {
+          const next = prev.map((c) =>
             c.id === editingCoupon.id
               ? {
                   ...c,
@@ -140,8 +147,10 @@ export function useCouponModalForm({
                   updated_at: new Date().toISOString(),
                 }
               : c
-          )
-        );
+          );
+          updateCachedCoupons(next);
+          return next;
+        });
         triggerToast(t("Coupon updated locally.", "تم تحديث الكود محلياً."));
       } else {
         const newC: AdminCoupon = {

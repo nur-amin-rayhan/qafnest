@@ -178,6 +178,7 @@ export function signZatcaInvoiceHash(hashBase64: string): string {
 export function generateZatcaUbl21Xml(data: ZatcaPhase2InvoiceData): string {
   const subtype = data.type === "simplified" ? "0200000" : "0100000";
 
+  const primaryVatPct = (((data.lineItems[0]?.vatRate ?? 0.15) * 100) || 0).toFixed(2);
   return `<?xml version="1.0" encoding="UTF-8"?>
 <Invoice xmlns="urn:oasis:names:specification:ubl:schema:xsd:Invoice-2"
          xmlns:cac="urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2"
@@ -250,7 +251,7 @@ export function generateZatcaUbl21Xml(data: ZatcaPhase2InvoiceData): string {
       <cbc:TaxAmount currencyID="SAR">${data.vatAmount.toFixed(2)}</cbc:TaxAmount>
       <cac:TaxCategory>
         <cbc:ID>S</cbc:ID>
-        <cbc:Percent>15.00</cbc:Percent>
+        <cbc:Percent>${primaryVatPct}</cbc:Percent>
         <cac:TaxScheme>
           <cbc:ID>VAT</cbc:ID>
         </cac:TaxScheme>
@@ -278,7 +279,7 @@ export function generateZatcaUbl21Xml(data: ZatcaPhase2InvoiceData): string {
       <cbc:Name>${escapeHtml(item.name)}</cbc:Name>
       <cac:ClassifiedTaxCategory>
         <cbc:ID>S</cbc:ID>
-        <cbc:Percent>15.00</cbc:Percent>
+        <cbc:Percent>${((Number.isFinite(item.vatRate) ? item.vatRate : 0.15) * 100).toFixed(2)}</cbc:Percent>
         <cac:TaxScheme>
           <cbc:ID>VAT</cbc:ID>
         </cac:TaxScheme>

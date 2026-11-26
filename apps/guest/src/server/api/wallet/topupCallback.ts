@@ -5,6 +5,7 @@ import {
   isTopUpPaymentProcessed,
   markTopUpPaymentProcessed,
   topUpWallet,
+  withWalletLock,
 } from "@/lib/services/walletService";
 import { getCanonicalOrigin } from "@/lib/services/callbackRedirect";
 import { dispatchWalletTopupZatcaInvoice } from "@/lib/services/zatcaReportingHelper";
@@ -54,13 +55,6 @@ async function handleTopUpCallback(request: NextRequest) {
   }
   const cleanPaymentId = String(paymentId).trim();
 
-  if (await isTopUpPaymentProcessed(cleanPaymentId)) {
-    const dupUrl = new URL(`/${resolvedLocale}/account`, canonicalOrigin);
-    dupUrl.searchParams.set("tab", "wallet");
-    dupUrl.searchParams.set("topup_success", "true");
-    return NextResponse.redirect(dupUrl);
-  }
-
   let finalAmount = 0;
   let resolvedRef = reference;
 
@@ -98,35 +92,50 @@ async function handleTopUpCallback(request: NextRequest) {
     return redirectFailure("gateway_error");
   }
 
-  const intent = await getPendingTopUp(resolvedRef);
-  if (!intent || intent.settled || !intent.userId) {
-    return redirectFailure("topup_intent_invalid");
-  }
+  const outcome = await withWalletLock(`topup:${cleanPaymentId}`, async () => {
+    if (await isTopUpPaymentProcessed(cleanPaymentId)) {
+      return { status: "already_processed" as const, amount: finalAmount };
+    }
 
-  if (Math.abs(finalAmount - intent.amount) > 0.05) {
-    return redirectFailure("amount_mismatch");
-  }
+    const intent = await getPendingTopUp(resolvedRef);
+    if (!intent || intent.settled || !intent.userId) {
+      return { status: "error" as const, reason: "topup_intent_invalid" };
+    }
 
-  await markTopUpPaymentProcessed({ paymentId: cleanPaymentId, reference: resolvedRef });
+    if (Math.abs(finalAmount - intent.amount) > 0.05) {
+      return { status: "error" as const, reason: "amount_mismatch" };
+    }
 
-  const updatedWallet = await topUpWallet({
-    userId: intent.userId,
-    amount: intent.amount,
-    paymentMethod: intent.method || method,
-    reference: resolvedRef,
+    await markTopUpPaymentProcessed({ paymentId: cleanPaymentId, reference: resolvedRef });
+
+    const updatedWallet = await topUpWallet({
+      userId: intent.userId,
+      amount: intent.amount,
+      paymentMethod: intent.method || method,
+      reference: resolvedRef,
+      paymentId: cleanPaymentId,
+    });
+
+    await dispatchWalletTopupZatcaInvoice({
+      transactionId: updatedWallet.transactions[0]?.id || resolvedRef,
+      reference: resolvedRef,
+      amount: intent.amount,
+      paymentMethod: intent.method || method,
+    });
+
+    return { status: "credited" as const, amount: intent.amount };
   });
 
-  await dispatchWalletTopupZatcaInvoice({
-    transactionId: updatedWallet.transactions[0]?.id || resolvedRef,
-    reference: resolvedRef,
-    amount: intent.amount,
-    paymentMethod: intent.method || method,
-  });
+  if (outcome.status === "error") {
+    return redirectFailure(outcome.reason);
+  }
 
   const redirectUrl = new URL(`/${resolvedLocale}/account`, canonicalOrigin);
   redirectUrl.searchParams.set("tab", "wallet");
   redirectUrl.searchParams.set("topup_success", "true");
-  redirectUrl.searchParams.set("amount", intent.amount.toFixed(2));
+  if (outcome.status === "credited") {
+    redirectUrl.searchParams.set("amount", outcome.amount.toFixed(2));
+  }
   const res = NextResponse.redirect(redirectUrl);
   res.cookies.set("qafnest_lang", resolvedLocale, { path: "/", maxAge: 31536000, sameSite: "lax" });
   return res;

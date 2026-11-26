@@ -23,11 +23,22 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-# local env files
+# local env & runtime state/PII files
 .env*.local
 packages/shared/data/zatca-config.json
 packages/shared/data/zatca-invoices.json
 packages/shared/data/host-payouts.json
+packages/shared/data/contact-inquiries.json
+packages/shared/data/helpline-verifications.json
+packages/shared/data/booking-financials.json
+packages/shared/data/booking-refunds.json
+packages/shared/data/property-deletion-requests.json
+packages/shared/data/user-governance-activity.json
+packages/shared/data/saudi-identity-config.json
+packages/shared/data/signup-security.json
+packages/shared/data/portal-accounts.json
+packages/shared/data/firebase-guest-profiles.json
+packages/shared/data/host-settings.json
 
 # vercel
 .vercel

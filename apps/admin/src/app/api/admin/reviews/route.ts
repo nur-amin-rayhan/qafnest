@@ -63,7 +63,8 @@ export async function GET(request: NextRequest) {
     }
 
     if (error) {
-      return NextResponse.json({ code: "reviews_query_failed", message: error.message }, { status: 500 });
+      console.error("[admin reviews] query failed:", error);
+      return NextResponse.json({ code: "reviews_query_failed", message: "Failed to load reviews." }, { status: 500 });
     }
 
     const reviewsList = (rawReviews || []) as unknown as Array<Record<string, any>>;
@@ -127,8 +128,9 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (err: unknown) {
+    console.error("[admin reviews GET] server error:", err);
     return NextResponse.json(
-      { code: "server_error", message: err instanceof Error ? err.message : "Error" },
+      { code: "server_error", message: "Failed to process reviews request." },
       { status: 500 }
     );
   }
@@ -182,8 +184,9 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (error) {
+      console.error("[admin/reviews POST] failed:", error);
       return NextResponse.json(
-        { code: "review_reply_failed", message: error.message },
+        { code: "review_reply_failed", message: "Failed to save admin review reply." },
         { status: 500 }
       );
     }
@@ -232,8 +235,9 @@ export async function DELETE(request: NextRequest) {
       .single();
 
     if (error) {
+      console.error("[admin/reviews DELETE] failed:", error);
       return NextResponse.json(
-        { code: "review_reply_remove_failed", message: error.message },
+        { code: "review_reply_remove_failed", message: "Failed to remove admin review reply." },
         { status: 500 }
       );
     }

@@ -1,6 +1,28 @@
 "use client";
 
 import React, { useState, useRef, useEffect, useMemo } from "react";
+import {
+  Menu,
+  Search,
+  X,
+  ArrowLeft,
+  ArrowRight,
+  Globe,
+  Clock,
+  RefreshCw,
+  Sun,
+  Moon,
+  Bell,
+  BellRing,
+  CheckCircle2,
+  LogOut,
+  Building2,
+  Calendar,
+  Compass,
+  Headphones,
+  WalletCards,
+  Users,
+} from "lucide-react";
 import { useAdminAuth } from "@/context/AdminAuthContext";
 import { getNumericUnitCode, matchesPropertySearchQuery } from "@qafnest/shared";
 import type { SharedHostPayoutRecord } from "@qafnest/shared/hostPayoutConfig";
@@ -76,7 +98,7 @@ export default function AdminHeader({
   onNavigateTab,
   onOpenNotificationTarget,
 }: AdminHeaderProps) {
-  const { lang, toggleLang, dir, t, setMobileSidebarOpen } = useAdminAuth();
+  const { lang, toggleLang, dir, t, setMobileSidebarOpen, isDark, toggleTheme } = useAdminAuth();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [readIds, setReadIds] = useState<string[]>([]);
@@ -316,7 +338,7 @@ export default function AdminHeader({
     }
 
     return list;
-  }, [urgentPayoutQueue, deletionRequests, properties, bookings, lang, t, onNavigateTab, onSelectProperty, onSelectBooking]);
+  }, [urgentPayoutQueue, deletionRequests, properties, bookings, lang, t, onNavigateTab, onSelectProperty, onSelectBooking, onOpenNotificationTarget]);
 
   const unreadCount = notifications.filter((n) => !readIds.includes(n.id)).length;
 
@@ -358,15 +380,15 @@ export default function AdminHeader({
     if (!dropdownOpen || !q) return null;
     return (
       <div
-        className="absolute top-full mt-1.5 start-0 end-0 z-50 rounded-2xl border border-surface-container bg-surface-container-lowest shadow-2xl p-3 max-h-96 overflow-y-auto space-y-3"
+        className="absolute top-full mt-1.5 start-0 end-0 z-50 rounded-2xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-[#0E0D16] shadow-2xl p-3 max-h-96 overflow-y-auto space-y-3"
         dir={dir}
       >
         {hasResults ? (
           <>
             {matchingBookings.length > 0 && (
               <div>
-                <div className="text-[10px] font-bold text-outline uppercase tracking-wider px-2 mb-1 flex items-center gap-1">
-                  <span className="material-symbols-outlined text-[13px] text-primary">calendar_month</span>
+                <div className="text-xs font-semibold text-slate-500 dark:text-slate-400 px-2 mb-1 flex items-center gap-1">
+                  <Calendar size={13} className="text-[#4F2396] dark:text-purple-300 shrink-0" />
                   <span>{t("Reservations", "الحجوزات")} ({matchingBookings.length})</span>
                 </div>
                 <div className="space-y-1">
@@ -379,19 +401,19 @@ export default function AdminHeader({
                         setDropdownOpen(false);
                         setMobileSearchOpen(false);
                       }}
-                      className="w-full flex items-center justify-between gap-2 p-2 rounded-xl hover:bg-surface-container-low text-start text-xs transition cursor-pointer"
+                      className="w-full flex items-center justify-between gap-2 p-2 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/60 text-start text-xs transition cursor-pointer"
                     >
                       <div className="min-w-0">
-                        <div className="font-bold text-on-surface flex items-center gap-1.5 truncate">
-                          <span className="font-mono text-primary font-black shrink-0">#{b.booking_reference || b.id.slice(0, 8)}</span>
+                        <div className="font-semibold text-slate-900 dark:text-slate-100 flex items-center gap-1.5 truncate">
+                          <span className="font-mono text-[#4F2396] dark:text-purple-300 font-semibold shrink-0">#{b.booking_reference || b.id.slice(0, 8)}</span>
                           <span>·</span>
                           <span className="truncate">{b.guest_name || t("Guest", "ضيف")}</span>
                         </div>
-                        <div className="text-[11px] text-on-surface-variant truncate">
+                        <div className="text-xs text-slate-500 dark:text-slate-400 truncate">
                           {b.property_title} ({b.guest_phone || "—"})
                         </div>
                       </div>
-                      <span className="font-mono font-bold text-primary shrink-0">
+                      <span className="font-mono font-semibold text-[#4F2396] dark:text-purple-300 shrink-0 tabular-nums">
                         {b.total_price} {t("SAR", "ر.س")}
                       </span>
                     </button>
@@ -402,8 +424,8 @@ export default function AdminHeader({
 
             {matchingProperties.length > 0 && (
               <div>
-                <div className="text-[10px] font-bold text-outline uppercase tracking-wider px-2 mb-1 flex items-center gap-1">
-                  <span className="material-symbols-outlined text-[13px] text-status-emerald">villa</span>
+                <div className="text-xs font-semibold text-slate-500 dark:text-slate-400 px-2 mb-1 flex items-center gap-1">
+                  <Building2 size={13} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
                   <span>{t("Properties & Chalets", "العقارات والشاليهات")} ({matchingProperties.length})</span>
                 </div>
                 <div className="space-y-1">
@@ -416,21 +438,21 @@ export default function AdminHeader({
                         setDropdownOpen(false);
                         setMobileSearchOpen(false);
                       }}
-                      className="w-full flex items-center justify-between gap-2 p-2 rounded-xl hover:bg-surface-container-low text-start text-xs transition cursor-pointer"
+                      className="w-full flex items-center justify-between gap-2 p-2 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/60 text-start text-xs transition cursor-pointer"
                     >
                       <div className="min-w-0">
                         <div className="flex items-center gap-1.5 min-w-0">
-                          <span className="font-mono text-[10px] font-black px-1.5 py-0.5 rounded bg-primary/10 text-primary shrink-0">
+                          <span className="font-mono text-xs font-semibold px-1.5 py-0.5 rounded bg-purple-50 dark:bg-purple-950/60 text-[#4F2396] dark:text-purple-300 shrink-0 border border-purple-200 dark:border-purple-800/50">
                             #{getNumericUnitCode(p.id)}
                           </span>
-                          <span className="font-bold text-on-surface truncate">{p.title}</span>
+                          <span className="font-semibold text-slate-900 dark:text-slate-100 truncate">{p.title}</span>
                         </div>
-                        <div className="text-[11px] text-on-surface-variant truncate mt-0.5">
+                        <div className="text-xs text-slate-500 dark:text-slate-400 truncate mt-0.5">
                           {p.city} · {p.district || p.category_name || t("Chalet", "شاليه")}
                           {p.tourism_license_number ? ` · LIC-${p.tourism_license_number}` : ""}
                         </div>
                       </div>
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-surface-container text-on-surface shrink-0">
+                      <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 shrink-0 border border-slate-200 dark:border-slate-700">
                         {p.status === "approved"
                           ? t("Approved", "معتمد")
                           : p.status === "pending"
@@ -447,32 +469,46 @@ export default function AdminHeader({
 
             {matchingShortcuts.length > 0 && (
               <div>
-                <div className="text-[10px] font-bold text-outline uppercase tracking-wider px-2 mb-1 flex items-center gap-1">
-                  <span className="material-symbols-outlined text-[13px]">alt_route</span>
+                <div className="text-xs font-semibold text-slate-500 dark:text-slate-400 px-2 mb-1 flex items-center gap-1">
+                  <Compass size={13} className="shrink-0 text-slate-400 dark:text-slate-500" />
                   <span>{t("Go to Tab", "الانتقال السريع")}</span>
                 </div>
                 <div className="space-y-1">
-                  {matchingShortcuts.map((s) => (
-                    <button
-                      key={s.tab}
-                      type="button"
-                      onClick={() => {
-                        if (onNavigateTab) onNavigateTab(s.tab);
-                        setDropdownOpen(false);
-                        setMobileSearchOpen(false);
-                      }}
-                      className="w-full flex items-center gap-2 p-2 rounded-xl hover:bg-primary/10 text-start text-xs font-bold text-primary transition cursor-pointer"
-                    >
-                      <span className="material-symbols-outlined text-[16px] shrink-0">{s.icon}</span>
-                      <span className="truncate">{t(s.labelEn, s.labelAr)}</span>
-                    </button>
-                  ))}
+                  {matchingShortcuts.map((s) => {
+                    const ShortcutIcon =
+                      s.tab === "helpline-booking"
+                        ? Headphones
+                        : s.tab === "properties-management"
+                        ? Building2
+                        : s.tab === "bookings-and-reservations"
+                        ? Calendar
+                        : s.tab === "financials-and-payouts"
+                        ? WalletCards
+                        : s.tab === "user-management"
+                        ? Users
+                        : Compass;
+                    return (
+                      <button
+                        key={s.tab}
+                        type="button"
+                        onClick={() => {
+                          if (onNavigateTab) onNavigateTab(s.tab);
+                          setDropdownOpen(false);
+                          setMobileSearchOpen(false);
+                        }}
+                        className="w-full flex items-center gap-2 p-2 rounded-xl hover:bg-purple-50 dark:hover:bg-purple-950/40 text-start text-xs font-semibold text-[#4F2396] dark:text-purple-300 transition cursor-pointer"
+                      >
+                        <ShortcutIcon size={15} className="shrink-0" />
+                        <span className="truncate">{t(s.labelEn, s.labelAr)}</span>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             )}
           </>
         ) : (
-          <div className="p-4 text-center text-xs text-outline">
+          <div className="p-4 text-center text-xs text-slate-400 dark:text-slate-500">
             {t("No matches found for your search.", "لا توجد نتائج مطابقة لبحثك.")}
           </div>
         )}
@@ -484,7 +520,7 @@ export default function AdminHeader({
     <>
       <header
         dir={dir}
-        className="fixed top-0 start-0 lg:start-64 end-0 h-16 bg-white/95 backdrop-blur-xl z-30 border-b border-[#E5E7EB] flex items-center justify-between px-3 sm:px-5 lg:px-6 transition-all duration-300 gap-2 sm:gap-3"
+        className="fixed top-0 start-0 lg:start-64 end-0 h-16 bg-white/95 dark:bg-[#0E0D16]/95 backdrop-blur-xl z-30 border-b border-[#E5E7EB] dark:border-slate-800 flex items-center justify-between px-3 sm:px-5 lg:px-6 transition-all duration-300 gap-2 sm:gap-3"
       >
         {/* Start: Mobile Hamburger + Mobile Search Trigger + Desktop/Tablet Flex Search Bar */}
         <div ref={searchContainerRef} className="relative flex items-center gap-2 flex-1 min-w-0 max-w-sm xl:max-w-lg">
@@ -492,39 +528,35 @@ export default function AdminHeader({
           <button
             type="button"
             onClick={() => setMobileSidebarOpen(true)}
-            className="lg:hidden w-9 h-9 rounded-xl border border-surface-container bg-surface-container-low hover:bg-surface-container text-on-surface flex items-center justify-center shrink-0 cursor-pointer transition-colors"
+            className="lg:hidden w-8 h-8 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 flex items-center justify-center shrink-0 cursor-pointer transition-colors"
             title={t("Open Menu", "فتح القائمة")}
           >
-            <span className="material-symbols-outlined text-[20px]">menu</span>
+            <Menu size={18} />
           </button>
 
           {/* Mobile Search Toggle (< sm screens) */}
           <button
             type="button"
             onClick={() => setMobileSearchOpen((v) => !v)}
-            className={`sm:hidden w-9 h-9 rounded-xl border flex items-center justify-center shrink-0 cursor-pointer transition-colors ${
+            className={`sm:hidden w-8 h-8 rounded-lg border flex items-center justify-center shrink-0 cursor-pointer transition-colors ${
               mobileSearchOpen
-                ? "border-primary bg-primary text-on-primary"
-                : "border-surface-container bg-surface-container-low hover:bg-surface-container text-on-surface"
+                ? "border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100"
+                : "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400"
             }`}
             title={t("Search", "بحث")}
           >
-            <span className="material-symbols-outlined text-[19px]">
-              {mobileSearchOpen ? "close" : "search"}
-            </span>
+            {mobileSearchOpen ? <X size={16} /> : <Search size={16} />}
           </button>
 
-          {/* Flexbox Search Form (sm+ screens - zero absolute overlap) */}
+          {/* Flexbox Search Form (sm+ screens - quiet, human-designed) */}
           <form
             onSubmit={handleSearchSubmit}
-            className="hidden sm:flex items-center w-full h-10 px-2.5 gap-2 bg-surface-container-low focus-within:bg-surface-container-lowest rounded-xl border border-transparent focus-within:border-primary/30 focus-within:ring-2 focus-within:ring-primary/20 transition-all min-w-0"
+            className="hidden sm:flex items-center w-full h-9 px-3 gap-2 bg-slate-50/80 dark:bg-slate-900/80 focus-within:bg-white dark:focus-within:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 focus-within:border-slate-300 dark:focus-within:border-slate-700 focus-within:ring-1 focus-within:ring-slate-300 dark:focus-within:ring-slate-700 transition-all min-w-0"
           >
-            <span className="material-symbols-outlined text-outline text-[18px] shrink-0 pointer-events-none">
-              search
-            </span>
+            <Search size={15} strokeWidth={1.5} className="text-slate-400 dark:text-slate-500 shrink-0 pointer-events-none" />
             <input
-              className="flex-1 min-w-0 bg-transparent font-body-sm text-xs sm:text-sm text-on-surface placeholder:text-outline focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 rounded-md px-1"
-              placeholder={t("Search reservations, chalets, guests, phones...", "ابحث برقم الحجز، العقار، الضيف، الجوال...")}
+              className="flex-1 min-w-0 bg-transparent text-xs text-slate-800 dark:text-slate-200 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400/50 rounded px-1"
+              placeholder={t("Search reservations, units, hosts, phones...", "ابحث برقم الحجز، العقار، المضيف، الجوال...")}
               type="text"
               value={searchQuery}
               onFocus={() => {
@@ -543,79 +575,67 @@ export default function AdminHeader({
                   setSearchQuery("");
                   setDropdownOpen(false);
                 }}
-                className="w-6 h-6 rounded-lg text-outline hover:text-on-surface flex items-center justify-center shrink-0 cursor-pointer"
+                className="w-5 h-5 rounded text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 flex items-center justify-center shrink-0 cursor-pointer"
                 title={t("Clear", "مسح")}
               >
-                <span className="material-symbols-outlined text-[15px]">close</span>
+                <X size={13} strokeWidth={1.5} />
               </button>
             )}
-
-            <button
-              type="submit"
-              disabled={submittingSearch}
-              className="w-7 h-7 rounded-lg bg-primary hover:bg-primary/90 disabled:opacity-50 text-on-primary flex items-center justify-center shadow-xs shrink-0 cursor-pointer transition"
-              title={t("Execute Search", "بحث فوري")}
-            >
-              <span className="material-symbols-outlined text-[16px]">
-                {submittingSearch ? "hourglass_top" : dir === "rtl" ? "arrow_back" : "arrow_forward"}
-              </span>
-            </button>
           </form>
 
           {/* Desktop/Tablet Popover */}
           <div className="hidden sm:block">{renderDropdown()}</div>
         </div>
 
-        {/* End: Centralized Tools & Operations Status */}
-        <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
-          {/* Language Switcher Button (Preserves RTL/LTR) */}
+        {/* End: Tools & Operations Controls */}
+        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+          {/* Language Switcher */}
           <button
             type="button"
             onClick={toggleLang}
-            className="inline-flex items-center gap-1 sm:gap-1.5 h-9 px-2.5 sm:px-3 rounded-xl border border-primary/20 bg-primary/5 hover:bg-primary/10 text-primary text-xs font-bold transition-all cursor-pointer shrink-0 shadow-2xs"
+            className="inline-flex items-center gap-1.5 h-8 px-2.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-medium transition-colors cursor-pointer shrink-0 shadow-2xs"
             title={lang === "ar" ? "Switch to English" : "التبديل إلى العربية"}
           >
-            <span className="material-symbols-outlined text-[16px] shrink-0">translate</span>
-            <span className="text-[11px] sm:text-[12px]">{lang === "ar" ? "English" : "العربية"}</span>
+            <Globe size={14} strokeWidth={1.5} className="shrink-0 text-slate-500 dark:text-slate-400" />
+            <span className="text-[11px] sm:text-xs">{lang === "ar" ? "English" : "العربية"}</span>
           </button>
 
-          {/* Centralized Operations Status Pill (Visible on large screens) */}
-          <div className="hidden xl:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-surface-container-low border border-surface-container text-xs font-semibold text-on-surface">
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-status-emerald opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-status-emerald"></span>
-            </span>
-            <span className="whitespace-nowrap">{t("Centralized Mode", "الوضع المركزي")}</span>
-            <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-surface-container text-primary">
-              v1.0.0
-            </span>
-          </div>
-
-          {/* Pending Review Verification Pill (Clickable shortcut on md+) */}
+          {/* Dark / Light Mode Switcher */}
           <button
             type="button"
-            onClick={() => onNavigateTab?.("properties-management")}
-            title={t("Open Pending Property Reviews", "فتح العقارات قيد المراجعة")}
-            className="hidden md:flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-status-sand/15 hover:bg-status-sand/25 border border-status-sand/30 text-xs font-bold text-status-sand whitespace-nowrap cursor-pointer transition-colors"
+            onClick={toggleTheme}
+            className="w-8 h-8 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 flex items-center justify-center transition-colors cursor-pointer shrink-0"
+            title={isDark ? t("Switch to light mode", "التبديل إلى الوضع النهاري") : t("Switch to dark mode", "التبديل إلى الوضع الليلي")}
+            aria-label={isDark ? "Light mode" : "Dark mode"}
           >
-            <span className="material-symbols-outlined text-[16px] shrink-0">pending_actions</span>
-            <span>{metrics.pendingVerification}</span>
-            <span className="hidden xl:inline">{t("Pending Review", "قيد المراجعة")}</span>
+            {isDark ? <Sun size={15} strokeWidth={1.5} className="text-amber-400" /> : <Moon size={15} strokeWidth={1.5} />}
           </button>
+
+          {/* Pending Review Verification Badge (Clickable on md+) */}
+          {metrics.pendingVerification > 0 && (
+            <button
+              type="button"
+              onClick={() => onNavigateTab?.("properties-management")}
+              title={t("Open pending property reviews", "فتح العقارات قيد المراجعة")}
+              className="hidden md:flex items-center gap-1.5 h-8 px-2.5 rounded-lg bg-amber-50/80 dark:bg-amber-950/40 hover:bg-amber-100/70 dark:hover:bg-amber-900/50 border border-amber-200/80 dark:border-amber-800/80 text-xs font-medium text-amber-800 dark:text-amber-300 whitespace-nowrap cursor-pointer transition-colors"
+            >
+              <Clock size={13} strokeWidth={1.5} className="shrink-0" />
+              <span className="font-mono tabular-nums">{metrics.pendingVerification}</span>
+              <span className="hidden xl:inline">{t("in review", "قيد المراجعة")}</span>
+            </button>
+          )}
 
           {/* Refresh Button */}
           <button
             type="button"
             onClick={onRefresh}
-            className="w-9 h-9 rounded-xl border border-surface-container-high/60 bg-surface-container-low hover:bg-surface-container text-on-surface-variant hover:text-on-surface flex items-center justify-center transition-colors cursor-pointer shrink-0"
-            title={t("Refresh Operational Live Data", "تحديث البيانات الحية")}
+            className="w-8 h-8 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 flex items-center justify-center transition-colors cursor-pointer shrink-0"
+            title={t("Refresh data", "تحديث البيانات")}
           >
-            <span className={`material-symbols-outlined text-[19px] ${loading ? "animate-spin" : ""}`}>
-              sync
-            </span>
+            <RefreshCw size={14} strokeWidth={1.5} className={loading ? "animate-spin" : ""} />
           </button>
 
-          {/* Actionable Notification Center Dropdown */}
+          {/* Notification Center Trigger */}
           <div ref={notificationsContainerRef} className="relative shrink-0">
             <button
               type="button"
@@ -624,17 +644,17 @@ export default function AdminHeader({
                 setDropdownOpen(false);
               }}
               aria-expanded={notificationsOpen}
-              aria-label={t("Alerts & Notifications", "التنبيهات والإشعارات")}
-              className={`relative w-9 h-9 rounded-xl border flex items-center justify-center transition-colors cursor-pointer shrink-0 ${
+              aria-label={t("Alerts & notifications", "التنبيهات والإشعارات")}
+              className={`relative w-8 h-8 rounded-lg border flex items-center justify-center transition-colors cursor-pointer shrink-0 ${
                 notificationsOpen
-                  ? "border-primary bg-primary/10 text-primary"
-                  : "border-surface-container-high/60 bg-surface-container-low hover:bg-surface-container text-on-surface-variant hover:text-on-surface"
+                  ? "border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100"
+                  : "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400"
               }`}
-              title={t("Alerts & Notifications", "التنبيهات والإشعارات")}
+              title={t("Alerts & notifications", "التنبيهات والإشعارات")}
             >
-              <span className="material-symbols-outlined text-[20px]">notifications</span>
+              <Bell size={15} strokeWidth={1.5} />
               {unreadCount > 0 && (
-                <span className="absolute -top-1 -end-1 min-w-[18px] h-[18px] px-1 rounded-full bg-brand-accent-coral text-white text-[10px] font-black flex items-center justify-center shadow-xs">
+                <span className="absolute -top-1 -end-1 min-w-[16px] h-4 px-1 rounded-full bg-rose-600 text-white text-[9.5px] font-mono tabular-nums font-semibold flex items-center justify-center">
                   {unreadCount > 9 ? "9+" : unreadCount}
                 </span>
               )}
@@ -643,18 +663,16 @@ export default function AdminHeader({
             {notificationsOpen && (
               <div
                 dir={dir}
-                className="fixed sm:absolute top-16 sm:top-full sm:mt-2 inset-x-3 sm:inset-x-auto sm:end-0 sm:w-96 z-50 rounded-2xl border border-surface-container bg-surface-container-lowest shadow-2xl overflow-hidden animate-in fade-in duration-150"
+                className="fixed sm:absolute top-16 sm:top-full sm:mt-2 inset-x-3 sm:inset-x-auto sm:end-0 sm:w-96 z-50 rounded-2xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-[#0E0D16] shadow-2xl overflow-hidden animate-in fade-in duration-150"
               >
-                <div className="px-4 py-3 border-b border-surface-container flex items-center justify-between gap-2 bg-surface-container-low/60">
+                <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between gap-2 bg-slate-50 dark:bg-slate-900/60">
                   <div className="flex items-center gap-2 min-w-0">
-                    <span className="material-symbols-outlined text-[18px] text-primary shrink-0">
-                      notifications_active
-                    </span>
-                    <span className="font-title-sm text-xs font-black text-on-surface truncate">
+                    <BellRing size={16} className="text-[#4F2396] dark:text-purple-300 shrink-0" />
+                    <span className="text-xs sm:text-sm font-bold text-slate-900 dark:text-slate-100 truncate">
                       {t("Operations Notification Center", "مركز تنبيهات العمليات")}
                     </span>
                     {unreadCount > 0 && (
-                      <span className="px-1.5 py-0.5 rounded-full bg-primary/10 text-primary text-[10px] font-bold">
+                      <span className="px-1.5 py-0.5 rounded-full bg-purple-50 dark:bg-purple-950/60 text-[#4F2396] dark:text-purple-300 text-[10px] font-bold">
                         {unreadCount}
                       </span>
                     )}
@@ -663,23 +681,21 @@ export default function AdminHeader({
                     <button
                       type="button"
                       onClick={markAllNotificationsRead}
-                      className="text-[11px] font-bold text-primary hover:underline cursor-pointer shrink-0"
+                      className="text-xs font-bold text-[#4F2396] dark:text-purple-300 hover:underline cursor-pointer shrink-0"
                     >
                       {t("Mark all read", "تحديد الكل كمقروء")}
                     </button>
                   )}
                 </div>
 
-                <div className="max-h-80 overflow-y-auto divide-y divide-surface-container-low">
+                <div className="max-h-80 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800">
                   {notifications.length === 0 ? (
                     <div className="p-6 text-center space-y-1.5">
-                      <span className="material-symbols-outlined text-[28px] text-status-emerald block">
-                        check_circle
-                      </span>
-                      <p className="text-xs font-bold text-on-surface">
+                      <CheckCircle2 size={24} className="text-emerald-600 dark:text-emerald-400 block mx-auto" />
+                      <p className="text-xs sm:text-sm font-bold text-slate-900 dark:text-slate-100">
                         {t("All Caught Up", "لا توجد تنبيهات معلقة حالياً")}
                       </p>
-                      <p className="text-[11px] text-outline">
+                      <p className="text-xs text-slate-400 dark:text-slate-500">
                         {t(
                           "No pending property reviews, overdue payouts, or booking holds.",
                           "لا توجد مراجعات عقارية أو تحويلات متأخرة أو حجوزات معلقة."
@@ -691,20 +707,27 @@ export default function AdminHeader({
                       const isRead = readIds.includes(n.id);
                       const toneBadgeClass =
                         n.tone === "rose"
-                          ? "bg-rose-50 text-rose-700 border-rose-200"
+                          ? "bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-400 border-rose-200 dark:border-rose-800/60"
                           : n.tone === "amber"
-                          ? "bg-amber-50 text-amber-800 border-amber-200"
+                          ? "bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border-amber-200 dark:border-amber-800/60"
                           : n.tone === "violet"
-                          ? "bg-violet-50 text-primary border-violet-200"
-                          : "bg-emerald-50 text-emerald-700 border-emerald-200";
+                          ? "bg-purple-50 dark:bg-purple-950/60 text-[#4F2396] dark:text-purple-300 border-purple-200 dark:border-purple-800/60"
+                          : "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800/60";
                       const iconBgClass =
                         n.tone === "rose"
-                          ? "bg-rose-100 text-rose-700"
+                          ? "bg-rose-100 dark:bg-rose-950/60 text-rose-700 dark:text-rose-400"
                           : n.tone === "amber"
-                          ? "bg-amber-100 text-amber-800"
+                          ? "bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300"
                           : n.tone === "violet"
-                          ? "bg-primary/10 text-primary"
-                          : "bg-emerald-100 text-emerald-700";
+                          ? "bg-purple-50 dark:bg-purple-950/60 text-[#4F2396] dark:text-purple-300"
+                          : "bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400";
+
+                      const ItemIcon =
+                        n.kind === "property"
+                          ? Building2
+                          : n.kind === "payout"
+                          ? WalletCards
+                          : Calendar;
 
                       return (
                         <button
@@ -715,18 +738,18 @@ export default function AdminHeader({
                             setNotificationsOpen(false);
                             n.onSelect();
                           }}
-                          className={`w-full p-3 text-start flex items-start gap-2.5 transition-colors cursor-pointer hover:bg-surface-container-low ${
-                            isRead ? "opacity-70" : "bg-primary/[0.02]"
+                          className={`w-full p-3 text-start flex items-start gap-2.5 transition-colors cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-900/50 ${
+                            isRead ? "opacity-70" : "bg-purple-50/20 dark:bg-purple-950/10"
                           }`}
                         >
                           <div
                             className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 mt-0.5 ${iconBgClass}`}
                           >
-                            <span className="material-symbols-outlined text-[16px]">{n.icon}</span>
+                            <ItemIcon size={16} />
                           </div>
                           <div className="flex-1 min-w-0 space-y-1">
                             <div className="flex items-start justify-between gap-2">
-                              <span className="text-xs font-bold text-on-surface line-clamp-1">
+                              <span className="text-xs sm:text-sm font-bold text-slate-900 dark:text-slate-100 line-clamp-1">
                                 {n.title}
                               </span>
                               <div className="flex items-center gap-1.5 shrink-0">
@@ -736,11 +759,11 @@ export default function AdminHeader({
                                   {n.badge}
                                 </span>
                                 {!isRead && (
-                                  <span className="w-2 h-2 rounded-full bg-brand-accent-coral shrink-0" />
+                                  <span className="w-2 h-2 rounded-full bg-rose-500 shrink-0" />
                                 )}
                               </div>
                             </div>
-                            <p className="text-[11px] text-on-surface-variant line-clamp-2">
+                            <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2">
                               {n.subtitle}
                             </p>
                           </div>
@@ -750,14 +773,14 @@ export default function AdminHeader({
                   )}
                 </div>
 
-                <div className="px-3 py-2.5 border-t border-surface-container bg-surface-container-low/60 flex items-center justify-between gap-2 text-[11px] font-bold">
+                <div className="px-3 py-2.5 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 flex items-center justify-between gap-2 text-xs font-semibold">
                   <button
                     type="button"
                     onClick={() => {
                       setNotificationsOpen(false);
                       onNavigateTab?.("properties-management");
                     }}
-                    className="text-primary hover:underline cursor-pointer"
+                    className="text-[#4F2396] dark:text-purple-300 hover:underline cursor-pointer"
                   >
                     {t("Properties Queue", "قائمة العقارات")}
                   </button>
@@ -767,7 +790,7 @@ export default function AdminHeader({
                       onRefresh();
                       triggerToast(t("Refreshing live notifications...", "جاري تحديث التنبيهات..."));
                     }}
-                    className="text-on-surface-variant hover:text-on-surface cursor-pointer"
+                    className="text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 cursor-pointer"
                   >
                     {t("Refresh", "تحديث")}
                   </button>
@@ -777,7 +800,7 @@ export default function AdminHeader({
                       setNotificationsOpen(false);
                       onNavigateTab?.("financials-and-payouts");
                     }}
-                    className="text-primary hover:underline cursor-pointer"
+                    className="text-[#4F2396] dark:text-purple-300 hover:underline cursor-pointer"
                   >
                     {t("24h Payouts", "المدفوعات")}
                   </button>
@@ -786,28 +809,28 @@ export default function AdminHeader({
             )}
           </div>
 
-          {/* User Profile & Sign Out Strip */}
-          <div className="flex items-center gap-1.5 sm:gap-2 ps-1.5 sm:ps-2 border-s border-surface-container-high shrink-0">
+          {/* User Profile & Sign Out */}
+          <div className="flex items-center gap-1.5 sm:gap-2 ps-1.5 sm:ps-2 border-s border-slate-200 dark:border-slate-800 shrink-0">
             <div className="text-start hidden xl:flex flex-col">
-              <span className="font-title-sm text-xs text-on-surface leading-tight font-bold truncate max-w-[120px]">
+              <span className="text-xs font-medium text-slate-800 dark:text-slate-200 leading-tight truncate max-w-[120px]">
                 {userEmail?.split("@")[0] || t("Admin", "المدير")}
               </span>
-              <span className="font-label-sm text-[10px] text-outline">
+              <span className="text-[10px] text-slate-400 dark:text-slate-500">
                 {t("Operations", "العمليات")}
               </span>
             </div>
 
-            <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-xs shadow-2xs border border-primary/20 shrink-0">
+            <div className="w-7 h-7 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 flex items-center justify-center font-medium text-[11px] shrink-0">
               {(userEmail?.split("@")[0] || "AD").slice(0, 2).toUpperCase()}
             </div>
 
             <button
               type="button"
               onClick={onSignOut}
-              title={t("Sign out of Admin Operations", "تسجيل الخروج")}
-              className="w-8 h-8 rounded-xl text-outline hover:text-error hover:bg-error/10 flex items-center justify-center transition-colors cursor-pointer shrink-0"
+              title={t("Sign out", "تسجيل الخروج")}
+              className="w-8 h-8 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 flex items-center justify-center transition-colors cursor-pointer shrink-0"
             >
-              <span className="material-symbols-outlined text-[18px]">logout</span>
+              <LogOut size={15} strokeWidth={1.5} />
             </button>
           </div>
         </div>
@@ -818,16 +841,14 @@ export default function AdminHeader({
         <div
           ref={mobileSearchContainerRef}
           dir={dir}
-          className="sm:hidden fixed top-16 start-0 end-0 z-30 bg-surface-container-lowest/98 backdrop-blur-xl border-b border-surface-container px-3 py-2.5 shadow-lg"
+          className="sm:hidden fixed top-16 start-0 end-0 z-30 bg-white/98 dark:bg-[#0E0D16]/98 backdrop-blur-xl border-b border-slate-200/90 dark:border-slate-800 px-3 py-2.5 shadow-lg"
         >
           <div className="relative">
             <form
               onSubmit={handleSearchSubmit}
-              className="flex items-center w-full h-10 px-2.5 gap-2 bg-surface-container-low focus-within:bg-surface-container-lowest rounded-xl border border-surface-container-high focus-within:border-primary/40"
+              className="flex items-center w-full h-10 px-2.5 gap-2 bg-slate-50 dark:bg-slate-900 focus-within:bg-white dark:focus-within:bg-[#0E0D16] rounded-xl border border-slate-200 dark:border-slate-700 focus-within:border-[#4F2396] dark:focus-within:border-purple-400"
             >
-              <span className="material-symbols-outlined text-outline text-[18px] shrink-0 pointer-events-none">
-                search
-              </span>
+              <Search size={16} className="text-slate-400 dark:text-slate-500 shrink-0 pointer-events-none" />
               <input
                 type="text"
                 autoFocus
@@ -840,7 +861,7 @@ export default function AdminHeader({
                   setDropdownOpen(true);
                 }}
                 placeholder={t("Search reservations, chalets, guests...", "ابحث بالحجز، العقار، الضيف...")}
-                className="flex-1 min-w-0 bg-transparent text-xs text-on-surface placeholder:text-outline focus:outline-none"
+                className="flex-1 min-w-0 bg-transparent text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none"
               />
               {searchQuery && (
                 <button
@@ -849,21 +870,25 @@ export default function AdminHeader({
                     setSearchQuery("");
                     setDropdownOpen(false);
                   }}
-                  className="w-6 h-6 rounded-lg text-outline hover:text-on-surface flex items-center justify-center shrink-0 cursor-pointer"
+                  className="w-6 h-6 rounded-lg text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 flex items-center justify-center shrink-0 cursor-pointer"
                   title={t("Clear", "مسح")}
                 >
-                  <span className="material-symbols-outlined text-[15px]">close</span>
+                  <X size={14} />
                 </button>
               )}
               <button
                 type="submit"
                 disabled={submittingSearch}
-                className="w-7 h-7 rounded-lg bg-primary disabled:opacity-50 text-on-primary flex items-center justify-center shrink-0 cursor-pointer"
+                className="w-7 h-7 rounded-lg bg-[#4F2396] hover:bg-[#431D82] disabled:opacity-50 text-white flex items-center justify-center shrink-0 cursor-pointer transition-colors"
                 title={t("Search", "بحث")}
               >
-                <span className="material-symbols-outlined text-[16px]">
-                  {submittingSearch ? "hourglass_top" : dir === "rtl" ? "arrow_back" : "arrow_forward"}
-                </span>
+                {submittingSearch ? (
+                  <RefreshCw size={14} className="animate-spin" />
+                ) : dir === "rtl" ? (
+                  <ArrowLeft size={14} />
+                ) : (
+                  <ArrowRight size={14} />
+                )}
               </button>
             </form>
             {renderDropdown()}

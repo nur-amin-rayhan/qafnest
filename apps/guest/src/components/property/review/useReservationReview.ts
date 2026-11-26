@@ -23,6 +23,7 @@ import {
   fetchLivePropertyAvailability,
   type LiveAvailabilityResult,
 } from "@/lib/services/availability";
+import { sanitizePropertySlotConfig } from "@qafnest/shared";
 
 export function useReservationReview(property: Property) {
   const [supabase] = useState(() => createClient());
@@ -163,22 +164,41 @@ export function useReservationReview(property: Property) {
     ]
   );
 
-  const { baseStayRate, total, hasDiscount, installmentPrice } = useMemo(
-    () =>
-      calculateStayPricing(
+  const embeddedSlotConfig = useMemo(() => {
+    const raw = (property?.customDayPricing as Record<string, unknown>)?.__slotConfig;
+    if (raw && typeof raw === "object") {
+      return sanitizePropertySlotConfig(raw, property.id, property.slug);
+    }
+    return null;
+  }, [property]);
+
+  const { baseStayRate, total, hasDiscount, installmentPrice, isTwelveHourStay } = useMemo(
+    () => {
+      const calculated = calculateStayPricing(
         property,
         bookingCheckinDate,
         nights,
-        pricing ? pricing.total : null,
+        null,
         language,
         {
           checkoutDate: bookingCheckoutDate,
           checkinTime: bookingCheckinTime,
           checkoutTime: bookingCheckoutTime,
-          slotConfig: liveAvailability?.slotConfig || null,
+          slotConfig: liveAvailability?.slotConfig || embeddedSlotConfig,
           dateOverrides: liveAvailability?.priceOverrides,
         }
-      ),
+      );
+
+      const matchingTotal =
+        pricing && Math.abs(pricing.baseRate - calculated.baseStayRate) < 0.01
+          ? pricing.total
+          : calculated.total;
+
+      return {
+        ...calculated,
+        total: matchingTotal,
+      };
+    },
     [
       property,
       bookingCheckinDate,
@@ -190,6 +210,7 @@ export function useReservationReview(property: Property) {
       language,
       liveAvailability?.slotConfig,
       liveAvailability?.priceOverrides,
+      embeddedSlotConfig,
     ]
   );
 
@@ -239,6 +260,10 @@ export function useReservationReview(property: Property) {
     label,
   });
 
+  const identityVerified = Boolean(
+    profile?.is_verified || user?.app_metadata?.is_verified
+  );
+
   // Sub-hook 2: Payment checkout execution
   const {
     paymentMethod,
@@ -265,11 +290,13 @@ export function useReservationReview(property: Property) {
     bookingCheckoutTime,
     bookingGuestsCount,
     phoneVerified,
+    identityVerified,
     phoneOtpVerified,
     effectivePhone,
     effectiveName,
     effectiveEmail,
     user,
+    session,
     pricing,
     totalAmount: total,
     walletBalance,
@@ -319,6 +346,7 @@ export function useReservationReview(property: Property) {
     installmentPrice,
     setPricing,
     phoneVerified,
+    identityVerified,
     phoneOtpVerified,
     effectiveName,
     reservationPhone,
@@ -375,5 +403,6 @@ export function useReservationReview(property: Property) {
     gatewayCapabilities,
     otpInputRef,
     recaptchaContainerRef,
+    isTwelveHourStay,
   };
 }

@@ -3,12 +3,19 @@ import { getSupabaseConfig } from "@/lib/supabase/config";
 import {
   getHostFinancialData,
   updateHostIban,
+  deleteHostIban,
   updateSettlementSettings,
   type HostPayoutIban,
   type HostSettlementSettings,
 } from "./hostFinancialsService";
 import { hydrateHostPayoutStore } from "@qafnest/shared/hostPayoutStore";
 import { hydratePlatformFeeConfig } from "@qafnest/shared/platformFeeStore";
+import {
+  hydrateSharedJsonFile,
+  persistSharedJsonFile,
+  readSharedJsonFile,
+  writeSharedJsonFile,
+} from "@qafnest/shared/serverJsonStore";
 
 export interface HostProfileSettings {
   fullName: string;
@@ -66,10 +73,45 @@ function getAdminClient() {
   });
 }
 
-// In-memory host settings store for per-host notification and security preferences
-const customProfiles: Record<string, Partial<HostProfileSettings>> = {};
-const customNotifications: Record<string, HostNotificationSettings> = {};
-const customSecurity: Record<string, HostSecuritySettings> = {};
+interface PersistedHostSettingsMap {
+  profiles: Record<string, Partial<HostProfileSettings>>;
+  notifications: Record<string, HostNotificationSettings>;
+  security: Record<string, HostSecuritySettings>;
+}
+
+const HOST_SETTINGS_FILE = "host-settings.json";
+
+function emptySettingsMap(): PersistedHostSettingsMap {
+  return { profiles: {}, notifications: {}, security: {} };
+}
+
+function normalizeSettingsMap(raw: unknown): PersistedHostSettingsMap {
+  if (!raw || typeof raw !== "object") return emptySettingsMap();
+  const obj = raw as Record<string, unknown>;
+  return {
+    profiles:
+      obj.profiles && typeof obj.profiles === "object"
+        ? (obj.profiles as Record<string, Partial<HostProfileSettings>>)
+        : {},
+    notifications:
+      obj.notifications && typeof obj.notifications === "object"
+        ? (obj.notifications as Record<string, HostNotificationSettings>)
+        : {},
+    security:
+      obj.security && typeof obj.security === "object"
+        ? (obj.security as Record<string, HostSecuritySettings>)
+        : {},
+  };
+}
+
+function loadSettingsMap(): PersistedHostSettingsMap {
+  return readSharedJsonFile(HOST_SETTINGS_FILE, emptySettingsMap, normalizeSettingsMap);
+}
+
+async function saveSettingsMap(map: PersistedHostSettingsMap) {
+  writeSharedJsonFile(HOST_SETTINGS_FILE, map);
+  await persistSharedJsonFile(HOST_SETTINGS_FILE, map).catch(() => undefined);
+}
 
 const DEFAULT_NOTIFICATIONS: HostNotificationSettings = {
   smsAlerts: true,
@@ -95,7 +137,10 @@ const DEFAULT_SECURITY: HostSecuritySettings = {
 
 export async function getHostSettings(hostId: string): Promise<HostAllSettings> {
   const supabase = getAdminClient();
-  const financialData = await getHostFinancialData(hostId);
+  const [financialData, store] = await Promise.all([
+    getHostFinancialData(hostId),
+    hydrateSharedJsonFile(HOST_SETTINGS_FILE, emptySettingsMap, normalizeSettingsMap),
+  ]);
 
   let profileFromDb: Partial<HostProfileSettings> = {};
   if (supabase && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(hostId)) {
@@ -130,7 +175,7 @@ export async function getHostSettings(hostId: string): Promise<HostAllSettings> 
     }
   }
 
-  const cachedProfile = customProfiles[hostId] || {};
+  const cachedProfile = store.profiles[hostId] || {};
   const profile: HostProfileSettings = {
     fullName: cachedProfile.fullName ?? profileFromDb.fullName ?? "",
     phone: cachedProfile.phone ?? profileFromDb.phone ?? "",
@@ -140,7 +185,7 @@ export async function getHostSettings(hostId: string): Promise<HostAllSettings> 
     idType: cachedProfile.idType || profileFromDb.idType || "national_id",
     bio: cachedProfile.bio || profileFromDb.bio || "",
     avatarUrl: cachedProfile.avatarUrl || profileFromDb.avatarUrl || "",
-    isVerified: cachedProfile.isVerified ?? profileFromDb.isVerified ?? false,
+    isVerified: Boolean(profileFromDb.isVerified),
   };
 
   const settlement = financialData.settlement?.settings;
@@ -158,12 +203,12 @@ export async function getHostSettings(hostId: string): Promise<HostAllSettings> 
 
   const notifications: HostNotificationSettings = {
     ...DEFAULT_NOTIFICATIONS,
-    ...(customNotifications[hostId] || {}),
+    ...(store.notifications[hostId] || {}),
   };
 
   const security: HostSecuritySettings = {
     ...DEFAULT_SECURITY,
-    ...(customSecurity[hostId] || {}),
+    ...(store.security[hostId] || {}),
   };
 
   return {
@@ -188,10 +233,13 @@ export async function updateHostProfileSettings(
     ...(update.avatarUrl !== undefined ? { avatarUrl: update.avatarUrl } : {}),
   };
 
-  customProfiles[hostId] = {
-    ...(customProfiles[hostId] || {}),
+  await hydrateSharedJsonFile(HOST_SETTINGS_FILE, emptySettingsMap, normalizeSettingsMap);
+  const store = loadSettingsMap();
+  store.profiles[hostId] = {
+    ...(store.profiles[hostId] || {}),
     ...sanitizedUpdate,
   };
+  await saveSettingsMap(store);
 
   const supabase = getAdminClient();
   if (supabase && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(hostId)) {
@@ -246,8 +294,12 @@ export async function updateHostPayoutSettings(
   }
 ): Promise<HostPayoutSettings> {
   await Promise.all([hydrateHostPayoutStore(), hydratePlatformFeeConfig()]);
-  if (update.iban && update.accountHolder) {
-    updateHostIban(hostId, update.iban, update.accountHolder);
+  if (update.iban !== undefined) {
+    if (update.iban === "") {
+      deleteHostIban(hostId);
+    } else if (update.accountHolder) {
+      updateHostIban(hostId, update.iban, update.accountHolder);
+    }
   }
 
   const settlementUpdate: Partial<HostSettlementSettings> = {};
@@ -272,17 +324,21 @@ export async function updateHostNotificationSettings(
   hostId: string,
   update: Partial<HostNotificationSettings>
 ): Promise<HostNotificationSettings> {
-  customNotifications[hostId] = {
+  await hydrateSharedJsonFile(HOST_SETTINGS_FILE, emptySettingsMap, normalizeSettingsMap);
+  const store = loadSettingsMap();
+  store.notifications[hostId] = {
     ...DEFAULT_NOTIFICATIONS,
-    ...(customNotifications[hostId] || {}),
+    ...(store.notifications[hostId] || {}),
     ...update,
   };
-  return customNotifications[hostId];
+  await saveSettingsMap(store);
+  return store.notifications[hostId];
 }
 
 export async function updateHostPassword(
   hostId: string,
-  newPassword: string
+  newPassword: string,
+  currentPassword?: string
 ): Promise<{ success: boolean; message: string }> {
   if (!newPassword || newPassword.length < 8) {
     throw new Error("Password must be at least 8 characters long.");
@@ -295,8 +351,31 @@ export async function updateHostPassword(
   }
 
   const supabase = getAdminClient();
-  if (!supabase) {
+  const { url, key } = getSupabaseConfig();
+  if (!supabase || !url || !key) {
     throw new Error("Authentication service is currently unavailable.");
+  }
+
+  const { data: userRes, error: readErr } = await supabase.auth.admin.getUserById(hostId);
+  const email = userRes?.user?.email;
+  if (readErr || !userRes?.user) {
+    throw new Error("Host authentication profile could not be verified.");
+  }
+
+  if (email) {
+    if (!currentPassword || !currentPassword.trim()) {
+      throw new Error("Current password is required before setting a new password.");
+    }
+    const verifierClient = createClient(url, key, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
+    const { error: verifyErr } = await verifierClient.auth.signInWithPassword({
+      email,
+      password: currentPassword,
+    });
+    if (verifyErr) {
+      throw new Error("Current password is incorrect.");
+    }
   }
 
   const { error } = await supabase.auth.admin.updateUserById(hostId, {
@@ -306,11 +385,14 @@ export async function updateHostPassword(
     throw new Error(error.message || "Failed to update account password.");
   }
 
-  customSecurity[hostId] = {
+  await hydrateSharedJsonFile(HOST_SETTINGS_FILE, emptySettingsMap, normalizeSettingsMap);
+  const store = loadSettingsMap();
+  store.security[hostId] = {
     ...DEFAULT_SECURITY,
-    ...(customSecurity[hostId] || {}),
+    ...(store.security[hostId] || {}),
     lastPasswordChange: new Date().toISOString(),
   };
+  await saveSettingsMap(store);
 
   return {
     success: true,
@@ -319,13 +401,23 @@ export async function updateHostPassword(
 }
 
 export async function terminateOtherSessions(
-  hostId: string
+  hostId: string,
+  accessToken?: string
 ): Promise<{ success: boolean; activeSessionsCount: number }> {
-  customSecurity[hostId] = {
+  const supabase = getAdminClient();
+  if (supabase && accessToken) {
+    await supabase.auth.admin.signOut(accessToken, "others").catch(() => undefined);
+  }
+
+  await hydrateSharedJsonFile(HOST_SETTINGS_FILE, emptySettingsMap, normalizeSettingsMap);
+  const store = loadSettingsMap();
+  store.security[hostId] = {
     ...DEFAULT_SECURITY,
-    ...(customSecurity[hostId] || {}),
+    ...(store.security[hostId] || {}),
     activeSessionsCount: 1,
   };
+  await saveSettingsMap(store);
+
   return {
     success: true,
     activeSessionsCount: 1,

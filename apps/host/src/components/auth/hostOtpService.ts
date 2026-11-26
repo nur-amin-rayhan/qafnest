@@ -30,6 +30,8 @@ export function initHostRecaptcha({
 
   try {
     const auth = getFirebaseAuth();
+    if (!auth) return null;
+    container.innerHTML = "";
     const verifier = new RecaptchaVerifier(auth, container, {
       size: "invisible",
       callback: () => {},
@@ -41,7 +43,7 @@ export function initHostRecaptcha({
         );
       },
     });
-    void verifier.render().catch(() => {});
+    verifier.render().catch(() => {});
     return verifier;
   } catch {
     return null;
@@ -149,7 +151,8 @@ export async function executeVerifyHostOtp({
       phone: formattedPhone,
     });
 
-    setHostSessionCookie(true);
+    const fbToken = await fbUser.getIdToken().catch(() => null);
+    await setHostSessionCookie(fbToken || true);
 
     const mappedUser = {
       id: fbUser.uid,
@@ -224,7 +227,7 @@ export async function executeVerifyHostOtp({
       ? `${nextFirstName} ${nextLastName}`.trim()
       : `${effectiveLang === "ar" ? "مضيف" : "Host"} (${formattedPhone.slice(-4)})`);
 
-  setHostSessionCookie(true);
+  await setHostSessionCookie(true);
   setHostUser(data.user, {
     id: data.user.id,
     full_name: fullName,
@@ -243,7 +246,6 @@ export async function executeSaveHostProfile({
   contactEmail,
   phone,
   sentPhoneDisplay,
-  effectiveLang: _effectiveLang,
   setHostUser,
 }: {
   firstName: string;
@@ -297,6 +299,6 @@ export async function executeSaveHostProfile({
     }
   }
 
-  setHostSessionCookie(true);
+  await setHostSessionCookie(true);
 }
 

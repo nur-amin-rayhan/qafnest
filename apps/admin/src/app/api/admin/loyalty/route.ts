@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { isAdminRequest } from "@/lib/adminApi";
 import {
   getAdminLoyaltyConfig,
+  hydrateAdminLoyaltyStore,
   updateAdminLoyaltySettings,
   toggleAdminLoyaltyOffer,
   saveAdminLoyaltyOffer,
@@ -13,6 +14,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ code: "unauthorized" }, { status: 401 });
   }
 
+  await hydrateAdminLoyaltyStore().catch(() => undefined);
   const config = getAdminLoyaltyConfig();
   return NextResponse.json(config);
 }
@@ -27,7 +29,7 @@ export async function POST(request: NextRequest) {
     const action = body.action;
 
     if (action === "update_settings") {
-      const updated = updateAdminLoyaltySettings(body.settings || {});
+      const updated = await updateAdminLoyaltySettings(body.settings || {});
       return NextResponse.json({ success: true, settings: updated });
     }
 
@@ -36,7 +38,7 @@ export async function POST(request: NextRequest) {
       if (!offerId) {
         return NextResponse.json({ code: "missing_offer_id" }, { status: 400 });
       }
-      const updatedOffers = toggleAdminLoyaltyOffer(offerId, Boolean(isActive));
+      const updatedOffers = await toggleAdminLoyaltyOffer(offerId, Boolean(isActive));
       return NextResponse.json({ success: true, offers: updatedOffers });
     }
 
@@ -45,7 +47,7 @@ export async function POST(request: NextRequest) {
       if (!offer) {
         return NextResponse.json({ code: "missing_offer_payload" }, { status: 400 });
       }
-      const updatedOffers = saveAdminLoyaltyOffer(offer);
+      const updatedOffers = await saveAdminLoyaltyOffer(offer);
       return NextResponse.json({ success: true, offers: updatedOffers });
     }
 
@@ -54,14 +56,15 @@ export async function POST(request: NextRequest) {
       if (!offerId) {
         return NextResponse.json({ code: "missing_offer_id" }, { status: 400 });
       }
-      const updatedOffers = deleteAdminLoyaltyOffer(offerId);
+      const updatedOffers = await deleteAdminLoyaltyOffer(offerId);
       return NextResponse.json({ success: true, offers: updatedOffers });
     }
 
     return NextResponse.json({ code: "unknown_action" }, { status: 400 });
   } catch (err: unknown) {
+    console.error("[admin loyalty POST] error:", err);
     return NextResponse.json(
-      { code: "internal_error", message: err instanceof Error ? err.message : "Error processing request" },
+      { code: "internal_error", message: "Error processing loyalty request." },
       { status: 500 }
     );
   }

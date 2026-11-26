@@ -1,77 +1,61 @@
 "use client";
 
 import React from "react";
-import {
-  ShieldCheck,
-  Globe,
-  Power,
-} from "lucide-react";
-import type { User } from "@supabase/supabase-js";
+import { ShieldAlert, ShieldCheck } from "lucide-react";
 
 interface AccountHeroBannerProps {
-  user: User | null;
   displayName: string;
   userInitial: string;
   editPhone: string;
   editEmail: string;
-  language: string;
-  toggleLanguage: () => void;
-  openAuthModal: (mode: "signin" | "signup") => void;
-  signOut: () => void;
+  isIdentityVerified: boolean;
   t: (en: string, ar: string) => string;
 }
 
 export default function AccountHeroBanner({
-  user,
   displayName,
   userInitial,
   editPhone,
   editEmail,
-  language,
-  toggleLanguage,
-  openAuthModal,
-  signOut,
+  isIdentityVerified,
   t,
 }: AccountHeroBannerProps) {
   return (
-    <div className="relative overflow-hidden rounded-3xl sm:rounded-[32px] bg-gradient-to-r from-[#2c0e5a] via-[#4F2396] to-[#7c3aed] text-white p-6 sm:p-8 lg:p-10 shadow-xl shadow-purple-900/15 border border-purple-400/20 mb-8">
-      {/* Subtle Ambient Decorative Glow */}
-      <div className="absolute -top-24 -right-24 w-72 h-72 bg-[#FF9750]/20 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute -bottom-24 -left-24 w-72 h-72 bg-purple-400/25 rounded-full blur-3xl pointer-events-none" />
-
-      <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-        {/* Left/Right User Greeting */}
-        <div className="flex items-center gap-5">
-          {/* Luxury Avatar Circle */}
-          <div className="relative shrink-0 flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-white/10 backdrop-blur-md border-2 border-white/30 text-white shadow-lg">
-            <span className="text-2xl sm:text-3xl font-black font-display tracking-tight text-[#FF9750]">
+    <div className="rounded-2xl bg-white dark:bg-[#0E0E1A] border border-[#E4DFF0] dark:border-white/[0.08] shadow-xs p-6 sm:p-7 mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <div className="relative shrink-0 flex items-center justify-center w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-[#F4EEFF] dark:bg-[#4F2396]/25 border border-purple-200 dark:border-[#4F2396]/40 text-[#4F2396] dark:text-purple-200">
+            <span className="text-xl sm:text-2xl font-semibold tracking-tight">
               {userInitial}
             </span>
-            <span
-              className="absolute bottom-1 right-1 w-4 h-4 bg-emerald-500 border-2 border-[#4F2396] rounded-full shadow-xs"
-              title="Verified Account"
-            />
           </div>
 
-          {/* Name & Official Tourism Accreditation */}
-          <div>
-            <div className="flex items-center gap-2 flex-wrap">
-              <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white flex items-center gap-2">
-                <span>{displayName}</span>
+          <div className="min-w-0">
+            <div className="flex items-center gap-2.5 flex-wrap">
+              <h1 className="text-xl sm:text-2xl font-semibold text-slate-900 dark:text-white leading-snug">
+                <bdi>{displayName}</bdi>
               </h1>
-              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/20 border border-emerald-400/40 px-2.5 py-0.5 text-[11px] font-extrabold text-emerald-300">
-                <ShieldCheck size={13} className="text-emerald-400" />
-                <span>{t("Verified Guest", "ضيف موثق")}</span>
-              </span>
+              {isIdentityVerified ? (
+                <span className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-50 border border-emerald-200 dark:bg-emerald-500/15 dark:border-emerald-500/30 px-2.5 py-0.5 text-xs font-medium text-emerald-800 dark:text-emerald-300">
+                  <ShieldCheck size={14} className="shrink-0" />
+                  <span>{t("Verified · Nafath / Yaqeen", "موثق · نفاذ / يقين")}</span>
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1.5 rounded-lg bg-amber-50 border border-amber-200 dark:bg-amber-500/15 dark:border-amber-500/30 px-2.5 py-0.5 text-xs font-medium text-amber-800 dark:text-amber-300">
+                  <ShieldAlert size={14} className="shrink-0" />
+                  <span>{t("ID Verification Pending", "بانتظار توثيق الهوية")}</span>
+                </span>
+              )}
             </div>
 
-            <p className="text-xs text-purple-300/80 mt-1.5 font-mono" dir="ltr">
-              {editPhone} {editEmail ? `· ${editEmail}` : ""}
-            </p>
+            <div className="text-xs text-slate-700 dark:text-slate-300 mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 font-mono tabular-nums">
+              {editPhone && <bdi dir="ltr">{editPhone}</bdi>}
+              {editPhone && editEmail && <span aria-hidden="true">·</span>}
+              {editEmail && <bdi dir="ltr">{editEmail}</bdi>}
+            </div>
           </div>
         </div>
       </div>
     </div>
   );
 }
-

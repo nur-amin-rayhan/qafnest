@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation";
 import dynamic from "next/dynamic";
 import SmoothScroll from "@/components/common/SmoothScroll";
 import ScrollProgress from "@/components/common/ScrollProgress";
-import BackToTop from "@/components/common/BackToTop";
+
 import Navbar from "@/components/common/Navbar";
 import Hero from "@/components/home/Hero";
 import RecentlyViewedSection from "@/components/home/RecentlyViewedSection";
@@ -15,7 +15,6 @@ import Footer from "@/components/common/Footer";
 import { useAuth } from "@/context/AuthContext";
 
 // Lazy load non-critical modals to reduce initial JavaScript payload on mobile
-const BookingModal = dynamic(() => import("@/components/modals/BookingModal"), { ssr: false });
 const AppModal = dynamic(() => import("@/components/modals/AppModal"), { ssr: false });
 const AuthModal = dynamic(() => import("@/components/modals/AuthModal"), { ssr: false });
 const SearchModal = dynamic(() => import("@/components/modals/SearchModal"), { ssr: false });
@@ -84,14 +83,12 @@ export default function Home() {
         <PropertyListingSections />
       </main>
 
-      {/* Floating Back to Top Button */}
-      <BackToTop />
+
 
       {/* Luxury Footer */}
       <Footer />
 
       {/* Modals */}
-      <BookingModal />
       <AppModal />
       <AuthModal />
       <SearchModal />

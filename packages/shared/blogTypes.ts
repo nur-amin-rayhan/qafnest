@@ -1,3 +1,10 @@
+export interface BlogKeyFeature {
+  titleEn: string;
+  titleAr: string;
+  descEn?: string;
+  descAr?: string;
+}
+
 export interface BlogSeoConfig {
   metaTitleEn: string;
   metaTitleAr: string;
@@ -34,4 +41,8 @@ export interface SharedBlogPost {
   createdAt: string;
   updatedAt: string;
   seo: BlogSeoConfig;
+  keyFeatures?: BlogKeyFeature[];
+  linkedPropertyId?: string;
+  linkedPropertyTitle?: string;
+  linkedPropertySlug?: string;
 }

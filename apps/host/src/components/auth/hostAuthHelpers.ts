@@ -55,9 +55,9 @@ export async function executeHostEmailAuth({
       const { data, error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
       if (data.session?.access_token) {
-        setHostSessionCookie(data.session.access_token);
+        await setHostSessionCookie(data.session.access_token);
       } else {
-        setHostSessionCookie(true);
+        await setHostSessionCookie(true);
       }
       if (data.user) setHostUser(data.user);
       return {
@@ -80,7 +80,6 @@ export async function executeHostEmailAuth({
             profile?: HostProfile | null;
           };
           if (devData?.success && devData.user) {
-            setHostSessionCookie("dev_host_token");
             setHostUser(devData.user, devData.profile ?? null);
             return {
               success: true,
@@ -110,7 +109,7 @@ export async function executeHostEmailAuth({
     });
     if (error) throw error;
     if (data.session && data.user) {
-      setHostSessionCookie(true);
+      await setHostSessionCookie(data.session.access_token || true);
       setHostUser(data.user);
       return {
         success: true,

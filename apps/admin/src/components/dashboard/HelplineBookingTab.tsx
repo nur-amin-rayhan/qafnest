@@ -10,6 +10,15 @@ import {
   getRiyadhNowInfo,
   matchesPropertySearchQuery,
 } from "@qafnest/shared";
+import {
+  CheckCircle2,
+  AlertCircle,
+  RefreshCw,
+  UserPlus,
+  ShieldCheck,
+  Clock,
+  Headphones,
+} from "lucide-react";
 import { useAdminAuth } from "@/context/AdminAuthContext";
 import { adminPath } from "@/lib/adminUrl";
 import { HelplineDateCalendar } from "./helpline/HelplineDateCalendar";
@@ -253,7 +262,8 @@ export function HelplineBookingTab({
       setVerificationLink(data.verificationLink || null);
       setVerificationMethod(method);
       setVerificationNotice(data.message || "Verification session started.");
-      if (data.session.devOtpCode) setOtpInput(data.session.devOtpCode);
+      const devOtp = data?.devOtpCode || data?.session?.devOtpCode;
+      if (devOtp) setOtpInput(devOtp);
     } catch {
       setVerificationNotice("Network error initiating verification.");
     } finally {
@@ -446,31 +456,31 @@ export function HelplineBookingTab({
 
   return (
     <div dir={dir} data-testid="helpline-booking-section" className="flex flex-col w-full gap-6">
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-surface-container-lowest rounded-2xl border border-surface-container p-5 shadow-xs">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-white dark:bg-[#0E0D16] rounded-xl border border-slate-200/90 dark:border-slate-800 p-5 shadow-xs">
         <div>
-          <div className="flex items-center gap-1.5 text-outline text-[11px] font-bold uppercase tracking-wider mb-1">
+          <div className="flex items-center gap-1.5 text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
             <span>{t("Operations Hub", "مركز العمليات")}</span>
-            <span className="material-symbols-outlined text-[14px]">chevron_right</span>
-            <span className="text-primary">{t("Helpline Phone Booking Desk", "مكتب الحجز الهاتفي والدعم")}</span>
+            <span className="text-slate-400 dark:text-slate-600">/</span>
+            <span className="text-[#4F2396] dark:text-purple-300 font-semibold">{t("Helpline Phone Booking Desk", "مكتب الحجز الهاتفي والدعم")}</span>
           </div>
-          <h1 className="text-2xl font-black text-on-surface tracking-tight flex items-center gap-2.5">
-            <span className="w-9 h-9 rounded-xl bg-status-emerald/15 text-status-emerald flex items-center justify-center">
-              <span className="material-symbols-outlined text-[22px]">support_agent</span>
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-slate-100 tracking-tight flex items-center gap-2.5">
+            <span className="w-9 h-9 rounded-lg bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 flex items-center justify-center shrink-0">
+              <Headphones size={20} />
             </span>
             <span>{t("Helpline & Manual Booking Workspace", "قسم الحجز الهاتفي وإدارة المكالمات")}</span>
           </h1>
-          <p className="text-sm text-on-surface-variant mt-1">
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-2xl">
             {t("Full access to all platform listings, live product-style availability calendar, custom deal pricing, and instant Pending SADAD room locks.", "وصول كامل لجميع العقارات، تقويم التوفر التفاعلي مثل صفحة الضيف، تسعير مخصص، وحجز الغرف بانتظار سداد.")}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-3 shrink-0">
-          <div className="px-3.5 py-2 rounded-xl bg-surface-container-low border border-surface-container text-xs">
-            <span className="text-outline font-semibold">{t("Catalog Access:", "العقارات:")}</span>{" "}
-            <strong className="text-on-surface font-black">{properties.length}</strong>
+          <div className="px-3.5 py-1.5 rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs text-slate-700 dark:text-slate-300">
+            <span className="text-slate-500 dark:text-slate-400 font-medium">{t("Catalog Access:", "العقارات:")}</span>{" "}
+            <strong className="text-slate-900 dark:text-slate-100 font-semibold">{properties.length}</strong>
           </div>
-          <div className="px-3.5 py-2 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-900">
-            <span className="font-semibold">{t("Pending SADAD:", "بانتظار سداد:")}</span>{" "}
-            <strong className="font-black">
+          <div className="px-3.5 py-1.5 rounded-lg bg-amber-50 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-800 text-xs text-amber-900 dark:text-amber-200">
+            <span className="font-medium">{t("Pending SADAD:", "بانتظار سداد:")}</span>{" "}
+            <strong className="font-bold">
               {helplineBookings.filter((b) => b.status === "pending" && String(b.auth_subject || "").includes("SADAD_HOLD")).length}
             </strong>
           </div>
@@ -544,27 +554,33 @@ export function HelplineBookingTab({
                 loadingAvailability={loadingAvail}
               />
 
-              <form onSubmit={handleSubmit} className="rounded-2xl border border-surface-container bg-surface-container-lowest p-4 sm:p-5 shadow-xs space-y-5">
+              <form onSubmit={handleSubmit} className="rounded-xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-[#0E0D16] p-4 sm:p-5 shadow-xs space-y-5 text-slate-900 dark:text-slate-100">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
                   <div className="space-y-2">
-                    <span className="text-xs font-extrabold uppercase tracking-wider text-outline">
+                    <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                       {t("Live Slot Verification", "فحص التوفر الفوري")}
                     </span>
                     {checkingQuote ? (
-                      <div className="p-3 rounded-xl bg-surface-container-low text-xs font-bold text-on-surface-variant flex items-center gap-2">
-                        <span className="material-symbols-outlined text-[16px] animate-spin">sync</span>
+                      <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-900 text-xs font-medium text-slate-600 dark:text-slate-400 flex items-center gap-2 border border-slate-200 dark:border-slate-800">
+                        <RefreshCw size={14} className="animate-spin text-[#4F2396] dark:text-purple-400" />
                         <span>{t("Checking dates & calculating quote...", "جاري فحص التواريخ وحساب السعر...")}</span>
                       </div>
                     ) : quoteError ? (
-                      <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-xs font-bold text-rose-700">{quoteError}</div>
+                      <div className="p-3 rounded-lg bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800/80 text-xs font-medium text-rose-700 dark:text-rose-300">{quoteError}</div>
                     ) : quote ? (
                       <div
                         data-testid="helpline-availability-banner"
-                        className={`p-3 rounded-xl border text-xs font-bold flex items-center gap-2 ${
-                          quote.available ? "bg-status-emerald/10 border-status-emerald/30 text-status-emerald" : "bg-rose-50 border-rose-200 text-rose-700"
+                        className={`p-3 rounded-lg border text-xs font-semibold flex items-center gap-2 ${
+                          quote.available
+                            ? "bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800/80 text-emerald-700 dark:text-emerald-300"
+                            : "bg-rose-50 dark:bg-rose-950/40 border-rose-200 dark:border-rose-800/80 text-rose-700 dark:text-rose-300"
                         }`}
                       >
-                        <span className="material-symbols-outlined text-[18px]">{quote.available ? "event_available" : "event_busy"}</span>
+                        {quote.available ? (
+                          <CheckCircle2 size={16} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
+                        ) : (
+                          <AlertCircle size={16} className="text-rose-600 dark:text-rose-400 shrink-0" />
+                        )}
                         <span>
                           {quote.available
                             ? `${t("Slot Available", "الفترة متاحة")} (${quote.nights} ${t(quote.nights === 1 ? "night" : "nights", "ليلة")})`
@@ -576,7 +592,7 @@ export function HelplineBookingTab({
                     ) : null}
 
                     <div>
-                      <label className="block text-xs font-bold text-on-surface mb-1">
+                      <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
                         {t("Negotiated Stay Subtotal Override (SAR, optional)", "سعر الاتفاق المخصص (ر.س، اختياري)")}
                       </label>
                       <input
@@ -586,38 +602,38 @@ export function HelplineBookingTab({
                         value={overridePrice}
                         onChange={(e) => setOverridePrice(e.target.value)}
                         placeholder={t("Leave blank for standard rate", "اتركه فارغاً للسعر الافتراضي")}
-                        className="w-full h-10 px-3 rounded-xl border border-surface-container bg-surface-container-low text-sm text-on-surface focus:outline-none focus:ring-2 focus:ring-primary/30"
+                        className="w-full h-10 px-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-[#4F2396]"
                       />
                     </div>
                   </div>
 
-                  <div className="rounded-xl border border-surface-container bg-surface-container-low p-3.5 space-y-1.5 text-xs">
-                    <div className="flex justify-between text-on-surface-variant">
+                  <div className="rounded-xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/75 dark:bg-slate-900/60 p-3.5 space-y-1.5 text-xs text-slate-600 dark:text-slate-400">
+                    <div className="flex justify-between">
                       <span>{t("Base / Deal Stay", "سعر الإقامة")}</span>
-                      <span className="font-bold text-on-surface">SAR {quote ? quote.pricing.listingAmountSar.toFixed(2) : "—"}</span>
+                      <span className="font-semibold text-slate-900 dark:text-slate-100">SAR {quote ? quote.pricing.listingAmountSar.toFixed(2) : "—"}</span>
                     </div>
-                    <div className="flex justify-between text-on-surface-variant">
+                    <div className="flex justify-between">
                       <span>{t("Platform Service Fee", "رسوم الخدمة")} ({quote ? quote.pricing.guestServiceFeePercent : 12}%)</span>
-                      <span className="font-bold text-on-surface">SAR {quote ? quote.pricing.guestServiceFeeSar.toFixed(2) : "—"}</span>
+                      <span className="font-semibold text-slate-900 dark:text-slate-100">SAR {quote ? quote.pricing.guestServiceFeeSar.toFixed(2) : "—"}</span>
                     </div>
-                    <div className="flex justify-between text-on-surface-variant">
+                    <div className="flex justify-between">
                       <span>{t("ZATCA VAT", "ضريبة القيمة المضافة")} ({quote ? quote.pricing.vatRatePercent : 15}%)</span>
-                      <span className="font-bold text-on-surface">SAR {quote ? quote.pricing.vatAmountSar.toFixed(2) : "—"}</span>
+                      <span className="font-semibold text-slate-900 dark:text-slate-100">SAR {quote ? quote.pricing.vatAmountSar.toFixed(2) : "—"}</span>
                     </div>
-                    <div className="pt-2 border-t border-surface-container flex justify-between items-center text-sm font-black text-primary">
+                    <div className="pt-2 border-t border-slate-200/80 dark:border-slate-800 flex justify-between items-center text-sm font-bold text-[#4F2396] dark:text-purple-300">
                       <span>{t("Guest Total Payable", "الإجمالي المطلوب من الضيف")}</span>
                       <span data-testid="helpline-guest-total">SAR {quote ? quote.pricing.guestTotalSar.toFixed(2) : "—"}</span>
                     </div>
                   </div>
                 </div>
 
-                <div className="pt-3 border-t border-surface-container space-y-4">
+                <div className="pt-3 border-t border-slate-200/80 dark:border-slate-800 space-y-4">
                   <div className="flex flex-wrap items-center justify-between gap-2">
-                    <h3 className="text-sm font-black text-on-surface flex items-center gap-2">
-                      <span className="material-symbols-outlined text-[18px] text-primary">person_add</span>
+                    <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                      <UserPlus size={16} className="text-[#4F2396] dark:text-purple-400" />
                       <span>{t("Saudi Caller & Verification Details", "بيانات المتصل والتوثيق الأمني")}</span>
                     </h3>
-                    <div className="flex items-center gap-1.5 p-1 rounded-xl bg-surface-container-low border border-surface-container text-xs">
+                    <div className="flex items-center gap-1.5 p-1 rounded-lg bg-slate-100 dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700 text-xs">
                       <button
                         type="button"
                         onClick={() => {
@@ -627,8 +643,10 @@ export function HelplineBookingTab({
                           setUserSearchResults([]);
                           setUserSearchError(null);
                         }}
-                        className={`px-3 py-1 rounded-lg font-bold transition cursor-pointer ${
-                          callerType === "new_caller" ? "bg-white text-primary shadow-xs" : "text-on-surface-variant hover:text-on-surface"
+                        className={`px-3 py-1 rounded-md font-medium transition cursor-pointer ${
+                          callerType === "new_caller"
+                            ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-xs font-semibold"
+                            : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100"
                         }`}
                       >
                         {t("New Caller", "متصل جديد")}
@@ -639,8 +657,10 @@ export function HelplineBookingTab({
                           setCallerType("existing_user");
                           void handleSearchUsers(userSearchTerm);
                         }}
-                        className={`px-3 py-1 rounded-lg font-bold transition cursor-pointer ${
-                          callerType === "existing_user" ? "bg-white text-primary shadow-xs" : "text-on-surface-variant hover:text-on-surface"
+                        className={`px-3 py-1 rounded-md font-medium transition cursor-pointer ${
+                          callerType === "existing_user"
+                            ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-xs font-semibold"
+                            : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100"
                         }`}
                       >
                         {t("Existing Registered User", "عميل مسجل")}
@@ -649,9 +669,9 @@ export function HelplineBookingTab({
                   </div>
 
                   {callerType === "existing_user" && (
-                    <div className="p-3.5 rounded-xl border border-primary/20 bg-primary/5 space-y-2 text-xs">
+                    <div className="p-3.5 rounded-xl border border-purple-200 dark:border-purple-800/60 bg-purple-50/50 dark:bg-purple-950/30 space-y-2 text-xs">
                       <div className="flex items-center justify-between gap-2">
-                        <label className="block font-bold text-on-surface">
+                        <label className="block font-semibold text-slate-900 dark:text-slate-100">
                           {t("Search Active Registered Guest (Name, Phone, or Email)", "ابحث عن عميل مسجل (الاسم، الجوال، أو البريد)")}
                         </label>
                         {selectedGuestId && (
@@ -662,7 +682,7 @@ export function HelplineBookingTab({
                               setUserSearchTerm("");
                               void handleSearchUsers("");
                             }}
-                            className="text-[11px] font-bold text-primary hover:underline cursor-pointer"
+                            className="text-[11px] font-semibold text-[#4F2396] dark:text-purple-300 hover:underline cursor-pointer"
                           >
                             {t("Clear selection", "إلغاء التحديد")}
                           </button>
@@ -675,23 +695,25 @@ export function HelplineBookingTab({
                             value={userSearchTerm}
                             onChange={(e) => void handleSearchUsers(e.target.value)}
                             placeholder={t("Type guest name, phone (05 / +966), or email...", "اكتب اسم العميل، جواله (05 / +966)، أو بريده...")}
-                            className="w-full h-9 px-3 rounded-lg border border-surface-container bg-white text-xs text-on-surface focus:outline-none focus:ring-2 focus:ring-primary/30"
+                            className="w-full h-9 px-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-[#4F2396]"
                           />
                           {searchingUsers && (
-                            <span className="absolute end-3 top-2.5 material-symbols-outlined text-[16px] animate-spin text-primary">sync</span>
+                            <span className="absolute end-3 top-2.5">
+                              <RefreshCw size={14} className="animate-spin text-[#4F2396] dark:text-purple-400" />
+                            </span>
                           )}
                         </div>
                         <button
                           type="button"
                           onClick={() => void handleSearchUsers(userSearchTerm)}
-                          className="h-9 px-3 rounded-lg bg-primary text-on-primary font-bold text-xs hover:bg-primary/90 transition cursor-pointer shrink-0"
+                          className="h-9 px-3 rounded-lg bg-[#4F2396] text-white font-semibold text-xs hover:bg-[#3D1A78] transition cursor-pointer shrink-0 shadow-xs"
                         >
                           {t("Search", "بحث")}
                         </button>
                       </div>
-                      {userSearchError && <div className="p-2 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 font-semibold">{userSearchError}</div>}
+                      {userSearchError && <div className="p-2 rounded-lg bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300 font-medium">{userSearchError}</div>}
                       {userSearchResults.length > 0 && (
-                        <div className="max-h-44 overflow-y-auto divide-y divide-surface-container-low bg-white rounded-lg border border-surface-container">
+                        <div className="max-h-44 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800 bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800">
                           {userSearchResults.map((u) => (
                             <div
                               key={u.id}
@@ -706,21 +728,21 @@ export function HelplineBookingTab({
                                 setUserSearchTerm(`${u.name}${u.phone ? ` (${u.phone})` : ""}`);
                               }}
                               className={`p-2.5 flex items-center justify-between gap-2 transition cursor-pointer ${
-                                u.isSuspended ? "bg-rose-50/50 opacity-60 cursor-not-allowed" : "hover:bg-primary/5"
+                                u.isSuspended ? "bg-rose-50/50 dark:bg-rose-950/20 opacity-60 cursor-not-allowed" : "hover:bg-slate-50 dark:hover:bg-slate-800/50"
                               }`}
                             >
                               <div className="min-w-0">
                                 <div className="flex items-center gap-1.5 flex-wrap">
-                                  <span className="font-bold text-on-surface">{u.name}</span>
+                                  <span className="font-semibold text-slate-900 dark:text-slate-100">{u.name}</span>
                                   {u.verified && (
-                                    <span className="px-1.5 py-0.2 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-bold">
+                                    <span className="px-1.5 py-0.2 rounded bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/50 text-[10px] font-semibold">
                                       {t("Verified", "موثق")}
                                     </span>
                                   )}
                                 </div>
-                                <div className="text-[11px] text-outline font-mono truncate">{[u.phone, u.email].filter(Boolean).join(" · ") || u.id.slice(0, 8)}</div>
+                                <div className="text-[11px] text-slate-500 dark:text-slate-400 font-mono truncate">{[u.phone, u.email].filter(Boolean).join(" · ") || u.id.slice(0, 8)}</div>
                               </div>
-                              <span className={`px-2 py-0.5 rounded text-[10px] font-bold shrink-0 ${u.isSuspended ? "bg-rose-100 text-rose-800" : "bg-status-emerald/15 text-status-emerald"}`}>
+                              <span className={`px-2 py-0.5 rounded text-[10px] font-semibold shrink-0 ${u.isSuspended ? "bg-rose-100 dark:bg-rose-950 text-rose-800 dark:text-rose-200" : "bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/50"}`}>
                                 {u.isSuspended ? t("Suspended", "موقوف") : t("Select", "اختيار")}
                               </span>
                             </div>
@@ -732,7 +754,7 @@ export function HelplineBookingTab({
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                     <div>
-                      <label className="block text-xs font-bold text-on-surface mb-1">{t("Customer Full Name *", "اسم العميل الكامل *")}</label>
+                      <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">{t("Customer Full Name *", "اسم العميل الكامل *")}</label>
                       <input
                         type="text"
                         required
@@ -740,11 +762,11 @@ export function HelplineBookingTab({
                         value={guestName}
                         onChange={(e) => setGuestName(e.target.value)}
                         placeholder={t("e.g. Abdullah Al-Harbi", "مثال: عبدالله الحربي")}
-                        className="w-full h-10 px-3 rounded-xl border border-surface-container bg-white text-sm text-on-surface focus:outline-none focus:ring-2 focus:ring-primary/30"
+                        className="w-full h-10 px-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-[#4F2396]"
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-bold text-on-surface mb-1">{t("Saudi Mobile Number *", "رقم الجوال *")}</label>
+                      <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">{t("Saudi Mobile Number *", "رقم الجوال *")}</label>
                       <input
                         type="tel"
                         required
@@ -752,11 +774,11 @@ export function HelplineBookingTab({
                         value={guestPhone}
                         onChange={(e) => setGuestPhone(e.target.value)}
                         placeholder="+966 5X XXX XXXX"
-                        className="w-full h-10 px-3 rounded-xl border border-surface-container bg-white text-sm text-on-surface font-mono focus:outline-none focus:ring-2 focus:ring-primary/30"
+                        className="w-full h-10 px-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm text-slate-900 dark:text-slate-100 font-mono placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-[#4F2396]"
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-bold text-on-surface mb-1">{t("Guests & Email (For Auto-Account)", "عدد الضيوف والبريد (لإنشاء الحساب)")}</label>
+                      <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">{t("Guests & Email (For Auto-Account)", "عدد الضيوف والبريد (لإنشاء الحساب)")}</label>
                       <div className="flex gap-2">
                         <input
                           type="number"
@@ -764,7 +786,7 @@ export function HelplineBookingTab({
                           max={30}
                           value={guestsCount}
                           onChange={(e) => setGuestsCount(Math.max(1, Number(e.target.value) || 1))}
-                          className="w-16 h-10 px-2 rounded-xl border border-surface-container bg-white text-sm text-center font-bold text-on-surface"
+                          className="w-16 h-10 px-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm text-center font-semibold text-slate-900 dark:text-slate-100"
                           aria-label="Guests count"
                         />
                         <input
@@ -772,7 +794,7 @@ export function HelplineBookingTab({
                           value={guestEmail}
                           onChange={(e) => setGuestEmail(e.target.value)}
                           placeholder="guest@email.com"
-                          className="flex-1 min-w-0 h-10 px-3 rounded-xl border border-surface-container bg-white text-sm text-on-surface focus:outline-none focus:ring-2 focus:ring-primary/30"
+                          className="flex-1 min-w-0 h-10 px-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-[#4F2396]"
                         />
                       </div>
                     </div>
@@ -806,11 +828,13 @@ export function HelplineBookingTab({
                     data-testid="helpline-mode-hold"
                     onClick={() => setPaymentMode("pending_sadad")}
                     className={`p-3.5 rounded-xl border text-start transition cursor-pointer ${
-                      paymentMode === "pending_sadad" ? "border-amber-500 bg-amber-50 ring-2 ring-amber-400/30" : "border-surface-container bg-surface-container-low hover:border-amber-300"
+                      paymentMode === "pending_sadad"
+                        ? "border-amber-400 dark:border-amber-700 bg-amber-50/80 dark:bg-amber-950/40 ring-1 ring-amber-400/50 text-amber-900 dark:text-amber-200"
+                        : "border-slate-200 dark:border-slate-800 bg-slate-50/75 dark:bg-slate-900/60 hover:border-amber-400 text-slate-700 dark:text-slate-300"
                     }`}
                   >
-                    <div className="text-xs font-black text-amber-900">{t("Hold Room — Awaiting SADAD Payment", "حجز مبدئي — بانتظار سداد")}</div>
-                    <div className="text-[11px] text-amber-800/90 mt-0.5">
+                    <div className="text-xs font-semibold text-amber-900 dark:text-amber-200">{t("Hold Room — Awaiting SADAD Payment", "حجز مبدئي — بانتظار سداد")}</div>
+                    <div className="text-[11px] text-amber-800/90 dark:text-amber-300/80 mt-0.5">
                       {t("Locks dates immediately on Admin & Guest calendars until SADAD payment arrives.", "يغلق التواريخ فوراً حتى يتم تأكيد دفع سداد.")}
                     </div>
                   </button>
@@ -819,11 +843,13 @@ export function HelplineBookingTab({
                     data-testid="helpline-mode-paid"
                     onClick={() => setPaymentMode("confirmed_paid")}
                     className={`p-3.5 rounded-xl border text-start transition cursor-pointer ${
-                      paymentMode === "confirmed_paid" ? "border-status-emerald bg-status-emerald/10 ring-2 ring-status-emerald/30" : "border-surface-container bg-surface-container-low hover:border-status-emerald/40"
+                      paymentMode === "confirmed_paid"
+                        ? "border-emerald-500 dark:border-emerald-700 bg-emerald-50/80 dark:bg-emerald-950/40 ring-1 ring-emerald-500/50 text-emerald-900 dark:text-emerald-200"
+                        : "border-slate-200 dark:border-slate-800 bg-slate-50/75 dark:bg-slate-900/60 hover:border-emerald-500 text-slate-700 dark:text-slate-300"
                     }`}
                   >
-                    <div className="text-xs font-black text-status-emerald">{t("Confirm Immediately (Paid Now)", "تأكيد فوري (مدفوع الآن)")}</div>
-                    <div className="text-[11px] text-on-surface-variant mt-0.5">
+                    <div className="text-xs font-semibold text-emerald-700 dark:text-emerald-300">{t("Confirm Immediately (Paid Now)", "تأكيد فوري (مدفوع الآن)")}</div>
+                    <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
                       {t("Marks reservation Confirmed immediately and posts host payout ledger.", "يعتمد الحجز فوراً ويضيف المستحقات للمضيف.")}
                     </div>
                   </button>
@@ -831,29 +857,35 @@ export function HelplineBookingTab({
 
                 {paymentMode === "pending_sadad" && (
                   <div>
-                    <label className="block text-xs font-bold text-on-surface mb-1">{t("SADAD Bill / Reference Note (Optional — Phase 2 auto-fills)", "رقم فاتورة سداد (اختياري)")}</label>
+                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">{t("SADAD Bill / Reference Note (Optional — Phase 2 auto-fills)", "رقم فاتورة سداد (اختياري)")}</label>
                     <input
                       type="text"
                       value={sadadBillNumber}
                       onChange={(e) => setSadadBillNumber(e.target.value)}
                       placeholder={t("Leave blank or enter internal SADAD ref", "اختياري")}
-                      className="w-full h-10 px-3 rounded-xl border border-surface-container bg-white text-sm font-mono text-on-surface"
+                      className="w-full h-10 px-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm font-mono text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-[#4F2396]"
                     />
                   </div>
                 )}
 
-                {submitError && <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-xs font-bold text-rose-700">{submitError}</div>}
+                {submitError && <div className="p-3 rounded-lg bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-xs font-medium text-rose-700 dark:text-rose-300">{submitError}</div>}
 
                 <div className="flex justify-end">
                   <button
                     type="submit"
                     data-testid="helpline-submit-btn"
                     disabled={submitting || !quote?.available || !verificationSession?.completed}
-                    className="h-11 px-6 rounded-xl bg-status-emerald text-white text-sm font-black shadow-sm hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition cursor-pointer flex items-center gap-2"
+                    className="h-11 px-6 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold shadow-xs disabled:opacity-50 disabled:cursor-not-allowed transition cursor-pointer flex items-center gap-2"
                   >
-                    <span className="material-symbols-outlined text-[18px]">
-                      {submitting ? "sync" : !verificationSession?.completed ? "gpp_maybe" : paymentMode === "confirmed_paid" ? "verified" : "lock_clock"}
-                    </span>
+                    {submitting ? (
+                      <RefreshCw size={16} className="animate-spin" />
+                    ) : !verificationSession?.completed ? (
+                      <ShieldCheck size={16} />
+                    ) : paymentMode === "confirmed_paid" ? (
+                      <CheckCircle2 size={16} />
+                    ) : (
+                      <Clock size={16} />
+                    )}
                     <span>
                       {submitting
                         ? t("Creating Booking...", "جاري إنشاء الحجز...")
