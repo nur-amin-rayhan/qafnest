@@ -22,8 +22,6 @@ export default function AuthModal() {
     phone,
     setPhone,
     sentPhoneDisplay,
-    fullName,
-    setFullName,
     firstName,
     setFirstName,
     lastName,
@@ -37,12 +35,8 @@ export default function AuthModal() {
     otp,
     otpInputRefs,
     timer,
-    isEmailSignIn,
-    setIsEmailSignIn,
     email,
     setEmail,
-    password,
-    setPassword,
     loading,
     errorMsg,
     setErrorMsg,
@@ -99,7 +93,6 @@ export default function AuthModal() {
               <GuestPhoneInputStep
                 phone={phone}
                 setPhone={setPhone}
-                setErrorMsg={setErrorMsg}
                 recaptchaContainerRef={recaptchaContainerRef}
                 turnstileContainerRef={turnstileContainerRef}
                 errorMsg={errorMsg}
@@ -151,41 +144,90 @@ export default function AuthModal() {
             )}
 
             {/* Switch to Email Button */}
-            <div className="mt-6 pt-4 border-t border-gray-100 dark:border-white/10 text-center">
-              <button
-                type="button"
-                onClick={() => setAuthMethod("email")}
-                className="text-xs font-semibold text-gray-500 hover:text-purple-700 dark:hover:text-purple-400 transition-colors inline-flex items-center justify-center gap-1.5 mx-auto cursor-pointer"
-              >
-                <Mail className="w-3.5 h-3.5" />
-                <span>
-                  {language === "ar"
-                    ? "أو المتابعة عبر البريد الإلكتروني"
-                    : "Or continue with Email"}
-                </span>
-              </button>
-            </div>
+            {phoneStep === "phone_input" && (
+              <div className="mt-6 pt-4 border-t border-gray-100 dark:border-white/10 text-center">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAuthMethod("email");
+                    setPhoneStep("phone_input");
+                    setErrorMsg(null);
+                  }}
+                  className="text-xs font-semibold text-gray-500 hover:text-purple-700 dark:hover:text-purple-400 transition-colors inline-flex items-center justify-center gap-1.5 mx-auto cursor-pointer"
+                >
+                  <Mail className="w-3.5 h-3.5" />
+                  <span>
+                    {language === "ar"
+                      ? "أو المتابعة عبر البريد الإلكتروني"
+                      : "Or continue with Email"}
+                  </span>
+                </button>
+              </div>
+            )}
           </div>
         )}
 
-        {/* EMAIL & PASSWORD FLOW */}
+        {/* PASSWORDLESS EMAIL AUTH FLOW */}
         {authMethod === "email" && (
-          <GuestEmailAuthStep
-            isEmailSignIn={isEmailSignIn}
-            setIsEmailSignIn={setIsEmailSignIn}
-            fullName={fullName}
-            setFullName={setFullName}
-            email={email}
-            setEmail={setEmail}
-            password={password}
-            setPassword={setPassword}
-            onSwitchToPhone={() => setAuthMethod("phone")}
-            errorMsg={errorMsg}
-            successMsg={successMsg}
-            loading={loading}
-            onSubmit={handleEmailSubmit}
-            language={language}
-          />
+          <div>
+            {phoneStep === "phone_input" && (
+              <GuestEmailAuthStep
+                email={email}
+                setEmail={setEmail}
+                onSwitchToPhone={() => {
+                  setAuthMethod("phone");
+                  setPhoneStep("phone_input");
+                  setErrorMsg(null);
+                }}
+                errorMsg={errorMsg}
+                successMsg={successMsg}
+                loading={loading}
+                onSubmit={handleEmailSubmit}
+                language={language}
+                turnstileContainerRef={turnstileContainerRef}
+              />
+            )}
+
+            {phoneStep === "otp_verify" && (
+              <GuestOtpVerifyStep
+                otp={otp}
+                otpInputRefs={otpInputRefs}
+                handleOtpChange={handleOtpChange}
+                handleOtpKeyDown={handleOtpKeyDown}
+                loading={loading}
+                onSubmit={handleVerifyOtp}
+                timer={timer}
+                handleResendOtp={handleResendOtp}
+                sentPhoneDisplay={sentPhoneDisplay}
+                phone={phone}
+                sentChannel={sentChannel}
+                onChangeNumber={() => {
+                  setErrorMsg(null);
+                  setPhoneStep("phone_input");
+                }}
+                errorMsg={errorMsg}
+                successMsg={successMsg}
+                language={language}
+                otpLength={OTP_LENGTH}
+              />
+            )}
+
+            {phoneStep === "profile_details" && (
+              <GuestProfileDetailsStep
+                firstName={firstName}
+                setFirstName={setFirstName}
+                lastName={lastName}
+                setLastName={setLastName}
+                contactEmail={contactEmail || email}
+                setContactEmail={setContactEmail}
+                errorMsg={errorMsg}
+                successMsg={successMsg}
+                loading={loading}
+                onSubmit={handleSavePhoneProfile}
+                language={language}
+              />
+            )}
+          </div>
         )}
       </div>
     </div>

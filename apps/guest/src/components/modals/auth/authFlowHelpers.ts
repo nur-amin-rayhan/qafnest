@@ -217,8 +217,18 @@ export async function executeVerifyOtp({
   return { nextFirstName, nextLastName, nextEmail, isComplete };
 }
 
-import { executeEmailAuth } from "./guestEmailAuth";
-export { executeEmailAuth };
+import {
+  executeEmailAuth,
+  executeSendEmailOtp,
+  executeVerifyEmailOtp,
+  executeCompleteEmailProfile,
+} from "./guestEmailAuth";
+export {
+  executeEmailAuth,
+  executeSendEmailOtp,
+  executeVerifyEmailOtp,
+  executeCompleteEmailProfile,
+};
 
 export async function executeSavePhoneProfile({
   supabase,

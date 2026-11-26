@@ -14,7 +14,9 @@ import {
   initGuestRecaptcha,
   executeSendOtp,
   executeVerifyOtp,
-  executeEmailAuth,
+  executeSendEmailOtp,
+  executeVerifyEmailOtp,
+  executeCompleteEmailProfile,
   executeSavePhoneProfile,
 } from "./authFlowHelpers";
 import { useGuestOtpInput } from "./useGuestOtpInput";
@@ -117,7 +119,7 @@ export function useGuestAuthFlow({
   }, [authModalOpen, authMethod, phoneStep, otpChannel]);
 
   useEffect(() => {
-    if (!authModalOpen || authMethod !== "phone" || phoneStep !== "phone_input") {
+    if (!authModalOpen || phoneStep !== "phone_input") {
       return;
     }
 
@@ -239,6 +241,28 @@ export function useGuestAuthFlow({
     setErrorMsg(null);
     setLoading(true);
     try {
+      if (authMethod === "email" || sentPhoneDisplay?.includes("@")) {
+        const res = await executeVerifyEmailOtp({
+          email: sentPhoneDisplay || email,
+          code: otp.join(""),
+          refreshProfile,
+        });
+
+        if (res.isComplete) {
+          const bonus = await claimWelcomeBonus({ isNewSignup: true });
+          setSuccessMsg(
+            bonus.awarded
+              ? `Welcome to QafNest! +${bonus.amountCredited} SAR welcome gift added to your wallet.`
+              : (res.message || "Welcome to QafNest!")
+          );
+          window.setTimeout(closeAuthModal, 900);
+        } else {
+          void claimWelcomeBonus({ isNewSignup: true });
+          setPhoneStep("profile_details");
+        }
+        return;
+      }
+
       const res = await executeVerifyOtp({
         confirmationResult: confirmationResultRef.current,
         enteredCode: otp.join(""),
@@ -274,6 +298,38 @@ export function useGuestAuthFlow({
   const handleSavePhoneProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg(null);
+
+    if (authMethod === "email" || sentPhoneDisplay?.includes("@")) {
+      if (!firstName.trim() || !lastName.trim()) {
+        setErrorMsg("Please enter both your first name and last name.");
+        return;
+      }
+      setLoading(true);
+      try {
+        const res = await executeCompleteEmailProfile({
+          email: sentPhoneDisplay || email,
+          firstName,
+          lastName,
+          refreshProfile,
+        });
+
+        const bonus = await claimWelcomeBonus({ isNewSignup: true });
+        setSuccessMsg(
+          bonus.awarded
+            ? `Welcome to QafNest! +${bonus.amountCredited} SAR welcome gift credited to your wallet.`
+            : res.message
+        );
+        window.setTimeout(closeAuthModal, 900);
+      } catch (error) {
+        setErrorMsg(
+          error instanceof Error ? error.message : "Your details could not be saved. Please try again."
+        );
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
+
     const normalizedEmail = contactEmail.trim().toLowerCase();
     if (!firstName.trim() || !lastName.trim() || !/^\S+@\S+\.\S+$/.test(normalizedEmail)) {
       setErrorMsg("Enter your first name, last name, and a valid email address.");
@@ -310,6 +366,25 @@ export function useGuestAuthFlow({
 
   const handleResendOtp = async (channel: OtpChannel) => {
     if (timer > 0 || loading) return;
+
+    if (authMethod === "email" || sentPhoneDisplay?.includes("@")) {
+      setLoading(true);
+      setErrorMsg(null);
+      try {
+        const res = await executeSendEmailOtp({
+          email: sentPhoneDisplay || email,
+        });
+        setTimer(45);
+        setOtp(EMPTY_OTP());
+        setSuccessMsg(res.message);
+      } catch (error) {
+        setErrorMsg(error instanceof Error ? error.message : "We couldn't resend the code.");
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
+
     if (channel === "sms" && isFirebaseConfigured()) {
       confirmationResultRef.current = null;
       setOtp(EMPTY_OTP());
@@ -345,21 +420,20 @@ export function useGuestAuthFlow({
     setLoading(true);
 
     try {
-      const result = await executeEmailAuth({
-        supabase,
-        isEmailSignIn,
+      const res = await executeSendEmailOtp({
         email,
-        password,
-        fullName,
-        phone,
+        turnstileToken,
       });
 
-      setSuccessMsg(result.message);
-      if (result.autoCloseDelay) {
-        setTimeout(() => closeAuthModal(), result.autoCloseDelay);
-      }
+      setSentPhoneDisplay(email.trim().toLowerCase());
+      setContactEmail(email.trim().toLowerCase());
+      setOtp(EMPTY_OTP());
+      setTimer(45);
+      setPhoneStep("otp_verify");
+      setSuccessMsg(res.message);
+      window.setTimeout(() => otpInputRefs.current[0]?.focus(), 150);
     } catch (err: unknown) {
-      setErrorMsg(err instanceof Error ? err.message : "Authentication failed.");
+      setErrorMsg(err instanceof Error ? err.message : "Failed to send verification code.");
     } finally {
       setLoading(false);
     }

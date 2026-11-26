@@ -48,7 +48,11 @@ export default function GuestOtpVerifyStep({
         </h3>
         <div className="text-xs text-gray-500 dark:text-gray-400 mt-1.5 leading-relaxed">
           <span>
-            {language === "ar"
+            {sentPhoneDisplay?.includes("@")
+              ? language === "ar"
+                ? `أدخل الرمز المكون من ${otpLength} أرقام المرسل إلى بريدك: `
+                : `Enter the ${otpLength}-digit code sent to your email: `
+              : language === "ar"
               ? `أدخل الرمز المكون من ${otpLength} أرقام المرسل عبر ${
                   sentChannel === "sms" ? "SMS" : "واتساب"
                 } إلى `
@@ -64,7 +68,13 @@ export default function GuestOtpVerifyStep({
             onClick={onChangeNumber}
             className="inline-flex items-center text-purple-600 dark:text-purple-400 underline font-bold ms-1 cursor-pointer"
           >
-            {language === "ar" ? "تغيير الرقم" : "Change"}
+            {sentPhoneDisplay?.includes("@")
+              ? language === "ar"
+                ? "تغيير البريد"
+                : "Change"
+              : language === "ar"
+              ? "تغيير الرقم"
+              : "Change"}
           </button>
         </div>
       </div>
@@ -106,7 +116,11 @@ export default function GuestOtpVerifyStep({
                 disabled={loading}
                 className="font-bold text-purple-600 dark:text-purple-400 hover:underline cursor-pointer"
               >
-                {language === "ar"
+                {sentPhoneDisplay?.includes("@")
+                  ? language === "ar"
+                    ? "إعادة إرسال الرمز إلى البريد"
+                    : "Resend Code to Email"
+                  : language === "ar"
                   ? `إعادة إرسال الرمز عبر ${sentChannel === "sms" ? "SMS" : "WhatsApp"}`
                   : `Resend via ${sentChannel === "sms" ? "SMS" : "WhatsApp"}`}
               </button>
@@ -114,7 +128,7 @@ export default function GuestOtpVerifyStep({
           )}
 
           {/* WhatsApp option if sent via SMS */}
-          {sentChannel === "sms" && (
+          {!sentPhoneDisplay?.includes("@") && sentChannel === "sms" && (
             <div>
               <button
                 type="button"
