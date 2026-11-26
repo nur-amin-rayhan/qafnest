@@ -3,6 +3,7 @@ import { dispatchApiModule, type RouteModule } from "@/server/api/dispatchRoute"
 import * as adminReviewsRoute from "@/server/api/core/adminReviews";
 import * as adminReviewsReplyRoute from "@/server/api/core/adminReviewsReply";
 import * as authDevLoginRoute from "@/server/api/core/authDevLogin";
+import * as authEmailRoute from "@/server/api/core/authEmail";
 import * as authSessionRoute from "@/server/api/core/authSession";
 import * as authSignupGuardRoute from "@/server/api/core/authSignupGuard";
 import * as authWelcomeBonusRoute from "@/server/api/core/authWelcomeBonus";
@@ -38,6 +39,8 @@ const CORE_ROUTES: Record<string, RouteModule> = {
   "admin/reviews": adminReviewsRoute,
   "admin/reviews/reply": adminReviewsReplyRoute,
   "auth/dev-login": authDevLoginRoute,
+  "auth/email": authEmailRoute,
+  "auth/confirm-email": authEmailRoute,
   "auth/session": authSessionRoute,
   "auth/signup-guard": authSignupGuardRoute,
   "auth/welcome-bonus": authWelcomeBonusRoute,
@@ -68,9 +71,10 @@ const CORE_ROUTES: Record<string, RouteModule> = {
 
 async function handleCoreApiRoute(
   request: NextRequest,
-  context: { params: { slug?: string[] } }
+  context: { params?: Promise<{ slug?: string[] }> | { slug?: string[] } }
 ) {
-  const slug = context.params?.slug ?? [];
+  const resolved = await Promise.resolve(context?.params);
+  const slug = resolved?.slug ?? [];
   const pathKey = slug.join("/");
 
   let routeModule: RouteModule | null = CORE_ROUTES[pathKey] ?? null;

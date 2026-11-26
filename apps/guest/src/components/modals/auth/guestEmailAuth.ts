@@ -1,5 +1,4 @@
 import type { SupabaseClient, User } from "@supabase/supabase-js";
-import { checkSignupGuard, claimWelcomeBonus } from "@/lib/auth/deviceFingerprint";
 import { setCachedAuth, type Profile } from "@/context/auth/guestAuthStorage";
 
 export async function executeEmailAuth({
@@ -41,46 +40,35 @@ export async function executeEmailAuth({
           }
         }
       }
+      if (error.message.toLowerCase().includes("email not confirmed")) {
+        throw new Error(
+          "Please confirm your email address. A confirmation link was sent from notifications@qafnest.com."
+        );
+      }
       throw error;
     }
     return { success: true, message: "Welcome back! Signing you in...", autoCloseDelay: 800 };
   } else {
-    const guard = await checkSignupGuard({ email, phone, mode: "signup" });
-    if (!guard.allowed) {
-      throw new Error(
-        guard.messageEn ||
-          "Only 1 guest account & welcome bonus is allowed per device/IP."
-      );
-    }
-
-    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || window.location.origin;
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: new URL("/auth/callback", siteUrl).toString(),
-        data: {
-          full_name: fullName,
-          phone: phone,
-          role: "guest",
-        },
-      },
+    const res = await fetch("/api/auth/email", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        action: "signup",
+        email,
+        password,
+        fullName,
+        phone,
+      }),
     });
-    if (error) throw error;
-    if (data.session) {
-      const bonus = await claimWelcomeBonus({
-        isNewSignup: true,
-        accessToken: data.session.access_token,
-      });
-      const bonusMsg = bonus.awarded
-        ? ` Account created & ${bonus.amountCredited} SAR welcome gift added to your wallet!`
-        : " Account created successfully!";
-      return { success: true, message: bonusMsg.trim(), autoCloseDelay: 1200 };
-    } else {
-      return {
-        success: true,
-        message: "Account created. Check your email to confirm your address and receive your 50 SAR welcome bonus.",
-      };
+    const result = await res.json().catch(() => ({}));
+    if (!res.ok || result.error) {
+      throw new Error(result.error || "Failed to create account.");
     }
+    return {
+      success: true,
+      message:
+        result.message ||
+        "Account created! A confirmation email has been sent from notifications@qafnest.com to your inbox.",
+    };
   }
 }

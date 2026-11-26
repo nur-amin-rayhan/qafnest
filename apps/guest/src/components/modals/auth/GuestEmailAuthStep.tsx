@@ -150,19 +150,6 @@ export default function GuestEmailAuthStep({
             </span>
           )}
         </button>
-
-        {process.env.NODE_ENV !== "production" && isEmailSignIn && (
-          <button
-            type="button"
-            onClick={() => {
-              setEmail("guest.dev@qafnest.com");
-              setPassword("QafNest@Dev2026!");
-            }}
-            className="w-full py-2.5 rounded-xl border border-dashed border-purple-300 dark:border-purple-800/60 bg-purple-50/60 dark:bg-purple-950/20 text-purple-700 dark:text-purple-300 hover:bg-purple-100/70 text-xs font-semibold transition flex items-center justify-center gap-1.5 cursor-pointer"
-          >
-            <span>⚡ {language === "ar" ? "تسجيل دخول سريع للتطوير (guest.dev@qafnest.com)" : "Quick Dev Login (guest.dev@qafnest.com)"}</span>
-          </button>
-        )}
       </form>
 
       <div className="mt-4 pt-3 border-t border-gray-100 dark:border-white/10 flex flex-col sm:flex-row items-center justify-between gap-2.5 text-xs text-gray-500">
