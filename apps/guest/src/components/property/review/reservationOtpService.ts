@@ -39,7 +39,7 @@ export function initReservationRecaptcha({
     const auth = getFirebaseAuth();
     container.innerHTML = "";
     verifier = new RecaptchaVerifier(auth, container, {
-      size: "normal",
+      size: "invisible",
       callback: () => {
         if (mounted) onSuccess();
       },

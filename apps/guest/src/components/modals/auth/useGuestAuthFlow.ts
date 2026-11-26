@@ -54,6 +54,10 @@ export function useGuestAuthFlow({
   const recaptchaWidgetIdRef = useRef<(() => number | null) | null>(null);
   const confirmationResultRef = useRef<ConfirmationResult | null>(null);
 
+  const [turnstileToken, setTurnstileToken] = useState("");
+  const turnstileContainerRef = useRef<HTMLDivElement | null>(null);
+  const turnstileWidgetIdRef = useRef<string | null>(null);
+
   const [otp, setOtp] = useState<string[]>(EMPTY_OTP);
   const { otpInputRefs, handleOtpChange, handleOtpKeyDown } = useGuestOtpInput({
     otp,
@@ -113,6 +117,73 @@ export function useGuestAuthFlow({
   }, [authModalOpen, authMethod, phoneStep, otpChannel]);
 
   useEffect(() => {
+    if (!authModalOpen || authMethod !== "phone" || phoneStep !== "phone_input") {
+      return;
+    }
+
+    const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || "";
+    if (!siteKey || typeof window === "undefined") return;
+
+    let checkInterval: NodeJS.Timeout;
+    const initTurnstile = () => {
+      const turnstile = (
+        window as unknown as {
+          turnstile?: {
+            render: (el: HTMLElement, opts: Record<string, unknown>) => string;
+            remove: (id: string) => void;
+          };
+        }
+      ).turnstile;
+
+      if (!turnstile || !turnstileContainerRef.current) return false;
+
+      try {
+        if (turnstileWidgetIdRef.current) {
+          try {
+            turnstile.remove(turnstileWidgetIdRef.current);
+          } catch {}
+          turnstileWidgetIdRef.current = null;
+        }
+        turnstileContainerRef.current.innerHTML = "";
+        const id = turnstile.render(turnstileContainerRef.current, {
+          sitekey: siteKey,
+          size: "invisible",
+          callback: (token: string) => setTurnstileToken(token),
+          "expired-callback": () => setTurnstileToken(""),
+          "error-callback": () => setTurnstileToken(""),
+          theme: "auto",
+        });
+        turnstileWidgetIdRef.current = id;
+        return true;
+      } catch (err) {
+        console.warn("[Turnstile] invisible render warning:", err);
+        return false;
+      }
+    };
+
+    if (!initTurnstile()) {
+      checkInterval = setInterval(() => {
+        if (initTurnstile()) {
+          clearInterval(checkInterval);
+        }
+      }, 300);
+    }
+
+    return () => {
+      if (checkInterval) clearInterval(checkInterval);
+      if (turnstileWidgetIdRef.current) {
+        try {
+          const turnstile = (
+            window as unknown as { turnstile?: { remove: (id: string) => void } }
+          ).turnstile;
+          turnstile?.remove(turnstileWidgetIdRef.current);
+        } catch {}
+        turnstileWidgetIdRef.current = null;
+      }
+    };
+  }, [authModalOpen, authMethod, phoneStep]);
+
+  useEffect(() => {
     let interval: NodeJS.Timeout;
     if (phoneStep === "otp_verify" && timer > 0) {
       interval = setInterval(() => {
@@ -129,7 +200,11 @@ export function useGuestAuthFlow({
     try {
       const formattedCheck = normalizePhoneInput(phone);
       if (formattedCheck) {
-        const guard = await checkSignupGuard({ phone: formattedCheck, mode: "otp" });
+        const guard = await checkSignupGuard({
+          phone: formattedCheck,
+          mode: "otp",
+          turnstileToken,
+        });
         if (!guard.allowed) {
           throw new Error(
             guard.messageEn ||
@@ -310,6 +385,7 @@ export function useGuestAuthFlow({
     setOtpChannel,
     sentChannel,
     recaptchaContainerRef,
+    turnstileContainerRef,
     confirmationResultRef,
     otp,
     otpInputRefs,

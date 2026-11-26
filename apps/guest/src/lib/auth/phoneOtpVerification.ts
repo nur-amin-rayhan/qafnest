@@ -46,7 +46,7 @@ export function createPhoneChangeRecaptcha(params: {
     const auth = getSecondaryPhoneVerifyAuth();
     params.container.innerHTML = "";
     verifier = new RecaptchaVerifier(auth, params.container, {
-      size: "normal",
+      size: "invisible",
       callback: () => {
         if (active) params.onReady?.();
       },

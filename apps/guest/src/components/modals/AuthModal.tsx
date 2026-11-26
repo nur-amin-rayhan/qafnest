@@ -30,10 +30,9 @@ export default function AuthModal() {
     setLastName,
     contactEmail,
     setContactEmail,
-    otpChannel,
-    setOtpChannel,
     sentChannel,
     recaptchaContainerRef,
+    turnstileContainerRef,
     confirmationResultRef,
     otp,
     otpInputRefs,
@@ -100,10 +99,9 @@ export default function AuthModal() {
               <GuestPhoneInputStep
                 phone={phone}
                 setPhone={setPhone}
-                otpChannel={otpChannel}
-                setOtpChannel={setOtpChannel}
                 setErrorMsg={setErrorMsg}
                 recaptchaContainerRef={recaptchaContainerRef}
+                turnstileContainerRef={turnstileContainerRef}
                 errorMsg={errorMsg}
                 loading={loading}
                 onSubmit={handleSendOtp}

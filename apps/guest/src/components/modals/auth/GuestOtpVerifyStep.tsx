@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { AlertCircle, CheckCircle2, Loader2 } from "lucide-react";
+import { AlertCircle, CheckCircle2, Loader2, MessageCircle } from "lucide-react";
 
 interface GuestOtpVerifyStepProps {
   otp: string[];
@@ -90,25 +90,46 @@ export default function GuestOtpVerifyStep({
           ))}
         </div>
 
-        {/* Resend Timer */}
-        <div className="text-center text-xs text-gray-500">
+        {/* Resend Timer & Channels */}
+        <div className="text-center text-xs text-gray-500 space-y-2.5">
           {timer > 0 ? (
-            <span>
+            <div className="text-gray-400 dark:text-gray-500">
               {language === "ar"
-                ? `إعادة الإرسال بعد 00:${String(timer).padStart(2, "0")}`
+                ? `إعادة إرسال الرمز بعد 00:${String(timer).padStart(2, "0")}`
                 : `Resend code in 00:${String(timer).padStart(2, "0")}`}
-            </span>
+            </div>
           ) : (
-            <button
-              type="button"
-              onClick={() => handleResendOtp(sentChannel)}
-              disabled={loading}
-              className="font-bold text-purple-600 dark:text-purple-400 hover:underline cursor-pointer"
-            >
-              {language === "ar"
-                ? `إعادة إرسال الرمز عبر ${sentChannel === "sms" ? "SMS" : "WhatsApp"}`
-                : `Resend via ${sentChannel === "sms" ? "SMS" : "WhatsApp"}`}
-            </button>
+            <div className="flex items-center justify-center gap-2">
+              <button
+                type="button"
+                onClick={() => handleResendOtp(sentChannel)}
+                disabled={loading}
+                className="font-bold text-purple-600 dark:text-purple-400 hover:underline cursor-pointer"
+              >
+                {language === "ar"
+                  ? `إعادة إرسال الرمز عبر ${sentChannel === "sms" ? "SMS" : "WhatsApp"}`
+                  : `Resend via ${sentChannel === "sms" ? "SMS" : "WhatsApp"}`}
+              </button>
+            </div>
+          )}
+
+          {/* WhatsApp option if sent via SMS */}
+          {sentChannel === "sms" && (
+            <div>
+              <button
+                type="button"
+                onClick={() => handleResendOtp("whatsapp")}
+                disabled={loading}
+                className="inline-flex items-center gap-1.5 font-semibold text-emerald-600 dark:text-emerald-400 hover:underline cursor-pointer py-1"
+              >
+                <MessageCircle className="w-3.5 h-3.5" />
+                <span>
+                  {language === "ar"
+                    ? "أو استلام رمز التحقق عبر واتساب (WhatsApp)"
+                    : "Or receive verification code via WhatsApp"}
+                </span>
+              </button>
+            </div>
           )}
         </div>
 

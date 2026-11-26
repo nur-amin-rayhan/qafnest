@@ -204,6 +204,11 @@ export default async function RootLayout({
             }}
           />
         )}
+        <Script
+          id="cloudflare-turnstile"
+          src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit"
+          strategy="lazyOnload"
+        />
       </head>
       <body
         className="font-body relative min-h-screen selection:bg-violet-500/30"

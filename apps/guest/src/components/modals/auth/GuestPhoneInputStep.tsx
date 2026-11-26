@@ -1,15 +1,13 @@
 "use client";
 
 import React from "react";
-import { AlertCircle, ArrowRight, Loader2, MessageCircle, Smartphone } from "lucide-react";
+import { AlertCircle, ArrowRight, Loader2 } from "lucide-react";
 
 interface GuestPhoneInputStepProps {
   phone: string;
   setPhone: (val: string) => void;
-  otpChannel: "sms" | "whatsapp";
-  setOtpChannel: (val: "sms" | "whatsapp") => void;
-  setErrorMsg: (msg: string | null) => void;
   recaptchaContainerRef: React.Ref<HTMLDivElement>;
+  turnstileContainerRef?: React.Ref<HTMLDivElement>;
   errorMsg: string | null;
   loading: boolean;
   onSubmit: (e: React.FormEvent) => void;
@@ -19,10 +17,8 @@ interface GuestPhoneInputStepProps {
 export default function GuestPhoneInputStep({
   phone,
   setPhone,
-  otpChannel,
-  setOtpChannel,
-  setErrorMsg,
   recaptchaContainerRef,
+  turnstileContainerRef,
   errorMsg,
   loading,
   onSubmit,
@@ -67,58 +63,25 @@ export default function GuestPhoneInputStep({
           </div>
         </div>
 
-        <div>
-          <span className="text-xs font-bold text-gray-700 dark:text-gray-300 block mb-1.5">
-            {language === "ar" ? "إرسال رمز التحقق عبر:" : "Send verification code via:"}
-          </span>
-          <div
-            className="grid grid-cols-2 gap-2"
-            role="radiogroup"
-            aria-label={language === "ar" ? "قناة رمز التحقق" : "Verification code channel"}
-          >
-            <button
-              type="button"
-              role="radio"
-              aria-checked={otpChannel === "sms"}
-              onClick={() => {
-                setOtpChannel("sms");
-                setErrorMsg(null);
-              }}
-              className={`inline-flex items-center justify-center gap-2 rounded-xl border px-3 py-2.5 text-xs font-bold transition cursor-pointer ${
-                otpChannel === "sms"
-                  ? "border-purple-500 bg-purple-50 text-purple-800 ring-1 ring-purple-500 dark:bg-purple-400/10 dark:text-purple-200"
-                  : "border-gray-200 text-gray-600 hover:border-purple-300 dark:border-white/10 dark:text-gray-300"
-              }`}
-            >
-              <Smartphone className="h-4 w-4" />
-              <span>{language === "ar" ? "رسالة SMS" : "SMS"}</span>
-            </button>
-            <button
-              type="button"
-              role="radio"
-              aria-checked={otpChannel === "whatsapp"}
-              onClick={() => {
-                setOtpChannel("whatsapp");
-                setErrorMsg(null);
-              }}
-              className={`inline-flex items-center justify-center gap-2 rounded-xl border px-3 py-2.5 text-xs font-bold transition cursor-pointer ${
-                otpChannel === "whatsapp"
-                  ? "border-emerald-500 bg-emerald-50 text-emerald-800 ring-1 ring-emerald-500 dark:bg-emerald-400/10 dark:text-emerald-200"
-                  : "border-gray-200 text-gray-600 hover:border-emerald-300 dark:border-white/10 dark:text-gray-300"
-              }`}
-            >
-              <MessageCircle className="h-4 w-4" />
-              <span>{language === "ar" ? "واتساب WhatsApp" : "WhatsApp"}</span>
-            </button>
-          </div>
-        </div>
+        {/* Hidden Firebase reCAPTCHA container for SMS */}
+        <div ref={recaptchaContainerRef} className="hidden" aria-hidden="true" />
 
-        {/* Firebase reCAPTCHA container for SMS */}
-        {otpChannel === "sms" && (
-          <div className="flex justify-center overflow-x-auto py-1">
-            <div ref={recaptchaContainerRef} />
+        {/* Cloudflare Turnstile Invisible Container */}
+        {turnstileContainerRef && (
+          <div className="flex justify-center overflow-hidden my-0.5">
+            <div ref={turnstileContainerRef} />
           </div>
         )}
+
+        {/* Cloudflare Turnstile Subtle Protection Dot */}
+        <div className="flex items-center justify-center gap-1.5 text-[11px] text-gray-400 dark:text-gray-500 py-1">
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block animate-pulse" />
+          <span>
+            {language === "ar"
+              ? "محمي بنظام التحقق السحابي Cloudflare Turnstile"
+              : "Protected by Cloudflare Turnstile"}
+          </span>
+        </div>
 
         {/* Error Message */}
         {errorMsg && (

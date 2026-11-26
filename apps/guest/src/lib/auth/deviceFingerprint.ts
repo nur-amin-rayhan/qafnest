@@ -73,6 +73,7 @@ export async function checkSignupGuard(params: {
   email?: string | null;
   phone?: string | null;
   mode?: "signup" | "otp";
+  turnstileToken?: string | null;
 }): Promise<{
   allowed: boolean;
   existingAccount?: boolean;
@@ -92,6 +93,7 @@ export async function checkSignupGuard(params: {
         email: params.email || null,
         phone: params.phone || null,
         mode: params.mode || "signup",
+        turnstileToken: params.turnstileToken || null,
       }),
     });
     const data = await res.json();
