@@ -61,22 +61,10 @@ export default function GuestEmailAuthStep({
           </div>
         </div>
 
-        {/* Cloudflare Turnstile Invisible Container */}
+        {/* Hidden Cloudflare Turnstile Container */}
         {turnstileContainerRef && (
-          <div className="flex justify-center overflow-hidden my-0.5">
-            <div ref={turnstileContainerRef} />
-          </div>
+          <div ref={turnstileContainerRef} className="hidden" aria-hidden="true" />
         )}
-
-        {/* Cloudflare Turnstile Subtle Protection Dot */}
-        <div className="flex items-center justify-center gap-1.5 text-[11px] text-gray-400 dark:text-gray-500 py-1">
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block animate-pulse" />
-          <span>
-            {language === "ar"
-              ? "محمي بنظام التحقق السحابي Cloudflare Turnstile"
-              : "Protected by Cloudflare Turnstile"}
-          </span>
-        </div>
 
         {errorMsg && (
           <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300 text-xs flex items-center gap-2 break-words">
