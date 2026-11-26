@@ -260,9 +260,12 @@ export function useReservationReview(property: Property) {
     label,
   });
 
-  const identityVerified = Boolean(
-    profile?.is_verified || user?.app_metadata?.is_verified
-  );
+  // Government ID gate toggle: kept inactive while Nafath/Yaqeen provider credentials are pending.
+  // When inactive, mobile and email satisfy order readiness.
+  const REQUIRE_GOVERNMENT_ID_VERIFICATION = false;
+  const identityVerified = REQUIRE_GOVERNMENT_ID_VERIFICATION
+    ? Boolean(profile?.is_verified || user?.app_metadata?.is_verified)
+    : Boolean(phoneVerified && (effectiveEmail || user?.email || profile?.contact_email));
 
   // Sub-hook 2: Payment checkout execution
   const {

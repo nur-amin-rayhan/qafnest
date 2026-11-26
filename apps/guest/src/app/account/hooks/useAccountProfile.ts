@@ -37,6 +37,9 @@ export function useAccountProfile({
   const [nationalIdVerified, setNationalIdVerified] = useState(false);
   const [iqamaVerified, setIqamaVerified] = useState(false);
   const [emailVerified, setEmailVerified] = useState(false);
+  const [emailOtpSent, setEmailOtpSent] = useState(false);
+  const [emailOtpCode, setEmailOtpCode] = useState("");
+  const [emailDevCode, setEmailDevCode] = useState<string | null>(null);
   const [verifyingNationalId, setVerifyingNationalId] = useState(false);
   const [verifyingIqama, setVerifyingIqama] = useState(false);
   const [verifyingEmail, setVerifyingEmail] = useState(false);
@@ -204,25 +207,96 @@ export function useAccountProfile({
     setFieldErrors((prev) => ({ ...prev, email: undefined }));
     setVerifyingEmail(true);
     try {
-      const { error } = await supabase.auth.updateUser({ email: raw });
-      if (error) {
+      const res = await fetch("/api/profile/email-verify", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
+        },
+        body: JSON.stringify({ action: "send", email: raw, language }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || data.error) {
         setIdVerificationMsg({
           type: "error",
-          text: error.message || (language === "ar" ? "تعذر إرسال رابط التحقق" : "Could not send verification email"),
+          text:
+            data.error ||
+            (language === "ar"
+              ? "تعذر إرسال رمز التحقق عبر Resend"
+              : "Could not send verification code via Resend"),
         });
       } else {
+        setEmailOtpSent(true);
+        if (data.devCode) setEmailDevCode(data.devCode);
         setIdVerificationMsg({
           type: "success",
           text:
-            language === "ar"
-              ? "تم إرسال رابط تأكيد إلى بريدك الإلكتروني. يرجى تأكيده من صندوق الوارد."
-              : "Verification link sent to your email. Please confirm from your inbox.",
+            data.message ||
+            (language === "ar"
+              ? "تم إرسال رمز التحقق إلى بريدك الإلكتروني عبر Resend."
+              : "Verification code sent to your email via Resend."),
         });
       }
     } catch {
       setIdVerificationMsg({
         type: "error",
-        text: language === "ar" ? "تعذر إرسال رابط التحقق" : "Could not send verification email",
+        text: language === "ar" ? "تعذر إرسال رمز التحقق" : "Could not send verification email",
+      });
+    } finally {
+      setVerifyingEmail(false);
+    }
+  };
+
+  const handleConfirmEmailOtp = async () => {
+    const raw = editEmail.trim().toLowerCase();
+    const cleanCode = emailOtpCode.trim().replace(/\D/g, "");
+    if (!cleanCode || cleanCode.length < 6) {
+      setIdVerificationMsg({
+        type: "error",
+        text: language === "ar" ? "يرجى إدخال رمز التحقق المكون من 6 أرقام" : "Please enter the 6-digit verification code",
+      });
+      return;
+    }
+
+    setVerifyingEmail(true);
+    try {
+      const res = await fetch("/api/profile/email-verify", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
+        },
+        body: JSON.stringify({ action: "confirm", email: raw, code: cleanCode, language }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || data.error) {
+        setIdVerificationMsg({
+          type: "error",
+          text:
+            data.error ||
+            (language === "ar"
+              ? "رمز التحقق غير صحيح أو منتهي الصلاحية"
+              : "Invalid or expired verification code"),
+        });
+      } else {
+        setEmailVerified(true);
+        setEmailOtpSent(false);
+        setEmailOtpCode("");
+        setEmailDevCode(null);
+        setIdVerificationMsg({
+          type: "success",
+          text:
+            data.message ||
+            (language === "ar"
+              ? "تم توثيق بريدك الإلكتروني بنجاح!"
+              : "Email address verified successfully!"),
+        });
+        await refreshProfile?.();
+      }
+    } catch {
+      setIdVerificationMsg({
+        type: "error",
+        text: language === "ar" ? "تعذر تأكيد رمز التحقق" : "Could not verify code",
       });
     } finally {
       setVerifyingEmail(false);
@@ -303,6 +377,10 @@ export function useAccountProfile({
     nationalIdVerified,
     iqamaVerified,
     emailVerified,
+    emailOtpSent,
+    emailOtpCode,
+    emailDevCode,
+    setEmailOtpCode,
     verifyingNationalId,
     verifyingIqama,
     verifyingEmail,
@@ -317,6 +395,7 @@ export function useAccountProfile({
     handleVerifyNationalId,
     handleVerifyIqama,
     handleVerifyEmail,
+    handleConfirmEmailOtp,
     handleSaveProfile,
   };
 }

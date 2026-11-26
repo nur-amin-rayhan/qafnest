@@ -10,6 +10,7 @@ export interface FirebaseGuestProfileRecord {
   city?: string | null;
   contact_email?: string | null;
   is_verified?: boolean;
+  is_email_verified?: boolean;
   avatar_url?: string | null;
   updated_at?: string;
 }

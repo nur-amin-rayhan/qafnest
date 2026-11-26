@@ -229,6 +229,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return false;
     };
 
+    const isDevUserRecord = (targetUser?: User | null) =>
+      process.env.NODE_ENV !== "production" &&
+      Boolean(
+        targetUser &&
+          (targetUser.id === (process.env.NEXT_PUBLIC_DEV_GUEST_ID || "00000000-0000-0000-0000-000000000001") ||
+            targetUser.app_metadata?.provider === "dev" ||
+            targetUser.email === (process.env.DEV_GUEST_EMAIL || process.env.NEXT_PUBLIC_DEV_GUEST_EMAIL || "guest.dev@qafnest.com"))
+      );
+
     const initializeAuth = async () => {
       try {
         const cachedAuth = getCachedAuth();
@@ -237,15 +246,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setLoading(false);
         }
 
-        const isDevCachedGuest =
-          process.env.NODE_ENV !== "production" &&
-          cachedAuth?.user?.id === (process.env.NEXT_PUBLIC_DEV_GUEST_ID || "00000000-0000-0000-0000-000000000001");
+        const isDevCachedGuest = isDevUserRecord(cachedAuth?.user);
 
         const { data: { session: initialSession }, error } = await supabase.auth.getSession();
         if (!mounted) return;
 
         if (error || !initialSession?.user) {
           if (isDevCachedGuest && cachedAuth?.user) {
+            hasSupabaseSessionRef.current = false;
+            updateUserAndProfile(cachedAuth.user, cachedAuth.profile);
             await fetchProfile(cachedAuth.user.id, cachedAuth.user, () => mounted, null);
           } else if (!syncFirebaseUser()) {
             updateUserAndProfile(null, null);
@@ -308,6 +317,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               }
             });
           } else if (!hasSupabaseSessionRef.current) {
+            const cached = getCachedAuth();
+            const isDevUser = isDevUserRecord(userRef.current) || isDevUserRecord(cached?.user);
+            if (isDevUser) {
+              setLoading(false);
+              return;
+            }
             if (syncedCookieUserRef.current !== null) {
               syncedCookieUserRef.current = null;
               void syncSessionCookie(false);
@@ -346,6 +361,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           }
           await fetchProfile(newSession.user.id, newSession.user, () => mounted, newSession);
         } else if (!syncFirebaseUser()) {
+          const cached = getCachedAuth();
+          const isDevUser = isDevUserRecord(userRef.current) || isDevUserRecord(cached?.user);
+          if (isDevUser) {
+            setLoading(false);
+            return;
+          }
           hasSupabaseSessionRef.current = false;
           if (syncedCookieUserRef.current !== null) {
             syncedCookieUserRef.current = null;

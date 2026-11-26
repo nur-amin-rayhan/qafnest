@@ -19,6 +19,7 @@ import * as platformFeesRoute from "@/server/api/core/platformFees";
 import * as profileRoute from "@/server/api/core/profile";
 import * as profilePhoneRoute from "@/server/api/core/profilePhone";
 import * as profileVerifyRoute from "@/server/api/core/profileVerify";
+import * as profileEmailVerifyRoute from "@/server/api/core/profileEmailVerify";
 import * as propertyAvailabilityRoute from "@/server/api/core/propertyAvailability";
 import * as reviewsEligibilityRoute from "@/server/api/core/reviewsEligibility";
 import * as reviewsListRoute from "@/server/api/core/reviewsList";
@@ -53,6 +54,7 @@ const CORE_ROUTES: Record<string, RouteModule> = {
   profile: profileRoute,
   "profile/phone": profilePhoneRoute,
   "profile/verify": profileVerifyRoute,
+  "profile/email-verify": profileEmailVerifyRoute,
   reviews: reviewsListRoute,
   "reviews/eligibility": reviewsEligibilityRoute,
   "reviews/submit": reviewsSubmitRoute,

@@ -4,6 +4,7 @@ import { getAdminOrServerClient } from "@/lib/supabase/service";
 import { getFirebaseGuestProfile, saveFirebaseGuestProfile } from "@/lib/services/firebaseGuestProfileStore";
 import { isValidSaudiIdDigits, getVerifiedIdentityByUser, hydrateVerifiedIdentityStore } from "@qafnest/shared/saudiIdentityStore";
 import { normalizeSaudiPhone } from "@qafnest/shared";
+import { isEmailVerifiedInStore } from "./profileEmailVerify";
 
 function isValidEmail(email: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email.trim());
@@ -145,6 +146,17 @@ export async function GET(request: NextRequest) {
       (storedIqama ? "iqama" : storedNationalId ? "national_id" : null),
     city: (userMeta.city as string | undefined) || null,
     email: (userMeta.contact_email as string | undefined) || resolvedAuthEmail || null,
+    email_verified:
+      isEmailVerifiedInStore(
+        authUser.id,
+        (userMeta.contact_email as string | undefined) || resolvedAuthEmail || null
+      ) ||
+      Boolean(
+        userMeta.email_verified ||
+        appMeta.email_verified ||
+        Boolean((authUser as unknown as Record<string, unknown>).isEmailVerified) ||
+        Boolean(authUser.email && (authUser as unknown as Record<string, unknown>).emailConfirmedAt)
+      ),
     is_verified: Boolean(verifiedBinding || appMeta.is_verified || profile?.is_verified),
     avatar_url: profile?.avatar_url || (userMeta.avatar_url as string | undefined) || null,
   });

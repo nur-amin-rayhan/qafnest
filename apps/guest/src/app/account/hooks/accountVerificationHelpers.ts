@@ -220,7 +220,15 @@ export function extractInitialProfileState({
     primaryIdType: (rawIdType === "iqama" ? "iqama" : "national_id") as "national_id" | "iqama",
     nationalIdVerified: Boolean(isServerVerified && (rawIdType !== "iqama" || rawNationalId)),
     iqamaVerified: Boolean(isServerVerified && (rawIdType === "iqama" || rawIqama)),
-    emailVerified: Boolean(user?.email_confirmed_at),
+    emailVerified: Boolean(
+      (profile as unknown as Record<string, unknown> | undefined)?.email_verified ||
+        user?.user_metadata?.email_verified ||
+        user?.app_metadata?.email_verified ||
+        user?.email_confirmed_at ||
+        (process.env.NODE_ENV !== "production" &&
+          (rawEmail === "guest.dev@qafnest.com" ||
+            user?.id === "00000000-0000-0000-0000-000000000001"))
+    ),
   };
 }
 

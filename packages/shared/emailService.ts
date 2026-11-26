@@ -64,6 +64,7 @@ export async function sendEmail(options: SendEmailOptions): Promise<SendEmailRes
           "Content-Type": "application/json",
         },
         body: JSON.stringify(payload),
+        signal: AbortSignal.timeout(6000),
       });
 
       const data = (await res.json().catch(() => ({}))) as {

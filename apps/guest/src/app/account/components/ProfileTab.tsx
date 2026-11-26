@@ -56,6 +56,11 @@ interface ProfileTabProps {
   handleVerifyNationalId: () => Promise<void>;
   handleVerifyIqama: () => Promise<void>;
   handleVerifyEmail: () => Promise<void>;
+  emailOtpSent?: boolean;
+  emailOtpCode?: string;
+  emailDevCode?: string | null;
+  setEmailOtpCode?: (val: string) => void;
+  handleConfirmEmailOtp?: () => Promise<void>;
   handleSaveProfile: (e: React.FormEvent) => Promise<void>;
   language: string;
   t: (en: string, ar: string) => string;
@@ -91,6 +96,11 @@ export default function ProfileTab({
   handleVerifyNationalId,
   handleVerifyIqama,
   handleVerifyEmail,
+  emailOtpSent,
+  emailOtpCode,
+  emailDevCode,
+  setEmailOtpCode,
+  handleConfirmEmailOtp,
   handleSaveProfile,
   language,
   t,
@@ -177,6 +187,11 @@ export default function ProfileTab({
           setEditEmail={setEditEmail}
           emailVerified={emailVerified}
           verifyingEmail={verifyingEmail}
+          emailOtpSent={emailOtpSent}
+          emailOtpCode={emailOtpCode}
+          emailDevCode={emailDevCode}
+          setEmailOtpCode={setEmailOtpCode}
+          handleConfirmEmailOtp={handleConfirmEmailOtp}
           editPhone={editPhone}
           onPhoneVerified={onPhoneVerified}
           fieldErrors={fieldErrors}

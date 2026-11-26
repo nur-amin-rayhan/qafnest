@@ -32,6 +32,11 @@ interface ProfileContactCardProps {
     }>
   >;
   handleVerifyEmail: () => Promise<void>;
+  emailOtpSent?: boolean;
+  emailOtpCode?: string;
+  emailDevCode?: string | null;
+  setEmailOtpCode?: (val: string) => void;
+  handleConfirmEmailOtp?: () => Promise<void>;
   t: (en: string, ar: string) => string;
 }
 
@@ -42,6 +47,11 @@ export function ProfileContactCard({
   setEditEmail,
   emailVerified,
   verifyingEmail,
+  emailOtpSent,
+  emailOtpCode,
+  emailDevCode,
+  setEmailOtpCode,
+  handleConfirmEmailOtp,
   editPhone,
   onPhoneVerified,
   fieldErrors,
@@ -194,6 +204,47 @@ export function ProfileContactCard({
               </button>
             )}
           </div>
+
+          {emailOtpSent && !emailVerified && (
+            <div className="p-3 rounded-xl bg-purple-50/70 dark:bg-purple-950/30 border border-purple-200 dark:border-purple-800/40 space-y-2 text-xs">
+              <div className="flex items-center justify-between">
+                <span className="font-semibold text-purple-900 dark:text-purple-200">
+                  {t("Enter 6-digit code sent via Resend:", "أدخل رمز التحقق المكون من 6 أرقام المرسل عبر Resend:")}
+                </span>
+                {emailDevCode && (
+                  <span className="text-[11px] font-mono text-purple-700 dark:text-purple-300 bg-purple-100 dark:bg-purple-900/60 px-1.5 py-0.5 rounded">
+                    Code: {emailDevCode}
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  maxLength={6}
+                  value={emailOtpCode || ""}
+                  onChange={(e) => setEmailOtpCode?.(e.target.value.replace(/\D/g, ""))}
+                  placeholder="123456"
+                  className="w-28 px-3 py-1.5 text-center font-mono font-bold tracking-widest text-sm rounded-lg border border-purple-300 dark:border-purple-700 bg-white dark:bg-[#06060B] text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#4F2396]"
+                />
+                <button
+                  type="button"
+                  onClick={handleConfirmEmailOtp}
+                  disabled={verifyingEmail || (emailOtpCode || "").length < 6}
+                  className="px-3 py-1.5 rounded-lg bg-[#4F2396] hover:bg-[#3D1A75] text-white font-semibold transition disabled:opacity-50 cursor-pointer"
+                >
+                  {verifyingEmail ? <LoaderCircle size={14} className="animate-spin" /> : t("Confirm", "تأكيد")}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleVerifyEmail}
+                  disabled={verifyingEmail}
+                  className="px-2 py-1.5 text-xs text-purple-700 dark:text-purple-300 hover:underline cursor-pointer"
+                >
+                  {t("Resend", "إعادة إرسال")}
+                </button>
+              </div>
+            </div>
+          )}
           {fieldErrors.email && (
             <p className="text-xs text-rose-700 dark:text-rose-400">{fieldErrors.email}</p>
           )}

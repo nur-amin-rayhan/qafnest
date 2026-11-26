@@ -237,6 +237,11 @@ function GuestAccountPageContent() {
                 handleVerifyNationalId={profileState.handleVerifyNationalId}
                 handleVerifyIqama={profileState.handleVerifyIqama}
                 handleVerifyEmail={profileState.handleVerifyEmail}
+                emailOtpSent={profileState.emailOtpSent}
+                emailOtpCode={profileState.emailOtpCode}
+                emailDevCode={profileState.emailDevCode}
+                setEmailOtpCode={profileState.setEmailOtpCode}
+                handleConfirmEmailOtp={profileState.handleConfirmEmailOtp}
                 handleSaveProfile={profileState.handleSaveProfile}
                 language={language}
                 t={t}

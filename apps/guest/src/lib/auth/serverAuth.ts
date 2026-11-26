@@ -123,6 +123,19 @@ export async function verifyGuestSession(request: Request): Promise<VerifiedGues
   const authHeader = request.headers.get("authorization");
   const bearer = authHeader?.match(/^Bearer\s+(.+)$/i)?.[1]?.trim();
   const devHostId = process.env.NEXT_PUBLIC_DEV_HOST_ID || "00000000-0000-0000-0000-000000000002";
+  const devGuestId = process.env.NEXT_PUBLIC_DEV_GUEST_ID || "00000000-0000-0000-0000-000000000001";
+
+  if (process.env.NODE_ENV !== "production" && bearer && (bearer === "dev_guest_token" || bearer === devGuestId)) {
+    return {
+      id: devGuestId,
+      phone: process.env.NEXT_PUBLIC_DEV_GUEST_PHONE || "+966500000001",
+      isPhoneVerified: true,
+      email: process.env.NEXT_PUBLIC_DEV_GUEST_EMAIL || "guest.dev@qafnest.com",
+      name: process.env.NEXT_PUBLIC_DEV_GUEST_NAME || "Dev Guest User",
+      role: "guest",
+      provider: "supabase",
+    };
+  }
 
   if (bearer && bearer !== "dev_guest_token") {
     const fbUser = await verifyFirebaseIdToken(bearer);

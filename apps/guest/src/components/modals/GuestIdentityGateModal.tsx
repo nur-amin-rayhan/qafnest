@@ -22,6 +22,13 @@ export function dispatchOpenIdentityModal() {
   }
 }
 
+/**
+ * Post-login mandatory National ID/Iqama popup gate toggle.
+ * Kept inactive (dormant) while government provider (Nafath / Elm Yaqeen) API credentials are pending.
+ * Switch to `true` whenever live provider credentials are provided to re-enable post-login prompt.
+ */
+export const ENABLE_POST_LOGIN_IDENTITY_MODAL = false;
+
 export default function GuestIdentityGateModal() {
   const { language } = useApp();
   const { user, session, profile, loading, authModalOpen, refreshProfile } = useAuth();
@@ -89,7 +96,8 @@ export default function GuestIdentityGateModal() {
   }, [user?.id]);
 
   const autoPromptOpen = Boolean(
-    user &&
+    ENABLE_POST_LOGIN_IDENTITY_MODAL &&
+      user &&
       profile &&
       !loading &&
       !authModalOpen &&

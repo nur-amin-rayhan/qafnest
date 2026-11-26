@@ -67,6 +67,16 @@ export async function checkMandatorySaudiIdentity(userId: string): Promise<NextR
     }
   }
 
+  // Saudi Government ID Verification Gate Toggle
+  // Kept inactive while government provider (Nafath / Elm Yaqeen) API credentials are pending.
+  // When active, requires verified National ID / Iqama via Nafath/Yaqeen.
+  const REQUIRE_GOVERNMENT_ID_VERIFICATION = false;
+
+  if (!REQUIRE_GOVERNMENT_ID_VERIFICATION) {
+    // Current active requirement: Mobile and Email verification
+    return null;
+  }
+
   if (!serverVerified) {
     return NextResponse.json(
       {
