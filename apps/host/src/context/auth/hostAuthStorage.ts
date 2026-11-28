@@ -34,6 +34,9 @@ export interface HostAuthContextType {
   setLang: (lang: "ar" | "en") => void;
   toggleLang: () => void;
   t: (en: string, ar: string) => string;
+  theme: "light" | "dark";
+  setTheme: (theme: "light" | "dark") => void;
+  toggleTheme: () => void;
 }
 
 export const HOST_CACHE_KEY = "qafnest_cached_host_auth";

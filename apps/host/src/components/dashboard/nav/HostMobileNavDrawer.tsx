@@ -19,6 +19,8 @@ import {
   LogOut,
   ShieldCheck,
   ChevronRight,
+  Sun,
+  Moon,
   type LucideIcon,
 } from "lucide-react";
 import { Module } from "../HostTopNav";
@@ -45,6 +47,8 @@ interface HostMobileNavDrawerProps {
   submittedPropertiesCount?: number;
   bookingsCount?: number;
   hasPropertyIssues?: boolean;
+  theme?: "light" | "dark";
+  toggleTheme?: () => void;
 }
 
 export function HostMobileNavDrawer({
@@ -61,6 +65,8 @@ export function HostMobileNavDrawer({
   submittedPropertiesCount = 0,
   bookingsCount = 0,
   hasPropertyIssues = false,
+  theme = "light",
+  toggleTheme,
 }: HostMobileNavDrawerProps) {
   const [mounted, setMounted] = useState(false);
 
@@ -157,12 +163,12 @@ export function HostMobileNavDrawer({
 
       {/* Drawer Container */}
       <div
-        className={`fixed inset-y-0 start-0 z-50 w-[300px] sm:w-[320px] max-w-[85vw] bg-white shadow-2xl flex flex-col justify-between transition-transform duration-300 ease-out animate-in ${
+        className={`fixed inset-y-0 start-0 z-50 w-[300px] sm:w-[320px] max-w-[85vw] bg-white dark:bg-[#0c0d1b] shadow-2xl flex flex-col justify-between transition-transform duration-300 ease-out animate-in border-e border-slate-200/90 dark:border-slate-800/80 ${
           lang === "ar" ? "slide-in-from-right" : "slide-in-from-left"
         }`}
       >
         {/* Drawer Header & Profile Card */}
-        <div className="p-4 sm:p-5 border-b border-slate-100 space-y-4">
+        <div className="p-4 sm:p-5 border-b border-slate-100 dark:border-slate-800/80 space-y-4">
           <div className="flex items-center justify-between">
             <Link
               href={`/${lang}/app/overview`}
@@ -173,11 +179,11 @@ export function HostMobileNavDrawer({
               }}
               className="inline-flex items-center gap-1.5 select-none"
             >
-              <span className="text-[22px] font-black tracking-[-0.05em] text-[#4F2396]">
-                Qaf<span className="text-[#7c3aed]">Nest</span>
+              <span className="text-[22px] font-black tracking-[-0.05em] text-slate-900 dark:text-white">
+                Qaf<span className="text-violet-600 dark:text-violet-400">Nest</span>
                 <span className="text-[#FF9750]">.</span>
               </span>
-              <span className="rounded-full bg-violet-100 px-2 py-0.5 text-[9px] font-black tracking-widest uppercase text-[#4F2396]">
+              <span className="rounded-full bg-violet-100 dark:bg-violet-900/50 px-2 py-0.5 text-[9px] font-black tracking-widest uppercase text-violet-800 dark:text-violet-300">
                 {t("HOST", "مضيف")}
               </span>
             </Link>
@@ -185,7 +191,7 @@ export function HostMobileNavDrawer({
             <button
               type="button"
               onClick={onClose}
-              className="grid h-9 w-9 place-items-center rounded-xl bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-slate-800 transition cursor-pointer"
+              className="grid h-9 w-9 place-items-center rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700 hover:text-slate-800 dark:hover:text-white transition cursor-pointer"
               aria-label={t("Close Menu", "إغلاق القائمة")}
             >
               <X size={18} />
@@ -193,16 +199,16 @@ export function HostMobileNavDrawer({
           </div>
 
           {/* Host Profile Info */}
-          <div className="flex items-center gap-3 rounded-2xl bg-slate-50 p-3 border border-slate-100">
-            <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-[#4F2396] text-white font-black text-sm shadow-xs">
+          <div className="flex items-center gap-3 rounded-2xl bg-slate-50 dark:bg-slate-900/60 p-3 border border-slate-100 dark:border-slate-800/80">
+            <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-slate-900 dark:bg-white text-white dark:text-slate-950 font-black text-sm shadow-xs">
               {hostInitial}
             </div>
             <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-extrabold text-slate-900 leading-tight">
+              <p className="truncate text-sm font-extrabold text-slate-900 dark:text-white leading-tight">
                 {hostName}
               </p>
-              <div className="mt-0.5 flex items-center gap-1 text-[11px] font-bold text-emerald-700">
-                <ShieldCheck size={12} className="shrink-0 text-emerald-600" />
+              <div className="mt-0.5 flex items-center gap-1 text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
+                <ShieldCheck size={12} className="shrink-0" />
                 <span className="truncate">{t("Verified Host", "مضيف موثق")}</span>
               </div>
             </div>
@@ -212,9 +218,9 @@ export function HostMobileNavDrawer({
           <Link
             href={`/${lang}/properties/new?mode=new`}
             onClick={onClose}
-            className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#4F2396] hover:bg-[#3D1A78] text-white py-2.5 px-4 text-xs font-black shadow-xs transition active:scale-[0.99] cursor-pointer"
+            className="flex w-full items-center justify-center gap-2 rounded-xl bg-slate-900 hover:bg-slate-800 dark:bg-violet-600 dark:hover:bg-violet-500 text-white py-2.5 px-4 text-xs font-bold shadow-xs transition active:scale-[0.99] cursor-pointer"
           >
-            <Plus size={15} className="stroke-[3]" />
+            <Plus size={15} className="stroke-[2.5]" />
             <span>{t("Add New Property", "إضافة عقار جديد")}</span>
           </Link>
         </div>
@@ -226,24 +232,27 @@ export function HostMobileNavDrawer({
             const isCurrent = active === item.key;
 
             return (
-              <Link
+              <button
                 key={item.key}
-                href={`/${lang}/app/${item.key === "overview" ? "overview" : item.key}`}
-                onClick={(e) => {
-                  e.preventDefault();
+                type="button"
+                onClick={() => {
                   setActive(item.key);
                   onClose();
                 }}
-                className={`flex items-center justify-between rounded-xl px-3 py-2.5 text-xs font-bold transition cursor-pointer ${
+                className={`flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-xs font-bold transition cursor-pointer text-start ${
                   isCurrent
-                    ? "bg-violet-50 text-[#4F2396] font-extrabold border-s-4 border-[#4F2396]"
-                    : "text-slate-700 hover:bg-slate-50 hover:text-slate-900"
+                    ? "bg-slate-900 text-white dark:bg-white dark:text-slate-950 shadow-2xs"
+                    : "text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-white"
                 }`}
               >
                 <div className="flex items-center gap-3">
                   <Icon
                     size={17}
-                    className={isCurrent ? "text-[#4F2396]" : "text-slate-400"}
+                    className={
+                      isCurrent
+                        ? "text-white dark:text-slate-950"
+                        : "text-slate-400 dark:text-slate-500"
+                    }
                   />
                   <span>{item.label}</span>
                 </div>
@@ -258,8 +267,8 @@ export function HostMobileNavDrawer({
                     <span
                       className={`rounded-full px-1.5 py-0.2 text-[10px] font-black ${
                         isCurrent
-                          ? "bg-violet-200 text-[#4F2396]"
-                          : "bg-slate-100 text-slate-600"
+                          ? "bg-white/20 text-white dark:bg-slate-900/15 dark:text-slate-950"
+                          : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400"
                       }`}
                     >
                       {item.count}
@@ -267,19 +276,42 @@ export function HostMobileNavDrawer({
                   )}
                   <ChevronRight
                     size={13}
-                    className={`text-slate-300 ${
+                    className={`text-slate-300 dark:text-slate-600 ${
                       lang === "ar" ? "rotate-180" : ""
                     }`}
                   />
                 </div>
-              </Link>
+              </button>
             );
           })}
         </div>
 
         {/* Drawer Footer Actions */}
-        <div className="p-4 border-t border-slate-100 space-y-2 bg-slate-50/60">
-          <div className="grid grid-cols-2 gap-2">
+        <div className="p-4 border-t border-slate-100 dark:border-slate-800/80 space-y-2 bg-slate-50/60 dark:bg-slate-900/40">
+          <div className="grid grid-cols-3 gap-1.5">
+            {/* Theme Toggle */}
+            {toggleTheme && (
+              <button
+                type="button"
+                onClick={toggleTheme}
+                className="flex items-center justify-center gap-1 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800/80 py-2 text-[11px] font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition cursor-pointer"
+                title={theme === "dark" ? t("Light Mode", "الوضع الفاتح") : t("Dark Mode", "الوضع الداكن")}
+              >
+                {theme === "dark" ? (
+                  <>
+                    <Sun size={13} className="text-amber-400" />
+                    <span>{t("Light", "فاتح")}</span>
+                  </>
+                ) : (
+                  <>
+                    <Moon size={13} className="text-slate-500" />
+                    <span>{t("Dark", "داكن")}</span>
+                  </>
+                )}
+              </button>
+            )}
+
+            {/* Language Switcher */}
             {setLang && (
               <button
                 type="button"
@@ -287,20 +319,21 @@ export function HostMobileNavDrawer({
                   setLang(lang === "ar" ? "en" : "ar");
                   onClose();
                 }}
-                className="flex items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white py-2 text-xs font-bold text-slate-700 hover:bg-slate-100 transition cursor-pointer"
+                className="flex items-center justify-center gap-1 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800/80 py-2 text-[11px] font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition cursor-pointer"
               >
-                <Globe size={14} className="text-[#4F2396]" />
-                <span>{lang === "ar" ? "English" : "العربية"}</span>
+                <Globe size={13} className="text-slate-500 dark:text-slate-400" />
+                <span>{lang === "ar" ? "EN" : "العربية"}</span>
               </button>
             )}
 
+            {/* Support Link */}
             <a
               href="https://wa.me/966576707709"
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white py-2 text-xs font-bold text-slate-700 hover:bg-slate-100 transition cursor-pointer"
+              className="flex items-center justify-center gap-1 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800/80 py-2 text-[11px] font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition cursor-pointer"
             >
-              <MessageSquareText size={14} className="text-emerald-600" />
+              <MessageSquareText size={13} className="text-emerald-500" />
               <span>{t("Support", "الدعم")}</span>
             </a>
           </div>
@@ -312,7 +345,7 @@ export function HostMobileNavDrawer({
                 onClose();
                 await signOut();
               }}
-              className="flex w-full items-center justify-center gap-1.5 rounded-xl py-2 text-xs font-bold text-rose-600 hover:bg-rose-50 transition cursor-pointer"
+              className="flex w-full items-center justify-center gap-1.5 rounded-xl py-2 text-xs font-bold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition cursor-pointer"
             >
               <LogOut size={14} />
               <span>{t("Sign Out", "تسجيل الخروج")}</span>

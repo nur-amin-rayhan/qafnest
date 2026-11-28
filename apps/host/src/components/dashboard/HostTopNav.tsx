@@ -2,8 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { Globe, Menu, MessageSquareText, Plus, X } from "lucide-react";
-import { HostNavLinks } from "./nav/HostNavLinks";
+import { Globe, Menu, MessageSquareText, Moon, Sun, X } from "lucide-react";
 import { HostNotificationsDropdown } from "./nav/HostNotificationsDropdown";
 import { HostProfileDropdown } from "./nav/HostProfileDropdown";
 import { HostMobileNavDrawer } from "./nav/HostMobileNavDrawer";
@@ -30,6 +29,18 @@ export interface HostNotification {
   created_at: string;
 }
 
+const MODULE_TITLES: Record<Module, { en: string; ar: string }> = {
+  overview: { en: "Operations Overview", ar: "نظرة عامة على العمليات" },
+  properties: { en: "Properties Fleet", ar: "إدارة العقارات" },
+  reservations: { en: "Guest Reservations", ar: "حجوزات الضيوف" },
+  calendar: { en: "Calendar & Pricing", ar: "التقويم والأسعار" },
+  pricing: { en: "Dynamic Pricing", ar: "التسعير الذكي" },
+  finance: { en: "Financials & Payouts", ar: "المالية والتحويلات" },
+  analytics: { en: "Sales & Analytics", ar: "التحليلات والمبيعات" },
+  reviews: { en: "Guest Reviews", ar: "تقييمات النزلاء" },
+  settings: { en: "Account Settings", ar: "إعدادات الحساب" },
+};
+
 interface HostTopNavProps {
   active: Module;
   setActive: (module: Module) => void;
@@ -55,6 +66,8 @@ interface HostTopNavProps {
   onMarkAllNotificationsRead: () => Promise<void>;
   mobileNavOpen?: boolean;
   setMobileNavOpen?: (open: boolean) => void;
+  theme?: "light" | "dark";
+  toggleTheme?: () => void;
 }
 
 export default function HostTopNav({
@@ -74,6 +87,8 @@ export default function HostTopNav({
   onMarkAllNotificationsRead,
   mobileNavOpen,
   setMobileNavOpen,
+  theme = "light",
+  toggleTheme,
 }: HostTopNavProps) {
   const [internalMobileNav, setInternalMobileNav] = useState(false);
   const isNavOpen = mobileNavOpen !== undefined ? mobileNavOpen : internalMobileNav;
@@ -103,20 +118,24 @@ export default function HostTopNav({
     return () => document.removeEventListener("mousedown", handleOutsideClick);
   }, []);
 
+  const activeTitle = MODULE_TITLES[active] || MODULE_TITLES.overview;
+
   return (
-    <header className="sticky top-0 z-40 border-b border-slate-200/80 bg-white/95 backdrop-blur-md">
-      <div className="mx-auto flex h-[58px] sm:h-[70px] max-w-[1640px] items-center justify-between gap-1.5 sm:gap-4 px-2.5 sm:px-8">
-        {/* Logo + 7 Horizontal Tabs */}
-        <div className="flex items-center gap-2 sm:gap-3 xl:gap-8 h-full min-w-0">
-          <div className="flex items-center gap-1.5 sm:gap-3 min-w-0">
+    <header className="sticky top-0 z-40 border-b border-slate-200/80 dark:border-slate-800/80 bg-white/95 dark:bg-[#0c0d1b]/95 backdrop-blur-md transition-colors">
+      <div className="mx-auto flex h-[58px] sm:h-[64px] w-full items-center justify-between gap-2 px-3 sm:px-6 xl:px-8">
+        {/* Left Side: Mobile Logo + Hamburger OR Desktop Module Title */}
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+          {/* Mobile & Tablet Hamburger + Logo (xl:hidden) */}
+          <div className="flex items-center gap-2 xl:hidden min-w-0">
             <button
               type="button"
-              className="grid h-8.5 w-8.5 sm:h-10 sm:w-10 shrink-0 place-items-center rounded-xl border border-slate-200 lg:hidden hover:bg-slate-50 transition cursor-pointer"
+              className="grid h-8.5 w-8.5 sm:h-9.5 sm:w-9.5 shrink-0 place-items-center rounded-xl border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 transition cursor-pointer"
               onClick={toggleMobileNav}
               aria-label={t("Toggle Navigation Menu", "تبديل قائمة التنقل")}
             >
               {isNavOpen ? <X size={17} /> : <Menu size={17} />}
             </button>
+
             <Link
               href={`/${lang}/app/overview`}
               onClick={(e) => {
@@ -125,43 +144,56 @@ export default function HostTopNav({
               }}
               className="inline-flex items-center gap-1.5 select-none min-w-0"
             >
-              <span className="text-[20px] sm:text-[26px] lg:text-[30px] font-black tracking-[-0.05em] text-[#4F2396] whitespace-nowrap">
-                Qaf<span className="text-[#7c3aed]">Nest</span>
+              <span className="text-[19px] sm:text-[22px] font-black tracking-[-0.04em] text-slate-900 dark:text-white whitespace-nowrap">
+                Qaf<span className="text-violet-600 dark:text-violet-400">Nest</span>
                 <span className="text-[#FF9750]">.</span>
               </span>
-              <span className="hidden sm:inline-block rounded-full bg-violet-100 px-2 sm:px-2.5 py-0.5 text-[9px] sm:text-[10px] font-black tracking-widest uppercase text-[#4F2396]">
+              <span className="hidden min-[420px]:inline-block rounded-full bg-violet-100 dark:bg-violet-900/50 px-2 py-0.5 text-[9px] font-black tracking-wider uppercase text-violet-800 dark:text-violet-300">
                 {t("HOST", "مضيف")}
               </span>
             </Link>
           </div>
 
-          <HostNavLinks
-            active={active}
-            setActive={setActive}
-            submittedPropertiesCount={submittedPropertiesCount}
-            hasPropertyIssues={hasPropertyIssues}
-            bookingsCount={bookingsCount}
-            lang={lang}
-            t={t}
-          />
+          {/* Desktop Breadcrumb & Module Title (hidden xl:flex) */}
+          <div className="hidden xl:flex items-center gap-2">
+            <span className="text-xs font-semibold text-slate-400 dark:text-slate-500">
+              {t("Host Portal", "بوابة المضيف")}
+            </span>
+            <span className="text-slate-300 dark:text-slate-700">/</span>
+            <h1 className="text-sm font-bold text-slate-900 dark:text-white tracking-tight">
+              {lang === "ar" ? activeTitle.ar : activeTitle.en}
+            </h1>
+          </div>
         </div>
 
-        {/* Action Controls: Add Property, Language Toggle, Notifications, Support, Profile */}
-        <div className="flex items-center gap-1 sm:gap-2.5 shrink-0">
-          <Link
-            href={`/${lang}/properties/new?mode=new`}
-            className="hidden sm:inline-flex items-center gap-1.5 rounded-xl bg-[#4F2396] hover:bg-[#3D1A78] text-white px-3 sm:px-3.5 py-1.5 sm:py-2 text-xs font-black shadow-xs transition cursor-pointer"
-          >
-            <Plus size={14} className="stroke-[3]" />
-            <span>{t("Add Property", "إضافة عقار")}</span>
-          </Link>
+        {/* Right Side: Theme Toggle, Language Toggle, Notifications, WhatsApp, Profile */}
+        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+          {/* Dark / Light Mode Toggle */}
+          {toggleTheme && (
+            <button
+              type="button"
+              onClick={toggleTheme}
+              className="grid h-8.5 w-8.5 sm:h-9.5 sm:w-9.5 place-items-center rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 transition-colors cursor-pointer"
+              title={theme === "dark" ? t("Switch to Light Mode", "تفعيل الوضع الفاتح") : t("Switch to Dark Mode", "تفعيل الوضع الداكن")}
+              aria-label={theme === "dark" ? t("Switch to Light Mode", "تفعيل الوضع الفاتح") : t("Switch to Dark Mode", "تفعيل الوضع الداكن")}
+            >
+              {theme === "dark" ? (
+                <Sun size={16} className="text-amber-400" />
+              ) : (
+                <Moon size={16} className="text-slate-600" />
+              )}
+            </button>
+          )}
+
+          {/* Language Toggle */}
           <button
             type="button"
             onClick={() => setLang(lang === "ar" ? "en" : "ar")}
-            className="inline-flex items-center gap-1 rounded-xl border border-violet-200 bg-violet-50/70 px-2 sm:px-3 py-1.5 sm:py-2 text-[11px] sm:text-xs font-extrabold text-[#4F2396] hover:bg-violet-100 transition cursor-pointer"
+            className="inline-flex h-8.5 sm:h-9.5 items-center gap-1.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 px-2.5 sm:px-3 text-[11px] sm:text-xs font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer shrink-0"
+            title={lang === "ar" ? "Switch to English" : "التبديل إلى العربية"}
           >
-            <Globe size={13} />
-            <span>{lang === "ar" ? "EN" : "العربية"}</span>
+            <Globe size={13} className="text-slate-500 dark:text-slate-400 shrink-0" />
+            <span className="leading-none">{lang === "ar" ? "EN" : "العربية"}</span>
           </button>
 
           {/* Notification Bell with Badge & Dropdown */}
@@ -176,14 +208,16 @@ export default function HostTopNav({
             t={t}
           />
 
+          {/* WhatsApp Support Link */}
           <a
             href="https://wa.me/966576707709"
             target="_blank"
             rel="noopener noreferrer"
-            className="grid h-8.5 w-8.5 sm:h-10 sm:w-10 place-items-center rounded-xl bg-[#dcd4ef] text-[#4F2396] hover:bg-[#ceC2e8] transition cursor-pointer"
+            className="grid h-8.5 w-8.5 sm:h-9.5 sm:w-9.5 place-items-center rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 transition cursor-pointer"
             title={t("Chat & Support (WhatsApp)", "المحادثات والدعم (واتساب)")}
+            aria-label={t("Chat & Support (WhatsApp)", "المحادثات والدعم (واتساب)")}
           >
-            <MessageSquareText size={17} />
+            <MessageSquareText size={16} />
           </a>
 
           {/* Profile Dropdown */}
@@ -201,7 +235,7 @@ export default function HostTopNav({
         </div>
       </div>
 
-      {/* Mobile Navigation Drawer */}
+      {/* Mobile / Tablet Navigation Drawer */}
       <HostMobileNavDrawer
         isOpen={isNavOpen}
         active={active}
@@ -219,7 +253,10 @@ export default function HostTopNav({
         submittedPropertiesCount={submittedPropertiesCount}
         bookingsCount={bookingsCount}
         hasPropertyIssues={hasPropertyIssues}
+        theme={theme}
+        toggleTheme={toggleTheme}
       />
     </header>
   );
 }
+

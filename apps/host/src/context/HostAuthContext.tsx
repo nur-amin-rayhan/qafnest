@@ -45,6 +45,37 @@ export function HostAuthProvider({
   // Localization State
   const { lang, applyLang, toggleLang, t } = useHostLanguage(initialLang);
 
+  // Theme State (Light / Dark)
+  const [theme, setThemeState] = useState<"light" | "dark">("light");
+
+  useEffect(() => {
+    try {
+      const storedTheme = localStorage.getItem("qafnest_host_theme");
+      const currentHasDark = document.documentElement.classList.contains("dark");
+      const initial: "light" | "dark" =
+        storedTheme === "dark" || (!storedTheme && currentHasDark) ? "dark" : "light";
+      setThemeState(initial);
+      document.documentElement.classList.toggle("dark", initial === "dark");
+      document.documentElement.classList.toggle("light", initial !== "dark");
+    } catch {}
+  }, []);
+
+  const setTheme = useCallback((nextTheme: "light" | "dark") => {
+    setThemeState(nextTheme);
+    try {
+      if (typeof document !== "undefined") {
+        document.documentElement.classList.toggle("dark", nextTheme === "dark");
+        document.documentElement.classList.toggle("light", nextTheme !== "dark");
+        localStorage.setItem("qafnest_host_theme", nextTheme);
+        document.cookie = `qafnest_host_theme=${nextTheme}; path=/; max-age=31536000; SameSite=Lax`;
+      }
+    } catch {}
+  }, []);
+
+  const toggleTheme = useCallback(() => {
+    setTheme(theme === "dark" ? "light" : "dark");
+  }, [theme, setTheme]);
+
   // Modal State
   const [hostAuthModalOpen, setHostAuthModalOpen] = useState(false);
   const [hostAuthMode, setHostAuthMode] = useState<"signin" | "signup">("signin");
@@ -309,6 +340,9 @@ export function HostAuthProvider({
         setLang: applyLang,
         toggleLang,
         t,
+        theme,
+        setTheme,
+        toggleTheme,
       }}
     >
       {children}

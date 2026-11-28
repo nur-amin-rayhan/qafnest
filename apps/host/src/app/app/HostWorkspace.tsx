@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { useHostAuth } from "@/context/HostAuthContext";
 import { CheckCircle2, X } from "lucide-react";
 import HostTopNav, { type HostNotification, type Module } from "@/components/dashboard/HostTopNav";
+import { HostSidebar } from "@/components/dashboard/nav/HostSidebar";
 import { HostMobileBottomBar } from "@/components/dashboard/nav/HostMobileBottomBar";
 import {
   HostNotificationDetailModal,
@@ -30,7 +31,7 @@ interface HostWorkspaceProps {
 
 export default function HostWorkspace({ initialTab }: HostWorkspaceProps) {
   const router = useRouter();
-  const { user, profile, loading: authLoading, signOut, openHostAuthModal, lang, setLang } = useHostAuth();
+  const { user, profile, loading: authLoading, signOut, openHostAuthModal, lang, setLang, theme, toggleTheme } = useHostAuth();
   const { activeTab, setActiveTab } = useHostTabRouting(initialTab, lang);
 
   const [selectedNotification, setSelectedNotification] = useState<HostNotification | null>(null);
@@ -109,10 +110,10 @@ export default function HostWorkspace({ initialTab }: HostWorkspaceProps) {
   return (
     <div
       dir={lang === "ar" ? "rtl" : "ltr"}
-      className="min-h-screen bg-[#f3f3f7] text-slate-900 flex flex-col font-body pb-20 lg:pb-8"
+      className="min-h-screen bg-[#f3f3f7] dark:bg-[#06060b] text-slate-900 dark:text-slate-100 flex font-body transition-colors"
     >
-      {/* Top Navigation Bar with tabs, profile, notifications */}
-      <HostTopNav
+      {/* Desktop Sidebar (hidden on tablet and mobile) */}
+      <HostSidebar
         active={activeTab}
         setActive={setActiveTab}
         lang={lang}
@@ -124,12 +125,33 @@ export default function HostWorkspace({ initialTab }: HostWorkspaceProps) {
         submittedPropertiesCount={submittedProperties.length}
         hasPropertyIssues={hasPropertyIssues}
         bookingsCount={liveBookings.length}
-        notifications={notifications}
-        onSelectNotification={handleSelectNotification}
-        onMarkAllNotificationsRead={handleMarkAllNotificationsRead}
-        mobileNavOpen={mobileNavOpen}
-        setMobileNavOpen={setMobileNavOpen}
+        theme={theme}
+        toggleTheme={toggleTheme}
       />
+
+      {/* Main Content Area */}
+      <div className="flex-1 flex flex-col min-w-0 pb-20 xl:pb-10">
+        {/* Top Header */}
+        <HostTopNav
+          active={activeTab}
+          setActive={setActiveTab}
+          lang={lang}
+          setLang={setLang}
+          t={t}
+          user={user}
+          profile={profile}
+          signOut={signOut}
+          submittedPropertiesCount={submittedProperties.length}
+          hasPropertyIssues={hasPropertyIssues}
+          bookingsCount={liveBookings.length}
+          notifications={notifications}
+          onSelectNotification={handleSelectNotification}
+          onMarkAllNotificationsRead={handleMarkAllNotificationsRead}
+          mobileNavOpen={mobileNavOpen}
+          setMobileNavOpen={setMobileNavOpen}
+          theme={theme}
+          toggleTheme={toggleTheme}
+        />
 
       <HostNotificationDetailModal
         notification={selectedNotification}
@@ -215,8 +237,9 @@ export default function HostWorkspace({ initialTab }: HostWorkspaceProps) {
 
       {/* Floating Real-time Alerts Banner */}
       <HostRealtimeAlerts alerts={realtimeAlerts} lang={lang} onDismiss={dismissAlert} />
+      </div>
 
-      {/* Sticky Mobile Bottom Navigation Bar */}
+      {/* Sticky Mobile / Tablet Bottom Navigation Bar */}
       <HostMobileBottomBar
         active={activeTab}
         setActive={(tab) => setActiveTab(tab as Module)}

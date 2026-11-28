@@ -75,10 +75,10 @@ export function HostMobileBottomBar({
   return (
     <nav
       dir={lang === "ar" ? "rtl" : "ltr"}
-      className="lg:hidden fixed bottom-0 inset-x-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200/90 shadow-[0_-4px_16px_rgba(0,0,0,0.04)] pb-[env(safe-area-inset-bottom)]"
+      className="xl:hidden fixed bottom-0 inset-x-0 z-40 bg-white/95 dark:bg-[#0c0d1b]/95 backdrop-blur-md border-t border-slate-200/90 dark:border-slate-800/80 shadow-[0_-4px_16px_rgba(0,0,0,0.04)] pb-[env(safe-area-inset-bottom)] transition-colors"
       aria-label={t("Mobile Navigation", "التنقل عبر الجوال")}
     >
-      <div className="flex items-center justify-around h-15 max-w-md mx-auto px-2">
+      <div className="flex items-center justify-around h-15 max-w-lg mx-auto px-2">
         {bottomTabs.map((tab) => {
           const Icon = tab.icon;
           const isCurrent = active === tab.key;
@@ -89,12 +89,12 @@ export function HostMobileBottomBar({
                 key={tab.key}
                 type="button"
                 onClick={onOpenMenu}
-                className="flex flex-col items-center justify-center flex-1 h-full py-1 text-slate-500 hover:text-[#4F2396] transition active:scale-95 cursor-pointer"
+                className="flex flex-col items-center justify-center flex-1 h-full py-1 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition active:scale-95 cursor-pointer"
               >
                 <div className="relative">
-                  <Icon size={20} className="text-slate-500" />
+                  <Icon size={20} className="text-slate-500 dark:text-slate-400" />
                 </div>
-                <span className="mt-1 text-[10px] font-bold text-slate-600 leading-none">
+                <span className="mt-1 text-[10px] font-bold text-slate-600 dark:text-slate-400 leading-none">
                   {tab.label}
                 </span>
               </button>
@@ -110,25 +110,25 @@ export function HostMobileBottomBar({
                 setActive(tab.key as Module);
               }}
               className={`flex flex-col items-center justify-center flex-1 h-full py-1 transition active:scale-95 cursor-pointer ${
-                isCurrent ? "text-[#4F2396]" : "text-slate-400 hover:text-slate-600"
+                isCurrent ? "text-slate-900 dark:text-white" : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
               }`}
             >
               <div className="relative">
                 <Icon
                   size={20}
-                  className={isCurrent ? "text-[#4F2396] stroke-[2.4]" : "text-slate-400"}
+                  className={isCurrent ? "text-slate-900 dark:text-white stroke-[2.4]" : "text-slate-400 dark:text-slate-500"}
                 />
                 {tab.hasAlert ? (
-                  <span className="absolute -top-1 -end-1.5 h-2 w-2 rounded-full bg-rose-500 ring-2 ring-white animate-pulse" />
+                  <span className="absolute -top-1 -end-1.5 h-2 w-2 rounded-full bg-rose-500 ring-2 ring-white dark:ring-slate-900 animate-pulse" />
                 ) : typeof tab.count === "number" && tab.count > 0 ? (
-                  <span className="absolute -top-1.5 -end-2.5 rounded-full bg-violet-100 text-[#4F2396] text-[8px] font-black px-1 leading-tight border border-violet-200">
+                  <span className="absolute -top-1.5 -end-2.5 rounded-full bg-violet-100 dark:bg-violet-900/60 text-violet-800 dark:text-violet-200 text-[8px] font-black px-1 leading-tight border border-violet-200 dark:border-violet-800">
                     {tab.count}
                   </span>
                 ) : null}
               </div>
               <span
                 className={`mt-1 text-[10px] leading-none ${
-                  isCurrent ? "font-black text-[#4F2396]" : "font-medium text-slate-500"
+                  isCurrent ? "font-black text-slate-900 dark:text-white" : "font-medium text-slate-500 dark:text-slate-400"
                 }`}
               >
                 {tab.label}

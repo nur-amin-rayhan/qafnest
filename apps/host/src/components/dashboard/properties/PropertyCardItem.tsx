@@ -28,10 +28,10 @@ export function PropertyCardItem({ prop, t, onDelete }: PropertyCardItemProps) {
   const coverImage = prop.images && prop.images.length > 0 ? prop.images[0] : null;
 
   return (
-    <div className="rounded-3xl border border-slate-200/90 bg-white overflow-hidden shadow-xs hover:shadow-lg transition-all duration-300 flex flex-col justify-between">
+    <div className="rounded-3xl border border-slate-200/90 dark:border-slate-800/80 bg-white dark:bg-[#121324] overflow-hidden shadow-xs hover:shadow-lg transition-all duration-300 flex flex-col justify-between">
       <div>
         {/* Property Cover / Photo */}
-        <div className="relative h-48 w-full bg-slate-100 overflow-hidden">
+        <div className="relative h-48 w-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
           {coverImage ? (
             <img
               src={coverImage}
@@ -39,7 +39,7 @@ export function PropertyCardItem({ prop, t, onDelete }: PropertyCardItemProps) {
               className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-500"
             />
           ) : (
-            <div className="flex h-full w-full items-center justify-center bg-gradient-to-tr from-violet-100 to-slate-100 text-slate-400">
+            <div className="flex h-full w-full items-center justify-center bg-slate-100 dark:bg-slate-800 text-slate-400">
               <Building2 size={36} />
             </div>
           )}

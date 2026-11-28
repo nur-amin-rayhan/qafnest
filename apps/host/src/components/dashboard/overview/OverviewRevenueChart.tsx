@@ -121,16 +121,16 @@ export function OverviewRevenueChart({ bookings = [], lang, t }: OverviewRevenue
   }, [confirmedBookings]);
 
   return (
-    <div className="rounded-3xl border border-slate-200/90 bg-white p-6 sm:p-8 shadow-xs">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-5">
+    <div className="rounded-3xl border border-slate-200/90 dark:border-slate-800/80 bg-white dark:bg-[#121324] p-5 sm:p-8 shadow-xs transition-colors">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 dark:border-slate-800/80 pb-5">
         <div>
           <div className="flex items-center gap-2">
-            <div className="h-3 w-3 rounded-full bg-[#4F2396]" />
-            <h2 className="text-lg sm:text-xl font-black text-slate-900">
+            <div className="h-3 w-3 rounded-full bg-violet-600 dark:bg-violet-400" />
+            <h2 className="text-lg sm:text-xl font-black text-slate-900 dark:text-white">
               {t("Sales & Revenue Trends", "أداء المبيعات والإيرادات الشهرية")}
             </h2>
           </div>
-          <p className="mt-1 text-xs text-slate-500 font-medium">
+          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400 font-medium">
             {t(
               "Interactive visual breakdown of booking earnings and reservation performance.",
               "رسم بياني تفاعلي يوضح نمو العوائد المالية وعدد الحجوزات المكتملة."
@@ -139,7 +139,7 @@ export function OverviewRevenueChart({ bookings = [], lang, t }: OverviewRevenue
         </div>
 
         {/* Timeframe selector */}
-        <div className="flex items-center justify-between sm:justify-start gap-1 bg-slate-100/80 p-1 rounded-2xl w-full sm:w-auto">
+        <div className="flex items-center justify-between sm:justify-start gap-1 bg-slate-100/80 dark:bg-slate-900/60 p-1 rounded-2xl w-full sm:w-auto">
           {[
             { id: "30d", labelAr: "30 يوماً", labelEn: "30 Days" },
             { id: "90d", labelAr: "3 أشهر", labelEn: "Quarter" },
@@ -151,8 +151,8 @@ export function OverviewRevenueChart({ bookings = [], lang, t }: OverviewRevenue
               onClick={() => setChartTimeframe(tf.id as typeof chartTimeframe)}
               className={`flex-1 sm:flex-initial rounded-xl px-3 py-1.5 text-xs font-bold transition cursor-pointer text-center ${
                 chartTimeframe === tf.id
-                  ? "bg-white text-slate-950 shadow-2xs"
-                  : "text-slate-600 hover:text-slate-900"
+                  ? "bg-white dark:bg-slate-800 text-slate-950 dark:text-white shadow-2xs"
+                  : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
               }`}
             >
               {lang === "ar" ? tf.labelAr : tf.labelEn}
@@ -167,10 +167,10 @@ export function OverviewRevenueChart({ bookings = [], lang, t }: OverviewRevenue
           <div className="relative h-60 sm:h-72 min-w-[340px] sm:min-w-0 w-full flex items-end gap-1.5 sm:gap-3 px-1 sm:px-2">
             {/* Background Grid Lines */}
             <div className="absolute inset-x-0 inset-y-0 flex flex-col justify-between pointer-events-none opacity-20">
-              <div className="border-b border-slate-300 w-full" />
-              <div className="border-b border-slate-300 w-full" />
-              <div className="border-b border-slate-300 w-full" />
-              <div className="border-b border-slate-300 w-full" />
+              <div className="border-b border-slate-300 dark:border-slate-700 w-full" />
+              <div className="border-b border-slate-300 dark:border-slate-700 w-full" />
+              <div className="border-b border-slate-300 dark:border-slate-700 w-full" />
+              <div className="border-b border-slate-300 dark:border-slate-700 w-full" />
             </div>
 
             {chartData.map((item, index) => {
@@ -189,11 +189,11 @@ export function OverviewRevenueChart({ bookings = [], lang, t }: OverviewRevenue
                 >
                   {/* Floating tooltip on hover */}
                   {isHovered && (
-                    <div className="absolute -top-12 z-20 rounded-xl bg-slate-900 px-3 py-1.5 text-[11px] font-bold text-white shadow-xl whitespace-nowrap animate-in fade-in zoom-in-95 duration-150">
+                    <div className="absolute -top-12 z-20 rounded-xl bg-slate-900 dark:bg-slate-100 px-3 py-1.5 text-[11px] font-bold text-white dark:text-slate-950 shadow-xl whitespace-nowrap animate-in fade-in zoom-in-95 duration-150">
                       <div>
                         {item.amount.toLocaleString()} {t("SAR", "ر.س")}
                       </div>
-                      <div className="text-[9px] text-slate-300">
+                      <div className="text-[9px] text-slate-300 dark:text-slate-600">
                         {item.bookings} {t("stays", "حجز")}
                       </div>
                     </div>
@@ -203,16 +203,16 @@ export function OverviewRevenueChart({ bookings = [], lang, t }: OverviewRevenue
                   <div
                     className={`w-full max-w-[36px] rounded-t-lg transition-all duration-200 ${
                       heightPercent === 0
-                        ? "bg-slate-200/90"
+                        ? "bg-slate-200/90 dark:bg-slate-800"
                         : isHovered
-                        ? "bg-slate-900 shadow-sm"
-                        : "bg-slate-700 hover:bg-slate-900"
+                        ? "bg-slate-900 dark:bg-white shadow-sm"
+                        : "bg-slate-700 dark:bg-violet-600 hover:bg-slate-900 dark:hover:bg-violet-500"
                     }`}
                     style={{ height: heightPercent > 0 ? `${heightPercent}%` : "3px" }}
                   />
 
                   {/* X-axis Label */}
-                  <span className="mt-2 text-[10px] sm:text-xs font-semibold text-slate-500 truncate w-full text-center">
+                  <span className="mt-2 text-[10px] sm:text-xs font-semibold text-slate-500 dark:text-slate-400 truncate w-full text-center">
                     {lang === "ar" ? item.labelAr : item.labelEn}
                   </span>
                 </div>
@@ -222,30 +222,30 @@ export function OverviewRevenueChart({ bookings = [], lang, t }: OverviewRevenue
         </div>
 
         {/* Quick Insights Row */}
-        <div className="mt-6 pt-5 border-t border-slate-100 grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
-          <div className="rounded-2xl bg-slate-50/70 p-3.5 border border-slate-100">
-            <span className="text-[11px] font-bold text-slate-400">
+        <div className="mt-6 pt-5 border-t border-slate-100 dark:border-slate-800/80 grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
+          <div className="rounded-2xl bg-slate-50/70 dark:bg-slate-900/40 p-3.5 border border-slate-100 dark:border-slate-800/60">
+            <span className="text-[11px] font-bold text-slate-400 dark:text-slate-500">
               {t("Top Earning Period", "أعلى فترة مبيعاً")}
             </span>
-            <p className="mt-1 text-sm font-black text-slate-900">
+            <p className="mt-1 text-sm font-black text-slate-900 dark:text-white">
               {topBucket.amount > 0
                 ? `${lang === "ar" ? topBucket.labelAr : topBucket.labelEn} (SAR ${topBucket.amount.toLocaleString()})`
                 : t("No earnings yet (0 SAR)", "لا توجد مبيعات بعد (0 ر.س)")}
             </p>
           </div>
-          <div className="rounded-2xl bg-slate-50/70 p-3.5 border border-slate-100">
-            <span className="text-[11px] font-bold text-slate-400">
+          <div className="rounded-2xl bg-slate-50/70 dark:bg-slate-900/40 p-3.5 border border-slate-100 dark:border-slate-800/60">
+            <span className="text-[11px] font-bold text-slate-400 dark:text-slate-500">
               {t("Average Daily Rate (ADR)", "متوسط سعر الليلة")}
             </span>
-            <p className="mt-1 text-sm font-black text-[#4F2396]">
+            <p className="mt-1 text-sm font-black text-violet-600 dark:text-violet-400">
               {averageDailyRate.toLocaleString()} {t("SAR / night", "ر.س / ليلة")}
             </p>
           </div>
-          <div className="rounded-2xl bg-slate-50/70 p-3.5 border border-slate-100">
-            <span className="text-[11px] font-bold text-slate-400">
+          <div className="rounded-2xl bg-slate-50/70 dark:bg-slate-900/40 p-3.5 border border-slate-100 dark:border-slate-800/60">
+            <span className="text-[11px] font-bold text-slate-400 dark:text-slate-500">
               {t("Net Payout Schedule", "دورة التحويلات البنكية")}
             </span>
-            <p className="mt-1 text-sm font-black text-emerald-700">
+            <p className="mt-1 text-sm font-black text-emerald-600 dark:text-emerald-400">
               {t("Every Sunday & Wednesday", "الأحد والأربعاء أسبوعياً")}
             </p>
           </div>

@@ -40,19 +40,19 @@ export function BookingCardItem({
 
   return (
     <div
-      className={`relative rounded-2xl border bg-white p-5 sm:p-6 transition shadow-xs hover:shadow-md ${
+      className={`relative rounded-2xl border bg-white dark:bg-[#121324] p-5 sm:p-6 transition shadow-xs hover:shadow-md ${
         isToday
-          ? "border-emerald-300 ring-1 ring-emerald-200 bg-emerald-50/20"
+          ? "border-emerald-300 dark:border-emerald-800 ring-1 ring-emerald-200 dark:ring-emerald-900/40 bg-emerald-50/20 dark:bg-emerald-950/20"
           : isPending
-          ? "border-amber-200 bg-amber-50/20"
-          : "border-slate-200/90"
+          ? "border-amber-200 dark:border-amber-800 bg-amber-50/20 dark:bg-amber-950/20"
+          : "border-slate-200/90 dark:border-slate-800/80"
       }`}
     >
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-5">
         {/* Left: Thumbnail & Property/Guest Info */}
         <div className="flex items-start gap-4">
           {item.propertyImage ? (
-            <div className="relative h-20 w-24 sm:h-24 sm:w-28 shrink-0 overflow-hidden rounded-xl bg-slate-100 border border-slate-200/80">
+            <div className="relative h-20 w-24 sm:h-24 sm:w-28 shrink-0 overflow-hidden rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200/80 dark:border-slate-800">
               <img
                 src={item.propertyImage}
                 alt={item.propertyTitle}
@@ -60,14 +60,14 @@ export function BookingCardItem({
               />
             </div>
           ) : (
-            <div className="flex h-20 w-24 sm:h-24 sm:w-28 shrink-0 items-center justify-center rounded-xl bg-violet-50 text-[#4F2396]">
+            <div className="flex h-20 w-24 sm:h-24 sm:w-28 shrink-0 items-center justify-center rounded-xl bg-violet-50 dark:bg-violet-950/40 text-violet-600 dark:text-violet-400">
               <Building2 size={24} />
             </div>
           )}
 
           <div className="space-y-1">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="font-mono text-xs sm:text-sm font-black text-[#4F2396]">
+              <span className="font-mono text-xs sm:text-sm font-bold text-violet-600 dark:text-violet-400">
                 {item.booking_reference}
               </span>
 
@@ -75,10 +75,10 @@ export function BookingCardItem({
               <span
                 className={`rounded-md px-2 py-0.5 text-[10px] font-black ${
                   item.status === "confirmed"
-                    ? "bg-emerald-100 text-emerald-800"
+                    ? "bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300"
                     : item.status === "pending"
-                    ? "bg-amber-100 text-amber-800"
-                    : "bg-rose-100 text-rose-800"
+                    ? "bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300"
+                    : "bg-rose-100 dark:bg-rose-950/60 text-rose-800 dark:text-rose-300"
                 }`}
               >
                 {item.status === "confirmed"
@@ -98,26 +98,26 @@ export function BookingCardItem({
             </div>
 
             {/* Property Title */}
-            <h3 className="text-sm sm:text-base font-black text-slate-900 leading-snug">
+            <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white leading-snug">
               {lang === "ar" ? item.propertyTitleAr : item.propertyTitle}
             </h3>
 
             {/* Guest & Contact Info */}
-            <div className="flex flex-wrap items-center gap-3 text-xs font-bold text-slate-500 pt-0.5">
+            <div className="flex flex-wrap items-center gap-3 text-xs font-semibold text-slate-500 dark:text-slate-400 pt-0.5">
               <span className="inline-flex items-center gap-1">
-                <User size={13} className="text-slate-400" />
+                <User size={13} className="text-slate-400 dark:text-slate-500" />
                 <span>{item.guestName}</span>
               </span>
               {item.guestPhone && (
                 <a
                   href={`tel:${item.guestPhone}`}
-                  className="inline-flex items-center gap-1 text-[#4F2396] hover:underline"
+                  className="inline-flex items-center gap-1 text-violet-600 dark:text-violet-400 hover:underline"
                 >
                   <Phone size={13} />
                   <span dir="ltr">{item.guestPhone}</span>
                 </a>
               )}
-              <span className="inline-flex items-center gap-1 text-slate-400">
+              <span className="inline-flex items-center gap-1 text-slate-400 dark:text-slate-500">
                 <Users size={13} />
                 <span>{item.guests_count} {t("Guests", "ضيوف")}</span>
               </span>
@@ -126,49 +126,49 @@ export function BookingCardItem({
         </div>
 
         {/* Middle: Check-in / Out & Smart Lock PIN */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 border-t lg:border-t-0 lg:border-l lg:border-r border-slate-100 pt-3 lg:pt-0 px-0 lg:px-6">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 border-t lg:border-t-0 lg:border-l lg:border-r border-slate-100 dark:border-slate-800/80 pt-3 lg:pt-0 px-0 lg:px-6">
           {/* Dates */}
           <div>
-            <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
               {t("Check-In", "الوصول")}
             </span>
-            <p className="text-xs sm:text-sm font-black text-slate-800 mt-0.5">
+            <p className="text-xs sm:text-sm font-bold text-slate-800 dark:text-slate-200 mt-0.5">
               {item.check_in}
             </p>
-            <span className="text-[10px] font-bold text-slate-400">
+            <span className="text-[10px] font-medium text-slate-400 dark:text-slate-500">
               3:00 {t("PM", "مساءً")}
             </span>
           </div>
 
           <div>
-            <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
               {t("Check-Out", "المغادرة")}
             </span>
-            <p className="text-xs sm:text-sm font-black text-slate-800 mt-0.5">
+            <p className="text-xs sm:text-sm font-bold text-slate-800 dark:text-slate-200 mt-0.5">
               {item.check_out}
             </p>
-            <span className="text-[10px] font-bold text-slate-400">
+            <span className="text-[10px] font-medium text-slate-400 dark:text-slate-500">
               {item.total_nights} {t("Nights", "ليالٍ")}
             </span>
           </div>
 
           {/* Smart Lock PIN Box */}
           <div className="col-span-2 sm:col-span-1 flex flex-col justify-center">
-            <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 inline-flex items-center gap-1">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 inline-flex items-center gap-1">
               <KeyRound size={11} className="text-[#FF9750]" />
               <span>{t("Lock PIN", "رمز القفل")}</span>
             </span>
 
             {item.smart_lock_pin ? (
               <div className="mt-1 flex items-center gap-1.5">
-                <span className="rounded-lg bg-violet-100/80 px-2.5 py-1 font-mono text-sm font-black text-[#4F2396] tracking-wider">
+                <span className="rounded-lg bg-violet-100/80 dark:bg-violet-950/60 px-2.5 py-1 font-mono text-sm font-bold text-violet-800 dark:text-violet-200 tracking-wider">
                   {item.smart_lock_pin}
                 </span>
                 <button
                   type="button"
                   onClick={() => onCopyPin(item.smart_lock_pin!, item.id)}
                   title={t("Copy PIN", "نسخ الرمز")}
-                  className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition cursor-pointer"
+                  className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-700 dark:hover:text-slate-200 transition cursor-pointer"
                 >
                   {copiedPinId === item.id ? (
                     <CheckCircle2 size={14} className="text-emerald-600" />
@@ -181,14 +181,14 @@ export function BookingCardItem({
                     type="button"
                     onClick={() => onSelectBooking(item)}
                     title={t("Set Manual PIN", "تعيين رمز القفل يدوياً")}
-                    className="rounded-lg px-2 py-1 text-[11px] font-bold text-[#4F2396] hover:bg-violet-50 transition cursor-pointer"
+                    className="rounded-lg px-2 py-1 text-[11px] font-bold text-violet-600 dark:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-950/40 transition cursor-pointer"
                   >
                     {t("Edit", "تعديل")}
                   </button>
                 )}
               </div>
             ) : item.status === "cancelled" ? (
-              <span className="mt-1 inline-flex items-center gap-1 text-[11px] font-bold text-slate-400">
+              <span className="mt-1 inline-flex items-center gap-1 text-[11px] font-bold text-slate-400 dark:text-slate-500">
                 <Lock size={11} />
                 <span>{t("PIN Disabled (Cancelled)", "معطل (حجز ملغي)")}</span>
               </span>
@@ -196,7 +196,7 @@ export function BookingCardItem({
               <button
                 type="button"
                 onClick={() => onSelectBooking(item)}
-                className="mt-1 inline-flex items-center gap-1 text-xs font-black text-[#4F2396] hover:underline cursor-pointer"
+                className="mt-1 inline-flex items-center gap-1 text-xs font-bold text-violet-600 dark:text-violet-400 hover:underline cursor-pointer"
               >
                 <KeyRound size={12} />
                 <span>{t("Set Manual PIN", "تعيين رمز يدوياً")}</span>
@@ -208,13 +208,13 @@ export function BookingCardItem({
         {/* Right: Total Price & Actions */}
         <div className="flex flex-wrap lg:flex-col items-center lg:items-end justify-between gap-3 shrink-0">
           <div className="text-left rtl:text-right">
-            <span className="text-[10px] font-black text-slate-400 block">
+            <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 block">
               {t("Booking Total", "إجمالي الحجز")}
             </span>
-            <span className="text-base sm:text-lg font-black text-slate-900">
+            <span className="text-base sm:text-lg font-black text-slate-900 dark:text-white">
               {item.total_price} {t("SAR", "ر.س")}
             </span>
-            <span className="block text-[10px] font-bold text-slate-400 uppercase">
+            <span className="block text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase">
               {item.payment_method || "Online"}
             </span>
           </div>
@@ -226,7 +226,7 @@ export function BookingCardItem({
                   type="button"
                   onClick={() => onUpdateStatus(item.id, "confirmed")}
                   disabled={actionLoadingId === item.id}
-                  className="rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 text-xs font-black shadow-xs transition cursor-pointer"
+                  className="rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 text-xs font-bold shadow-xs transition cursor-pointer"
                 >
                   {t("Approve", "قبول")}
                 </button>
@@ -234,7 +234,7 @@ export function BookingCardItem({
                   type="button"
                   onClick={() => onUpdateStatus(item.id, "cancelled")}
                   disabled={actionLoadingId === item.id}
-                  className="rounded-xl border border-rose-200 bg-white hover:bg-rose-50 text-rose-700 px-3 py-1.5 text-xs font-black shadow-xs transition cursor-pointer"
+                  className="rounded-xl border border-rose-200 dark:border-rose-900/60 bg-white dark:bg-rose-950/20 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-rose-700 dark:text-rose-400 px-3 py-1.5 text-xs font-bold shadow-xs transition cursor-pointer"
                 >
                   {t("Decline", "رفض")}
                 </button>
@@ -244,7 +244,7 @@ export function BookingCardItem({
             <button
               type="button"
               onClick={() => onSelectBooking(item)}
-              className="rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 px-3.5 py-1.5 text-xs font-black shadow-xs transition cursor-pointer"
+              className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 px-3.5 py-1.5 text-xs font-bold shadow-xs transition cursor-pointer"
             >
               {t("Details", "التفاصيل")}
             </button>
