@@ -52,6 +52,7 @@ interface ReservationSidebarProps {
   remainingAmount?: number;
   user: unknown;
   paymentMessage: string | null;
+  identityVerified?: boolean;
 }
 
 export default function ReservationSidebar({
@@ -85,9 +86,19 @@ export default function ReservationSidebar({
   remainingAmount,
   user,
   paymentMessage,
+  identityVerified: propIdentityVerified,
 }: ReservationSidebarProps) {
   const { profile, user: authUser } = useAuth();
-  const identityVerified = !user || Boolean(profile?.is_verified || authUser?.app_metadata?.is_verified);
+  
+  // Saudi Government ID Verification Gate Toggle (Nafath / Elm Yaqeen)
+  // Kept inactive while government provider (Nafath / Elm Yaqeen) API credentials are pending.
+  // When active (true), requires verified National ID / Iqama via Nafath/Yaqeen before payment.
+  // When inactive (false), phone verification is sufficient to proceed to payment.
+  const REQUIRE_GOVERNMENT_ID_VERIFICATION = false;
+
+  const identityVerified = REQUIRE_GOVERNMENT_ID_VERIFICATION
+    ? (propIdentityVerified ?? Boolean(profile?.is_verified || authUser?.app_metadata?.is_verified))
+    : true;
   const searchParams = useSearchParams();
   const initialCoupon = searchParams?.get("coupon") || null;
   const nightlyDisplayRate = Math.round((baseStayRate / Math.max(1, nights)) * 100) / 100;
@@ -283,7 +294,7 @@ export default function ReservationSidebar({
               ? user
                 ? label("Verify mobile to pay", "تحقق من رقم الجوال للدفع")
                 : label("Sign in to continue to payment", "سجل الدخول للمتابعة إلى الدفع")
-              : !identityVerified
+              : REQUIRE_GOVERNMENT_ID_VERIFICATION && !identityVerified
               ? label("Verify ID via Nafath to pay", "وثق الهوية عبر نفاذ للدفع")
               : !paymentMethod
               ? walletSplitActive
@@ -296,7 +307,8 @@ export default function ReservationSidebar({
                 )
               : label("Pay now", "ادفع الآن")}
           </button>
-          {Boolean(user && phoneVerified && !identityVerified) && (
+          {/* Nafath / Elm Yaqeen Verification CTA - activate when REQUIRE_GOVERNMENT_ID_VERIFICATION is true */}
+          {Boolean(REQUIRE_GOVERNMENT_ID_VERIFICATION && user && phoneVerified && !identityVerified) && (
             <button
               type="button"
               onClick={dispatchOpenIdentityModal}

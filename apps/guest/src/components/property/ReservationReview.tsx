@@ -49,6 +49,7 @@ export default function ReservationReview({ property }: ReservationReviewProps) 
     installmentPrice,
     setPricing,
     phoneVerified,
+    identityVerified,
     phoneOtpVerified,
     effectiveName,
     reservationPhone,
@@ -149,6 +150,7 @@ export default function ReservationReview({ property }: ReservationReviewProps) 
             {/* Guest Verification Section */}
             <ReservationGuestVerification
               phoneVerified={phoneVerified}
+              identityVerified={identityVerified}
               phoneOtpVerified={phoneOtpVerified}
               effectiveName={effectiveName}
               reservationPhone={reservationPhone}
@@ -185,6 +187,7 @@ export default function ReservationReview({ property }: ReservationReviewProps) 
             {/* Payment Methods Section */}
             <ReservationPaymentMethods
               phoneVerified={phoneVerified}
+              identityVerified={identityVerified}
               paymentMethod={paymentMethod}
               setPaymentMethod={setPaymentMethod}
               setPaymentMessage={setPaymentMessage}
@@ -230,6 +233,7 @@ export default function ReservationReview({ property }: ReservationReviewProps) 
             isPayDisabled={isPayDisabled}
             paymentBusy={paymentBusy}
             phoneVerified={phoneVerified}
+            identityVerified={identityVerified}
             paymentMethod={paymentMethod}
             walletSplitActive={walletSplitActive}
             walletBalance={walletBalance}

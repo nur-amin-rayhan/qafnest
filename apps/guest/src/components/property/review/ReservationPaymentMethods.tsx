@@ -48,6 +48,7 @@ interface ReservationPaymentMethodsProps {
   setSelectedCardRequiresCvv?: (required: boolean) => void;
   cardCvv?: string;
   setCardCvv?: (cvv: string) => void;
+  identityVerified?: boolean;
 }
 
 export default function ReservationPaymentMethods({
@@ -68,9 +69,19 @@ export default function ReservationPaymentMethods({
   setSelectedCardRequiresCvv,
   cardCvv,
   setCardCvv,
+  identityVerified: propIdentityVerified,
 }: ReservationPaymentMethodsProps) {
   const { session, profile, user: authUser } = useAuth();
-  const identityVerified = !user || Boolean(profile?.is_verified || authUser?.app_metadata?.is_verified);
+  
+  // Saudi Government ID Verification Gate Toggle (Nafath / Elm Yaqeen)
+  // Kept inactive while government provider (Nafath / Elm Yaqeen) API credentials are pending.
+  // When active (true), requires verified National ID / Iqama via Nafath/Yaqeen to unlock payment methods.
+  // When inactive (false), phone verification is sufficient to select payment methods and book.
+  const REQUIRE_GOVERNMENT_ID_VERIFICATION = false;
+
+  const identityVerified = REQUIRE_GOVERNMENT_ID_VERIFICATION
+    ? (propIdentityVerified ?? Boolean(profile?.is_verified || authUser?.app_metadata?.is_verified))
+    : true;
   const [splitMethodsOpen, setSplitMethodsOpen] = useState(false);
   const [savedCards, setSavedCards] = useState<SavedCard[]>([]);
   const hasInitializedRef = React.useRef(false);
@@ -134,7 +145,7 @@ export default function ReservationPaymentMethods({
         <Wallet className="h-5 w-5 shrink-0 text-[#4F2396] dark:text-purple-300" />
       </div>
 
-      {!phoneVerified || !identityVerified ? (
+      {!phoneVerified || (REQUIRE_GOVERNMENT_ID_VERIFICATION && !identityVerified) ? (
         <div className="mt-5 rounded-2xl border border-dashed border-slate-300/80 bg-slate-50/60 p-6 text-center dark:border-slate-700/80 dark:bg-slate-900/30">
           <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-purple-50 text-[#4F2396] dark:bg-purple-950/60 dark:text-purple-300">
             <LockKeyhole className="h-5 w-5" />
@@ -154,7 +165,8 @@ export default function ReservationPaymentMethods({
                   "وثق الهوية الوطنية أو الإقامة المطابقة لرقم جوالك عبر نفاذ / علم يقين لفتح طرق الدفع وإتمام الحجز."
                 )}
           </p>
-          {phoneVerified && !identityVerified && (
+          {/* Nafath / Elm Yaqeen Verification button - activate when REQUIRE_GOVERNMENT_ID_VERIFICATION is true */}
+          {REQUIRE_GOVERNMENT_ID_VERIFICATION && phoneVerified && !identityVerified && (
             <button
               type="button"
               onClick={dispatchOpenIdentityModal}

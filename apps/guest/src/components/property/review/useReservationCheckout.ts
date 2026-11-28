@@ -125,7 +125,13 @@ export function useReservationCheckout({
         ?.scrollIntoView({ behavior: "smooth", block: "center" });
       return;
     }
-    if (!identityVerified) {
+    /*
+     * Nafath / Elm Yaqeen Identity Verification gate
+     * Kept inactive while government API credentials are pending.
+     * To activate when API credentials arrive, set REQUIRE_GOVERNMENT_ID_VERIFICATION = true.
+     */
+    const REQUIRE_GOVERNMENT_ID_VERIFICATION = false;
+    if (REQUIRE_GOVERNMENT_ID_VERIFICATION && !identityVerified) {
       setPaymentMessage(
         label(
           "Verify your Saudi National ID or Iqama via Nafath / Elm Yaqeen before completing your booking.",

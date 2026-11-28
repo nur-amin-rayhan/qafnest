@@ -34,6 +34,7 @@ interface ReservationGuestVerificationProps {
   onOpenCodeStep: () => void;
   recaptchaContainerRef: React.Ref<HTMLDivElement>;
   label: (en: string, ar: string) => string;
+  identityVerified?: boolean;
 }
 
 export default function ReservationGuestVerification({
@@ -56,9 +57,19 @@ export default function ReservationGuestVerification({
   onOpenCodeStep,
   recaptchaContainerRef,
   label,
+  identityVerified: propIdentityVerified,
 }: ReservationGuestVerificationProps) {
   const { profile, user: authUser } = useAuth();
-  const identityVerified = Boolean(profile?.is_verified || authUser?.app_metadata?.is_verified);
+  
+  // Saudi Government ID Verification Gate Toggle (Nafath / Elm Yaqeen)
+  // Kept inactive while government provider (Nafath / Elm Yaqeen) API credentials are pending.
+  // When active (true), requires verified National ID / Iqama via Nafath/Yaqeen.
+  // When inactive (false), phone verification is sufficient to complete guest details.
+  const REQUIRE_GOVERNMENT_ID_VERIFICATION = false;
+
+  const identityVerified = REQUIRE_GOVERNMENT_ID_VERIFICATION
+    ? (propIdentityVerified ?? Boolean(profile?.is_verified || authUser?.app_metadata?.is_verified))
+    : Boolean(phoneVerified && (effectiveEmail || authUser?.email || profile?.contact_email));
   const resolvedName = profile?.full_name?.trim() || effectiveName;
 
   return (
@@ -91,7 +102,12 @@ export default function ReservationGuestVerification({
                   <span dir="ltr">{effectiveEmail}</span>
                 </p>
               )}
-              {!identityVerified && (
+              {/* 
+                Nafath / Elm Yaqeen National ID / Iqama Verification Banner
+                Kept commented / inactive while government API credentials are pending.
+                To activate: set REQUIRE_GOVERNMENT_ID_VERIFICATION = true above.
+              */}
+              {REQUIRE_GOVERNMENT_ID_VERIFICATION && !identityVerified && (
                 <div className="mt-2.5 flex flex-wrap items-center justify-between gap-2.5 rounded-xl border border-amber-200 bg-amber-50 px-3.5 py-2.5 text-xs text-amber-900 dark:border-amber-500/20 dark:bg-amber-950/30 dark:text-amber-200">
                   <span>
                     {label(
@@ -150,9 +166,11 @@ export default function ReservationGuestVerification({
             }`}
           >
             <CheckCircle2 className="h-4 w-4" />
-            {identityVerified
-              ? label("Verified · Nafath / Yaqeen", "موثق · نفاذ / يقين")
-              : label("Mobile Verified · ID Pending", "الجوال موثق · الهوية معلقة")}
+            {REQUIRE_GOVERNMENT_ID_VERIFICATION
+              ? identityVerified
+                ? label("Verified · Nafath / Yaqeen", "موثق · نفاذ / يقين")
+                : label("Mobile Verified · ID Pending", "الجوال موثق · الهوية معلقة")
+              : label("Verified Guest", "ضيف موثق")}
           </span>
         ) : null}
       </div>

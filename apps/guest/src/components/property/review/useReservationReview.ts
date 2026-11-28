@@ -261,11 +261,12 @@ export function useReservationReview(property: Property) {
   });
 
   // Government ID gate toggle: kept inactive while Nafath/Yaqeen provider credentials are pending.
-  // When inactive, mobile and email satisfy order readiness.
+  // When inactive, mobile verification satisfies order readiness.
+  // To activate when API credentials arrive, set REQUIRE_GOVERNMENT_ID_VERIFICATION = true.
   const REQUIRE_GOVERNMENT_ID_VERIFICATION = false;
   const identityVerified = REQUIRE_GOVERNMENT_ID_VERIFICATION
     ? Boolean(profile?.is_verified || user?.app_metadata?.is_verified)
-    : Boolean(phoneVerified && (effectiveEmail || user?.email || profile?.contact_email));
+    : true;
 
   // Sub-hook 2: Payment checkout execution
   const {
