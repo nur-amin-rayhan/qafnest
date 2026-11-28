@@ -1,7 +1,7 @@
 "use client";
 
-import React from "react";
-import { LoaderCircle, Lock } from "lucide-react";
+import React, { useState } from "react";
+import { LoaderCircle, Lock, Eye, EyeOff, Sparkles } from "lucide-react";
 
 interface HostEmailAuthStepProps {
   isEmailSignIn: boolean;
@@ -30,8 +30,24 @@ export default function HostEmailAuthStep({
   onSubmit,
   t,
 }: HostEmailAuthStepProps) {
+  const [showPassword, setShowPassword] = useState(false);
+
   return (
     <form onSubmit={onSubmit} className="mt-4 space-y-3.5">
+      {isEmailSignIn && process.env.NODE_ENV !== "production" && (
+        <button
+          type="button"
+          onClick={() => {
+            setEmail("host.dev@qafnest.com");
+            setPassword("QafNest@Dev2026!");
+          }}
+          className="w-full inline-flex items-center justify-center gap-1.5 rounded-xl border border-purple-200 bg-purple-50 hover:bg-purple-100/80 px-3 py-2 text-xs font-semibold text-[#4F2396] transition cursor-pointer"
+        >
+          <Sparkles size={13} className="text-[#4F2396]" />
+          <span>{t("Fill Dev Host Credentials (host.dev@qafnest.com)", "تعبئة بيانات المضيف التجريبي (host.dev@qafnest.com)")}</span>
+        </button>
+      )}
+
       {!isEmailSignIn && (
         <div>
           <label className="mb-1.5 block text-xs font-semibold text-slate-700">
@@ -67,15 +83,26 @@ export default function HostEmailAuthStep({
         <label className="mb-1.5 block text-xs font-semibold text-slate-700">
           {t("Password", "كلمة المرور")}
         </label>
-        <input
-          type="password"
-          dir="ltr"
-          required
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          placeholder="••••••••"
-          className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm font-medium text-slate-900 outline-none focus:border-[#4F2396] focus:ring-1 focus:ring-[#4F2396] transition"
-        />
+        <div className="relative">
+          <input
+            type={showPassword ? "text" : "password"}
+            dir="ltr"
+            required
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="••••••••"
+            className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 pe-10 text-sm font-medium text-slate-900 outline-none focus:border-[#4F2396] focus:ring-1 focus:ring-[#4F2396] transition"
+          />
+          <button
+            type="button"
+            onClick={() => setShowPassword(!showPassword)}
+            className="absolute end-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition p-1"
+            tabIndex={-1}
+            aria-label={showPassword ? "Hide password" : "Show password"}
+          >
+            {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+          </button>
+        </div>
       </div>
 
       <button
