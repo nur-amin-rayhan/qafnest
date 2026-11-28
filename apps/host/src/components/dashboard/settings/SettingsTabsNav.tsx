@@ -62,7 +62,7 @@ export function SettingsTabsNav({
   };
 
   return (
-    <div className="w-full border-b border-slate-200/90 bg-white">
+    <div className="w-full border-b border-slate-200/90 dark:border-slate-800 bg-white dark:bg-[#12101a]">
       <div className="mx-auto flex max-w-[1640px] items-center gap-2 overflow-x-auto px-4 sm:px-8 py-2 no-scrollbar">
         {TABS.map((tab) => {
           const isActive = activeTab === tab.id;
@@ -74,14 +74,14 @@ export function SettingsTabsNav({
               className={`group flex shrink-0 items-center gap-3 rounded-2xl px-4 py-3 text-xs sm:text-sm font-bold transition-all cursor-pointer ${
                 isActive
                   ? "bg-[#4F2396] text-white shadow-md shadow-violet-950/15"
-                  : "text-slate-600 hover:bg-slate-100/90 hover:text-slate-900"
+                  : "text-slate-600 dark:text-slate-400 hover:bg-slate-100/90 dark:hover:bg-slate-800/80 hover:text-slate-900 dark:hover:text-white"
               }`}
             >
               <div
                 className={`grid h-8 w-8 place-items-center rounded-xl transition ${
                   isActive
                     ? "bg-white/20 text-white"
-                    : "bg-slate-100 text-slate-500 group-hover:bg-slate-200 group-hover:text-slate-800"
+                    : "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 group-hover:bg-slate-200 dark:group-hover:bg-slate-700 group-hover:text-slate-800 dark:group-hover:text-slate-200"
                 }`}
               >
                 {getIcon(tab.id)}
@@ -92,7 +92,7 @@ export function SettingsTabsNav({
                 </span>
                 <span
                   className={`mt-0.5 block text-[11px] font-medium leading-none ${
-                    isActive ? "text-violet-200" : "text-slate-400"
+                    isActive ? "text-violet-200" : "text-slate-400 dark:text-slate-500"
                   }`}
                 >
                   {isAr ? tab.descriptionAr : tab.descriptionEn}

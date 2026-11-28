@@ -65,10 +65,10 @@ export default function HostAnalyticsDashboard({ lang, t }: HostAnalyticsDashboa
       {/* Header Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl sm:text-2xl font-black text-slate-900">
+          <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white">
             {t("Host Analytics & Performance", "تحليلات الأداء والتقارير المالية")}
           </h1>
-          <p className="mt-1 text-xs sm:text-sm font-medium text-slate-500">
+          <p className="mt-1 text-xs sm:text-sm font-medium text-slate-500 dark:text-slate-400">
             {t(
               "Track your revenue growth, average daily rates (ADR), occupancy, and guest satisfaction metrics.",
               "متابعة نمو المبيعات الشهرية ومعدلات الإشغال ومتوسط الأسعار اليومية وأداء كل وحدة معروضة."
@@ -78,7 +78,7 @@ export default function HostAnalyticsDashboard({ lang, t }: HostAnalyticsDashboa
 
         {/* Filters: Timeframe & Refresh */}
         <div className="flex flex-wrap items-center gap-2.5">
-          <div className="inline-flex rounded-xl border border-slate-200 bg-white p-1 text-xs font-bold text-slate-700 shadow-xs">
+          <div className="inline-flex rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#12101a] p-1 text-xs font-bold text-slate-700 dark:text-slate-300 shadow-xs">
             {[
               { key: "30d", labelEn: "30 Days", labelAr: "30 يوماً" },
               { key: "90d", labelEn: "Quarter", labelAr: "3 أشهر" },
@@ -92,7 +92,7 @@ export default function HostAnalyticsDashboard({ lang, t }: HostAnalyticsDashboa
                 className={`rounded-lg px-3 py-1.5 transition cursor-pointer ${
                   timeframe === tf.key
                     ? "bg-[#4F2396] text-white font-black"
-                    : "text-slate-600 hover:text-slate-900"
+                    : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
                 }`}
               >
                 {lang === "ar" ? tf.labelAr : tf.labelEn}
@@ -103,11 +103,11 @@ export default function HostAnalyticsDashboard({ lang, t }: HostAnalyticsDashboa
           <button
             type="button"
             onClick={fetchAnalytics}
-            className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-700 hover:bg-slate-50 shadow-xs transition cursor-pointer"
+            className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-xs font-black text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 shadow-xs transition cursor-pointer"
           >
             <RefreshCw
               size={13}
-              className={loading ? "animate-spin text-[#4F2396]" : "text-slate-400"}
+              className={loading ? "animate-spin text-[#4F2396]" : "text-slate-400 dark:text-slate-500"}
             />
             <span>{t("Refresh", "تحديث")}</span>
           </button>
@@ -116,13 +116,13 @@ export default function HostAnalyticsDashboard({ lang, t }: HostAnalyticsDashboa
 
       {/* Property Filter Dropdown */}
       <div className="flex items-center gap-3">
-        <span className="text-xs font-black text-slate-500">
+        <span className="text-xs font-black text-slate-500 dark:text-slate-400">
           {t("Filter by Property:", "تصفية حسب العقار:")}
         </span>
         <select
           value={selectedPropertyId}
           onChange={(e) => setSelectedPropertyId(e.target.value)}
-          className="rounded-xl border border-slate-200 bg-white py-1.5 px-3 text-xs font-bold text-slate-700 outline-none focus:border-[#4F2396]"
+          className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 py-1.5 px-3 text-xs font-bold text-slate-700 dark:text-slate-200 outline-none focus:border-[#4F2396]"
         >
           <option value="all">{t("All Properties (Combined)", "كل العقارات (مجمعة)")}</option>
           {propertyPerformance.map((p) => (

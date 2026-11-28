@@ -129,20 +129,20 @@ export function EditIbanModal({
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="w-full max-w-lg rounded-3xl bg-white p-6 sm:p-8 shadow-2xl border border-slate-100 space-y-6">
+      <div className="w-full max-w-lg rounded-2xl bg-white dark:bg-[#12101a] p-6 sm:p-8 shadow-2xl border border-slate-100 dark:border-slate-800 space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+        <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
           <div className="flex items-center gap-2.5">
-            <div className="grid h-10 w-10 place-items-center rounded-2xl bg-violet-100 text-[#4F2396]">
+            <div className="grid h-10 w-10 place-items-center rounded-2xl bg-violet-100 dark:bg-purple-950/60 text-[#4F2396] dark:text-purple-300">
               {isAddMode ? <Plus size={20} /> : <CreditCard size={20} />}
             </div>
             <div>
-              <h3 className="text-lg font-black text-slate-900">
+              <h3 className="text-lg font-black text-slate-900 dark:text-white">
                 {isAddMode
                   ? t("Add Payout Bank Account", "إضافة حساب بنكي للاستلام")
                   : t("Edit Payout Bank Account", "تعديل الحساب البنكي للتحويل")}
               </h3>
-              <p className="text-xs text-slate-500 font-medium">
+              <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
                 {t(
                   "Must match the Saudi National ID of the registered host.",
                   "يجب أن يطابق هوية المضيف المسجلة بنكياً لدى سماء."
@@ -153,7 +153,7 @@ export function EditIbanModal({
           <button
             type="button"
             onClick={onClose}
-            className="rounded-xl p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-700 cursor-pointer transition"
+            className="rounded-xl p-2 text-slate-400 dark:text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-700 dark:hover:text-slate-200 cursor-pointer transition"
             aria-label="Close"
           >
             <X size={18} />
@@ -162,25 +162,25 @@ export function EditIbanModal({
 
         {/* Alerts */}
         {error && (
-          <div className="flex items-center gap-2 rounded-2xl border border-rose-200 bg-rose-50 p-3.5 text-xs font-bold text-rose-800">
-            <AlertCircle size={16} className="shrink-0 text-rose-600" />
+          <div className="flex items-center gap-2 rounded-2xl border border-rose-200 dark:border-rose-900/60 bg-rose-50 dark:bg-rose-950/50 p-3.5 text-xs font-bold text-rose-800 dark:text-rose-300">
+            <AlertCircle size={16} className="shrink-0 text-rose-600 dark:text-rose-400" />
             <span>{error}</span>
           </div>
         )}
 
         {/* Delete confirmation banner if triggered inside modal */}
         {confirmDelete ? (
-          <div className="rounded-2xl border border-rose-200 bg-rose-50/70 p-4 space-y-3">
+          <div className="rounded-2xl border border-rose-200 dark:border-rose-900/60 bg-rose-50/70 dark:bg-rose-950/40 p-4 space-y-3">
             <div className="flex items-start gap-2.5">
-              <AlertCircle size={18} className="text-rose-600 shrink-0 mt-0.5" />
+              <AlertCircle size={18} className="text-rose-600 dark:text-rose-400 shrink-0 mt-0.5" />
               <div>
-                <h4 className="text-xs font-bold text-rose-900">
+                <h4 className="text-xs font-bold text-rose-900 dark:text-rose-300">
                   {t(
                     "Are you sure you want to delete this bank account?",
                     "هل أنت متأكد من رغبتك في حذف هذا الحساب البنكي؟"
                   )}
                 </h4>
-                <p className="mt-1 text-[11px] text-rose-700 leading-relaxed">
+                <p className="mt-1 text-[11px] text-rose-700 dark:text-rose-400 leading-relaxed">
                   {t(
                     "Booking remittances will be paused until you add a new verified Saudi IBAN.",
                     "سيتم إيقاف التحويلات البنكية مؤقتاً حتى تقوم بإضافة آيبان سعودي جديد وتوثيقه."
@@ -192,7 +192,7 @@ export function EditIbanModal({
               <button
                 type="button"
                 onClick={() => setConfirmDelete(false)}
-                className="rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 cursor-pointer"
+                className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-1.5 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 cursor-pointer"
               >
                 {t("Cancel", "إلغاء")}
               </button>
@@ -216,7 +216,7 @@ export function EditIbanModal({
         {/* Main Form */}
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-xs font-bold text-slate-700 mb-1.5">
+            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
               {t("Account Holder Full Name", "اسم صاحب الحساب (رباعي)")}
             </label>
             <input
@@ -228,16 +228,16 @@ export function EditIbanModal({
                 "مثال: الاسم الكامل لصاحب الحساب كما في الهوية"
               )}
               required
-              className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-900 outline-none focus:border-[#4F2396] focus:bg-white transition"
+              className="w-full rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 px-4 py-3 text-sm font-bold text-slate-900 dark:text-white outline-none focus:border-[#4F2396] focus:bg-white dark:focus:bg-slate-900 transition"
             />
           </div>
 
           <div>
             <div className="flex items-center justify-between mb-1.5">
-              <label className="block text-xs font-bold text-slate-700">
+              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">
                 {t("Saudi IBAN (24 characters)", "رقم الآيبان السعودي (24 خانة)")}
               </label>
-              <span className="text-[11px] font-mono text-slate-400">
+              <span className="text-[11px] font-mono text-slate-400 dark:text-slate-500">
                 {cleanIban.length}/24
               </span>
             </div>
@@ -252,27 +252,27 @@ export function EditIbanModal({
                 maxLength={24}
                 required
                 dir="ltr"
-                className={`w-full rounded-2xl border px-4 py-3 font-mono text-sm font-black text-slate-900 outline-none transition tracking-wider ${
+                className={`w-full rounded-2xl border px-4 py-3 font-mono text-sm font-black text-slate-900 dark:text-white outline-none transition tracking-wider ${
                   validation.valid
-                    ? "border-emerald-300 bg-emerald-50/20 focus:border-emerald-500"
-                    : "border-slate-200 bg-slate-50 focus:border-[#4F2396] focus:bg-white"
+                    ? "border-emerald-300 dark:border-emerald-600 bg-emerald-50/20 dark:bg-emerald-950/30 focus:border-emerald-500"
+                    : "border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 focus:border-[#4F2396] focus:bg-white dark:focus:bg-slate-900"
                 }`}
               />
             </div>
-            <p className="mt-1 text-[11px] font-mono text-slate-400" dir="ltr">
+            <p className="mt-1 text-[11px] font-mono text-slate-400 dark:text-slate-500" dir="ltr">
               {formatSaudiIban(cleanIban)}
             </p>
           </div>
 
           {/* Real-Time Auto-Detected Saudi Bank Badge */}
           {hasMinBankCode && detectedBank && (
-            <div className="flex items-center justify-between rounded-2xl border border-violet-100 bg-violet-50/70 p-3.5 text-xs animate-in fade-in">
-              <span className="flex items-center gap-2 font-black text-[#4F2396]">
-                <Building2 size={16} className="text-[#4F2396]" />
+            <div className="flex items-center justify-between rounded-2xl border border-violet-100 dark:border-purple-900/60 bg-violet-50/70 dark:bg-purple-950/30 p-3.5 text-xs animate-in fade-in">
+              <span className="flex items-center gap-2 font-black text-[#4F2396] dark:text-purple-300">
+                <Building2 size={16} className="text-[#4F2396] dark:text-purple-400" />
                 <span>{lang === "ar" ? detectedBank.nameAr : detectedBank.nameEn}</span>
               </span>
-              <span className="inline-flex items-center gap-1 font-bold text-emerald-700 bg-emerald-100/70 px-2 py-0.5 rounded-lg text-[11px]">
-                <ShieldCheck size={13} className="text-emerald-600" />
+              <span className="inline-flex items-center gap-1 font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-100/70 dark:bg-emerald-950/60 px-2 py-0.5 rounded-lg text-[11px]">
+                <ShieldCheck size={13} className="text-emerald-600 dark:text-emerald-400" />
                 <span>{t("SAMA Licensed Bank", "بنك مرخص لدى سماء")}</span>
               </span>
             </div>
@@ -285,7 +285,7 @@ export function EditIbanModal({
               <button
                 type="button"
                 onClick={() => setConfirmDelete(true)}
-                className="inline-flex items-center gap-1.5 text-xs font-semibold text-rose-600 hover:text-rose-700 hover:underline cursor-pointer"
+                className="inline-flex items-center gap-1.5 text-xs font-semibold text-rose-600 dark:text-rose-400 hover:text-rose-700 hover:underline cursor-pointer"
               >
                 <Trash2 size={13} />
                 <span>{t("Delete this account", "حذف هذا الحساب")}</span>
@@ -298,7 +298,7 @@ export function EditIbanModal({
               <button
                 type="button"
                 onClick={onClose}
-                className="w-full sm:w-auto rounded-2xl border border-slate-200 px-5 py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-50 cursor-pointer transition"
+                className="w-full sm:w-auto rounded-2xl border border-slate-200 dark:border-slate-700 px-5 py-2.5 text-xs font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer transition"
               >
                 {t("Cancel", "إلغاء")}
               </button>

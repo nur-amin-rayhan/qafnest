@@ -28,7 +28,7 @@ export function PropertyCardItem({ prop, t, onDelete }: PropertyCardItemProps) {
   const coverImage = prop.images && prop.images.length > 0 ? prop.images[0] : null;
 
   return (
-    <div className="rounded-3xl border border-slate-200/90 dark:border-slate-800/80 bg-white dark:bg-[#121324] overflow-hidden shadow-xs hover:shadow-lg transition-all duration-300 flex flex-col justify-between">
+    <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800/80 bg-white dark:bg-[#12101a] overflow-hidden shadow-xs hover:shadow-md transition-all duration-300 flex flex-col justify-between">
       <div>
         {/* Property Cover / Photo */}
         <div className="relative h-48 w-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
@@ -39,7 +39,7 @@ export function PropertyCardItem({ prop, t, onDelete }: PropertyCardItemProps) {
               className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-500"
             />
           ) : (
-            <div className="flex h-full w-full items-center justify-center bg-slate-100 dark:bg-slate-800 text-slate-400">
+            <div className="flex h-full w-full items-center justify-center bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500">
               <Building2 size={36} />
             </div>
           )}
@@ -78,8 +78,8 @@ export function PropertyCardItem({ prop, t, onDelete }: PropertyCardItemProps) {
 
         {/* Body Content */}
         <div className="p-5 space-y-3">
-          <div className="flex items-center justify-between text-xs font-bold text-slate-500">
-            <span className="inline-flex items-center gap-1 text-[#4F2396]">
+          <div className="flex items-center justify-between text-xs font-bold text-slate-500 dark:text-slate-400">
+            <span className="inline-flex items-center gap-1 text-[#4F2396] dark:text-purple-400">
               <Building2 size={13} />
               <span>{prop.category}</span>
             </span>
@@ -92,27 +92,27 @@ export function PropertyCardItem({ prop, t, onDelete }: PropertyCardItemProps) {
             </span>
           </div>
 
-          <h2 className="text-base sm:text-lg font-black text-slate-900 leading-snug line-clamp-1">
+          <h2 className="text-base sm:text-lg font-black text-slate-900 dark:text-white leading-snug line-clamp-1">
             {t(prop.title || prop.titleAr || "", prop.titleAr || prop.title || "")}
           </h2>
 
           {/* Admin Review Feedback Box */}
           {isRejected && prop.adminFeedback && (
-            <div className="rounded-2xl border-2 border-amber-300 bg-amber-50 p-3.5 text-xs text-amber-950 space-y-1">
-              <div className="flex items-center gap-1.5 font-black text-amber-900">
-                <AlertTriangle size={14} className="text-amber-600 shrink-0" />
+            <div className="rounded-2xl border-2 border-amber-300 dark:border-amber-700/80 bg-amber-50 dark:bg-amber-950/40 p-3.5 text-xs text-amber-950 dark:text-amber-200 space-y-1">
+              <div className="flex items-center gap-1.5 font-black text-amber-900 dark:text-amber-300">
+                <AlertTriangle size={14} className="text-amber-600 dark:text-amber-400 shrink-0" />
                 <span>{t("Admin Review Comments:", "ملاحظات وتوجيهات الإدارة:")}</span>
               </div>
-              <p className="font-semibold leading-relaxed text-amber-800">
+              <p className="font-semibold leading-relaxed text-amber-800 dark:text-amber-300">
                 {prop.adminFeedback}
               </p>
             </div>
           )}
 
           {prop.deletionRequest?.status === "pending" && (
-            <div className="rounded-2xl border border-amber-300 bg-amber-50 p-3 text-xs text-amber-950 space-y-1">
-              <div className="flex items-center gap-1.5 font-black text-amber-900">
-                <Clock size={14} className="text-amber-600 shrink-0" />
+            <div className="rounded-2xl border border-amber-300 dark:border-amber-700/80 bg-amber-50 dark:bg-amber-950/40 p-3 text-xs text-amber-950 dark:text-amber-200 space-y-1">
+              <div className="flex items-center gap-1.5 font-black text-amber-900 dark:text-amber-300">
+                <Clock size={14} className="text-amber-600 dark:text-amber-400 shrink-0" />
                 <span>
                   {t(
                     "Removal Request Under Admin Review",
@@ -120,7 +120,7 @@ export function PropertyCardItem({ prop, t, onDelete }: PropertyCardItemProps) {
                   )}
                 </span>
               </div>
-              <p className="font-medium text-amber-800 line-clamp-2">
+              <p className="font-medium text-amber-800 dark:text-amber-300 line-clamp-2">
                 {prop.deletionRequest.reasonDetails}
               </p>
             </div>
@@ -128,14 +128,14 @@ export function PropertyCardItem({ prop, t, onDelete }: PropertyCardItemProps) {
 
           {prop.deletionRequest?.status === "rejected" &&
             prop.deletionRequest.adminNotes && (
-              <div className="rounded-2xl border border-rose-200 bg-rose-50 p-3 text-xs text-rose-950 space-y-1">
-                <div className="flex items-center gap-1.5 font-black text-rose-900">
-                  <AlertTriangle size={14} className="text-rose-600 shrink-0" />
+              <div className="rounded-2xl border border-rose-200 dark:border-rose-900/60 bg-rose-50 dark:bg-rose-950/30 p-3 text-xs text-rose-950 dark:text-rose-200 space-y-1">
+                <div className="flex items-center gap-1.5 font-black text-rose-900 dark:text-rose-300">
+                  <AlertTriangle size={14} className="text-rose-600 dark:text-rose-400 shrink-0" />
                   <span>
                     {t("Removal Request Declined:", "تم رفض طلب الحذف:")}
                   </span>
                 </div>
-                <p className="font-medium text-rose-800">
+                <p className="font-medium text-rose-800 dark:text-rose-300">
                   {prop.deletionRequest.adminNotes}
                 </p>
               </div>
@@ -145,12 +145,12 @@ export function PropertyCardItem({ prop, t, onDelete }: PropertyCardItemProps) {
 
       {/* Footer with Pricing and Action Buttons */}
       <div className="p-5 pt-0 space-y-3">
-        <div className="flex items-center justify-between border-t border-slate-100 pt-3">
+        <div className="flex items-center justify-between border-t border-slate-100 dark:border-slate-800 pt-3">
           <div>
-            <span className="text-xs font-bold text-slate-400 block">
+            <span className="text-xs font-bold text-slate-400 dark:text-slate-500 block">
               {t("Base Nightly Rate", "سعر الليلة الأساسي")}
             </span>
-            <span className="text-base font-black text-[#4F2396]">
+            <span className="text-base font-black text-[#4F2396] dark:text-purple-400">
               {prop.basePrice} {t("SAR", "ر.س")}
             </span>
           </div>
@@ -161,7 +161,7 @@ export function PropertyCardItem({ prop, t, onDelete }: PropertyCardItemProps) {
               href={`${ECOSYSTEM_URLS.guest}/${t("en", "ar")}/property/${prop.id}`}
               target="_blank"
               rel="noreferrer"
-              className="min-h-[40px] min-w-[40px] flex items-center justify-center p-2 rounded-xl border border-slate-200 text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition cursor-pointer"
+              className="min-h-[40px] min-w-[40px] flex items-center justify-center p-2 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-800 transition cursor-pointer"
               title={t("Preview on Guest App", "معاينة على منصة الضيوف")}
               aria-label={t("Preview on Guest App", "معاينة على منصة الضيوف")}
             >
@@ -194,8 +194,8 @@ export function PropertyCardItem({ prop, t, onDelete }: PropertyCardItemProps) {
                 }
                 className={`min-h-[40px] min-w-[40px] flex items-center justify-center p-2 rounded-xl border transition cursor-pointer ${
                   prop.deletionRequest?.status === "pending"
-                    ? "border-amber-300 bg-amber-50 text-amber-700 hover:bg-amber-100"
-                    : "border-slate-200 text-slate-500 hover:text-rose-600 hover:bg-rose-50 hover:border-rose-300"
+                    ? "border-amber-300 dark:border-amber-700/80 bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 hover:bg-amber-100"
+                    : "border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 hover:border-rose-300"
                 }`}
               >
                 <Trash2 size={16} />

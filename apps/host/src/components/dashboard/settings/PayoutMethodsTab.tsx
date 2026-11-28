@@ -74,26 +74,26 @@ export function PayoutMethodsTab({
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       {/* 1. Verified Bank Account Summary Card */}
-      <div className="rounded-3xl border border-slate-200/90 bg-white p-6 sm:p-8 shadow-xs">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-6 border-b border-slate-100">
+      <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-[#12101a] p-6 sm:p-8 shadow-xs">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-6 border-b border-slate-100 dark:border-slate-800">
           <div>
             <div className="flex items-center gap-2">
-              <h3 className="text-lg sm:text-xl font-black text-slate-900">
+              <h3 className="text-lg sm:text-xl font-black text-slate-900 dark:text-white">
                 {t("Primary Payout Bank Account", "حساب التحويل البنكي الأساسي")}
               </h3>
               {payout.iban && payout.isVerified ? (
-                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-0.5 text-[11px] font-extrabold text-emerald-700">
-                  <CheckCircle2 size={13} className="text-emerald-600" />
+                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 dark:bg-emerald-950/60 px-2.5 py-0.5 text-[11px] font-extrabold text-emerald-700 dark:text-emerald-300">
+                  <CheckCircle2 size={13} className="text-emerald-600 dark:text-emerald-400" />
                   <span>{t("IBAN Format Verified (MOD-97)", "صيغة الآيبان صحيحة (MOD-97)")}</span>
                 </span>
               ) : (
-                <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2.5 py-0.5 text-[11px] font-extrabold text-amber-700">
-                  <AlertCircle size={13} className="text-amber-600" />
+                <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 dark:bg-amber-950/60 px-2.5 py-0.5 text-[11px] font-extrabold text-amber-700 dark:text-amber-300">
+                  <AlertCircle size={13} className="text-amber-600 dark:text-amber-400" />
                   <span>{t("Not Configured", "غير مضاف")}</span>
                 </span>
               )}
             </div>
-            <p className="mt-1 text-xs text-slate-500 font-medium">
+            <p className="mt-1 text-xs text-slate-500 dark:text-slate-400 font-medium">
               {t(
                 "Earnings and remittances are automatically disbursed to this verified IBAN.",
                 "يتم إيداع أرباح الحجوزات والمستحقات مباشرة في هذا الحساب البنكي المعتمد."
@@ -101,8 +101,8 @@ export function PayoutMethodsTab({
             </p>
           </div>
 
-          <div className="inline-flex items-center gap-2 rounded-2xl bg-emerald-50 border border-emerald-200 px-4 py-2.5 text-xs font-bold text-emerald-800">
-            <ShieldCheck size={16} className="text-emerald-600" />
+          <div className="inline-flex items-center gap-2 rounded-2xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 px-4 py-2.5 text-xs font-bold text-emerald-800 dark:text-emerald-300">
+            <ShieldCheck size={16} className="text-emerald-600 dark:text-emerald-400" />
             <span>{t("Instant SARIE Clearing", "تسوية فورية بنظام سريع")}</span>
           </div>
         </div>
@@ -111,7 +111,7 @@ export function PayoutMethodsTab({
         <div className="mt-6 grid grid-cols-1 gap-5 md:grid-cols-2">
           {/* Account Beneficiary */}
           <div>
-            <label className="block text-xs font-black text-slate-800 mb-1.5">
+            <label className="block text-xs font-black text-slate-800 dark:text-slate-200 mb-1.5">
               {t("Beneficiary Account Holder Name", "اسم صاحب الحساب المستفيد (رباعي)")}
             </label>
             <input
@@ -120,18 +120,18 @@ export function PayoutMethodsTab({
               value={holderInput}
               onChange={(e) => setHolderInput(e.target.value)}
               placeholder={t("e.g. Account Holder Name", "مثال: اسم صاحب الحساب")}
-              className="w-full rounded-2xl border border-slate-200 bg-slate-50/50 px-4 py-3 text-xs sm:text-sm font-bold text-slate-900 transition focus:border-violet-500 focus:bg-white focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-400 focus-visible:ring-offset-2"
+              className="w-full rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900 px-4 py-3 text-xs sm:text-sm font-bold text-slate-900 dark:text-white transition focus:border-violet-500 focus:bg-white dark:focus:bg-slate-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-400 focus-visible:ring-offset-2"
             />
           </div>
 
           {/* IBAN Input with real-time detection */}
           <div>
             <div className="flex items-center justify-between mb-1.5">
-              <label className="block text-xs font-black text-slate-800">
+              <label className="block text-xs font-black text-slate-800 dark:text-slate-200">
                 {t("Saudi Bank IBAN (SA...)", "رقم الآيبان البنكي (يبدأ بـ SA)")}
               </label>
               {ibanInput.replace(/\s+/g, "").length >= 6 && ibanInput.trim().toUpperCase().startsWith("SA") && detectedBank && (
-                <span className="text-[11px] font-black text-[#4F2396] bg-violet-50 px-2 py-0.5 rounded-md border border-violet-100">
+                <span className="text-[11px] font-black text-[#4F2396] dark:text-purple-300 bg-violet-50 dark:bg-purple-950/60 px-2 py-0.5 rounded-md border border-violet-100 dark:border-purple-800">
                   {lang === "ar" ? detectedBank.nameAr : detectedBank.nameEn}
                 </span>
               )}
@@ -147,26 +147,26 @@ export function PayoutMethodsTab({
                   setIbanError(null);
                 }}
                 placeholder="SA00 0000 0000 0000 0000 0000"
-                className={`w-full rounded-2xl border px-4 py-3 text-xs sm:text-sm font-mono font-bold text-slate-900 transition focus:bg-white focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-400 focus-visible:ring-offset-2 ${
+                className={`w-full rounded-2xl border px-4 py-3 text-xs sm:text-sm font-mono font-bold text-slate-900 dark:text-white transition focus:bg-white dark:focus:bg-slate-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-400 focus-visible:ring-offset-2 ${
                   ibanError
-                    ? "border-rose-400 bg-rose-50/30"
+                    ? "border-rose-400 bg-rose-50/30 dark:bg-rose-950/30"
                     : validation.valid
-                    ? "border-emerald-300 bg-emerald-50/20"
-                    : "border-slate-200 bg-slate-50/50 focus:border-violet-500"
+                    ? "border-emerald-300 dark:border-emerald-700 bg-emerald-50/20 dark:bg-emerald-950/20"
+                    : "border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900 focus:border-violet-500"
                 }`}
               />
               <CreditCard
                 size={16}
-                className="absolute top-3.5 rtl:left-3.5 ltr:right-3.5 text-slate-400"
+                className="absolute top-3.5 rtl:left-3.5 ltr:right-3.5 text-slate-400 dark:text-slate-500"
               />
             </div>
             {ibanError ? (
-              <p className="mt-1.5 flex items-center gap-1.5 text-[11px] font-bold text-rose-600">
+              <p className="mt-1.5 flex items-center gap-1.5 text-[11px] font-bold text-rose-600 dark:text-rose-400">
                 <AlertCircle size={13} />
                 <span>{ibanError}</span>
               </p>
             ) : (
-              <p className="mt-1 text-[11px] text-slate-500 font-mono">
+              <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400 font-mono">
                 {formatSaudiIban(ibanInput)}
               </p>
             )}
@@ -175,8 +175,8 @@ export function PayoutMethodsTab({
 
         {/* Quick Actions: Clear / Delete Account */}
         {payout.iban && (
-          <div className="mt-4 pt-4 border-t border-slate-100 flex items-center justify-between">
-            <span className="text-xs text-slate-500 font-medium">
+          <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
+            <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">
               {t("Need to change or disconnect this account?", "هل ترغب في تغيير أو حذف هذا الحساب؟")}
             </span>
             <button
@@ -192,7 +192,7 @@ export function PayoutMethodsTab({
                   autoDisburse,
                 });
               }}
-              className="inline-flex items-center gap-1.5 text-xs font-bold text-rose-600 hover:text-rose-700 hover:underline cursor-pointer transition"
+              className="inline-flex items-center gap-1.5 text-xs font-bold text-rose-600 dark:text-rose-400 hover:text-rose-700 hover:underline cursor-pointer transition"
             >
               <Trash2 size={13} />
               <span>{t("Delete Bank Account", "حذف الحساب البنكي")}</span>
@@ -202,11 +202,11 @@ export function PayoutMethodsTab({
       </div>
 
       {/* 2. Payout Schedule Preferences Card */}
-      <div className="rounded-3xl border border-slate-200/90 bg-white p-6 sm:p-8 shadow-xs">
-        <h3 className="text-base sm:text-lg font-black text-slate-900 pb-2 border-b border-slate-100">
+      <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-[#12101a] p-6 sm:p-8 shadow-xs">
+        <h3 className="text-base sm:text-lg font-black text-slate-900 dark:text-white pb-2 border-b border-slate-100 dark:border-slate-800">
           {t("Automated Settlement Schedule", "جدولة استلام المستحقات والتحويلات")}
         </h3>
-        <p className="mt-1 text-xs text-slate-500 font-medium">
+        <p className="mt-1 text-xs text-slate-500 dark:text-slate-400 font-medium">
           {t(
             "Choose when your earnings are released directly to your verified bank account.",
             "حدد دورة التحويل المفضلة لتحويل عوائد الإيجار إلى حسابك البنكي."
@@ -229,7 +229,7 @@ export function PayoutMethodsTab({
               titleAr: "أسبوعي كل أحد",
               descEn: "Consolidated every Sunday morning",
               descAr: "تجميع أسبوعي وإيداع صباح كل أحد",
-              icon: <Calendar size={18} className="text-violet-600" />,
+              icon: <Calendar size={18} className="text-violet-600 dark:text-purple-400" />,
             },
             {
               id: "monthly",
@@ -237,7 +237,7 @@ export function PayoutMethodsTab({
               titleAr: "شهري في اليوم الأول",
               descEn: "Full month batch disbursement",
               descAr: "تحويل شامل في أول كل شهر ميلادي",
-              icon: <Building2 size={18} className="text-emerald-600" />,
+              icon: <Building2 size={18} className="text-emerald-600 dark:text-emerald-400" />,
             },
           ].map((option) => {
             const isSelected = schedule === option.id;
@@ -248,19 +248,19 @@ export function PayoutMethodsTab({
                 onClick={() => setSchedule(option.id as any)}
                 className={`flex flex-col items-start rounded-2xl border p-4 text-left rtl:text-right transition cursor-pointer ${
                   isSelected
-                    ? "border-violet-600 bg-violet-50/50 shadow-sm"
-                    : "border-slate-200 hover:border-slate-300 hover:bg-slate-50/50"
+                    ? "border-violet-600 dark:border-purple-500 bg-violet-50/50 dark:bg-purple-950/40 shadow-sm"
+                    : "border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 hover:bg-slate-50/50 dark:hover:bg-slate-900/50"
                 }`}
               >
                 <div className="flex w-full items-center justify-between">
-                  <div className="grid h-8 w-8 place-items-center rounded-xl bg-white shadow-xs">
+                  <div className="grid h-8 w-8 place-items-center rounded-xl bg-white dark:bg-slate-800 shadow-xs">
                     {option.icon}
                   </div>
                   <div
                     className={`h-4 w-4 rounded-full border-2 flex items-center justify-center ${
                       isSelected
-                        ? "border-[#4F2396] bg-[#4F2396]"
-                        : "border-slate-300"
+                        ? "border-[#4F2396] dark:border-purple-400 bg-[#4F2396] dark:bg-purple-500"
+                        : "border-slate-300 dark:border-slate-600"
                     }`}
                   >
                     {isSelected && (
@@ -268,10 +268,10 @@ export function PayoutMethodsTab({
                     )}
                   </div>
                 </div>
-                <span className="mt-3 block text-xs sm:text-sm font-black text-slate-900">
+                <span className="mt-3 block text-xs sm:text-sm font-black text-slate-900 dark:text-white">
                   {lang === "ar" ? option.titleAr : option.titleEn}
                 </span>
-                <span className="mt-0.5 block text-[11px] text-slate-500 font-medium">
+                <span className="mt-0.5 block text-[11px] text-slate-500 dark:text-slate-400 font-medium">
                   {lang === "ar" ? option.descAr : option.descEn}
                 </span>
               </button>
@@ -280,12 +280,12 @@ export function PayoutMethodsTab({
         </div>
 
         {/* Minimum Threshold & Auto Disburse */}
-        <div className="mt-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 rounded-2xl bg-slate-50 p-4 border border-slate-200/80">
+        <div className="mt-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 rounded-2xl bg-slate-50 dark:bg-slate-900/60 p-4 border border-slate-200/80 dark:border-slate-800">
           <div>
-            <span className="block text-xs font-black text-slate-900">
+            <span className="block text-xs font-black text-slate-900 dark:text-white">
               {t("Minimum Payout Threshold", "الحد الأدنى للتحويل التلقائي")}
             </span>
-            <span className="text-[11px] text-slate-500 font-medium">
+            <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
               {t(
                 "Payouts trigger when balance exceeds this amount (Min: 100 SAR)",
                 "يتم التحويل عندما يصل رصيد الأرباح إلى هذا المبلغ (الحد الأدنى 100 ر.س)"
@@ -302,7 +302,7 @@ export function PayoutMethodsTab({
                 className={`rounded-xl border px-3 py-1.5 text-xs font-bold transition cursor-pointer ${
                   minThreshold === val
                     ? "border-violet-600 bg-[#4F2396] text-white"
-                    : "border-slate-200 bg-white text-slate-700 hover:bg-slate-100"
+                    : "border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700"
                 }`}
               >
                 {val} {t("SAR", "ر.س")}
@@ -311,7 +311,7 @@ export function PayoutMethodsTab({
           </div>
         </div>
 
-        <div className="mt-8 flex items-center justify-end border-t border-slate-100 pt-5">
+        <div className="mt-8 flex items-center justify-end border-t border-slate-100 dark:border-slate-800 pt-5">
           <button
             type="submit"
             disabled={isSaving}

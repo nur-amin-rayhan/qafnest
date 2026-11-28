@@ -17,13 +17,13 @@ export function MonthlyRevenueChart({
   t,
 }: MonthlyRevenueChartProps) {
   return (
-    <div className="rounded-3xl border border-slate-200/90 bg-white p-6 sm:p-7 shadow-xs space-y-5">
+    <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-[#12101a] p-6 sm:p-7 shadow-xs space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h3 className="text-base font-black text-slate-900">
+          <h3 className="text-base font-black text-slate-900 dark:text-white">
             {t("Monthly Revenue Trend (SAR)", "مسار الإيرادات الشهرية (ر.س)")}
           </h3>
-          <p className="text-xs font-semibold text-slate-400 mt-0.5">
+          <p className="text-xs font-semibold text-slate-400 dark:text-slate-500 mt-0.5">
             {t(
               "Historical performance over the past 6 months",
               "أداء المبيعات التاريخي لآخر 6 أشهر"
@@ -34,11 +34,11 @@ export function MonthlyRevenueChart({
         <div className="flex items-center gap-4 text-xs font-bold">
           <div className="inline-flex items-center gap-1.5">
             <span className="h-3 w-3 rounded-md bg-[#4F2396]" />
-            <span className="text-slate-700">{t("Gross Revenue", "المبيعات")}</span>
+            <span className="text-slate-700 dark:text-slate-300">{t("Gross Revenue", "المبيعات")}</span>
           </div>
           <div className="inline-flex items-center gap-1.5">
             <span className="h-3 w-3 rounded-md bg-[#FF9750]" />
-            <span className="text-slate-700">{t("Bookings", "عدد الحجوزات")}</span>
+            <span className="text-slate-700 dark:text-slate-300">{t("Bookings", "عدد الحجوزات")}</span>
           </div>
         </div>
       </div>
@@ -46,11 +46,11 @@ export function MonthlyRevenueChart({
       {/* SVG Visual Bars */}
       <div className="pt-4">
         {monthlyRevenue.length === 0 ? (
-          <div className="py-14 text-center text-xs font-bold text-slate-400 border-b border-slate-200/90">
+          <div className="py-14 text-center text-xs font-bold text-slate-400 dark:text-slate-500 border-b border-slate-200/80 dark:border-slate-800">
             {t("No monthly revenue data recorded yet.", "لا توجد بيانات إيرادات شهرية مسجلة حتى الآن.")}
           </div>
         ) : (
-          <div className="grid grid-cols-6 gap-2 sm:gap-4 h-52 items-end border-b border-slate-200/90 pb-3">
+          <div className="grid grid-cols-6 gap-2 sm:gap-4 h-52 items-end border-b border-slate-200/80 dark:border-slate-800 pb-3">
             {monthlyRevenue.map((item) => {
               const barHeight =
                 maxMonthlyRevenue > 0 && item.revenue > 0
@@ -70,17 +70,17 @@ export function MonthlyRevenueChart({
                   </div>
 
                   {/* Revenue Bar */}
-                  <div className="w-full max-w-[48px] rounded-t-xl bg-violet-100/70 overflow-hidden flex flex-col justify-end h-full">
+                  <div className="w-full max-w-[48px] rounded-t-xl bg-violet-100/70 dark:bg-purple-950/40 overflow-hidden flex flex-col justify-end h-full">
                     <div
                       className={`w-full transition-all duration-500 rounded-t-xl ${
-                        barHeight > 0 ? "bg-[#4F2396] hover:bg-[#3b1772]" : "bg-slate-200"
+                        barHeight > 0 ? "bg-[#4F2396] hover:bg-[#3b1772] dark:bg-purple-600 dark:hover:bg-purple-500" : "bg-slate-200 dark:bg-slate-800"
                       }`}
                       style={{ height: barHeight > 0 ? `${barHeight}%` : "2px" }}
                     />
                   </div>
 
                   {/* Month Label */}
-                  <span className="mt-3 text-[10px] sm:text-xs font-bold text-slate-500 truncate max-w-full">
+                  <span className="mt-3 text-[10px] sm:text-xs font-bold text-slate-500 dark:text-slate-400 truncate max-w-full">
                     {lang === "ar" ? item.labelAr.split(" ")[0] : item.labelEn.split(" ")[0]}
                   </span>
                 </div>

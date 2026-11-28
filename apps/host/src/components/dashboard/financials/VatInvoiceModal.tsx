@@ -106,18 +106,18 @@ export function VatInvoiceModal({ invoice, onClose, t }: VatInvoiceModalProps) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200 print:p-0 print:bg-white">
-      <div className="w-full max-w-2xl rounded-3xl bg-white p-6 sm:p-8 shadow-2xl border border-slate-100 space-y-6 max-h-[92vh] overflow-y-auto print:border-none print:shadow-none print:max-w-none print:p-4">
+      <div className="w-full max-w-2xl rounded-2xl bg-white dark:bg-[#12101a] p-6 sm:p-8 shadow-2xl border border-slate-100 dark:border-slate-800 space-y-6 max-h-[92vh] overflow-y-auto print:border-none print:shadow-none print:max-w-none print:p-4">
         {/* Modal Controls (Hidden during print) */}
-        <div className="flex items-center justify-between pb-3 border-b border-slate-100 print:hidden">
-          <div className="flex items-center gap-2 text-xs font-bold text-slate-500">
-            <ShieldCheck size={16} className="text-emerald-600" />
+        <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800 print:hidden">
+          <div className="flex items-center gap-2 text-xs font-bold text-slate-500 dark:text-slate-400">
+            <ShieldCheck size={16} className="text-emerald-600 dark:text-emerald-400" />
             <span>{t("ZATCA Compliant Simplified Tax Invoice (Fatoorah)", "فاتورة ضريبية مبسطة معتمدة من هيئة الزكاة والضريبة والجمارك")}</span>
           </div>
           <div className="flex items-center gap-2">
             <button
               type="button"
               onClick={handlePrint}
-              className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 px-3 py-1.5 text-xs font-bold text-slate-700 transition cursor-pointer"
+              className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 px-3 py-1.5 text-xs font-bold text-slate-700 dark:text-slate-300 transition cursor-pointer"
             >
               <Printer size={14} />
               <span>{t("Print / Save PDF", "طباعة / حفظ PDF")}</span>
@@ -125,7 +125,7 @@ export function VatInvoiceModal({ invoice, onClose, t }: VatInvoiceModalProps) {
             <button
               type="button"
               onClick={handleDownloadXml}
-              className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 px-3 py-1.5 text-xs font-bold text-[#4F2396] transition cursor-pointer"
+              className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 px-3 py-1.5 text-xs font-bold text-[#4F2396] dark:text-purple-300 transition cursor-pointer"
               title={t("Download ZATCA Phase 2 UBL 2.1 XML", "تحميل ملف الفاتورة UBL 2.1 XML")}
             >
               <Download size={14} />
@@ -134,7 +134,7 @@ export function VatInvoiceModal({ invoice, onClose, t }: VatInvoiceModalProps) {
             <button
               type="button"
               onClick={onClose}
-              className="rounded-xl p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700 cursor-pointer"
+              className="rounded-xl p-1.5 text-slate-400 dark:text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-700 dark:hover:text-slate-200 cursor-pointer"
             >
               <X size={18} />
             </button>

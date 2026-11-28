@@ -40,34 +40,34 @@ export function RemittanceDetailsModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200 print:p-0 print:bg-white">
-      <div className="w-full max-w-xl rounded-3xl bg-white p-6 sm:p-8 shadow-2xl border border-slate-100 space-y-6 max-h-[90vh] overflow-y-auto print:border-none print:shadow-none print:max-w-none print:p-4">
-        <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-slate-100">
+      <div className="w-full max-w-xl rounded-2xl bg-white dark:bg-[#12101a] p-6 sm:p-8 shadow-2xl border border-slate-100 dark:border-slate-800 space-y-6 max-h-[90vh] overflow-y-auto print:border-none print:shadow-none print:max-w-none print:p-4">
+        <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-slate-100 dark:border-slate-800">
           <div className="flex items-center gap-3">
             <div
               className={`grid h-10 w-10 place-items-center rounded-2xl ${
                 remittance.status === "settled"
-                  ? "bg-emerald-50 text-emerald-600"
-                  : "bg-violet-50 text-violet-600"
+                  ? "bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400"
+                  : "bg-violet-50 dark:bg-purple-950/60 text-violet-600 dark:text-purple-300"
               }`}
             >
               {remittance.status === "settled" ? <CheckCircle2 size={20} /> : <Clock size={20} />}
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="text-base sm:text-lg font-black text-slate-900 font-mono">
+                <h3 className="text-base sm:text-lg font-black text-slate-900 dark:text-white font-mono">
                   {remittance.id}
                 </h3>
                 <button
                   type="button"
                   onClick={handleCopy}
-                  className="text-slate-400 hover:text-slate-700 cursor-pointer p-1 print:hidden"
+                  className="text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 cursor-pointer p-1 print:hidden"
                   title="Copy Reference"
                 >
                   <Copy size={13} />
                 </button>
-                {copied && <span className="text-[10px] text-emerald-600 font-bold">Copied!</span>}
+                {copied && <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold">Copied!</span>}
               </div>
-              <p className="text-xs text-slate-500 font-medium">
+              <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
                 {lang === "ar" ? remittance.dateAr : remittance.dateEn} · {remittance.bank}
               </p>
             </div>
@@ -76,7 +76,7 @@ export function RemittanceDetailsModal({
             <button
               type="button"
               onClick={handlePrint}
-              className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 px-3 py-1.5 text-xs font-bold text-slate-700 cursor-pointer transition"
+              className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 px-3 py-1.5 text-xs font-bold text-slate-700 dark:text-slate-300 cursor-pointer transition"
             >
               <Printer size={13} />
               <span>{t("Print Voucher", "طباعة السند")}</span>
@@ -84,7 +84,7 @@ export function RemittanceDetailsModal({
             <button
               type="button"
               onClick={handleDownloadVoucher}
-              className="inline-flex items-center gap-1.5 rounded-xl border border-violet-200 bg-violet-50 hover:bg-violet-100 px-3 py-1.5 text-xs font-bold text-[#4F2396] cursor-pointer transition"
+              className="inline-flex items-center gap-1.5 rounded-xl border border-violet-200 dark:border-purple-800 bg-violet-50 dark:bg-purple-950/60 hover:bg-violet-100 dark:hover:bg-purple-900/60 px-3 py-1.5 text-xs font-bold text-[#4F2396] dark:text-purple-300 cursor-pointer transition"
             >
               <Download size={13} />
               <span>{t("Download", "تحميل")}</span>
@@ -92,7 +92,7 @@ export function RemittanceDetailsModal({
             <button
               type="button"
               onClick={onClose}
-              className="rounded-xl p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-700 cursor-pointer"
+              className="rounded-xl p-2 text-slate-400 dark:text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-700 dark:hover:text-slate-200 cursor-pointer"
               aria-label={t("Close", "إغلاق")}
             >
               <X size={18} />
@@ -101,12 +101,12 @@ export function RemittanceDetailsModal({
         </div>
 
         {/* Amount Summary Strip */}
-        <div className="rounded-2xl border border-slate-100 bg-slate-50/80 p-5 space-y-3">
+        <div className="rounded-2xl border border-slate-100 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/60 p-5 space-y-3">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-500">{t("Gross Bookings Amount", "إجمالي قيمة الحجوزات")}</span>
-            <span className="text-sm font-black text-slate-900">{remittance.grossAmount.toLocaleString()} SAR</span>
+            <span className="text-xs font-bold text-slate-500 dark:text-slate-400">{t("Gross Bookings Amount", "إجمالي قيمة الحجوزات")}</span>
+            <span className="text-sm font-black text-slate-900 dark:text-white">{remittance.grossAmount.toLocaleString()} SAR</span>
           </div>
-          <div className="flex items-center justify-between text-xs text-rose-600 font-bold">
+          <div className="flex items-center justify-between text-xs text-rose-600 dark:text-rose-400 font-bold">
             <span>
               {(() => {
                 const pct =
@@ -120,38 +120,38 @@ export function RemittanceDetailsModal({
             <span>-{remittance.commissionAmount.toLocaleString()} SAR</span>
           </div>
           {(remittance.promoDiscountAmount || 0) > 0 && (
-            <div className="flex items-center justify-between text-xs text-rose-600 font-bold">
+            <div className="flex items-center justify-between text-xs text-rose-600 dark:text-rose-400 font-bold">
               <span>{t("Promo Code Discount", "خصم كود الترويج")}</span>
               <span>-{Number(remittance.promoDiscountAmount).toLocaleString()} SAR</span>
             </div>
           )}
-          <div className="border-t border-slate-200 pt-3 flex items-center justify-between">
-            <span className="text-sm font-black text-slate-900">{t("Net Transferred to IBAN", "صافي المبلغ المحول")}</span>
-            <span className="text-lg font-black text-[#4F2396]">{remittance.amount} SAR</span>
+          <div className="border-t border-slate-200 dark:border-slate-800 pt-3 flex items-center justify-between">
+            <span className="text-sm font-black text-slate-900 dark:text-white">{t("Net Transferred to IBAN", "صافي المبلغ المحول")}</span>
+            <span className="text-lg font-black text-[#4F2396] dark:text-purple-300">{remittance.amount} SAR</span>
           </div>
         </div>
 
         {/* Bookings Included List */}
         <div>
-          <h4 className="text-xs font-extrabold text-slate-400 uppercase mb-3">
+          <h4 className="text-xs font-extrabold text-slate-400 dark:text-slate-500 uppercase mb-3">
             {t("Guest Reservations Included", "حجوزات الضيوف المشمولة في الحوالة")} ({remittance.bookings.length})
           </h4>
-          <div className="divide-y divide-slate-100 border border-slate-100 rounded-2xl overflow-hidden">
+          <div className="divide-y divide-slate-100 dark:divide-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl overflow-hidden">
             {remittance.bookings.map((b) => (
-              <div key={b.bookingId} className="p-3.5 bg-white hover:bg-slate-50 transition flex items-center justify-between text-xs">
+              <div key={b.bookingId} className="p-3.5 bg-white dark:bg-[#12101a] hover:bg-slate-50 dark:hover:bg-slate-800/50 transition flex items-center justify-between text-xs">
                 <div>
                   <div className="flex items-center gap-2">
-                    <span className="font-mono font-bold text-slate-900">{b.bookingReference}</span>
-                    <span className="text-[11px] font-medium text-slate-500">· {b.propertyTitle}</span>
+                    <span className="font-mono font-bold text-slate-900 dark:text-white">{b.bookingReference}</span>
+                    <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400">· {b.propertyTitle}</span>
                   </div>
-                  <div className="flex items-center gap-1.5 text-[11px] text-slate-400 mt-0.5">
+                  <div className="flex items-center gap-1.5 text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">
                     <Calendar size={11} />
                     <span>{b.checkIn} → {b.checkOut}</span>
                   </div>
                 </div>
                 <div className="text-end">
-                  <span className="font-black text-slate-900 block">{b.netPayout.toLocaleString()} SAR</span>
-                  <span className="text-[10px] text-slate-400 font-medium">
+                  <span className="font-black text-slate-900 dark:text-white block">{b.netPayout.toLocaleString()} SAR</span>
+                  <span className="text-[10px] text-slate-400 dark:text-slate-500 font-medium">
                     {t("Gross", "الإجمالي")}: {b.grossAmount} SAR
                   </span>
                 </div>

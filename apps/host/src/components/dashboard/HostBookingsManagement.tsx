@@ -190,14 +190,14 @@ export default function HostBookingsManagement({
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-3">
-            <h1 className="text-xl sm:text-2xl font-black text-slate-900">
+            <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white">
               {t("Booking Management", "إدارة الحجوزات")}
             </h1>
             <span
               className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11px] font-black transition-colors ${
                 isRealtimeConnected
-                  ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-                  : "border-amber-200 bg-amber-50 text-amber-700"
+                  ? "border-emerald-200 dark:border-emerald-900/50 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300"
+                  : "border-amber-200 dark:border-amber-900/50 bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300"
               }`}
             >
               <span
@@ -212,7 +212,7 @@ export default function HostBookingsManagement({
               </span>
             </span>
           </div>
-          <p className="mt-1 text-xs sm:text-sm font-medium text-slate-500">
+          <p className="mt-1 text-xs sm:text-sm font-medium text-slate-500 dark:text-slate-400">
             {t(
               "Review guest reservations, assign smart lock PINs, and coordinate check-in and checkout in real time.",
               "متابعة سجل حجوزات الضيوف، إرسال رموز القفل الذكي، وإدارة الوصول والمغادرة بصورة فورية."
@@ -226,7 +226,7 @@ export default function HostBookingsManagement({
             setLoading(true);
             fetchBookings();
           }}
-          className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-black text-slate-700 hover:bg-slate-50 shadow-xs transition cursor-pointer"
+          className="inline-flex items-center gap-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 px-3.5 py-2 text-xs font-black text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 shadow-xs transition cursor-pointer"
         >
           <RefreshCw size={13} className={loading ? "animate-spin text-[#4F2396]" : "text-slate-400"} />
           <span>{t("Refresh", "تحديث")}</span>
@@ -235,13 +235,13 @@ export default function HostBookingsManagement({
 
       {/* Action Toast Alert */}
       {actionSuccessMsg && (
-        <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-xs font-black text-emerald-800 flex items-center justify-between shadow-xs animate-in fade-in">
+        <div className="rounded-xl border border-emerald-200 dark:border-emerald-800/60 bg-emerald-50 dark:bg-emerald-950/40 px-4 py-3 text-xs font-black text-emerald-800 dark:text-emerald-300 flex items-center justify-between shadow-xs animate-in fade-in">
           <div className="flex items-center gap-2">
-            <CheckCircle2 size={16} className="text-emerald-600" />
+            <CheckCircle2 size={16} className="text-emerald-600 dark:text-emerald-400" />
             <span>{actionSuccessMsg}</span>
           </div>
           <button type="button" onClick={() => setActionSuccessMsg(null)} className="cursor-pointer">
-            <X size={14} className="text-emerald-600 hover:text-emerald-900" />
+            <X size={14} className="text-emerald-600 dark:text-emerald-400 hover:text-emerald-900" />
           </button>
         </div>
       )}
@@ -265,11 +265,11 @@ export default function HostBookingsManagement({
       {loading ? (
         <div className="py-20 text-center">
           <LoaderCircle size={36} className="mx-auto mb-3 animate-spin text-[#4F2396]" />
-          <p className="text-sm font-extrabold text-slate-600">{t("Loading live bookings...", "جارٍ تحميل سجل الحجوزات...")}</p>
+          <p className="text-sm font-extrabold text-slate-600 dark:text-slate-400">{t("Loading live bookings...", "جارٍ تحميل سجل الحجوزات...")}</p>
         </div>
       ) : error ? (
-        <div className="rounded-2xl border border-rose-200 bg-rose-50 p-8 text-center space-y-3">
-          <p className="text-sm font-bold text-rose-700">{error}</p>
+        <div className="rounded-2xl border border-rose-200 dark:border-rose-900/60 bg-rose-50 dark:bg-rose-950/40 p-8 text-center space-y-3">
+          <p className="text-sm font-bold text-rose-700 dark:text-rose-300">{error}</p>
           <button
             type="button"
             onClick={() => { setLoading(true); void fetchBookings(); }}
@@ -280,12 +280,12 @@ export default function HostBookingsManagement({
           </button>
         </div>
       ) : filteredBookings.length === 0 ? (
-        <div className="rounded-2xl border border-slate-200 bg-white p-12 text-center text-slate-400 space-y-3">
-          <CalendarDays size={42} className="mx-auto text-slate-300" />
-          <p className="text-base font-black text-slate-700">
+        <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#12101a] p-12 text-center text-slate-400 dark:text-slate-500 space-y-3">
+          <CalendarDays size={42} className="mx-auto text-slate-300 dark:text-slate-600" />
+          <p className="text-base font-black text-slate-700 dark:text-slate-200">
             {t("No bookings match your filter criteria", "لا توجد حجوزات مطابقة لمعايير البحث")}
           </p>
-          <p className="text-xs text-slate-400 max-w-md mx-auto">
+          <p className="text-xs text-slate-400 dark:text-slate-500 max-w-md mx-auto">
             {t(
               "When guests make confirmed stays or send booking requests, they will appear here instantly.",
               "عند قيام الضيوف بحجز وحداتك المعروضة، ستظهر جميع بياناتهم ورموز القفل الذكي هنا مباشرة."

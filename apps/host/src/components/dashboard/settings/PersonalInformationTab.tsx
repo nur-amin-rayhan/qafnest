@@ -65,8 +65,8 @@ export function PersonalInformationTab({
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       {/* 1. Header Card with Avatar */}
-      <div className="rounded-3xl border border-slate-200/90 bg-white p-6 sm:p-8 shadow-xs">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 pb-6 border-b border-slate-100">
+      <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-[#12101a] p-6 sm:p-8 shadow-xs">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 pb-6 border-b border-slate-100 dark:border-slate-800">
           <div className="flex items-center gap-4 sm:gap-5">
             <div className="relative group">
               <div className="grid h-20 w-20 place-items-center rounded-3xl bg-gradient-to-br from-[#4F2396] to-violet-800 text-white text-xl font-black shadow-md shadow-violet-950/20">
@@ -88,7 +88,7 @@ export function PersonalInformationTab({
                   );
                   if (url) void onSave({ avatarUrl: url.trim() });
                 }}
-                className="absolute -bottom-1 -right-1 grid h-7 w-7 place-items-center rounded-xl bg-white border border-slate-200 text-slate-700 shadow-sm hover:bg-slate-50 cursor-pointer"
+                className="absolute -bottom-1 -right-1 grid h-7 w-7 place-items-center rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 shadow-sm hover:bg-slate-50 dark:hover:bg-slate-700 cursor-pointer"
                 title={t("Change profile photo", "تغيير صورة الملف الشخصي")}
               >
                 <Camera size={14} />
@@ -97,17 +97,17 @@ export function PersonalInformationTab({
 
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="text-lg sm:text-xl font-black text-slate-900">
+                <h3 className="text-lg sm:text-xl font-black text-slate-900 dark:text-white">
                   {fullName || t("Verified Host Partner", "مضيف شريك معتمد")}
                 </h3>
                 {profile.isVerified && (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-0.5 text-[11px] font-extrabold text-emerald-700">
-                    <CheckCircle2 size={13} className="text-emerald-600" />
+                  <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 dark:bg-emerald-950/60 px-2.5 py-0.5 text-[11px] font-extrabold text-emerald-700 dark:text-emerald-300">
+                    <CheckCircle2 size={13} className="text-emerald-600 dark:text-emerald-400" />
                     <span>{t("Verified SAMA Host", "مضيف موثق")}</span>
                   </span>
                 )}
               </div>
-              <p className="mt-1 text-xs text-slate-500 font-medium">
+              <p className="mt-1 text-xs text-slate-500 dark:text-slate-400 font-medium">
                 {t(
                   "Manage your public host identity, legal Saudi ID details, and direct contact channels.",
                   "إدارة هويتك المعتمدة كمضيف، بيانات الهوية الوطنية أو السجل التجاري، وقنوات التواصل."
@@ -116,8 +116,8 @@ export function PersonalInformationTab({
             </div>
           </div>
 
-          <div className="inline-flex items-center gap-2 rounded-2xl bg-violet-50/70 border border-violet-100 px-4 py-2.5 text-xs font-bold text-violet-900">
-            <ShieldCheck size={16} className="text-[#4F2396]" />
+          <div className="inline-flex items-center gap-2 rounded-2xl bg-violet-50/70 dark:bg-purple-950/60 border border-violet-100 dark:border-purple-800 px-4 py-2.5 text-xs font-bold text-violet-900 dark:text-purple-300">
+            <ShieldCheck size={16} className="text-[#4F2396] dark:text-purple-400" />
             <span>{t("National Identity Protected", "هوية وطنية مشفرة ومحمية")}</span>
           </div>
         </div>
@@ -126,7 +126,7 @@ export function PersonalInformationTab({
         <div className="mt-6 grid grid-cols-1 gap-5 md:grid-cols-2">
           {/* Full Name */}
           <div>
-            <label className="block text-xs font-black text-slate-800 mb-1.5">
+            <label className="block text-xs font-black text-slate-800 dark:text-slate-200 mb-1.5">
               {t("Host Full Name (Arabic / English)", "الاسم الكامل للمضيف (رباعي)")}
             </label>
             <div className="relative">
@@ -136,18 +136,18 @@ export function PersonalInformationTab({
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
                 placeholder={t("e.g. Full Legal Name", "مثال: الاسم الكامل للمضيف")}
-                className="w-full rounded-2xl border border-slate-200 bg-slate-50/50 px-4 py-3 text-xs sm:text-sm font-bold text-slate-900 transition focus:border-violet-500 focus:bg-white focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-400 focus-visible:ring-offset-2"
+                className="w-full rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900 px-4 py-3 text-xs sm:text-sm font-bold text-slate-900 dark:text-white transition focus:border-violet-500 focus:bg-white dark:focus:bg-slate-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-400 focus-visible:ring-offset-2"
               />
               <User
                 size={16}
-                className="absolute top-3.5 rtl:left-3.5 ltr:right-3.5 text-slate-400"
+                className="absolute top-3.5 rtl:left-3.5 ltr:right-3.5 text-slate-400 dark:text-slate-500"
               />
             </div>
           </div>
 
           {/* Phone Number */}
           <div>
-            <label className="block text-xs font-black text-slate-800 mb-1.5">
+            <label className="block text-xs font-black text-slate-800 dark:text-slate-200 mb-1.5">
               {t("Verified Saudi Mobile Phone", "رقم الجوال السعودي المعتمد")}
             </label>
             <div className="relative">
@@ -161,12 +161,12 @@ export function PersonalInformationTab({
                   if (!profile.phone) setPhone(e.target.value);
                 }}
                 placeholder="+966 5X XXX XXXX"
-                className={`w-full rounded-2xl border border-slate-200 px-4 py-3 text-xs sm:text-sm font-bold text-slate-900 transition focus:border-violet-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-400 focus-visible:ring-offset-2 ${
-                  profile.phone ? "bg-slate-100 cursor-not-allowed text-slate-600" : "bg-slate-50/50 focus:bg-white"
+                className={`w-full rounded-2xl border border-slate-200 dark:border-slate-700 px-4 py-3 text-xs sm:text-sm font-bold text-slate-900 dark:text-white transition focus:border-violet-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-400 focus-visible:ring-offset-2 ${
+                  profile.phone ? "bg-slate-100 dark:bg-slate-800 cursor-not-allowed text-slate-600 dark:text-slate-400" : "bg-slate-50/50 dark:bg-slate-900 focus:bg-white dark:focus:bg-slate-900"
                 }`}
               />
               {Boolean(profile.phone) && (
-                <span className="absolute top-3 rtl:left-3.5 ltr:right-3.5 text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-lg border border-emerald-200">
+                <span className="absolute top-3 rtl:left-3.5 ltr:right-3.5 text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 px-2 py-0.5 rounded-lg border border-emerald-200 dark:border-emerald-800">
                   {t("Verified", "موثق")}
                 </span>
               )}
@@ -175,7 +175,7 @@ export function PersonalInformationTab({
 
           {/* Email Address */}
           <div>
-            <label className="block text-xs font-black text-slate-800 mb-1.5">
+            <label className="block text-xs font-black text-slate-800 dark:text-slate-200 mb-1.5">
               {t("Email Address", "البريد الإلكتروني للإشعارات والفواتير")}
             </label>
             <div className="relative">
@@ -188,12 +188,12 @@ export function PersonalInformationTab({
                   if (!profile.email) setEmail(e.target.value);
                 }}
                 placeholder="host@qafnest.com"
-                className={`w-full rounded-2xl border border-slate-200 px-4 py-3 text-xs sm:text-sm font-bold text-slate-900 transition focus:border-violet-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-400 focus-visible:ring-offset-2 ${
-                  profile.email ? "bg-slate-100 cursor-not-allowed text-slate-600" : "bg-slate-50/50 focus:bg-white"
+                className={`w-full rounded-2xl border border-slate-200 dark:border-slate-700 px-4 py-3 text-xs sm:text-sm font-bold text-slate-900 dark:text-white transition focus:border-violet-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-400 focus-visible:ring-offset-2 ${
+                  profile.email ? "bg-slate-100 dark:bg-slate-800 cursor-not-allowed text-slate-600 dark:text-slate-400" : "bg-slate-50/50 dark:bg-slate-900 focus:bg-white dark:focus:bg-slate-900"
                 }`}
               />
               {Boolean(profile.email) && (
-                <span className="absolute top-3 rtl:left-3.5 ltr:right-3.5 text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-lg border border-emerald-200">
+                <span className="absolute top-3 rtl:left-3.5 ltr:right-3.5 text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 px-2 py-0.5 rounded-lg border border-emerald-200 dark:border-emerald-800">
                   {t("Linked", "مربوط")}
                 </span>
               )}
@@ -202,13 +202,13 @@ export function PersonalInformationTab({
 
           {/* Primary City */}
           <div>
-            <label className="block text-xs font-black text-slate-800 mb-1.5">
+            <label className="block text-xs font-black text-slate-800 dark:text-slate-200 mb-1.5">
               {t("City / Region of Operation", "المدينة الرئيسية للتشغيل")}
             </label>
             <select
               value={city}
               onChange={(e) => setCity(e.target.value)}
-              className="w-full rounded-2xl border border-slate-200 bg-slate-50/50 px-4 py-3 text-xs sm:text-sm font-bold text-slate-900 transition focus:border-violet-500 focus:bg-white focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-400 focus-visible:ring-offset-2"
+              className="w-full rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900 px-4 py-3 text-xs sm:text-sm font-bold text-slate-900 dark:text-white transition focus:border-violet-500 focus:bg-white dark:focus:bg-slate-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-400 focus-visible:ring-offset-2"
             >
               {SAUDI_CITIES.map((c) => (
                 <option key={c.en} value={lang === "ar" ? c.ar : c.en}>
@@ -220,7 +220,7 @@ export function PersonalInformationTab({
 
           {/* ID Type Selection */}
           <div>
-            <label className="block text-xs font-black text-slate-800 mb-1.5">
+            <label className="block text-xs font-black text-slate-800 dark:text-slate-200 mb-1.5">
               {t("Identity Document Type", "نوع وثيقة الإثبات")}
             </label>
             <select
@@ -228,7 +228,7 @@ export function PersonalInformationTab({
               onChange={(e) =>
                 setIdType(e.target.value as HostProfileSettings["idType"])
               }
-              className="w-full rounded-2xl border border-slate-200 bg-slate-50/50 px-4 py-3 text-xs sm:text-sm font-bold text-slate-900 transition focus:border-violet-500 focus:bg-white focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-400 focus-visible:ring-offset-2"
+              className="w-full rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900 px-4 py-3 text-xs sm:text-sm font-bold text-slate-900 dark:text-white transition focus:border-violet-500 focus:bg-white dark:focus:bg-slate-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-400 focus-visible:ring-offset-2"
             >
               <option value="national_id">{t("Saudi National ID", "هوية وطنية سعودية")}</option>
               <option value="iqama">{t("Resident Iqama", "إقامة نظامية للمقيمين")}</option>
@@ -240,7 +240,7 @@ export function PersonalInformationTab({
 
           {/* National ID / Document Number */}
           <div>
-            <label className="block text-xs font-black text-slate-800 mb-1.5">
+            <label className="block text-xs font-black text-slate-800 dark:text-slate-200 mb-1.5">
               {idType === "commercial_registration"
                 ? t("Commercial Registration Number (10 digits)", "رقم السجل التجاري / وثيقة العمل الحر")
                 : t("National / Resident ID Number (10 digits)", "رقم الهوية الوطنية / الإقامة (10 أرقام)")}
@@ -251,13 +251,13 @@ export function PersonalInformationTab({
               onChange={(e) => setNationalId(e.target.value)}
               placeholder="1XXXXXXXXX"
               maxLength={10}
-              className="w-full rounded-2xl border border-slate-200 bg-slate-50/50 px-4 py-3 text-xs sm:text-sm font-bold text-slate-900 transition focus:border-violet-500 focus:bg-white focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-400 focus-visible:ring-offset-2"
+              className="w-full rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900 px-4 py-3 text-xs sm:text-sm font-bold text-slate-900 dark:text-white transition focus:border-violet-500 focus:bg-white dark:focus:bg-slate-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-400 focus-visible:ring-offset-2"
             />
           </div>
 
           {/* Bio / Host Description */}
           <div className="md:col-span-2">
-            <label className="block text-xs font-black text-slate-800 mb-1.5">
+            <label className="block text-xs font-black text-slate-800 dark:text-slate-200 mb-1.5">
               {t("Host Bio / Overview", "نبذة تعريفية عن المضيف ومواصفات الضيافة")}
             </label>
             <textarea
@@ -268,13 +268,13 @@ export function PersonalInformationTab({
                 "Write a brief introduction for guests about your properties and hosting experience...",
                 "اكتب نبذة موجزة للضيوف عن خبرتك في إدارة الوحدات السكنية والترحيب بهم..."
               )}
-              className="w-full rounded-2xl border border-slate-200 bg-slate-50/50 p-4 text-xs sm:text-sm font-bold text-slate-900 transition focus:border-violet-500 focus:bg-white focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-400 focus-visible:ring-offset-2"
+              className="w-full rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900 p-4 text-xs sm:text-sm font-bold text-slate-900 dark:text-white transition focus:border-violet-500 focus:bg-white dark:focus:bg-slate-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-400 focus-visible:ring-offset-2"
             />
           </div>
         </div>
 
         {/* 3. Action Footer */}
-        <div className="mt-8 flex items-center justify-end border-t border-slate-100 pt-5">
+        <div className="mt-8 flex items-center justify-end border-t border-slate-100 dark:border-slate-800 pt-5">
           <button
             type="submit"
             disabled={isSaving}

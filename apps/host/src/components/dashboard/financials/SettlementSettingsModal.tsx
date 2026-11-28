@@ -46,22 +46,22 @@ export function SettlementSettingsModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
-      <div className="w-full max-w-lg rounded-3xl bg-white p-6 sm:p-7 shadow-2xl border border-slate-100 space-y-5 text-slate-900">
-        <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+      <div className="w-full max-w-lg rounded-2xl bg-white dark:bg-[#12101a] p-6 sm:p-7 shadow-2xl border border-slate-100 dark:border-slate-800 space-y-5 text-slate-900 dark:text-white">
+        <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
           <div className="flex items-center gap-2">
-            <Clock size={18} className="text-[#4F2396]" />
-            <h3 className="font-black text-sm text-slate-900">
+            <Clock size={18} className="text-[#4F2396] dark:text-purple-400" />
+            <h3 className="font-black text-sm text-slate-900 dark:text-white">
               {t("Settlement & Payout Schedule Settings", "إعدادات جدول التحويل والتسوية المالية")}
             </h3>
           </div>
-          <button type="button" onClick={onClose} className="rounded-xl p-1 text-slate-400 hover:bg-slate-100 cursor-pointer">
+          <button type="button" onClick={onClose} className="rounded-xl p-1 text-slate-400 dark:text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer">
             <X size={18} />
           </button>
         </div>
 
         {/* Payout Frequency */}
         <div className="space-y-2 text-xs">
-          <label className="font-bold text-slate-700 block">
+          <label className="font-bold text-slate-700 dark:text-slate-300 block">
             {t("Automated Payout Frequency (SAMA SARIE)", "دورية التحويل البنكي التلقائي (نظام سريع)")}
           </label>
           <div className="grid grid-cols-2 gap-2">
@@ -77,8 +77,8 @@ export function SettlementSettingsModal({
                 onClick={() => setFrequency(opt.id as any)}
                 className={`p-2.5 rounded-xl text-start font-bold border transition cursor-pointer ${
                   frequency === opt.id
-                    ? "border-[#4F2396] bg-violet-50 text-[#4F2396]"
-                    : "border-slate-200 bg-slate-50/50 text-slate-700 hover:bg-slate-100"
+                    ? "border-[#4F2396] dark:border-purple-500 bg-violet-50 dark:bg-purple-950/60 text-[#4F2396] dark:text-purple-300"
+                    : "border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
                 }`}
               >
                 {lang === "ar" ? opt.ar : opt.en}
@@ -89,7 +89,7 @@ export function SettlementSettingsModal({
 
         {/* Minimum Threshold */}
         <div className="space-y-2 text-xs">
-          <label className="font-bold text-slate-700 block">
+          <label className="font-bold text-slate-700 dark:text-slate-300 block">
             {t("Minimum Payout Threshold", "الحد الأدنى للتحويل التلقائي")}
           </label>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
@@ -104,8 +104,8 @@ export function SettlementSettingsModal({
                 onClick={() => setThreshold(opt.val)}
                 className={`p-2 rounded-xl text-center font-bold border transition cursor-pointer ${
                   threshold === opt.val
-                    ? "border-[#4F2396] bg-violet-50 text-[#4F2396]"
-                    : "border-slate-200 bg-slate-50/50 text-slate-700 hover:bg-slate-100"
+                    ? "border-[#4F2396] dark:border-purple-500 bg-violet-50 dark:bg-purple-950/60 text-[#4F2396] dark:text-purple-300"
+                    : "border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
                 }`}
               >
                 {opt.label}
@@ -115,13 +115,13 @@ export function SettlementSettingsModal({
         </div>
 
         {/* Policy & Notification Toggles */}
-        <div className="space-y-3 pt-1 border-t border-slate-100 text-xs">
-          <label className="flex items-center justify-between p-2 rounded-xl hover:bg-slate-50 cursor-pointer">
+        <div className="space-y-3 pt-1 border-t border-slate-100 dark:border-slate-800 text-xs">
+          <label className="flex items-center justify-between p-2 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-900/60 cursor-pointer">
             <div className="space-y-0.5">
-              <span className="font-bold block text-slate-900">
+              <span className="font-bold block text-slate-900 dark:text-white">
                 {t("Post Check-Out Escrow Lock + 24h Settlement", "تحرير المستحقات بعد تسجيل مغادرة الضيف (خلال 24 ساعة)")}
               </span>
-              <span className="text-[11px] text-slate-500 block">
+              <span className="text-[11px] text-slate-500 dark:text-slate-400 block">
                 {t("Funds remain in escrow until guest check-out completes", "حماية كاملة: لا يتم صرف المستحقات إلا بعد انتهاء الإقامة ومغادرة الضيف")}
               </span>
             </div>
@@ -133,12 +133,12 @@ export function SettlementSettingsModal({
             />
           </label>
 
-          <label className="flex items-center justify-between p-2 rounded-xl hover:bg-slate-50 cursor-pointer">
+          <label className="flex items-center justify-between p-2 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-900/60 cursor-pointer">
             <div className="space-y-0.5">
-              <span className="font-bold block text-slate-900">
+              <span className="font-bold block text-slate-900 dark:text-white">
                 {t("SMS & Email Settlement Alerts", "إشعارات الرسائل النصية والبريد عند كل تحويل")}
               </span>
-              <span className="text-[11px] text-slate-500 block">
+              <span className="text-[11px] text-slate-500 dark:text-slate-400 block">
                 {t("Instant notification with SAMA SARIE reference", "إشعار فوري برقم الحوالة البنكية")}
               </span>
             </div>
@@ -152,11 +152,11 @@ export function SettlementSettingsModal({
         </div>
 
         {/* Footer Actions */}
-        <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
+        <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100 dark:border-slate-800">
           <button
             type="button"
             onClick={onClose}
-            className="rounded-xl px-4 py-2 text-xs font-bold text-slate-500 hover:bg-slate-100 cursor-pointer"
+            className="rounded-xl px-4 py-2 text-xs font-bold text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
           >
             {t("Cancel", "إلغاء")}
           </button>

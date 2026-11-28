@@ -71,18 +71,18 @@ export function PayoutIbanCard({
 
   return (
     <>
-      <div className="rounded-3xl border border-slate-200/90 bg-white p-6 sm:p-8 shadow-xs max-w-2xl space-y-6">
+      <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-[#12101a] p-6 sm:p-8 shadow-xs max-w-2xl space-y-6">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="grid h-10 w-10 place-items-center rounded-2xl bg-violet-100 text-[#4F2396] shrink-0">
+            <div className="grid h-10 w-10 place-items-center rounded-2xl bg-violet-100 dark:bg-purple-950/60 text-[#4F2396] dark:text-purple-300 shrink-0">
               <CreditCard size={20} />
             </div>
             <div>
-              <h2 className="text-lg font-black text-slate-900">
+              <h2 className="text-lg font-black text-slate-900 dark:text-white">
                 {t("Primary Bank Account (IBAN)", "الحساب البنكي المعتمد للتحويل")}
               </h2>
-              <p className="text-xs text-slate-500 font-medium">
+              <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
                 {t(
                   "All your guest booking payouts are automatically transferred to this IBAN.",
                   "يتم إيداع عوائد حجوزاتك تلقائياً في هذا الحساب بدون أي تأخير."
@@ -98,7 +98,7 @@ export function PayoutIbanCard({
                 <button
                   type="button"
                   onClick={handleOpenEdit}
-                  className="inline-flex items-center gap-1.5 rounded-2xl border border-violet-200 bg-violet-50/60 hover:bg-violet-100/70 px-3.5 py-2 text-xs font-black text-[#4F2396] transition cursor-pointer shrink-0"
+                  className="inline-flex items-center gap-1.5 rounded-2xl border border-violet-200 dark:border-purple-800 bg-violet-50/60 dark:bg-purple-950/60 hover:bg-violet-100/70 dark:hover:bg-purple-900/60 px-3.5 py-2 text-xs font-black text-[#4F2396] dark:text-purple-300 transition cursor-pointer shrink-0"
                 >
                   <Edit3 size={14} />
                   <span>{t("Edit", "تعديل")}</span>
@@ -107,7 +107,7 @@ export function PayoutIbanCard({
                   <button
                     type="button"
                     onClick={() => setConfirmDeleteOpen(true)}
-                    className="inline-flex items-center gap-1.5 rounded-2xl border border-rose-200 bg-rose-50/60 hover:bg-rose-100/80 px-3.5 py-2 text-xs font-bold text-rose-600 transition cursor-pointer shrink-0"
+                    className="inline-flex items-center gap-1.5 rounded-2xl border border-rose-200 dark:border-rose-900/60 bg-rose-50/60 dark:bg-rose-950/50 hover:bg-rose-100/80 dark:hover:bg-rose-900/60 px-3.5 py-2 text-xs font-bold text-rose-600 dark:text-rose-400 transition cursor-pointer shrink-0"
                     title={t("Delete Bank Account", "حذف الحساب البنكي")}
                   >
                     <Trash2 size={14} />
@@ -130,13 +130,13 @@ export function PayoutIbanCard({
 
         {/* Content Box */}
         {hasConfiguredIban ? (
-          <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-5 space-y-4">
+          <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/60 p-5 space-y-4">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-slate-400">
+              <span className="text-xs font-bold text-slate-400 dark:text-slate-500">
                 {t("Bank Name", "اسم البنك")}
               </span>
-              <span className="inline-flex items-center gap-1.5 text-sm font-black text-slate-900">
-                <Building2 size={15} className="text-[#4F2396]" />
+              <span className="inline-flex items-center gap-1.5 text-sm font-black text-slate-900 dark:text-white">
+                <Building2 size={15} className="text-[#4F2396] dark:text-purple-400" />
                 <span>
                   {lang === "ar"
                     ? ibanData.bankNameAr || ibanData.bankNameEn
@@ -146,21 +146,21 @@ export function PayoutIbanCard({
             </div>
 
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-slate-400">
+              <span className="text-xs font-bold text-slate-400 dark:text-slate-500">
                 {t("Account Holder", "اسم المستفيد")}
               </span>
-              <span className="text-sm font-black text-slate-900">
+              <span className="text-sm font-black text-slate-900 dark:text-white">
                 {ibanData.accountHolder || "—"}
               </span>
             </div>
 
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-slate-400">
+              <span className="text-xs font-bold text-slate-400 dark:text-slate-500">
                 {t("IBAN", "رقم الآيبان")}
               </span>
               <div className="flex items-center gap-2">
                 <span
-                  className="text-sm font-black font-mono text-[#4F2396] tracking-wide"
+                  className="text-sm font-black font-mono text-[#4F2396] dark:text-purple-300 tracking-wide"
                   dir="ltr"
                 >
                   {ibanData.formattedIban || ibanData.iban}
@@ -168,11 +168,11 @@ export function PayoutIbanCard({
                 <button
                   type="button"
                   onClick={handleCopy}
-                  className="p-1 rounded-md text-slate-400 hover:text-slate-700 hover:bg-slate-200/60 transition cursor-pointer"
+                  className="p-1 rounded-md text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-200/60 dark:hover:bg-slate-800 transition cursor-pointer"
                   title={copied ? t("Copied!", "تم النسخ!") : t("Copy IBAN", "نسخ الآيبان")}
                 >
                   {copied ? (
-                    <Check size={14} className="text-emerald-600" />
+                    <Check size={14} className="text-emerald-600 dark:text-emerald-400" />
                   ) : (
                     <Copy size={14} />
                   )}
@@ -180,12 +180,12 @@ export function PayoutIbanCard({
               </div>
             </div>
 
-            <div className="flex items-center justify-between border-t border-slate-200 pt-3">
-              <span className="text-xs font-bold text-slate-400">
+            <div className="flex items-center justify-between border-t border-slate-200 dark:border-slate-800 pt-3">
+              <span className="text-xs font-bold text-slate-400 dark:text-slate-500">
                 {t("Verification Status", "حالة التوثيق")}
               </span>
               {ibanData.isVerified ? (
-                <span className="inline-flex items-center gap-1 text-xs font-black text-emerald-600">
+                <span className="inline-flex items-center gap-1 text-xs font-black text-emerald-600 dark:text-emerald-400">
                   <ShieldCheck size={14} />
                   <span>
                     {t(
@@ -195,7 +195,7 @@ export function PayoutIbanCard({
                   </span>
                 </span>
               ) : (
-                <span className="inline-flex items-center gap-1 text-xs font-bold text-amber-600">
+                <span className="inline-flex items-center gap-1 text-xs font-bold text-amber-600 dark:text-amber-400">
                   <ShieldCheck size={14} />
                   <span>{t("Pending Verification", "قيد المراجعة")}</span>
                 </span>
@@ -204,15 +204,15 @@ export function PayoutIbanCard({
           </div>
         ) : (
           /* Empty State */
-          <div className="rounded-2xl border border-dashed border-violet-200 bg-violet-50/30 p-8 text-center space-y-3">
-            <div className="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-violet-100 text-[#4F2396]">
+          <div className="rounded-2xl border border-dashed border-violet-200 dark:border-purple-900 bg-violet-50/30 dark:bg-purple-950/20 p-8 text-center space-y-3">
+            <div className="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-violet-100 dark:bg-purple-950/60 text-[#4F2396] dark:text-purple-300">
               <CreditCard size={24} />
             </div>
             <div>
-              <h3 className="text-sm font-black text-slate-800">
+              <h3 className="text-sm font-black text-slate-800 dark:text-slate-200">
                 {t("No Payout Bank Account Linked", "لم يتم ربط حساب بنكي بعد")}
               </h3>
-              <p className="mt-1 text-xs text-slate-500 max-w-md mx-auto leading-relaxed">
+              <p className="mt-1 text-xs text-slate-500 dark:text-slate-400 max-w-md mx-auto leading-relaxed">
                 {t(
                   "Link your Saudi IBAN to receive automatic payouts for bookings and instant SARIE remittances.",
                   "اربط حسابك البنكي السعودي لاستلام مستحقات وعوائد الحجوزات فوراً بنظام سريع وبأمان تام."
@@ -253,22 +253,22 @@ export function PayoutIbanCard({
             if (e.target === e.currentTarget) setConfirmDeleteOpen(false);
           }}
         >
-          <div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl border border-slate-100 space-y-4">
+          <div className="w-full max-w-md rounded-2xl bg-white dark:bg-[#12101a] p-6 shadow-2xl border border-slate-100 dark:border-slate-800 space-y-4">
             <div className="flex items-center gap-3">
-              <div className="grid h-10 w-10 place-items-center rounded-2xl bg-rose-100 text-rose-600 shrink-0">
+              <div className="grid h-10 w-10 place-items-center rounded-2xl bg-rose-100 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 shrink-0">
                 <AlertTriangle size={20} />
               </div>
               <div>
-                <h3 className="text-base font-black text-slate-900">
+                <h3 className="text-base font-black text-slate-900 dark:text-white">
                   {t("Delete Bank Account?", "هل تريد بالتأكيد حذف الحساب البنكي؟")}
                 </h3>
-                <p className="text-xs text-slate-500">
+                <p className="text-xs text-slate-500 dark:text-slate-400">
                   {ibanData.formattedIban || ibanData.iban}
                 </p>
               </div>
             </div>
 
-            <p className="text-xs text-slate-600 leading-relaxed">
+            <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
               {t(
                 "Removing this bank account will pause automated disbursements until you add a new verified Saudi IBAN. You can add a new account anytime.",
                 "حذف الحساب البنكي سيوقف التحويلات التلقائية مؤقتاً حتى تقوم بإضافة آيبان سعودي جديد وتوثيقه. يمكنك إضافة حساب جديد في أي وقت."
@@ -279,7 +279,7 @@ export function PayoutIbanCard({
               <button
                 type="button"
                 onClick={() => setConfirmDeleteOpen(false)}
-                className="rounded-2xl border border-slate-200 px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 cursor-pointer transition"
+                className="rounded-2xl border border-slate-200 dark:border-slate-700 px-4 py-2 text-xs font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer transition"
               >
                 {t("Cancel", "إلغاء")}
               </button>

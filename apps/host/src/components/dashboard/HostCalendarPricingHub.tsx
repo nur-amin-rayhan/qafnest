@@ -65,17 +65,17 @@ export default function HostCalendarPricingHub({
   return (
     <div className="mx-auto w-full max-w-[1640px] px-4 py-6 sm:px-8 sm:py-8 space-y-8 animate-in fade-in duration-300">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200/80 pb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200/80 dark:border-slate-800 pb-6">
         <div>
           <div className="flex items-center gap-2.5">
             <div className="grid h-11 w-11 place-items-center rounded-2xl bg-[#4F2396] text-white shadow-xs">
               <CalendarDays size={22} />
             </div>
             <div>
-              <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+              <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">
                 {t("Calendar & Availability Hub", "التقويم وإدارة الإتاحة والأسعار")}
               </h1>
-              <p className="mt-0.5 text-xs sm:text-sm font-medium text-slate-500">
+              <p className="mt-0.5 text-xs sm:text-sm font-medium text-slate-500 dark:text-slate-400">
                 {t(
                   "Configure master base rates, granular 7-day pricing, and individual date overrides.",
                   "تحكم بالسعر الأساسي المعتمد، وأسعار أيام الأسبوع، والتخصيص الفردي لتواريخ التقويم."
@@ -87,13 +87,13 @@ export default function HostCalendarPricingHub({
 
         {/* Top Property Selector (Always visible at the top) */}
         <div className="flex items-center gap-2">
-          <span className="text-xs font-black text-slate-600 hidden sm:inline">
+          <span className="text-xs font-black text-slate-600 dark:text-slate-400 hidden sm:inline">
             {t("Selected Property:", "العقار المختار:")}
           </span>
           <select
             value={selectedPropertyId}
             onChange={(e) => setSelectedPropertyId(e.target.value)}
-            className="rounded-2xl border-2 border-violet-200 bg-white px-4 py-2.5 text-xs sm:text-sm font-black text-slate-800 shadow-xs outline-none cursor-pointer hover:border-[#4F2396] focus:border-[#4F2396] focus:ring-2 focus:ring-[#4F2396]/20 transition"
+            className="rounded-2xl border-2 border-violet-200 dark:border-slate-700 bg-white dark:bg-[#12101a] px-4 py-2.5 text-xs sm:text-sm font-black text-slate-800 dark:text-white shadow-xs outline-none cursor-pointer hover:border-[#4F2396] focus:border-[#4F2396] focus:ring-2 focus:ring-[#4F2396]/20 transition"
           >
             {properties.length > 0 ? (
               properties.map((p) => (

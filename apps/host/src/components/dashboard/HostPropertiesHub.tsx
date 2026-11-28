@@ -83,17 +83,17 @@ export default function HostPropertiesHub({
   return (
     <div className="mx-auto w-full max-w-[1640px] px-4 py-6 sm:px-8 sm:py-8 space-y-8 animate-in fade-in duration-300">
       {/* 1. HEADER & PRIMARY ACTIONS */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200/80 pb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200/80 dark:border-slate-800 pb-6">
         <div>
           <div className="flex items-center gap-2.5">
             <div className="grid h-11 w-11 place-items-center rounded-2xl bg-[#4F2396] text-white shadow-xs">
               <Building2 size={22} />
             </div>
             <div>
-              <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+              <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">
                 {t("Properties & Real Estate Management", "إدارة العقارات والوحدات")}
               </h1>
-              <p className="mt-0.5 text-xs sm:text-sm font-medium text-slate-500">
+              <p className="mt-0.5 text-xs sm:text-sm font-medium text-slate-500 dark:text-slate-400">
                 {t(
                   "Manage your chalets, villas, and apartments. Update pricing, edit photos, and review approval status.",
                   "تحكم بجميع شاليهاتك وفيللك وشققك المسجلة، وتابع التراخيص والأسعار وحالة النشر للضيوف."
@@ -108,10 +108,10 @@ export default function HostPropertiesHub({
             <button
               type="button"
               onClick={onRefresh}
-              className="inline-flex items-center gap-1.5 rounded-2xl border border-slate-200 bg-white hover:bg-slate-50 px-3.5 py-3 text-xs font-black text-slate-700 shadow-xs transition cursor-pointer"
+              className="inline-flex items-center gap-1.5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 hover:bg-slate-50 dark:hover:bg-slate-800 px-3.5 py-3 text-xs font-black text-slate-700 dark:text-slate-300 shadow-xs transition cursor-pointer"
               title={t("Refresh data", "تحديث البيانات")}
             >
-              <RefreshCw size={14} className="text-slate-400" />
+              <RefreshCw size={14} className="text-slate-400 dark:text-slate-500" />
               <span>{t("Refresh", "تحديث")}</span>
             </button>
           )}
@@ -135,9 +135,9 @@ export default function HostPropertiesHub({
       />
 
       {/* 3. SEARCH & CITY FILTER CONTROLS */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-3 rounded-2xl border border-slate-200 shadow-xs">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white dark:bg-[#12101a] p-3 rounded-2xl border border-slate-200 dark:border-slate-800/80 shadow-xs">
         <div className="relative flex-1">
-          <Search size={16} className="absolute inset-y-0 start-3 my-auto text-slate-400" />
+          <Search size={16} className="absolute inset-y-0 start-3 my-auto text-slate-400 dark:text-slate-500" />
           <input
             type="text"
             value={searchQuery}
@@ -146,7 +146,7 @@ export default function HostPropertiesHub({
               "Search property title, city, or district...",
               "ابحث باسم العقار، المدينة، أو الحي..."
             )}
-            className="w-full rounded-xl bg-slate-50 py-2.5 ps-9 pe-4 text-xs sm:text-sm font-semibold text-slate-900 outline-none placeholder:text-slate-400 focus:bg-white focus:ring-2 focus:ring-[#4F2396]/20 transition"
+            className="w-full rounded-xl bg-slate-50 dark:bg-slate-900/80 py-2.5 ps-9 pe-4 text-xs sm:text-sm font-semibold text-slate-900 dark:text-white outline-none placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-[#4F2396]/20 transition"
           />
         </div>
 
@@ -155,7 +155,7 @@ export default function HostPropertiesHub({
             <select
               value={cityFilter}
               onChange={(e) => setCityFilter(e.target.value)}
-              className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 outline-none cursor-pointer hover:border-slate-300"
+              className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-3 py-2 text-xs font-bold text-slate-700 dark:text-slate-300 outline-none cursor-pointer hover:border-slate-300 dark:hover:border-slate-700"
             >
               <option value="all">{t("All Cities", "جميع المدن")}</option>
               {availableCities.map((c) => (
@@ -182,15 +182,15 @@ export default function HostPropertiesHub({
         </div>
       ) : (
         /* Empty State */
-        <div className="rounded-3xl border border-dashed border-slate-300 bg-white p-12 text-center space-y-4">
-          <div className="mx-auto grid h-16 w-16 place-items-center rounded-3xl bg-violet-50 text-[#4F2396]">
+        <div className="rounded-3xl border border-dashed border-slate-300 dark:border-slate-700 bg-white dark:bg-[#12101a] p-12 text-center space-y-4">
+          <div className="mx-auto grid h-16 w-16 place-items-center rounded-3xl bg-violet-50 dark:bg-violet-950/40 text-[#4F2396] dark:text-purple-300">
             <Building2 size={32} />
           </div>
           <div className="max-w-md mx-auto space-y-1">
-            <h3 className="text-lg font-black text-slate-900">
+            <h3 className="text-lg font-black text-slate-900 dark:text-white">
               {t("No properties match your filter", "لم يتم العثور على عقارات مطابقة")}
             </h3>
-            <p className="text-xs font-medium text-slate-500">
+            <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
               {t(
                 "Try clearing search filters or add a new chalet, villa, or apartment to start welcoming guests.",
                 "جرب مسح معايير البحث أو ابدأ بإضافة عقار جديد لتبدأ باستقبال الحجوزات والأرباح."

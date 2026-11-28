@@ -56,16 +56,16 @@ export function NotificationPreferencesTab({
   ) => {
     const isChecked = Boolean(form[key]);
     return (
-      <div className="flex items-center justify-between gap-4 p-4 rounded-2xl border border-slate-200/80 bg-white hover:border-slate-300 transition">
+      <div className="flex items-center justify-between gap-4 p-4 rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-[#12101a] hover:border-slate-300 dark:hover:border-slate-700 transition">
         <div className="flex items-center gap-3.5">
-          <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-violet-50 text-[#4F2396]">
+          <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-violet-50 dark:bg-purple-950/50 text-[#4F2396] dark:text-purple-300">
             {icon}
           </div>
           <div>
-            <span className="block text-xs sm:text-sm font-black text-slate-900 leading-snug">
+            <span className="block text-xs sm:text-sm font-black text-slate-900 dark:text-white leading-snug">
               {lang === "ar" ? titleAr : titleEn}
             </span>
-            <span className="mt-0.5 block text-[11px] text-slate-500 font-medium">
+            <span className="mt-0.5 block text-[11px] text-slate-500 dark:text-slate-400 font-medium">
               {lang === "ar" ? descAr : descEn}
             </span>
           </div>
@@ -77,7 +77,7 @@ export function NotificationPreferencesTab({
           aria-checked={isChecked}
           onClick={() => toggle(key)}
           className={`relative inline-flex h-6 w-11 shrink-0 rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out cursor-pointer ${
-            isChecked ? "bg-[#4F2396]" : "bg-slate-200"
+            isChecked ? "bg-[#4F2396]" : "bg-slate-200 dark:bg-slate-800"
           }`}
         >
           <span
@@ -97,12 +97,12 @@ export function NotificationPreferencesTab({
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       {/* 1. Delivery Channels Card */}
-      <div className="rounded-3xl border border-slate-200/90 bg-white p-6 sm:p-8 shadow-xs">
-        <div className="pb-4 border-b border-slate-100">
-          <h3 className="text-base sm:text-lg font-black text-slate-900">
+      <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-[#12101a] p-6 sm:p-8 shadow-xs">
+        <div className="pb-4 border-b border-slate-100 dark:border-slate-800">
+          <h3 className="text-base sm:text-lg font-black text-slate-900 dark:text-white">
             {t("Notification Delivery Channels", "قنوات استلام التنبيهات")}
           </h3>
-          <p className="mt-1 text-xs text-slate-500 font-medium">
+          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400 font-medium">
             {t(
               "Select the digital channels through which you wish to receive alerts.",
               "حدد المنصات والقنوات التي ترغب في تلقي إشعارات الحجوزات والعمليات من خلالها."
@@ -150,12 +150,12 @@ export function NotificationPreferencesTab({
       </div>
 
       {/* 2. Specific Event Triggers Card */}
-      <div className="rounded-3xl border border-slate-200/90 bg-white p-6 sm:p-8 shadow-xs">
-        <div className="pb-4 border-b border-slate-100">
-          <h3 className="text-base sm:text-lg font-black text-slate-900">
+      <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-[#12101a] p-6 sm:p-8 shadow-xs">
+        <div className="pb-4 border-b border-slate-100 dark:border-slate-800">
+          <h3 className="text-base sm:text-lg font-black text-slate-900 dark:text-white">
             {t("Event Alerts & Triggers", "أحداث الحجوزات والعمليات")}
           </h3>
-          <p className="mt-1 text-xs text-slate-500 font-medium">
+          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400 font-medium">
             {t(
               "Control exactly which business updates trigger notifications.",
               "حدد الأحداث التي تريد إرسال تنبيه فوري بشأنها لتبقى على اطلاع دائم."
@@ -220,7 +220,7 @@ export function NotificationPreferencesTab({
         </div>
 
         {/* 3. Action Footer */}
-        <div className="mt-8 flex items-center justify-end border-t border-slate-100 pt-5">
+        <div className="mt-8 flex items-center justify-end border-t border-slate-100 dark:border-slate-800 pt-5">
           <button
             type="submit"
             disabled={isSaving}
