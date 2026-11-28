@@ -40,26 +40,26 @@ export function HostWhyUs({ t, lang }: HostWhyUsProps) {
   ];
 
   return (
-    <section className="mx-auto max-w-[1440px] px-5 py-16 sm:px-8 lg:py-24">
-      <h2 className="text-2xl sm:text-4xl font-black text-[#4F2396]">
+    <section className="mx-auto max-w-[1440px] px-5 py-14 sm:px-8 lg:py-20">
+      <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-slate-900 dark:text-white tracking-tight">
         {t("Why Host Your Property with QafNest?", "مميزات تأجير عقارك في قاف نست")}
       </h2>
 
-      <div className="mt-10 grid gap-8 md:grid-cols-3">
+      <div className="mt-8 sm:mt-10 grid gap-6 md:grid-cols-3">
         {benefits.map((item) => {
           const Icon = item.icon;
           return (
             <div
               key={item.titleEn}
-              className="rounded-3xl border border-violet-200/80 bg-gradient-to-b from-violet-50/45 to-white p-7 shadow-sm hover:shadow-md transition"
+              className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-[#12101a] p-6 sm:p-7 shadow-xs hover:border-slate-300 dark:hover:border-slate-700 transition"
             >
-              <div className="grid h-14 w-14 place-items-center rounded-2xl bg-[#4F2396] text-white shadow-md shadow-violet-900/20">
-                <Icon size={26} />
+              <div className="grid h-12 w-12 place-items-center rounded-xl bg-purple-50 dark:bg-purple-950/60 text-[#4F2396] dark:text-purple-300">
+                <Icon size={24} />
               </div>
-              <h3 className="mt-6 text-xl font-black text-[#010112]">
+              <h3 className="mt-5 text-lg sm:text-xl font-bold text-slate-900 dark:text-white">
                 {lang === "ar" ? item.titleAr : item.titleEn}
               </h3>
-              <p className="mt-3 text-base leading-7 text-[#686868]">
+              <p className="mt-2.5 text-sm leading-relaxed text-slate-600 dark:text-slate-400 font-normal">
                 {lang === "ar" ? item.descAr : item.descEn}
               </p>
             </div>

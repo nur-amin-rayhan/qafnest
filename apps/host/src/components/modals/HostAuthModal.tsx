@@ -97,15 +97,15 @@ export default function HostAuthModal() {
         if (e.target === e.currentTarget) closeHostAuthModal();
       }}
     >
-      <div className="relative w-full max-w-[440px] rounded-2xl bg-white p-7 sm:p-8 shadow-2xl border border-slate-200/90 text-slate-900 max-h-[92vh] overflow-y-auto">
+      <div className="relative w-full max-w-[440px] rounded-2xl bg-white dark:bg-[#12101a] p-7 sm:p-8 shadow-2xl border border-slate-200/90 dark:border-slate-800 text-slate-900 dark:text-slate-100 max-h-[92vh] overflow-y-auto transition-colors">
         {/* Top Controls: Brand, Language & Close */}
-        <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+        <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
           <div className="inline-flex items-center gap-1.5 select-none">
-            <span className="text-[20px] font-black tracking-[-0.05em] text-[#4F2396]">
-              Qaf<span className="text-[#7c3aed]">Nest</span>
+            <span className="text-[20px] font-black tracking-[-0.05em] text-[#4F2396] dark:text-purple-400">
+              Qaf<span className="text-[#7c3aed] dark:text-purple-300">Nest</span>
               <span className="text-[#FF9750]">.</span>
             </span>
-            <span className="rounded-md bg-violet-100/80 px-2 py-0.5 text-[9px] font-bold tracking-wider uppercase text-[#4F2396]">
+            <span className="rounded-md bg-violet-100/80 dark:bg-purple-950/60 px-2 py-0.5 text-[9px] font-bold tracking-wider uppercase text-[#4F2396] dark:text-purple-300">
               {t("BUSINESS", "أعمال")}
             </span>
           </div>
@@ -114,17 +114,17 @@ export default function HostAuthModal() {
             <button
               type="button"
               onClick={toggleLang}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50 transition cursor-pointer"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-2.5 py-1 text-xs font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition cursor-pointer"
               title={lang === "ar" ? "Switch to English" : "التبديل إلى العربية"}
             >
-              <Globe size={13} className="text-slate-500" />
+              <Globe size={13} className="text-slate-500 dark:text-slate-400" />
               <span>{lang === "ar" ? "English" : "العربية"}</span>
             </button>
 
             <button
               type="button"
               onClick={closeHostAuthModal}
-              className="rounded-lg p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition cursor-pointer"
+              className="rounded-lg p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
               aria-label="Close"
             >
               <X size={18} />
@@ -133,7 +133,7 @@ export default function HostAuthModal() {
         </div>
 
         {/* Card Title (Centered) */}
-        <h2 className="mt-5 text-xl sm:text-2xl font-bold tracking-tight text-slate-900 text-center mb-6">
+        <h2 className="mt-5 text-xl sm:text-2xl font-bold tracking-tight text-slate-900 dark:text-white text-center mb-6">
           {phoneStep === "profile_details"
             ? t("Complete your profile", "استكمال ملف المضيف")
             : phoneStep === "otp_verify"
@@ -143,24 +143,24 @@ export default function HostAuthModal() {
             : t("Host Partner Sign In", "تسجيل دخول المضيفين")}
         </h2>
         {phoneStep === "otp_verify" && (
-          <p className="-mt-4 mb-6 text-center text-xs text-slate-500 font-normal">{sentPhoneDisplay}</p>
+          <p className="-mt-4 mb-6 text-center text-xs text-slate-500 dark:text-slate-400 font-normal">{sentPhoneDisplay}</p>
         )}
 
         {/* Alerts */}
         {errorMsg && (
-          <div role="alert" className="mb-5 rounded-xl border border-red-200 bg-red-50/70 p-3.5 text-xs font-medium leading-relaxed text-red-700">
+          <div role="alert" className="mb-5 rounded-xl border border-red-200 dark:border-red-900/50 bg-red-50/70 dark:bg-red-950/40 p-3.5 text-xs font-medium leading-relaxed text-red-700 dark:text-red-300">
             {errorMsg}
           </div>
         )}
         {successMsg && (
-          <div role="status" className="mb-5 rounded-xl border border-emerald-200 bg-emerald-50/70 p-3.5 text-xs font-medium leading-relaxed text-emerald-800">
+          <div role="status" className="mb-5 rounded-xl border border-emerald-200 dark:border-emerald-900/50 bg-emerald-50/70 dark:bg-emerald-950/40 p-3.5 text-xs font-medium leading-relaxed text-emerald-800 dark:text-emerald-300">
             {successMsg}
           </div>
         )}
 
         {/* Tab Switcher: Phone vs Email */}
         {phoneStep === "phone_input" && (
-          <div className="mb-6 grid grid-cols-2 gap-1.5 rounded-xl bg-slate-100 p-1.5 text-xs font-medium text-slate-600">
+          <div className="mb-6 grid grid-cols-2 gap-1.5 rounded-xl bg-slate-100 dark:bg-slate-900 p-1.5 text-xs font-medium text-slate-600 dark:text-slate-400">
             <button
               type="button"
               onClick={() => {
@@ -169,8 +169,8 @@ export default function HostAuthModal() {
               }}
               className={`flex items-center justify-center gap-1.5 rounded-lg py-2.5 transition cursor-pointer ${
                 activeTab === "phone"
-                  ? "bg-white text-slate-900 font-semibold shadow-2xs"
-                  : "text-slate-500 hover:text-slate-800"
+                  ? "bg-white dark:bg-[#1f1a30] text-slate-900 dark:text-white font-semibold shadow-2xs"
+                  : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
               }`}
             >
               <Phone size={13} />
@@ -184,8 +184,8 @@ export default function HostAuthModal() {
               }}
               className={`flex items-center justify-center gap-1.5 rounded-lg py-2.5 transition cursor-pointer ${
                 activeTab === "email"
-                  ? "bg-white text-slate-900 font-semibold shadow-2xs"
-                  : "text-slate-500 hover:text-slate-800"
+                  ? "bg-white dark:bg-[#1f1a30] text-slate-900 dark:text-white font-semibold shadow-2xs"
+                  : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
               }`}
             >
               <Mail size={13} />

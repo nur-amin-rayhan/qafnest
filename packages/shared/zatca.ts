@@ -16,7 +16,7 @@ export const QAFNEST_ZATCA_DEFAULTS = {
   sellerNameEn: "QafNest Hospitality Platform LLC",
   vatNumber: "310123456700003",
   crNumber: "0000000000",
-  licenseNumber: "",
+  licenseNumber: "73102999",
   vatRate: 0.15,
 };
 

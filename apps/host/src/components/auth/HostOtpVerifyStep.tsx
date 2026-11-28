@@ -32,12 +32,12 @@ export default function HostOtpVerifyStep({
 }: HostOtpVerifyStepProps) {
   return (
     <form onSubmit={onSubmit} className="space-y-5">
-      <div className="flex items-center justify-between text-xs font-bold text-slate-600">
+      <div className="flex items-center justify-between text-xs font-bold text-slate-600 dark:text-slate-400">
         <span>{t("Enter 6-digit verification code", "أدخل رمز التحقق المكون من 6 أرقام")}</span>
         <button
           type="button"
           onClick={onChangeNumber}
-          className="text-[#4F2396] hover:underline cursor-pointer"
+          className="text-[#4F2396] dark:text-purple-400 hover:underline cursor-pointer"
         >
           {t("Change Number", "تغيير الرقم")}
         </button>
@@ -59,7 +59,7 @@ export default function HostOtpVerifyStep({
             onChange={(e) => handleOtpChange(index, e.target.value)}
             onKeyDown={(e) => handleOtpKeyDown(index, e)}
             autoFocus={index === 0}
-            className="h-11 w-10 sm:h-12 sm:w-11 rounded-xl border border-slate-200 bg-white text-center text-lg font-bold text-slate-900 outline-none focus:border-[#4F2396] focus:ring-1 focus:ring-[#4F2396] transition"
+            className="h-11 w-10 sm:h-12 sm:w-11 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-center text-lg font-bold text-slate-900 dark:text-slate-100 outline-none focus:border-[#4F2396] focus:ring-1 focus:ring-[#4F2396] transition"
           />
         ))}
       </div>

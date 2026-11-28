@@ -52,7 +52,7 @@ function HostAuthRequiredHandler() {
 
 export default function BusinessLandingPage() {
   const router = useRouter();
-  const { user, profile, signOut, openHostAuthModal, lang, setLang, t } = useHostAuth();
+  const { user, profile, signOut, openHostAuthModal, lang, setLang, t, theme, toggleTheme } = useHostAuth();
   const [mobileMenu, setMobileMenu] = useState(false);
   const [mounted, setMounted] = useState(false);
 
@@ -73,7 +73,7 @@ export default function BusinessLandingPage() {
   return (
     <div
       dir={lang === "ar" ? "rtl" : "ltr"}
-      className="min-h-screen bg-white text-slate-900 font-body selection:bg-violet-200"
+      className="min-h-screen bg-white dark:bg-[#0b0c16] text-slate-900 dark:text-slate-100 font-body transition-colors selection:bg-[#4F2396]/20"
     >
       {/* 1. Header Navigation */}
       <HostNavbar
@@ -87,6 +87,8 @@ export default function BusinessLandingPage() {
         signOut={signOut}
         openHostAuthModal={openHostAuthModal}
         t={t}
+        theme={theme}
+        toggleTheme={toggleTheme}
       />
 
       {/* 2. Hero Section */}

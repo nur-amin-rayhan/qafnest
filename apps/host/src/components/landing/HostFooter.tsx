@@ -53,44 +53,44 @@ function HostSocialIcon({ name, href }: { name: "Facebook" | "X" | "Instagram" |
 
 export function HostFooter({ t }: HostFooterProps) {
   return (
-    <footer className="border-t border-gray-100 bg-[#FAFAFC] py-8 text-slate-900 sm:py-12">
+    <footer className="border-t border-slate-200/80 dark:border-slate-800 bg-[#FAFAFC] dark:bg-[#070810] py-8 text-slate-900 dark:text-slate-100 sm:py-12 transition-colors">
       <div className="mx-auto max-w-[1360px] px-4 sm:px-6 lg:px-8">
-        {/* Band 1: Gathern-style Upper Rounded Card */}
-        <div className="rounded-2xl border border-[#e5e7eb] bg-white px-6 py-8 sm:px-10 sm:py-9">
+        {/* Band 1: Upper Card */}
+        <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-[#12101a] px-6 py-8 sm:px-10 sm:py-9 shadow-xs">
           <div className="grid grid-cols-1 gap-8 lg:grid-cols-[1.45fr_1fr_0.75fr] lg:items-start lg:gap-10">
             {/* Left Column: QafNest Business + License + Support Number */}
             <div>
               <div className="flex flex-wrap items-center gap-4">
                 <Link href="/" className="inline-flex items-center gap-1.5 select-none">
-                  <span className="text-[28px] sm:text-[32px] font-black tracking-[-0.05em] text-[#4F2396]">
-                    Qaf<span className="text-[#7c3aed]">Nest</span>
+                  <span className="text-[26px] sm:text-[30px] font-black tracking-[-0.04em] text-slate-900 dark:text-white">
+                    Qaf<span className="text-[#4F2396] dark:text-purple-400">Nest</span>
                     <span className="text-[#FF9750]">.</span>
                   </span>
                 </Link>
 
-                <span aria-hidden="true" className="h-9 w-px bg-gray-200" />
+                <span aria-hidden="true" className="h-8 w-px bg-slate-200 dark:bg-slate-700" />
 
                 <div className="inline-flex items-center gap-2.5">
-                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-violet-200 bg-violet-50 text-[#4F2396]">
-                    <Award className="h-5 w-5" />
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-purple-200/80 dark:border-purple-800/60 bg-purple-50 dark:bg-purple-950/50 text-[#4F2396] dark:text-purple-300">
+                    <Award className="h-4 w-4" />
                   </span>
                   <div className="leading-tight">
-                    <span className="block text-[11px] font-bold text-[#4F2396]">
+                    <span className="block text-[11px] font-bold text-slate-900 dark:text-white">
                       بوابة أعمال مرخصة
                     </span>
-                    <span className="block text-[11px] font-semibold text-[#4F2396]/90">
+                    <span className="block text-[11px] font-medium text-slate-500 dark:text-slate-400">
                       Official Host Portal
                     </span>
                   </div>
                 </div>
               </div>
 
-              <div className="mt-5 space-y-1 text-[13px] leading-6 text-[#1f2937]">
+              <div className="mt-5 space-y-1 text-[13px] leading-6 text-slate-600 dark:text-slate-400">
                 <p>{t("Licensed by the Ministry of Tourism", "مرخصة من وزارة السياحة")}</p>
                 <p>
                   {t(
-                    `License Number: ${QAFNEST_ZATCA_DEFAULTS.licenseNumber}`,
-                    `ترخيص رقم: ${QAFNEST_ZATCA_DEFAULTS.licenseNumber}`
+                    `License Number: ${QAFNEST_ZATCA_DEFAULTS.licenseNumber || "73102999"}`,
+                    `ترخيص رقم: ${QAFNEST_ZATCA_DEFAULTS.licenseNumber || "73102999"}`
                   )}
                 </p>
               </div>
@@ -98,9 +98,9 @@ export function HostFooter({ t }: HostFooterProps) {
               <div className="mt-3 flex flex-wrap items-center gap-2.5 text-[13px]">
                 <a
                   href={QAFNEST_SUPPORT_CONTACT.telHref}
-                  className="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-gray-50/70 px-3 py-1.5 font-semibold text-[#1f2937] transition hover:border-[#4F2396] hover:text-[#4F2396]"
+                  className="inline-flex items-center gap-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 px-3 py-1.5 font-semibold text-slate-700 dark:text-slate-200 transition hover:border-[#4F2396] hover:text-[#4F2396]"
                 >
-                  <PhoneCall className="h-3.5 w-3.5 text-[#4F2396]" />
+                  <PhoneCall className="h-3.5 w-3.5 text-[#4F2396] dark:text-purple-400" />
                   <span>{t("Host Support:", "دعم المضيفين:")}</span>
                   <span dir="ltr" className="font-bold">
                     {QAFNEST_SUPPORT_CONTACT.displayPhone}
@@ -110,7 +110,7 @@ export function HostFooter({ t }: HostFooterProps) {
                   href={QAFNEST_SUPPORT_CONTACT.whatsappHref}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50/70 px-3 py-1.5 font-semibold text-emerald-700 transition hover:bg-emerald-100"
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-emerald-200 dark:border-emerald-900/50 bg-emerald-50/70 dark:bg-emerald-950/40 px-3 py-1.5 font-semibold text-emerald-700 dark:text-emerald-300 transition hover:bg-emerald-100"
                 >
                   <MessageCircle className="h-3.5 w-3.5" />
                   <span>{t("WhatsApp", "واتساب")}</span>
@@ -119,17 +119,17 @@ export function HostFooter({ t }: HostFooterProps) {
             </div>
 
             {/* Middle & Right Columns */}
-            <div className="grid grid-cols-2 gap-6 border-t border-gray-100 pt-6 lg:contents lg:border-t-0 lg:pt-0">
-              <ul className="space-y-3 text-[13.5px] font-medium text-[#2c2c2c]">
+            <div className="grid grid-cols-2 gap-6 border-t border-slate-100 dark:border-slate-800 pt-6 lg:contents lg:border-t-0 lg:pt-0">
+              <ul className="space-y-3 text-[13.5px] font-medium text-slate-600 dark:text-slate-300">
                 <li>
-                  <Link href={`/${t("en", "ar")}/app`} className="transition hover:text-[#4F2396]">
+                  <Link href={`/${t("en", "ar")}/app`} className="transition hover:text-[#4F2396] dark:hover:text-purple-300">
                     {t("Host Dashboard", "لوحة تحكم المضيف")}
                   </Link>
                 </li>
                 <li>
                   <Link
                     href={`/${t("en", "ar")}/properties/new?mode=new`}
-                    className="transition hover:text-[#4F2396]"
+                    className="transition hover:text-[#4F2396] dark:hover:text-purple-300"
                   >
                     {t("Register New Property", "تسجيل عقار جديد")}
                   </Link>
@@ -137,13 +137,13 @@ export function HostFooter({ t }: HostFooterProps) {
                 <li>
                   <Link
                     href={`/${t("en", "ar")}/properties/new?mode=resume`}
-                    className="transition hover:text-[#4F2396]"
+                    className="transition hover:text-[#4F2396] dark:hover:text-purple-300"
                   >
                     {t("Resume Property Draft", "استكمال آخر عقار")}
                   </Link>
                 </li>
                 <li>
-                  <a href="#calculator" className="transition hover:text-[#4F2396]">
+                  <a href="#calculator" className="transition hover:text-[#4F2396] dark:hover:text-purple-300">
                     {t("Monthly Income Calculator", "حاسبة الدخل الشهري")}
                   </a>
                 </li>
@@ -154,9 +154,9 @@ export function HostFooter({ t }: HostFooterProps) {
                 </li>
               </ul>
 
-              <ul className="space-y-3 text-[13.5px] font-medium text-[#2c2c2c]">
+              <ul className="space-y-3 text-[13.5px] font-medium text-slate-700 dark:text-slate-300">
                 <li>
-                  <a href="#how-to-host" className="transition hover:text-[#4F2396]">
+                  <a href="#how-to-host" className="transition hover:text-[#4F2396] dark:hover:text-purple-400">
                     {t("How to Host", "طريقة الاستضافة")}
                   </a>
                 </li>
@@ -165,7 +165,7 @@ export function HostFooter({ t }: HostFooterProps) {
                     href={`${ECOSYSTEM_URLS.guest}/${t("en", "ar")}/policies#terms-and-conditions`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="transition hover:text-[#4F2396]"
+                    className="transition hover:text-[#4F2396] dark:hover:text-purple-400"
                   >
                     {t("Terms of use", "شروط الاستخدام")}
                   </a>
@@ -175,7 +175,7 @@ export function HostFooter({ t }: HostFooterProps) {
                     href={`${ECOSYSTEM_URLS.guest}/${t("en", "ar")}/faq`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="transition hover:text-[#4F2396]"
+                    className="transition hover:text-[#4F2396] dark:hover:text-purple-400"
                   >
                     {t("FAQs", "الأسئلة المتكررة")}
                   </a>
@@ -185,13 +185,13 @@ export function HostFooter({ t }: HostFooterProps) {
                     href={`${ECOSYSTEM_URLS.guest}/${t("en", "ar")}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="transition hover:text-[#4F2396]"
+                    className="transition hover:text-[#4F2396] dark:hover:text-purple-400"
                   >
                     {t("Guest Platform", "منصة الضيوف")}
                   </a>
                 </li>
                 <li>
-                  <a href={QAFNEST_SUPPORT_CONTACT.telHref} className="transition hover:text-[#4F2396]">
+                  <a href={QAFNEST_SUPPORT_CONTACT.telHref} className="transition hover:text-[#4F2396] dark:hover:text-purple-400">
                     {t("Contact us", "تواصل معنا")}
                   </a>
                 </li>
@@ -201,14 +201,14 @@ export function HostFooter({ t }: HostFooterProps) {
         </div>
 
         {/* Band 2: Standalone Settlement & Payment Card */}
-        <div className="mt-4 flex flex-col items-center justify-between gap-4 rounded-2xl border border-[#e5e7eb] bg-white px-6 py-5 sm:flex-row sm:px-10">
-          <h2 className="text-[14px] font-bold text-[#111827]">
+        <div className="mt-4 flex flex-col items-center justify-between gap-4 rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-[#12101a] px-6 py-5 sm:flex-row sm:px-10 transition-colors">
+          <h2 className="text-[14px] font-bold text-slate-900 dark:text-white">
             {t("Multiple and secure payout & payment channels", "قنوات دفع وتحويلات مالية متعددة وآمنة")}
           </h2>
           <ul className="flex flex-wrap items-center justify-center gap-2.5 sm:justify-end">
             {/* Apple Pay */}
             <li title="Apple Pay">
-              <span className="inline-flex h-8 shrink-0 items-center justify-center rounded-md border border-gray-200/85 bg-white px-2 py-0.5 shadow-2xs transition hover:border-gray-400">
+              <span className="inline-flex h-8 shrink-0 items-center justify-center rounded-md border border-slate-200/85 dark:border-slate-700/80 bg-white dark:bg-slate-800/90 px-2 py-0.5 shadow-2xs transition hover:border-gray-400 dark:hover:border-slate-600">
                 <Image
                   src="/apple-pay-mark.svg"
                   alt="Apple Pay"
@@ -222,7 +222,7 @@ export function HostFooter({ t }: HostFooterProps) {
 
             {/* VISA */}
             <li title="VISA">
-              <span className="inline-flex h-8 shrink-0 items-center justify-center rounded-md border border-gray-200/85 bg-white px-2 py-0.5 shadow-2xs transition hover:border-gray-400">
+              <span className="inline-flex h-8 shrink-0 items-center justify-center rounded-md border border-slate-200/85 dark:border-slate-700/80 bg-white dark:bg-slate-800/90 px-2 py-0.5 shadow-2xs transition hover:border-gray-400 dark:hover:border-slate-600">
                 <Image
                   src="/payment-icons/v.png"
                   alt="VISA"
@@ -236,7 +236,7 @@ export function HostFooter({ t }: HostFooterProps) {
 
             {/* Mastercard */}
             <li title="Mastercard">
-              <span className="inline-flex h-8 shrink-0 items-center justify-center overflow-hidden rounded-md border border-gray-200/85 bg-white px-1.5 py-0.5 shadow-2xs transition hover:border-gray-400">
+              <span className="inline-flex h-8 shrink-0 items-center justify-center overflow-hidden rounded-md border border-slate-200/85 dark:border-slate-700/80 bg-white dark:bg-slate-800/90 px-1.5 py-0.5 shadow-2xs transition hover:border-gray-400 dark:hover:border-slate-600">
                 <Image
                   src="/payment-icons/m.png"
                   alt="Mastercard"
@@ -250,7 +250,7 @@ export function HostFooter({ t }: HostFooterProps) {
 
             {/* mada */}
             <li title="mada">
-              <span className="inline-flex h-8 shrink-0 items-center justify-center overflow-hidden rounded-md border border-gray-200/85 bg-white px-1.5 py-0.5 shadow-2xs transition hover:border-gray-400">
+              <span className="inline-flex h-8 shrink-0 items-center justify-center overflow-hidden rounded-md border border-slate-200/85 dark:border-slate-700/80 bg-white dark:bg-slate-800/90 px-1.5 py-0.5 shadow-2xs transition hover:border-gray-400 dark:hover:border-slate-600">
                 <Image
                   src="/payment-icons/md.png"
                   alt="mada"
@@ -264,7 +264,7 @@ export function HostFooter({ t }: HostFooterProps) {
 
             {/* STC Pay */}
             <li title="STC Pay">
-              <span className="inline-flex h-8 shrink-0 items-center justify-center overflow-hidden rounded-md border border-gray-200/85 bg-white px-1.5 py-0.5 shadow-2xs transition hover:border-gray-400">
+              <span className="inline-flex h-8 shrink-0 items-center justify-center overflow-hidden rounded-md border border-slate-200/85 dark:border-slate-700/80 bg-white dark:bg-slate-800/90 px-1.5 py-0.5 shadow-2xs transition hover:border-gray-400 dark:hover:border-slate-600">
                 <Image
                   src="/payment-icons/stc.png"
                   alt="STC Pay"
@@ -278,24 +278,24 @@ export function HostFooter({ t }: HostFooterProps) {
 
             {/* Saudi IBAN · SARIE */}
             <li title="Saudi IBAN · SARIE">
-              <span className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-md border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-emerald-800 shadow-2xs transition hover:border-emerald-300">
+              <span className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-md border border-emerald-200 dark:border-emerald-800/60 bg-emerald-50 dark:bg-emerald-950/40 px-2.5 py-0.5 text-emerald-800 dark:text-emerald-200 shadow-2xs transition hover:border-emerald-300 dark:hover:border-emerald-700">
                 <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-                <span className="text-[11px] font-black tracking-tight text-emerald-900">SARIE · سريع</span>
-                <span className="rounded bg-emerald-200/70 px-1 py-0.5 text-[9px] font-bold text-emerald-800">Saudi IBAN</span>
+                <span className="text-[11px] font-black tracking-tight text-emerald-900 dark:text-emerald-100">SARIE · سريع</span>
+                <span className="rounded bg-emerald-200/70 dark:bg-emerald-800/50 px-1 py-0.5 text-[9px] font-bold text-emerald-800 dark:text-emerald-200">Saudi IBAN</span>
               </span>
             </li>
           </ul>
         </div>
 
         {/* Band 3: Bottom Copyright & Purple Social Badges */}
-        <div className="flex flex-col-reverse items-center justify-between gap-4 pt-5 text-xs text-[#6b7280] sm:flex-row">
+        <div className="flex flex-col-reverse items-center justify-between gap-4 pt-5 text-xs text-slate-500 dark:text-slate-400 sm:flex-row">
           <p>
             {t(
               `All Rights Reserved © ${new Date().getFullYear()} QafNest`,
               `جميع الحقوق محفوظة © ${new Date().getFullYear()} قاف نست`
             )}
           </p>
-          <div className="flex w-full items-center justify-center gap-2.5 border-b border-gray-200 pb-4 sm:w-auto sm:justify-end sm:border-b-0 sm:pb-0">
+          <div className="flex w-full items-center justify-center gap-2.5 border-b border-gray-200 dark:border-slate-800 pb-4 sm:w-auto sm:justify-end sm:border-b-0 sm:pb-0">
             {SOCIAL_LINKS.map((item) => (
               <HostSocialIcon key={item.name} name={item.name} href={item.href} />
             ))}
