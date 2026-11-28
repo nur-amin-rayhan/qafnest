@@ -78,7 +78,7 @@ export function CalendarMonthGrid({
   const riyadhToday = useMemo(() => getRiyadhNowInfo().dateIso, []);
 
   return (
-    <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800/80 bg-white dark:bg-[#12101a] p-5 sm:p-7 shadow-xs space-y-5">
+    <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800/80 bg-white dark:bg-[#12101a] p-3 sm:p-6 md:p-7 shadow-xs space-y-5">
       {/* Calendar Month Bar */}
       <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
         <div className="flex items-center gap-2">
@@ -137,17 +137,17 @@ export function CalendarMonthGrid({
       {/* Days Grid */}
       <div>
         {/* Weekday headers */}
-        <div className="grid grid-cols-7 gap-1.5 sm:gap-2 text-center text-xs font-black text-slate-400 dark:text-slate-500 pb-2">
+        <div className="grid grid-cols-7 gap-1 sm:gap-2 text-center text-[11px] sm:text-xs font-black text-slate-400 dark:text-slate-500 pb-2">
           {weekDayNames.map((dayName, idx) => (
             <div key={idx}>{dayName}</div>
           ))}
         </div>
 
         {/* Calendar Cells */}
-        <div className="grid grid-cols-7 gap-1.5 sm:gap-2">
+        <div className="grid grid-cols-7 gap-1 sm:gap-2">
           {/* Empty leading days */}
           {Array.from({ length: monthData.firstDayIndex }).map((_, idx) => (
-            <div key={`empty-${idx}`} className="h-20 sm:h-24 rounded-2xl bg-slate-50/40 dark:bg-slate-900/30" />
+            <div key={`empty-${idx}`} className="h-20 sm:h-24 rounded-xl sm:rounded-2xl bg-slate-50/40 dark:bg-slate-900/30" />
           ))}
 
           {/* Month Days */}
@@ -216,30 +216,26 @@ export function CalendarMonthGrid({
                 disabled={isPastDate}
                 title={tooltipLines}
                 onClick={isPastDate ? undefined : () => onSelectDateForEdit(isoDate)}
-                className={`h-20 sm:h-24 rounded-2xl p-1.5 sm:p-2 flex flex-col justify-between text-start transition-all relative group overflow-hidden ${
+                className={`h-20 sm:h-24 rounded-xl sm:rounded-2xl p-1 sm:p-2 flex flex-col justify-between text-start transition-all relative group overflow-hidden ${
                   isPastDate ? "cursor-not-allowed" : "cursor-pointer"
                 } ${cardClasses}`}
               >
                 <div className="flex items-center justify-between w-full">
                   <span
                     className={`text-xs sm:text-sm font-black leading-none ${
-                      isPastDate ? "text-slate-400 dark:text-slate-400 line-through" : ""
+                      isPastDate ? "text-slate-400 dark:text-slate-500 line-through" : ""
                     }`}
                   >
                     {day}
                   </span>
-                  {isPastDate ? (
-                    <span className="text-[9px] font-bold text-slate-400 dark:text-slate-400">
-                      {t("Passed", "منقضي")}
-                    </span>
-                  ) : isBookedFull ? (
-                    <CheckCircle2 size={12} className="text-[#FF9750]" />
+                  {isPastDate ? null : isBookedFull ? (
+                    <CheckCircle2 size={12} className="text-[#FF9750] shrink-0" />
                   ) : isBlocked ? (
-                    <Lock size={12} className="text-slate-400 dark:text-slate-400" />
+                    <Lock size={12} className="text-slate-400 dark:text-slate-400 shrink-0" />
                   ) : isSplitCheckout || isSplitCheckin ? (
-                    <Clock size={12} className="text-[#4F2396]" />
+                    <Clock size={12} className="text-[#4F2396] shrink-0" />
                   ) : hasCustomDateOverride ? (
-                    <span className="flex items-center gap-0.5 rounded-md bg-amber-200/80 dark:bg-amber-900/80 px-1 py-0.5 text-[9px] font-black text-amber-800 dark:text-amber-200">
+                    <span className="flex items-center gap-0.5 rounded-md bg-amber-200/80 dark:bg-amber-900/80 px-1 py-0.5 text-[9px] font-black text-amber-800 dark:text-amber-200 shrink-0">
                       <Tag size={9} />
                     </span>
                   ) : null}
@@ -247,38 +243,38 @@ export function CalendarMonthGrid({
 
                 {/* Slot Breakdown Visual */}
                 {isPastDate ? (
-                  <div className="w-full text-[9px] font-bold text-slate-400 dark:text-slate-400 truncate">
+                  <div className="w-full text-[8.5px] sm:text-[9.5px] font-bold text-slate-400/80 dark:text-slate-500 truncate">
                     {t("Closed", "مغلق")}
                   </div>
                 ) : isSplitCheckout ? (
-                  <div className="w-full space-y-0.5 text-[9px] font-extrabold leading-tight">
-                    <div className="rounded bg-[#4F2396] text-white px-1 py-0.5 truncate">
-                      {t("Out 12PM", "خروج 12م")}
+                  <div className="w-full space-y-0.5 text-[8px] sm:text-[9px] font-extrabold leading-tight">
+                    <div className="rounded bg-[#4F2396] text-white px-0.5 sm:px-1 py-0.5 truncate text-center sm:text-start">
+                      {t("Out 12P", "خروج 12م")}
                     </div>
-                    <div className="rounded bg-emerald-600 text-white px-1 py-0.5 truncate">
-                      {t("4PM+ Open", "4م+ متاح")} · {rate}
+                    <div className="rounded bg-emerald-600 text-white px-0.5 sm:px-1 py-0.5 truncate text-center sm:text-start">
+                      {t("4P+ Open", "4م+ متاح")}
                     </div>
                   </div>
                 ) : isSplitCheckin ? (
-                  <div className="w-full space-y-0.5 text-[9px] font-extrabold leading-tight">
-                    <div className="rounded bg-cyan-600 text-white px-1 py-0.5 truncate">
-                      {t("12AM-12PM", "12ص-12م")}
+                  <div className="w-full space-y-0.5 text-[8px] sm:text-[9px] font-extrabold leading-tight">
+                    <div className="rounded bg-cyan-600 text-white px-0.5 sm:px-1 py-0.5 truncate text-center sm:text-start">
+                      {t("12A-12P", "12ص-12م")}
                     </div>
-                    <div className="rounded bg-[#4F2396] text-white px-1 py-0.5 truncate">
-                      {t("4PM+ Booked", "4م+ محجوز")}
+                    <div className="rounded bg-[#4F2396] text-white px-0.5 sm:px-1 py-0.5 truncate text-center sm:text-start">
+                      {t("4P+ Booked", "4م+ محجوز")}
                     </div>
                   </div>
                 ) : isBookedFull ? (
-                  <div className="w-full space-y-0.5 text-[9px] font-bold">
+                  <div className="w-full space-y-0.5 text-[8.5px] sm:text-[9.5px] font-bold">
                     <div className="truncate">{t("Booked", "محجوز")}</div>
                     {overall === "booked_full" && (
                       <div className="text-[8px] text-violet-200 truncate">
-                        {t("All Slots Full", "الفترات ممتلئة")}
+                        {t("Full", "ممتلئ")}
                       </div>
                     )}
                   </div>
                 ) : isBlocked ? (
-                  <div className="text-[10px] font-black truncate w-full text-slate-500 dark:text-slate-300">
+                  <div className="text-[8.5px] sm:text-[10px] font-bold truncate w-full text-slate-500 dark:text-slate-300">
                     {t("Closed", "مغلق")}
                   </div>
                 ) : (

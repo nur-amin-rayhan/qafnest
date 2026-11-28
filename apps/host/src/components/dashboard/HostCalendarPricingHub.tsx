@@ -63,7 +63,7 @@ export default function HostCalendarPricingHub({
   }, [lang]);
 
   return (
-    <div className="mx-auto w-full max-w-[1640px] px-4 py-6 sm:px-8 sm:py-8 space-y-8 animate-in fade-in duration-300">
+    <div className="mx-auto w-full max-w-[1640px] px-2.5 sm:px-6 md:px-8 py-5 sm:py-8 space-y-6 sm:space-y-8 animate-in fade-in duration-300">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200/80 dark:border-slate-800 pb-6">
         <div>

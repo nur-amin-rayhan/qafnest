@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import {
   HOST_LANG_COOKIE,
   getHostLocaleFromPathname,
@@ -19,6 +20,7 @@ function persistLocaleDomAndStorage(locale: HostLocale) {
 }
 
 export function useHostLanguage(initialLang: HostLocale = "ar") {
+  const router = useRouter();
   const [lang, setLangState] = useState<HostLocale>(initialLang);
 
   const applyLang = useCallback((newLang: HostLocale) => {
@@ -31,13 +33,13 @@ export function useHostLanguage(initialLang: HostLocale = "ar") {
         url.searchParams.delete("lang");
         const targetPathname = localizeHostPath(url.pathname, newLang);
         if (url.pathname !== targetPathname) {
-          window.location.href = `${targetPathname}${url.search}${url.hash}`;
+          router.replace(`${targetPathname}${url.search}${url.hash}`);
         } else if (window.location.search !== url.search) {
           window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
         }
       } catch {}
     }
-  }, []);
+  }, [router]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;

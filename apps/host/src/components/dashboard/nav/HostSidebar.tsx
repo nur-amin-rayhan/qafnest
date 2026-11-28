@@ -131,7 +131,7 @@ export function HostSidebar({
             }}
             className="inline-flex items-center gap-2.5 select-none"
           >
-            <span className="text-[26px] xl:text-[28px] font-black tracking-[-0.04em] text-slate-900 dark:text-white">
+            <span dir="ltr" className="inline-flex items-center text-[26px] xl:text-[28px] font-black tracking-[-0.04em] text-slate-900 dark:text-white">
               Qaf<span className="text-[#4F2396] dark:text-purple-400">Nest</span>
               <span className="text-[#FF9750]">.</span>
             </span>
@@ -189,7 +189,7 @@ export function HostSidebar({
                       className={`rounded-full px-2 py-0.5 text-[11px] font-black ${
                         isActive
                           ? "bg-white/20 text-white"
-                          : "bg-purple-50 text-[#4F2396] dark:bg-purple-950/60 dark:text-purple-300"
+                          : "bg-purple-100 text-[#4F2396] dark:bg-purple-900/60 dark:text-purple-200 border border-purple-200/50 dark:border-purple-800/50"
                       }`}
                     >
                       {item.count}

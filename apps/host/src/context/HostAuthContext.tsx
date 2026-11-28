@@ -57,6 +57,7 @@ export function HostAuthProvider({
       setThemeState(initial);
       document.documentElement.classList.toggle("dark", initial === "dark");
       document.documentElement.classList.toggle("light", initial !== "dark");
+      document.cookie = `qafnest_host_theme=${initial}; path=/; max-age=31536000; SameSite=Lax`;
     } catch {}
   }, []);
 

@@ -41,6 +41,7 @@
 
 html.dark {
   color-scheme: dark;
+  background-color: #06060b;
   --bg: 6 6 11;             /* #06060B Deep Obsidian */
   --bg-soft: 10 10 20;      /* #0A0A14 */
   --bg-card: 14 14 26;      /* #0E0E1A */
@@ -61,6 +62,7 @@ html.dark {
 
 html.light {
   color-scheme: light;
+  background-color: #F7F5FC;
   --bg: 255 255 255;        /* Pure 100% White */
   --bg-soft: 255 255 255;
   --bg-card: 255 255 255;
@@ -89,7 +91,6 @@ body {
   color: rgb(var(--fg-muted));
   overflow-x: clip;
   -webkit-font-smoothing: antialiased;
-  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 input, select, textarea {

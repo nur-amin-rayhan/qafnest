@@ -39,7 +39,10 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   maximumScale: 5,
-  themeColor: "#ffffff",
+  themeColor: [
+    { media: "(prefers-color-scheme: dark)", color: "#06060b" },
+    { media: "(prefers-color-scheme: light)", color: "#f3f3f7" },
+  ],
 };
 
 const baseUrl =
@@ -99,20 +102,23 @@ export default async function HostRootLayout({
   const initialLang: "ar" | "en" = headerLocale ?? cookieLocale ?? DEFAULT_HOST_LOCALE;
   const initialDir = initialLang === "ar" ? "rtl" : "ltr";
 
-  const prePaintLocaleScript = `(function(){try{var p=window.location.pathname||"";var m=p.match(/^\\/(ar|en)(?:\\/|$)/);if(m){var l=m[1];document.documentElement.lang=l;document.documentElement.dir=l==="ar"?"rtl":"ltr";localStorage.setItem("qafnest_host_lang",l);}var th=localStorage.getItem("qafnest_host_theme")||"light";document.documentElement.classList.toggle("dark",th==="dark");document.documentElement.classList.toggle("light",th!=="dark");}catch(e){}})();`;
+  const themeCookie = cookieStore.get("qafnest_host_theme")?.value;
+  const initialTheme = themeCookie === "light" ? "light" : "dark";
+
+  const prePaintLocaleScript = `(function(){try{var p=window.location.pathname||"";var m=p.match(/^\\/(ar|en)(?:\\/|$)/);if(m){var l=m[1];document.documentElement.lang=l;document.documentElement.dir=l==="ar"?"rtl":"ltr";}var mTheme=document.cookie.match(/(?:^|;\\s*)qafnest_host_theme=([^;]+)/);var th=(mTheme?mTheme[1]:null)||localStorage.getItem("qafnest_host_theme")||"${initialTheme}";if(th==="dark"){document.documentElement.classList.add("dark");document.documentElement.classList.remove("light");}else{document.documentElement.classList.add("light");document.documentElement.classList.remove("dark");}}catch(e){}})();`;
 
   return (
     <html
       lang={initialLang}
       dir={initialDir}
-      className={`${geist.variable} ${dinNext.variable} light`}
+      className={`${geist.variable} ${dinNext.variable} ${initialTheme}`}
       suppressHydrationWarning
     >
       <head>
         <script dangerouslySetInnerHTML={{ __html: prePaintLocaleScript }} />
       </head>
       <body
-        className="font-body relative min-h-screen bg-[#f3f3f7] dark:bg-[#06060b] text-slate-900 dark:text-slate-100 selection:bg-violet-200 transition-colors"
+        className="font-body relative min-h-screen bg-[#f3f3f7] dark:bg-[#06060b] text-slate-900 dark:text-slate-100 selection:bg-violet-200"
         suppressHydrationWarning
       >
         <HostAuthProvider initialLang={initialLang}>

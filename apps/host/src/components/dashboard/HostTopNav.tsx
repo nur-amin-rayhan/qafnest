@@ -144,7 +144,7 @@ export default function HostTopNav({
               }}
               className="inline-flex items-center gap-1.5 sm:gap-2 select-none shrink-0"
             >
-              <span className="text-[18px] min-[380px]:text-[20px] sm:text-[25px] font-black tracking-[-0.04em] text-slate-900 dark:text-white whitespace-nowrap">
+              <span dir="ltr" className="inline-flex items-center text-[18px] min-[380px]:text-[20px] sm:text-[25px] font-black tracking-[-0.04em] text-slate-900 dark:text-white whitespace-nowrap">
                 Qaf<span className="text-[#4F2396] dark:text-purple-400">Nest</span>
                 <span className="text-[#FF9750]">.</span>
               </span>
