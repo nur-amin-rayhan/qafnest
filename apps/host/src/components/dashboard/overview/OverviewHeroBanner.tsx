@@ -21,54 +21,50 @@ export function OverviewHeroBanner({
   onNavigateTab,
 }: OverviewHeroBannerProps) {
   return (
-    <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-[#31135E] via-[#4F2396] to-[#6A32B8] p-6 sm:p-8 text-white shadow-lg">
-      {/* Decorative backdrop elements */}
-      <div className="absolute -left-16 -top-16 h-64 w-64 rounded-full bg-white/5 blur-2xl pointer-events-none" />
-      <div className="absolute right-0 bottom-0 h-48 w-48 rounded-full bg-[#FF9750]/15 blur-3xl pointer-events-none" />
-
-      <div className="relative z-10 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
-        <div className="space-y-2">
-          <div className="flex flex-wrap items-center gap-2.5">
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1 text-xs font-black backdrop-blur-md text-white">
-              <ShieldCheck size={14} className="text-[#FF9750]" />
-              <span>{t("Verified QafNest Host Partner", "شريك مضيف موثق في قاف نست")}</span>
+    <div className="relative overflow-hidden rounded-2xl sm:rounded-3xl border border-slate-200/90 bg-white p-5 sm:p-7 shadow-xs">
+      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-5">
+        <div className="space-y-1.5">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50/80 px-2.5 py-0.5 text-[11px] font-bold text-emerald-800">
+              <ShieldCheck size={13} className="text-emerald-600" />
+              <span>{t("Verified Host Partner", "شريك مضيف موثق")}</span>
             </span>
-            <span className="text-xs font-semibold text-violet-200">
+            <span className="text-[11px] font-medium text-slate-500">
               {todayFormatted}
             </span>
           </div>
 
-          <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white">
-            {t("Welcome back, ", "مرحباً بك، ")}
-            <span className="text-[#FFB380]">{hostName || t("Host Partner", "شريكنا المضيف")}</span>
-            <span> 👋</span>
+          <h1 className="text-xl sm:text-2xl font-black tracking-tight text-slate-900">
+            {hostName
+              ? t(`Welcome, ${hostName}`, `مرحباً، ${hostName}`)
+              : t("Operations Overview", "نظرة عامة على العمليات")}
           </h1>
 
-          <p className="text-xs sm:text-sm text-violet-100/90 max-w-2xl font-medium leading-relaxed">
+          <p className="text-xs sm:text-[13px] text-slate-600 max-w-2xl font-normal leading-relaxed">
             {t(
-              "Monitor your properties, track real-time bookings, analyze earnings, and keep your guest hospitality at the highest standard.",
-              "تابع أداء عقاراتك، وتحكم بحجوزات الضيوف وأسعارك اليومية، واطلع على تقارير مبيعاتك بكل سهولة ووضوح."
+              "Monitor your active properties, track guest reservations in real time, and analyze daily revenue.",
+              "تابع عقاراتك النشطة، وتحكم بحجوزات الضيوف والتقويم فوريًا، واطلع على إيراداتك بكل شفافية."
             )}
           </p>
         </div>
 
         {/* Quick Actions Cluster */}
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2.5 sm:gap-3">
           <Link
             href={`/${lang}/properties/new?mode=new`}
-            className="inline-flex items-center gap-2 rounded-2xl bg-[#FF9750] px-5 py-3 text-xs sm:text-sm font-black text-slate-950 shadow-md hover:bg-[#ff8a38] transition-all transform active:scale-95 cursor-pointer"
+            className="inline-flex min-h-[42px] items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 sm:px-5 py-2.5 text-xs sm:text-sm font-bold text-white shadow-xs hover:bg-slate-800 transition-colors cursor-pointer"
           >
-            <Plus size={16} className="stroke-[3]" />
-            <span>{t("Add New Property", "إضافة عقار جديد")}</span>
+            <Plus size={16} className="stroke-[2.5]" />
+            <span>{t("Add Property", "إضافة عقار")}</span>
           </Link>
 
           <button
             type="button"
             onClick={() => onNavigateTab("calendar")}
-            className="inline-flex items-center gap-2 rounded-2xl bg-white/10 hover:bg-white/20 border border-white/20 px-4 py-3 text-xs sm:text-sm font-bold text-white transition backdrop-blur-md cursor-pointer"
+            className="inline-flex min-h-[42px] items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 px-3.5 sm:px-4 py-2.5 text-xs sm:text-sm font-semibold text-slate-700 transition-colors cursor-pointer shadow-2xs"
           >
-            <CalendarDays size={16} />
-            <span>{t("Manage Availability", "التقويم والأسعار")}</span>
+            <CalendarDays size={16} className="text-slate-500" />
+            <span>{t("Calendar & Rates", "التقويم والأسعار")}</span>
           </button>
         </div>
       </div>

@@ -53,7 +53,7 @@ export function OverviewRecentActivity({
             <button
               type="button"
               onClick={() => onNavigateTab("reservations")}
-              className="text-xs font-black text-[#4F2396] hover:underline cursor-pointer"
+              className="text-xs font-black text-slate-900 hover:text-slate-600 cursor-pointer whitespace-nowrap shrink-0 px-2 py-1"
             >
               {t("View All", "عرض الكل")}
             </button>
@@ -144,7 +144,7 @@ export function OverviewRecentActivity({
             <button
               type="button"
               onClick={() => onNavigateTab("reviews")}
-              className="text-xs font-black text-[#4F2396] hover:underline cursor-pointer"
+              className="text-xs font-black text-slate-900 hover:text-slate-600 cursor-pointer whitespace-nowrap shrink-0 px-2 py-1"
             >
               {t("View All", "عرض الكل")}
             </button>

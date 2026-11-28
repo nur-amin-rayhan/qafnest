@@ -44,18 +44,18 @@ export function OverviewPropertiesGrid({
           </div>
         </div>
 
-        <div className="flex items-center gap-2.5">
+        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
           <Link
             href={`/${lang}/properties/new?mode=new`}
-            className="inline-flex items-center gap-1.5 rounded-xl bg-[#4F2396] hover:bg-[#3D1A78] text-white px-4 py-2 text-xs font-black shadow-xs transition cursor-pointer"
+            className="inline-flex min-h-[38px] items-center gap-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white px-3.5 sm:px-4 py-2 text-xs font-bold shadow-xs transition cursor-pointer"
           >
-            <Plus size={14} className="stroke-[3]" />
+            <Plus size={14} className="stroke-[2.5]" />
             <span>{t("Add Another Property", "إضافة عقار آخر")}</span>
           </Link>
           <button
             type="button"
             onClick={() => onNavigateTab("properties")}
-            className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 px-4 py-2 text-xs font-black shadow-xs transition cursor-pointer"
+            className="inline-flex min-h-[38px] items-center gap-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 px-3.5 sm:px-4 py-2 text-xs font-bold shadow-2xs transition cursor-pointer"
           >
             <span>{t("Manage All Properties", "إدارة كافة العقارات")}</span>
           </button>
@@ -121,9 +121,9 @@ export function OverviewPropertiesGrid({
                 )}
               </div>
 
-              <div className="flex items-center justify-between border-t border-slate-100 pt-3">
-                <span className="text-sm font-black text-[#4F2396]">
-                  {prop.basePrice} {t("SAR / night", "ر.س / ليلة")}
+              <div className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 pt-3">
+                <span className="text-xs sm:text-sm font-bold text-slate-900">
+                  {prop.basePrice} <span className="text-[11px] font-normal text-slate-500">{t("SAR / night", "ر.س / ليلة")}</span>
                 </span>
                 <div className="flex items-center gap-1.5">
                   {onDeleteProperty && (
@@ -150,10 +150,10 @@ export function OverviewPropertiesGrid({
                           ? t("Manage Removal Request", "إدارة طلب الحذف")
                           : t("Request Property Removal", "طلب حذف العقار")
                       }
-                      className={`p-1.5 rounded-lg border transition cursor-pointer ${
+                      className={`min-h-[36px] min-w-[36px] flex items-center justify-center p-2 rounded-lg border transition cursor-pointer ${
                         prop.deletionRequest?.status === "pending"
                           ? "border-amber-300 bg-amber-50 text-amber-700 hover:bg-amber-100"
-                          : "border-rose-200 text-rose-600 hover:bg-rose-50"
+                          : "border-slate-200 text-slate-500 hover:text-rose-600 hover:bg-rose-50"
                       }`}
                     >
                       <Trash2 size={14} />
@@ -161,10 +161,10 @@ export function OverviewPropertiesGrid({
                   )}
                   <Link
                     href={`/${lang}/properties/new?edit=${prop.id}`}
-                    className={`text-xs font-black px-3 py-1.5 rounded-lg transition-colors ${
+                    className={`min-h-[36px] inline-flex items-center text-xs font-bold px-3 py-1.5 rounded-lg transition-colors ${
                       isRejected
-                        ? "bg-[#4F2396] text-white hover:bg-[#3D1A78]"
-                        : "text-[#4F2396] hover:bg-violet-50"
+                        ? "bg-slate-900 text-white hover:bg-slate-800"
+                        : "border border-slate-200 text-slate-700 hover:bg-slate-50"
                     }`}
                   >
                     {isRejected

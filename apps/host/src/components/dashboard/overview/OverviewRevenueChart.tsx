@@ -139,7 +139,7 @@ export function OverviewRevenueChart({ bookings = [], lang, t }: OverviewRevenue
         </div>
 
         {/* Timeframe selector */}
-        <div className="flex items-center gap-2 bg-slate-100/80 p-1 rounded-2xl">
+        <div className="flex items-center justify-between sm:justify-start gap-1 bg-slate-100/80 p-1 rounded-2xl w-full sm:w-auto">
           {[
             { id: "30d", labelAr: "30 يوماً", labelEn: "30 Days" },
             { id: "90d", labelAr: "3 أشهر", labelEn: "Quarter" },
@@ -149,9 +149,9 @@ export function OverviewRevenueChart({ bookings = [], lang, t }: OverviewRevenue
               key={tf.id}
               type="button"
               onClick={() => setChartTimeframe(tf.id as typeof chartTimeframe)}
-              className={`rounded-xl px-3.5 py-1.5 text-xs font-black transition cursor-pointer ${
+              className={`flex-1 sm:flex-initial rounded-xl px-3 py-1.5 text-xs font-bold transition cursor-pointer text-center ${
                 chartTimeframe === tf.id
-                  ? "bg-white text-[#4F2396] shadow-xs"
+                  ? "bg-white text-slate-950 shadow-2xs"
                   : "text-slate-600 hover:text-slate-900"
               }`}
             >
@@ -161,62 +161,64 @@ export function OverviewRevenueChart({ bookings = [], lang, t }: OverviewRevenue
         </div>
       </div>
 
-      {/* SVG / Canvas Interactive Bar Graph */}
-      <div className="mt-6 pt-4">
-        <div className="relative h-64 sm:h-72 w-full flex items-end gap-2 sm:gap-4 px-2">
-          {/* Background Grid Lines */}
-          <div className="absolute inset-x-0 inset-y-0 flex flex-col justify-between pointer-events-none opacity-20">
-            <div className="border-b border-slate-300 w-full" />
-            <div className="border-b border-slate-300 w-full" />
-            <div className="border-b border-slate-300 w-full" />
-            <div className="border-b border-slate-300 w-full" />
-          </div>
+      {/* Interactive Bar Graph */}
+      <div className="mt-6 pt-2">
+        <div className="overflow-x-auto no-scrollbar pb-2">
+          <div className="relative h-60 sm:h-72 min-w-[340px] sm:min-w-0 w-full flex items-end gap-1.5 sm:gap-3 px-1 sm:px-2">
+            {/* Background Grid Lines */}
+            <div className="absolute inset-x-0 inset-y-0 flex flex-col justify-between pointer-events-none opacity-20">
+              <div className="border-b border-slate-300 w-full" />
+              <div className="border-b border-slate-300 w-full" />
+              <div className="border-b border-slate-300 w-full" />
+              <div className="border-b border-slate-300 w-full" />
+            </div>
 
-          {chartData.map((item, index) => {
-            const heightPercent =
-              maxChartAmount > 0 && item.amount > 0
-                ? Math.max(4, Math.round((item.amount / maxChartAmount) * 100))
-                : 0;
-            const isHovered = hoveredBarIndex === index;
+            {chartData.map((item, index) => {
+              const heightPercent =
+                maxChartAmount > 0 && item.amount > 0
+                  ? Math.max(6, Math.round((item.amount / maxChartAmount) * 100))
+                  : 0;
+              const isHovered = hoveredBarIndex === index;
 
-            return (
-              <div
-                key={index}
-                className="relative flex-1 h-full flex flex-col justify-end items-center group cursor-pointer"
-                onMouseEnter={() => setHoveredBarIndex(index)}
-                onMouseLeave={() => setHoveredBarIndex(null)}
-              >
-                {/* Floating tooltip on hover */}
-                {isHovered && (
-                  <div className="absolute -top-12 z-20 rounded-xl bg-slate-900 px-3 py-1.5 text-[11px] font-bold text-white shadow-xl whitespace-nowrap animate-in fade-in zoom-in-95 duration-150">
-                    <div>
-                      {item.amount.toLocaleString()} {t("SAR", "ر.س")}
-                    </div>
-                    <div className="text-[9px] text-slate-300">
-                      {item.bookings} {t("stays", "حجز")}
-                    </div>
-                  </div>
-                )}
-
-                {/* Visual Bar */}
+              return (
                 <div
-                  className={`w-full max-w-[42px] rounded-t-xl transition-all duration-300 ${
-                    heightPercent === 0
-                      ? "bg-slate-200"
-                      : isHovered
-                      ? "bg-gradient-to-t from-[#3D1A78] to-[#FF9750] shadow-md scale-105"
-                      : "bg-gradient-to-t from-[#4F2396] to-[#7C3AED] opacity-90 group-hover:opacity-100"
-                  }`}
-                  style={{ height: heightPercent > 0 ? `${heightPercent}%` : "2px" }}
-                />
+                  key={index}
+                  className="relative flex-1 h-full flex flex-col justify-end items-center group cursor-pointer"
+                  onMouseEnter={() => setHoveredBarIndex(index)}
+                  onMouseLeave={() => setHoveredBarIndex(null)}
+                >
+                  {/* Floating tooltip on hover */}
+                  {isHovered && (
+                    <div className="absolute -top-12 z-20 rounded-xl bg-slate-900 px-3 py-1.5 text-[11px] font-bold text-white shadow-xl whitespace-nowrap animate-in fade-in zoom-in-95 duration-150">
+                      <div>
+                        {item.amount.toLocaleString()} {t("SAR", "ر.س")}
+                      </div>
+                      <div className="text-[9px] text-slate-300">
+                        {item.bookings} {t("stays", "حجز")}
+                      </div>
+                    </div>
+                  )}
 
-                {/* X-axis Label */}
-                <span className="mt-2 text-[10px] sm:text-xs font-bold text-slate-500 truncate w-full text-center">
-                  {lang === "ar" ? item.labelAr : item.labelEn}
-                </span>
-              </div>
-            );
-          })}
+                  {/* Visual Bar */}
+                  <div
+                    className={`w-full max-w-[36px] rounded-t-lg transition-all duration-200 ${
+                      heightPercent === 0
+                        ? "bg-slate-200/90"
+                        : isHovered
+                        ? "bg-slate-900 shadow-sm"
+                        : "bg-slate-700 hover:bg-slate-900"
+                    }`}
+                    style={{ height: heightPercent > 0 ? `${heightPercent}%` : "3px" }}
+                  />
+
+                  {/* X-axis Label */}
+                  <span className="mt-2 text-[10px] sm:text-xs font-semibold text-slate-500 truncate w-full text-center">
+                    {lang === "ar" ? item.labelAr : item.labelEn}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
         </div>
 
         {/* Quick Insights Row */}

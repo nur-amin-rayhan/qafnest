@@ -26,70 +26,70 @@ export function PropertiesKpiStrip({
       <button
         type="button"
         onClick={() => setStatusFilter("all")}
-        className={`rounded-2xl border p-4 text-start transition cursor-pointer ${
+        className={`h-full flex flex-col justify-between rounded-2xl border p-3.5 sm:p-4 text-start transition cursor-pointer ${
           statusFilter === "all"
-            ? "border-[#4F2396] bg-violet-50/70 shadow-xs ring-2 ring-[#4F2396]/20"
+            ? "border-slate-900 bg-slate-50 shadow-2xs ring-1 ring-slate-900"
             : "border-slate-200 bg-white hover:bg-slate-50"
         }`}
       >
-        <span className="text-[11px] font-extrabold uppercase text-slate-400">
+        <span className="text-[11px] font-bold text-slate-500 leading-tight">
           {t("Total Properties", "إجمالي العقارات")}
         </span>
-        <p className="mt-1 text-2xl font-black text-slate-900">{counts.total}</p>
+        <p className="mt-2 text-2xl font-black text-slate-900">{counts.total}</p>
       </button>
 
       <button
         type="button"
         onClick={() => setStatusFilter("approved")}
-        className={`rounded-2xl border p-4 text-start transition cursor-pointer ${
+        className={`h-full flex flex-col justify-between rounded-2xl border p-3.5 sm:p-4 text-start transition cursor-pointer ${
           statusFilter === "approved"
-            ? "border-emerald-500 bg-emerald-50/70 shadow-xs ring-2 ring-emerald-500/20"
+            ? "border-emerald-600 bg-emerald-50/70 shadow-2xs ring-1 ring-emerald-600"
             : "border-slate-200 bg-white hover:bg-slate-50"
         }`}
       >
-        <div className="flex items-center justify-between">
-          <span className="text-[11px] font-extrabold uppercase text-slate-400">
+        <div className="flex items-center justify-between gap-1 w-full">
+          <span className="text-[11px] font-bold text-slate-500 leading-tight">
             {t("Live & Approved", "معتمد ومعروض")}
           </span>
-          <CheckCircle2 size={15} className="text-emerald-600" />
+          <CheckCircle2 size={15} className="text-emerald-600 shrink-0" />
         </div>
-        <p className="mt-1 text-2xl font-black text-emerald-700">{counts.approved}</p>
+        <p className="mt-2 text-2xl font-black text-emerald-700">{counts.approved}</p>
       </button>
 
       <button
         type="button"
         onClick={() => setStatusFilter("pending")}
-        className={`rounded-2xl border p-4 text-start transition cursor-pointer ${
+        className={`h-full flex flex-col justify-between rounded-2xl border p-3.5 sm:p-4 text-start transition cursor-pointer ${
           statusFilter === "pending"
-            ? "border-amber-500 bg-amber-50/70 shadow-xs ring-2 ring-amber-500/20"
+            ? "border-amber-600 bg-amber-50/70 shadow-2xs ring-1 ring-amber-600"
             : "border-slate-200 bg-white hover:bg-slate-50"
         }`}
       >
-        <div className="flex items-center justify-between">
-          <span className="text-[11px] font-extrabold uppercase text-slate-400">
+        <div className="flex items-center justify-between gap-1 w-full">
+          <span className="text-[11px] font-bold text-slate-500 leading-tight">
             {t("Under Review", "قيد المراجعة")}
           </span>
-          <Clock size={15} className="text-amber-600" />
+          <Clock size={15} className="text-amber-600 shrink-0" />
         </div>
-        <p className="mt-1 text-2xl font-black text-amber-700">{counts.pending}</p>
+        <p className="mt-2 text-2xl font-black text-amber-700">{counts.pending}</p>
       </button>
 
       <button
         type="button"
         onClick={() => setStatusFilter("rejected")}
-        className={`rounded-2xl border p-4 text-start transition cursor-pointer ${
+        className={`h-full flex flex-col justify-between rounded-2xl border p-3.5 sm:p-4 text-start transition cursor-pointer ${
           statusFilter === "rejected"
-            ? "border-rose-500 bg-rose-50/70 shadow-xs ring-2 ring-rose-500/20"
+            ? "border-rose-600 bg-rose-50/70 shadow-2xs ring-1 ring-rose-600"
             : "border-slate-200 bg-white hover:bg-slate-50"
         }`}
       >
-        <div className="flex items-center justify-between">
-          <span className="text-[11px] font-extrabold uppercase text-slate-400">
+        <div className="flex items-center justify-between gap-1 w-full">
+          <span className="text-[11px] font-bold text-slate-500 leading-tight">
             {t("Revisions Requested", "مطلوب تعديلات")}
           </span>
-          <AlertTriangle size={15} className="text-rose-600" />
+          <AlertTriangle size={15} className="text-rose-600 shrink-0" />
         </div>
-        <p className="mt-1 text-2xl font-black text-rose-700">{counts.rejected}</p>
+        <p className="mt-2 text-2xl font-black text-rose-700">{counts.rejected}</p>
       </button>
     </div>
   );

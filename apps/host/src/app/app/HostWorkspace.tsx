@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { useHostAuth } from "@/context/HostAuthContext";
 import { CheckCircle2, X } from "lucide-react";
 import HostTopNav, { type HostNotification, type Module } from "@/components/dashboard/HostTopNav";
+import { HostMobileBottomBar } from "@/components/dashboard/nav/HostMobileBottomBar";
 import {
   HostNotificationDetailModal,
   type NotificationDestination,
@@ -33,6 +34,7 @@ export default function HostWorkspace({ initialTab }: HostWorkspaceProps) {
   const { activeTab, setActiveTab } = useHostTabRouting(initialTab, lang);
 
   const [selectedNotification, setSelectedNotification] = useState<HostNotification | null>(null);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
   const {
     submittedProperties,
@@ -107,7 +109,7 @@ export default function HostWorkspace({ initialTab }: HostWorkspaceProps) {
   return (
     <div
       dir={lang === "ar" ? "rtl" : "ltr"}
-      className="min-h-screen bg-[#f3f3f7] text-slate-900 flex flex-col font-body"
+      className="min-h-screen bg-[#f3f3f7] text-slate-900 flex flex-col font-body pb-20 lg:pb-8"
     >
       {/* Top Navigation Bar with tabs, profile, notifications */}
       <HostTopNav
@@ -125,6 +127,8 @@ export default function HostWorkspace({ initialTab }: HostWorkspaceProps) {
         notifications={notifications}
         onSelectNotification={handleSelectNotification}
         onMarkAllNotificationsRead={handleMarkAllNotificationsRead}
+        mobileNavOpen={mobileNavOpen}
+        setMobileNavOpen={setMobileNavOpen}
       />
 
       <HostNotificationDetailModal
@@ -211,6 +215,18 @@ export default function HostWorkspace({ initialTab }: HostWorkspaceProps) {
 
       {/* Floating Real-time Alerts Banner */}
       <HostRealtimeAlerts alerts={realtimeAlerts} lang={lang} onDismiss={dismissAlert} />
+
+      {/* Sticky Mobile Bottom Navigation Bar */}
+      <HostMobileBottomBar
+        active={activeTab}
+        setActive={(tab) => setActiveTab(tab as Module)}
+        onOpenMenu={() => setMobileNavOpen(true)}
+        lang={lang}
+        t={t}
+        propertiesCount={submittedProperties.length}
+        bookingsCount={liveBookings.length}
+        hasPropertyIssues={hasPropertyIssues}
+      />
 
       {/* Property Delete Confirmation Modal */}
       <DeletePropertyModal

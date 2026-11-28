@@ -161,10 +161,11 @@ export function PropertyCardItem({ prop, t, onDelete }: PropertyCardItemProps) {
               href={`${ECOSYSTEM_URLS.guest}/${t("en", "ar")}/property/${prop.id}`}
               target="_blank"
               rel="noreferrer"
-              className="p-2 rounded-xl border border-slate-200 text-slate-600 hover:text-[#4F2396] hover:bg-violet-50 transition cursor-pointer"
+              className="min-h-[40px] min-w-[40px] flex items-center justify-center p-2 rounded-xl border border-slate-200 text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition cursor-pointer"
               title={t("Preview on Guest App", "معاينة على منصة الضيوف")}
+              aria-label={t("Preview on Guest App", "معاينة على منصة الضيوف")}
             >
-              <ExternalLink size={15} />
+              <ExternalLink size={16} />
             </a>
 
             {onDelete && (
@@ -191,13 +192,13 @@ export function PropertyCardItem({ prop, t, onDelete }: PropertyCardItemProps) {
                     ? t("Manage Removal Request", "إدارة طلب الحذف")
                     : t("Request Property Removal", "طلب حذف العقار")
                 }
-                className={`p-2 rounded-xl border transition cursor-pointer ${
+                className={`min-h-[40px] min-w-[40px] flex items-center justify-center p-2 rounded-xl border transition cursor-pointer ${
                   prop.deletionRequest?.status === "pending"
                     ? "border-amber-300 bg-amber-50 text-amber-700 hover:bg-amber-100"
-                    : "border-rose-200 text-rose-600 hover:bg-rose-50 hover:border-rose-300"
+                    : "border-slate-200 text-slate-500 hover:text-rose-600 hover:bg-rose-50 hover:border-rose-300"
                 }`}
               >
-                <Trash2 size={15} />
+                <Trash2 size={16} />
               </button>
             )}
 

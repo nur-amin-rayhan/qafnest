@@ -53,6 +53,8 @@ interface HostTopNavProps {
   notifications: HostNotification[];
   onSelectNotification?: (notification: HostNotification) => void;
   onMarkAllNotificationsRead: () => Promise<void>;
+  mobileNavOpen?: boolean;
+  setMobileNavOpen?: (open: boolean) => void;
 }
 
 export default function HostTopNav({
@@ -70,8 +72,18 @@ export default function HostTopNav({
   notifications,
   onSelectNotification,
   onMarkAllNotificationsRead,
+  mobileNavOpen,
+  setMobileNavOpen,
 }: HostTopNavProps) {
-  const [mobileNav, setMobileNav] = useState(false);
+  const [internalMobileNav, setInternalMobileNav] = useState(false);
+  const isNavOpen = mobileNavOpen !== undefined ? mobileNavOpen : internalMobileNav;
+  const toggleMobileNav = () => {
+    if (setMobileNavOpen) {
+      setMobileNavOpen(!isNavOpen);
+    } else {
+      setInternalMobileNav(!isNavOpen);
+    }
+  };
   const [showProfile, setShowProfile] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
 
@@ -92,18 +104,18 @@ export default function HostTopNav({
   }, []);
 
   return (
-    <header className="sticky top-0 z-40 border-b border-slate-200/80 bg-white">
-      <div className="mx-auto flex h-[64px] sm:h-[74px] max-w-[1640px] items-center justify-between gap-2 sm:gap-4 px-3 sm:px-8">
+    <header className="sticky top-0 z-40 border-b border-slate-200/80 bg-white/95 backdrop-blur-md">
+      <div className="mx-auto flex h-[58px] sm:h-[70px] max-w-[1640px] items-center justify-between gap-1.5 sm:gap-4 px-2.5 sm:px-8">
         {/* Logo + 7 Horizontal Tabs */}
-        <div className="flex items-center gap-3 xl:gap-12 h-full min-w-0">
-          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+        <div className="flex items-center gap-2 sm:gap-3 xl:gap-8 h-full min-w-0">
+          <div className="flex items-center gap-1.5 sm:gap-3 min-w-0">
             <button
               type="button"
-              className="grid h-9 w-9 sm:h-10 sm:w-10 shrink-0 place-items-center rounded-xl border border-slate-200 lg:hidden cursor-pointer"
-              onClick={() => setMobileNav(!mobileNav)}
+              className="grid h-8.5 w-8.5 sm:h-10 sm:w-10 shrink-0 place-items-center rounded-xl border border-slate-200 lg:hidden hover:bg-slate-50 transition cursor-pointer"
+              onClick={toggleMobileNav}
               aria-label={t("Toggle Navigation Menu", "تبديل قائمة التنقل")}
             >
-              {mobileNav ? <X size={18} /> : <Menu size={18} />}
+              {isNavOpen ? <X size={17} /> : <Menu size={17} />}
             </button>
             <Link
               href={`/${lang}/app/overview`}
@@ -113,11 +125,11 @@ export default function HostTopNav({
               }}
               className="inline-flex items-center gap-1.5 select-none min-w-0"
             >
-              <span className="text-[22px] sm:text-[28px] lg:text-[32px] font-black tracking-[-0.05em] text-[#4F2396] whitespace-nowrap">
+              <span className="text-[20px] sm:text-[26px] lg:text-[30px] font-black tracking-[-0.05em] text-[#4F2396] whitespace-nowrap">
                 Qaf<span className="text-[#7c3aed]">Nest</span>
                 <span className="text-[#FF9750]">.</span>
               </span>
-              <span className="hidden min-[390px]:inline-block rounded-full bg-violet-100 px-2 sm:px-2.5 py-0.5 text-[9px] sm:text-[10px] font-black tracking-widest uppercase text-[#4F2396]">
+              <span className="hidden sm:inline-block rounded-full bg-violet-100 px-2 sm:px-2.5 py-0.5 text-[9px] sm:text-[10px] font-black tracking-widest uppercase text-[#4F2396]">
                 {t("HOST", "مضيف")}
               </span>
             </Link>
@@ -135,10 +147,10 @@ export default function HostTopNav({
         </div>
 
         {/* Action Controls: Add Property, Language Toggle, Notifications, Support, Profile */}
-        <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
+        <div className="flex items-center gap-1 sm:gap-2.5 shrink-0">
           <Link
             href={`/${lang}/properties/new?mode=new`}
-            className="hidden sm:inline-flex items-center gap-1.5 rounded-xl bg-[#4F2396] hover:bg-[#3D1A78] text-white px-3.5 py-2 text-xs font-black shadow-xs transition cursor-pointer"
+            className="hidden sm:inline-flex items-center gap-1.5 rounded-xl bg-[#4F2396] hover:bg-[#3D1A78] text-white px-3 sm:px-3.5 py-1.5 sm:py-2 text-xs font-black shadow-xs transition cursor-pointer"
           >
             <Plus size={14} className="stroke-[3]" />
             <span>{t("Add Property", "إضافة عقار")}</span>
@@ -146,9 +158,9 @@ export default function HostTopNav({
           <button
             type="button"
             onClick={() => setLang(lang === "ar" ? "en" : "ar")}
-            className="inline-flex items-center gap-1 sm:gap-1.5 rounded-xl border border-violet-200 bg-violet-50/70 px-2 sm:px-3 py-1.5 sm:py-2 text-[11px] sm:text-xs font-extrabold text-[#4F2396] hover:bg-violet-100 cursor-pointer"
+            className="inline-flex items-center gap-1 rounded-xl border border-violet-200 bg-violet-50/70 px-2 sm:px-3 py-1.5 sm:py-2 text-[11px] sm:text-xs font-extrabold text-[#4F2396] hover:bg-violet-100 transition cursor-pointer"
           >
-            <Globe size={14} />
+            <Globe size={13} />
             <span>{lang === "ar" ? "EN" : "العربية"}</span>
           </button>
 
@@ -168,10 +180,10 @@ export default function HostTopNav({
             href="https://wa.me/966576707709"
             target="_blank"
             rel="noopener noreferrer"
-            className="grid h-9 w-9 sm:h-10 sm:w-10 place-items-center rounded-xl bg-[#dcd4ef] text-[#4F2396] hover:bg-[#ceC2e8] transition cursor-pointer"
+            className="grid h-8.5 w-8.5 sm:h-10 sm:w-10 place-items-center rounded-xl bg-[#dcd4ef] text-[#4F2396] hover:bg-[#ceC2e8] transition cursor-pointer"
             title={t("Chat & Support (WhatsApp)", "المحادثات والدعم (واتساب)")}
           >
-            <MessageSquareText size={18} />
+            <MessageSquareText size={17} />
           </a>
 
           {/* Profile Dropdown */}
@@ -191,12 +203,22 @@ export default function HostTopNav({
 
       {/* Mobile Navigation Drawer */}
       <HostMobileNavDrawer
-        isOpen={mobileNav}
+        isOpen={isNavOpen}
         active={active}
         setActive={setActive}
-        onClose={() => setMobileNav(false)}
+        onClose={() => {
+          if (setMobileNavOpen) setMobileNavOpen(false);
+          else setInternalMobileNav(false);
+        }}
         lang={lang}
+        setLang={setLang}
         t={t}
+        user={user}
+        profile={profile}
+        signOut={signOut}
+        submittedPropertiesCount={submittedPropertiesCount}
+        bookingsCount={bookingsCount}
+        hasPropertyIssues={hasPropertyIssues}
       />
     </header>
   );

@@ -52,7 +52,7 @@ export function BookingCardItem({
         {/* Left: Thumbnail & Property/Guest Info */}
         <div className="flex items-start gap-4">
           {item.propertyImage ? (
-            <div className="relative h-18 w-22 sm:h-20 sm:w-26 shrink-0 overflow-hidden rounded-xl bg-slate-100 border border-slate-200/80">
+            <div className="relative h-20 w-24 sm:h-24 sm:w-28 shrink-0 overflow-hidden rounded-xl bg-slate-100 border border-slate-200/80">
               <img
                 src={item.propertyImage}
                 alt={item.propertyTitle}
@@ -60,7 +60,7 @@ export function BookingCardItem({
               />
             </div>
           ) : (
-            <div className="flex h-18 w-22 sm:h-20 sm:w-26 shrink-0 items-center justify-center rounded-xl bg-violet-50 text-[#4F2396]">
+            <div className="flex h-20 w-24 sm:h-24 sm:w-28 shrink-0 items-center justify-center rounded-xl bg-violet-50 text-[#4F2396]">
               <Building2 size={24} />
             </div>
           )}

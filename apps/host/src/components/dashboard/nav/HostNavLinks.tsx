@@ -24,7 +24,7 @@ export function HostNavLinks({
   t,
 }: HostNavLinksProps) {
   return (
-    <nav className="hidden lg:flex items-center gap-1 xl:gap-2 h-full">
+    <nav className="hidden lg:flex items-center gap-0.5 xl:gap-1.5 h-full">
       {/* 1. الرئيسية / OVERVIEW */}
       <Link
         href={`/${lang}/app/overview`}
@@ -32,7 +32,7 @@ export function HostNavLinks({
           e.preventDefault();
           setActive("overview");
         }}
-        className={`relative h-full px-3 inline-flex items-center text-[14px] font-extrabold transition cursor-pointer ${
+        className={`relative h-full px-2 xl:px-3 inline-flex items-center text-[13px] xl:text-[14px] font-extrabold transition cursor-pointer whitespace-nowrap ${
           active === "overview" ? "text-[#4F2396]" : "text-slate-500 hover:text-[#4F2396]"
         }`}
       >
@@ -49,7 +49,7 @@ export function HostNavLinks({
           e.preventDefault();
           setActive("properties");
         }}
-        className={`relative h-full px-3 inline-flex items-center gap-1.5 text-[14px] font-extrabold transition cursor-pointer ${
+        className={`relative h-full px-2 xl:px-3 inline-flex items-center gap-1.5 text-[13px] xl:text-[14px] font-extrabold transition cursor-pointer whitespace-nowrap ${
           active === "properties" ? "text-[#4F2396]" : "text-slate-500 hover:text-[#4F2396]"
         }`}
       >
@@ -75,7 +75,7 @@ export function HostNavLinks({
           e.preventDefault();
           setActive("reservations");
         }}
-        className={`relative h-full px-3 inline-flex items-center gap-1.5 text-[14px] font-extrabold transition cursor-pointer ${
+        className={`relative h-full px-2 xl:px-3 inline-flex items-center gap-1.5 text-[13px] xl:text-[14px] font-extrabold transition cursor-pointer whitespace-nowrap ${
           active === "reservations" ? "text-[#4F2396]" : "text-slate-500 hover:text-[#4F2396]"
         }`}
       >
@@ -97,7 +97,7 @@ export function HostNavLinks({
           e.preventDefault();
           setActive("calendar");
         }}
-        className={`relative h-full px-3 inline-flex items-center text-[14px] font-extrabold transition cursor-pointer ${
+        className={`relative h-full px-2 xl:px-3 inline-flex items-center text-[13px] xl:text-[14px] font-extrabold transition cursor-pointer whitespace-nowrap ${
           active === "calendar" || active === "pricing"
             ? "text-[#4F2396]"
             : "text-slate-500 hover:text-[#4F2396]"
@@ -116,7 +116,7 @@ export function HostNavLinks({
           e.preventDefault();
           setActive("analytics");
         }}
-        className={`relative h-full px-3 inline-flex items-center text-[14px] font-extrabold transition cursor-pointer ${
+        className={`relative h-full px-2 xl:px-3 inline-flex items-center text-[13px] xl:text-[14px] font-extrabold transition cursor-pointer whitespace-nowrap ${
           active === "analytics" ? "text-[#4F2396]" : "text-slate-500 hover:text-[#4F2396]"
         }`}
       >
@@ -133,7 +133,7 @@ export function HostNavLinks({
           e.preventDefault();
           setActive("reviews");
         }}
-        className={`relative h-full px-3 inline-flex items-center text-[14px] font-extrabold transition cursor-pointer ${
+        className={`relative h-full px-2 xl:px-3 inline-flex items-center text-[13px] xl:text-[14px] font-extrabold transition cursor-pointer whitespace-nowrap ${
           active === "reviews" ? "text-[#4F2396]" : "text-slate-500 hover:text-[#4F2396]"
         }`}
       >
@@ -150,7 +150,7 @@ export function HostNavLinks({
           e.preventDefault();
           setActive("finance");
         }}
-        className={`relative h-full px-3 inline-flex items-center text-[14px] font-extrabold transition cursor-pointer ${
+        className={`relative h-full px-2 xl:px-3 inline-flex items-center text-[13px] xl:text-[14px] font-extrabold transition cursor-pointer whitespace-nowrap ${
           active === "finance" ? "text-[#4F2396]" : "text-slate-500 hover:text-[#4F2396]"
         }`}
       >
