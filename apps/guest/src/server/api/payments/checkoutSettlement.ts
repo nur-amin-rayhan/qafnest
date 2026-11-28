@@ -205,7 +205,10 @@ export async function executeDirectWalletCheckout(params: {
     guests: params.guests,
     totalPrice: params.totalPrice,
     pricing: params.pricing,
-    guestId: params.effectiveUserId,
+    guestId:
+      params.effectiveUserId && UUID_RE.test(params.effectiveUserId)
+        ? params.effectiveUserId
+        : null,
     bookingRef: params.bookingRef,
     guestSubject: params.guestSubject,
     initialStatus: "confirmed",

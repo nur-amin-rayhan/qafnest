@@ -68,7 +68,12 @@ export async function persistBookingToDatabase({
     bookingPayload.coupon_discount = pricing.couponDiscount;
   }
 
-  const effectiveGuestId = guestId || (isUuid(guestSubject) ? guestSubject : null);
+  const effectiveGuestId =
+    guestId && isUuid(guestId)
+      ? guestId
+      : guestSubject && isUuid(guestSubject)
+      ? guestSubject
+      : null;
   if (effectiveGuestId) {
     bookingPayload.guest_id = effectiveGuestId;
   }
@@ -99,6 +104,13 @@ export async function persistBookingToDatabase({
         if (errMsg.includes("column")) {
           delete safePayload.checkin_time;
           delete safePayload.checkout_time;
+        }
+        if (
+          errMsg.includes("uuid") ||
+          errMsg.includes("22P02") ||
+          !isUuid(String(safePayload.guest_id || ""))
+        ) {
+          delete safePayload.guest_id;
         }
 
         const { data: fallbackBooking, error: fallbackError } = await dbClient
