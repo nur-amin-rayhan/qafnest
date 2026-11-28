@@ -122,18 +122,18 @@ export default function HostTopNav({
 
   return (
     <header className="sticky top-0 z-40 border-b border-slate-200/80 dark:border-slate-800/80 bg-white/95 dark:bg-[#0c0d1b]/95 backdrop-blur-md transition-colors">
-      <div className="mx-auto flex h-[58px] sm:h-[64px] w-full items-center justify-between gap-2 px-3 sm:px-6 xl:px-8">
+      <div className="mx-auto flex h-[60px] sm:h-[66px] w-full items-center justify-between gap-1.5 sm:gap-2 px-2 sm:px-6 xl:px-8">
         {/* Left Side: Mobile Logo + Hamburger OR Desktop Module Title */}
-        <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+        <div className="flex items-center gap-1.5 sm:gap-3.5 min-w-0 shrink-0">
           {/* Mobile & Tablet Hamburger + Logo (xl:hidden) */}
-          <div className="flex items-center gap-2 xl:hidden min-w-0">
+          <div className="flex items-center gap-1.5 sm:gap-2.5 xl:hidden min-w-0 shrink-0">
             <button
               type="button"
-              className="grid h-8.5 w-8.5 sm:h-9.5 sm:w-9.5 shrink-0 place-items-center rounded-xl border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 transition cursor-pointer"
+              className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/70 hover:bg-violet-50 dark:hover:bg-purple-950/40 hover:border-violet-200 dark:hover:border-purple-800/60 hover:text-[#4F2396] dark:hover:text-purple-300 text-slate-700 dark:text-slate-300 transition-all cursor-pointer"
               onClick={toggleMobileNav}
               aria-label={t("Toggle Navigation Menu", "تبديل قائمة التنقل")}
             >
-              {isNavOpen ? <X size={17} /> : <Menu size={17} />}
+              {isNavOpen ? <X size={18} /> : <Menu size={18} />}
             </button>
 
             <Link
@@ -142,24 +142,24 @@ export default function HostTopNav({
                 e.preventDefault();
                 setActive("overview");
               }}
-              className="inline-flex items-center gap-1.5 select-none min-w-0"
+              className="inline-flex items-center gap-1.5 sm:gap-2 select-none shrink-0"
             >
-              <span className="text-[19px] sm:text-[22px] font-black tracking-[-0.04em] text-slate-900 dark:text-white whitespace-nowrap">
-                Qaf<span className="text-violet-600 dark:text-violet-400">Nest</span>
+              <span className="text-[18px] min-[380px]:text-[20px] sm:text-[25px] font-black tracking-[-0.04em] text-slate-900 dark:text-white whitespace-nowrap">
+                Qaf<span className="text-[#4F2396] dark:text-purple-400">Nest</span>
                 <span className="text-[#FF9750]">.</span>
               </span>
-              <span className="hidden min-[420px]:inline-block rounded-full bg-violet-100 dark:bg-violet-900/50 px-2 py-0.5 text-[9px] font-black tracking-wider uppercase text-violet-800 dark:text-violet-300">
+              <span className="inline-block rounded-full bg-purple-100 dark:bg-purple-950/60 px-1.5 sm:px-2.5 py-0.5 text-[9px] sm:text-[11px] font-black tracking-wider uppercase text-[#4F2396] dark:text-purple-300 border border-purple-200/60 dark:border-purple-800/60">
                 {t("HOST", "مضيف")}
               </span>
             </Link>
           </div>
 
           {/* Desktop Breadcrumb & Module Title (hidden xl:flex) */}
-          <div className="hidden xl:flex items-center gap-2">
+          <div className="hidden xl:flex items-center gap-2.5">
             <span className="text-xs font-semibold text-slate-400 dark:text-slate-500">
               {t("Host Portal", "بوابة المضيف")}
             </span>
-            <span className="text-slate-300 dark:text-slate-700">/</span>
+            <span className="text-slate-300 dark:text-slate-700 font-bold">/</span>
             <h1 className="text-sm font-bold text-slate-900 dark:text-white tracking-tight">
               {lang === "ar" ? activeTitle.ar : activeTitle.en}
             </h1>
@@ -173,14 +173,14 @@ export default function HostTopNav({
             <button
               type="button"
               onClick={toggleTheme}
-              className="grid h-8.5 w-8.5 sm:h-9.5 sm:w-9.5 place-items-center rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 transition-colors cursor-pointer"
+              className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/70 hover:bg-violet-50 dark:hover:bg-purple-950/40 hover:border-violet-200 dark:hover:border-purple-800/60 hover:text-[#4F2396] dark:hover:text-purple-300 text-slate-700 dark:text-slate-300 transition-all cursor-pointer"
               title={theme === "dark" ? t("Switch to Light Mode", "تفعيل الوضع الفاتح") : t("Switch to Dark Mode", "تفعيل الوضع الداكن")}
               aria-label={theme === "dark" ? t("Switch to Light Mode", "تفعيل الوضع الفاتح") : t("Switch to Dark Mode", "تفعيل الوضع الداكن")}
             >
               {theme === "dark" ? (
-                <Sun size={16} className="text-amber-400" />
+                <Sun size={18} className="text-amber-400" />
               ) : (
-                <Moon size={16} className="text-slate-600" />
+                <Moon size={18} className="text-slate-600 dark:text-slate-300" />
               )}
             </button>
           )}
@@ -189,11 +189,11 @@ export default function HostTopNav({
           <button
             type="button"
             onClick={() => setLang(lang === "ar" ? "en" : "ar")}
-            className="inline-flex h-8.5 sm:h-9.5 items-center gap-1.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 px-2.5 sm:px-3 text-[11px] sm:text-xs font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer shrink-0"
+            className="grid sm:inline-flex h-10 w-10 sm:w-auto place-items-center sm:items-center justify-center gap-1.5 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/70 px-0 sm:px-3 text-xs font-bold text-slate-700 dark:text-slate-300 hover:bg-violet-50 dark:hover:bg-purple-950/40 hover:border-violet-200 dark:hover:border-purple-800/60 hover:text-[#4F2396] dark:hover:text-purple-300 transition-all cursor-pointer shrink-0"
             title={lang === "ar" ? "Switch to English" : "التبديل إلى العربية"}
           >
-            <Globe size={13} className="text-slate-500 dark:text-slate-400 shrink-0" />
-            <span className="leading-none">{lang === "ar" ? "EN" : "العربية"}</span>
+            <Globe size={16} className="text-slate-500 dark:text-slate-400 shrink-0" />
+            <span className="hidden sm:inline leading-none">{lang === "ar" ? "EN" : "العربية"}</span>
           </button>
 
           {/* Notification Bell with Badge & Dropdown */}
@@ -208,16 +208,16 @@ export default function HostTopNav({
             t={t}
           />
 
-          {/* WhatsApp Support Link */}
+          {/* WhatsApp Support Link (hidden on small mobile, visible on sm+) */}
           <a
             href="https://wa.me/966576707709"
             target="_blank"
             rel="noopener noreferrer"
-            className="grid h-8.5 w-8.5 sm:h-9.5 sm:w-9.5 place-items-center rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 transition cursor-pointer"
+            className="hidden sm:grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/70 hover:bg-violet-50 dark:hover:bg-purple-950/40 hover:border-violet-200 dark:hover:border-purple-800/60 hover:text-[#4F2396] dark:hover:text-purple-300 text-slate-700 dark:text-slate-300 transition-all cursor-pointer"
             title={t("Chat & Support (WhatsApp)", "المحادثات والدعم (واتساب)")}
             aria-label={t("Chat & Support (WhatsApp)", "المحادثات والدعم (واتساب)")}
           >
-            <MessageSquareText size={16} />
+            <MessageSquareText size={18} />
           </a>
 
           {/* Profile Dropdown */}

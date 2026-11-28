@@ -129,13 +129,13 @@ export function HostSidebar({
               e.preventDefault();
               setActive("overview");
             }}
-            className="inline-flex items-center gap-2"
+            className="inline-flex items-center gap-2.5 select-none"
           >
-            <span className="text-2xl font-black tracking-tight text-slate-900 dark:text-white">
-              Qaf<span className="text-violet-600 dark:text-violet-400">Nest</span>
+            <span className="text-[26px] xl:text-[28px] font-black tracking-[-0.04em] text-slate-900 dark:text-white">
+              Qaf<span className="text-[#4F2396] dark:text-purple-400">Nest</span>
               <span className="text-[#FF9750]">.</span>
             </span>
-            <span className="rounded-full bg-violet-100 dark:bg-violet-900/50 px-2 py-0.5 text-[10px] font-black tracking-wider uppercase text-violet-800 dark:text-violet-300">
+            <span className="rounded-full bg-purple-100 dark:bg-purple-950/60 px-2.5 py-0.5 text-[11px] font-black tracking-wider uppercase text-[#4F2396] dark:text-purple-300 border border-purple-200/60 dark:border-purple-800/60">
               {t("HOST", "مضيف")}
             </span>
           </Link>

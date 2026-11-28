@@ -34,13 +34,13 @@ export const HostNotificationsDropdown = React.forwardRef<
       <button
         type="button"
         onClick={() => setNotificationsOpen(!notificationsOpen)}
-        className="relative grid h-9 w-9 sm:h-10 sm:w-10 place-items-center rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700 transition cursor-pointer"
+        className="relative grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/70 hover:bg-violet-50 dark:hover:bg-purple-950/40 hover:border-violet-200 dark:hover:border-purple-800/60 hover:text-[#4F2396] dark:hover:text-purple-300 text-slate-700 dark:text-slate-300 transition-all cursor-pointer"
         title={t("Notifications", "الإشعارات")}
         aria-label={t("Notifications", "الإشعارات")}
       >
         <Bell size={18} />
         {notifications.some((n) => !n.is_read) && (
-          <span className="absolute top-1.5 right-1.5 h-2.5 w-2.5 rounded-full bg-rose-500 ring-2 ring-white dark:ring-slate-900 animate-pulse" />
+          <span className="absolute top-2 right-2 h-2.5 w-2.5 rounded-full bg-rose-500 ring-2 ring-white dark:ring-slate-900 animate-pulse" />
         )}
       </button>
 

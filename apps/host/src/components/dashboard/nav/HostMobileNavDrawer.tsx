@@ -177,13 +177,13 @@ export function HostMobileNavDrawer({
                 setActive("overview");
                 onClose();
               }}
-              className="inline-flex items-center gap-1.5 select-none"
+              className="inline-flex items-center gap-2 select-none"
             >
-              <span className="text-[22px] font-black tracking-[-0.05em] text-slate-900 dark:text-white">
-                Qaf<span className="text-violet-600 dark:text-violet-400">Nest</span>
+              <span className="text-[25px] sm:text-[27px] font-black tracking-[-0.04em] text-slate-900 dark:text-white">
+                Qaf<span className="text-[#4F2396] dark:text-purple-400">Nest</span>
                 <span className="text-[#FF9750]">.</span>
               </span>
-              <span className="rounded-full bg-violet-100 dark:bg-violet-900/50 px-2 py-0.5 text-[9px] font-black tracking-widest uppercase text-violet-800 dark:text-violet-300">
+              <span className="rounded-full bg-purple-100 dark:bg-purple-950/60 px-2.5 py-0.5 text-[10px] sm:text-[11px] font-black tracking-wider uppercase text-[#4F2396] dark:text-purple-300 border border-purple-200/60 dark:border-purple-800/60">
                 {t("HOST", "مضيف")}
               </span>
             </Link>
@@ -191,7 +191,7 @@ export function HostMobileNavDrawer({
             <button
               type="button"
               onClick={onClose}
-              className="grid h-9 w-9 place-items-center rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700 hover:text-slate-800 dark:hover:text-white transition cursor-pointer"
+              className="grid h-10 w-10 place-items-center rounded-xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/70 hover:bg-violet-50 dark:hover:bg-purple-950/40 text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white transition cursor-pointer"
               aria-label={t("Close Menu", "إغلاق القائمة")}
             >
               <X size={18} />
