@@ -10,14 +10,14 @@ interface HostFooterProps {
   t: (en: string, ar: string) => string;
 }
 
-const SOCIAL_LINKS: Array<{ name: "Facebook" | "X" | "Instagram" | "YouTube"; href: string }> = [
+const SOCIAL_LINKS: Array<{ name: "Snapchat" | "Facebook" | "X" | "Instagram" | "YouTube"; href: string }> = [
+  { name: "Snapchat", href: "https://www.snapchat.com/@qafnest" },
+  { name: "Instagram", href: "https://www.instagram.com/qafnest" },
   { name: "Facebook", href: "https://www.facebook.com/qafnest" },
   { name: "X", href: "https://x.com/qafnest" },
-  { name: "Instagram", href: "https://www.instagram.com/qafnest" },
-  { name: "YouTube", href: "https://www.youtube.com/@qafnest" },
 ];
 
-function HostSocialIcon({ name, href }: { name: "Facebook" | "X" | "Instagram" | "YouTube"; href: string }) {
+function HostSocialIcon({ name, href }: { name: "Snapchat" | "Facebook" | "X" | "Instagram" | "YouTube"; href: string }) {
   return (
     <a
       href={href}
@@ -27,6 +27,11 @@ function HostSocialIcon({ name, href }: { name: "Facebook" | "X" | "Instagram" |
       aria-label={name}
       className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#492a7e] text-white transition hover:bg-[#3a1f66]"
     >
+      {name === "Snapchat" && (
+        <svg viewBox="0 0 24 24" className="h-4 w-4 fill-current" aria-hidden="true">
+          <path d="M12.206.793c.99 0 4.347.276 5.93 3.821.529 1.193.403 3.219.299 4.847l-.003.06c-.012.18-.022.345-.03.51.075.045.203.09.401.09.3-.016.659-.12 1.033-.301.165-.088.344-.104.464-.104.182 0 .359.029.509.09.45.149.734.479.734.838.015.449-.39.839-1.213 1.168-.089.029-.209.075-.344.119-.45.135-1.139.36-1.333.81-.09.224-.061.524.12.868l.015.015c.06.136 1.526 3.475 4.791 4.014.255.044.435.27.42.509 0 .075-.015.149-.045.225-.24.569-1.273.988-3.146 1.271-.059.091-.12.375-.164.57-.029.179-.074.36-.134.553-.076.271-.27.405-.555.405h-.03c-.135 0-.313-.031-.538-.074-.36-.075-.765-.135-1.273-.135-.3 0-.599.015-.913.074-.6.104-1.123.464-1.723.884-.853.599-1.826 1.288-3.294 1.288-.06 0-.119-.015-.18-.015h-.149c-1.468 0-2.427-.675-3.279-1.288-.599-.42-1.107-.779-1.707-.884-.314-.045-.629-.074-.928-.074-.54 0-.958.089-1.272.149-.211.043-.391.074-.54.074-.374 0-.523-.224-.583-.42-.061-.192-.09-.389-.135-.567-.046-.181-.105-.494-.166-.57-1.918-.222-2.95-.642-3.189-1.226-.031-.063-.052-.15-.055-.225-.015-.243.165-.465.42-.509 3.264-.54 4.73-3.879 4.791-4.02l.016-.029c.18-.345.224-.645.119-.869-.195-.434-.884-.658-1.332-.809-.121-.029-.24-.074-.346-.119-1.107-.435-1.257-.93-1.197-1.273.09-.479.674-.793 1.168-.793.146 0 .33.016.495.104.374.181.734.285 1.033.301.197 0 .33-.045.406-.09-.009-.165-.018-.33-.03-.51l-.002-.06C5.873 7.034 5.748 5.008 6.277 3.815c1.583-3.545 4.94-3.822 5.93-3.822z" />
+        </svg>
+      )}
       {name === "Facebook" && (
         <svg viewBox="0 0 24 24" className="h-4 w-4 fill-current" aria-hidden="true">
           <path d="M24 12.073C24 5.405 18.627 0 12 0S0 5.405 0 12.073c0 6.02 4.388 11.016 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.017 1.792-4.695 4.533-4.695 1.312 0 2.686.235 2.686.235v2.97h-1.513c-1.49 0-1.955.93-1.955 1.886v2.265h3.328l-.532 3.47h-2.796v8.385C19.612 23.09 24 18.093 24 12.073z" />
