@@ -1,6 +1,6 @@
 import crypto from "crypto";
 import { getServiceRoleClient } from "@/lib/supabase/service";
-import { hydrateRootJsonFile, readRootJsonFile, writeRootJsonFile } from "@qafnest/shared/serverJsonStore";
+import { hydrateRootJsonFile, persistRootJsonFile, readRootJsonFile, writeRootJsonFile } from "@qafnest/shared/serverJsonStore";
 import {
   DEFAULT_LOYALTY_SETTINGS,
   type PendingWalletSplit,
@@ -200,7 +200,7 @@ export async function commitUserWallet(
   wallet.updatedAt = new Date().toISOString();
   const store = loadWalletStore();
   store.wallets[wallet.userId] = wallet;
-  saveWalletStore(store);
+  await persistRootJsonFile(WALLET_STORE_FILE, store);
   await saveCloudUserWallet(wallet);
   if (metadataPatch) {
     await syncWalletUserMetadata(wallet.userId, metadataPatch);

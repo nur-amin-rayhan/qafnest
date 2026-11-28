@@ -259,6 +259,7 @@ export async function hydrateRootJsonFile<T>(
   normalize?: (parsed: unknown) => T
 ): Promise<T> {
   const key = path.basename(fileName);
+  await flushSharedStateSync(key);
   const remote = await fetchRemoteSharedState<unknown>(key);
   if (remote !== null) {
     const value = normalize ? normalize(remote) : (remote as T);

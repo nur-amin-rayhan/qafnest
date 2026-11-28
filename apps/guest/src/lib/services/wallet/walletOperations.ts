@@ -442,6 +442,12 @@ export async function refundWalletForBooking({
       if (rpcRes.data.already_refunded) return wallet;
       wallet.balance = Math.round(Number(rpcRes.data.balance ?? wallet.balance + roundedAmount) * 100) / 100;
     } else {
+      const hadDeduction = wallet.transactions.some(
+        (tx) => tx.type === "booking_payment" && tx.reference === bookingRef
+      );
+      if (!hadDeduction) {
+        return wallet;
+      }
       wallet.balance = Math.round((wallet.balance + roundedAmount) * 100) / 100;
     }
 
