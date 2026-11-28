@@ -151,13 +151,13 @@ export function HostMobileNavDrawer({
   return createPortal(
     <div
       dir={lang === "ar" ? "rtl" : "ltr"}
-      className="fixed inset-0 z-50 lg:hidden"
+      className="fixed inset-0 z-50 xl:hidden"
       aria-modal="true"
       role="dialog"
     >
       {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-slate-950/50 backdrop-blur-xs transition-opacity animate-in fade-in duration-200"
+        className="fixed inset-0 bg-slate-950/60 backdrop-blur-xs transition-opacity animate-in fade-in duration-200"
         onClick={onClose}
       />
 
@@ -200,7 +200,7 @@ export function HostMobileNavDrawer({
 
           {/* Host Profile Info */}
           <div className="flex items-center gap-3 rounded-2xl bg-slate-50 dark:bg-slate-900/60 p-3 border border-slate-100 dark:border-slate-800/80">
-            <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-slate-900 dark:bg-white text-white dark:text-slate-950 font-black text-sm shadow-xs">
+            <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-[#4F2396] text-white font-black text-sm shadow-xs">
               {hostInitial}
             </div>
             <div className="min-w-0 flex-1">
@@ -218,15 +218,15 @@ export function HostMobileNavDrawer({
           <Link
             href={`/${lang}/properties/new?mode=new`}
             onClick={onClose}
-            className="flex w-full items-center justify-center gap-2 rounded-xl bg-slate-900 hover:bg-slate-800 dark:bg-violet-600 dark:hover:bg-violet-500 text-white py-2.5 px-4 text-xs font-bold shadow-xs transition active:scale-[0.99] cursor-pointer"
+            className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#4F2396] hover:bg-[#3D1A78] text-white py-2.5 px-4 text-sm font-bold shadow-sm shadow-[#4F2396]/20 transition active:scale-[0.99] cursor-pointer"
           >
-            <Plus size={15} className="stroke-[2.5]" />
+            <Plus size={16} className="stroke-[2.5]" />
             <span>{t("Add New Property", "إضافة عقار جديد")}</span>
           </Link>
         </div>
 
         {/* Scrollable Navigation Items */}
-        <div className="flex-1 overflow-y-auto px-3 py-3 space-y-1">
+        <div className="flex-1 overflow-y-auto px-3 py-3 space-y-1.5">
           {navItems.map((item) => {
             const Icon = item.icon;
             const isCurrent = active === item.key;
@@ -239,18 +239,18 @@ export function HostMobileNavDrawer({
                   setActive(item.key);
                   onClose();
                 }}
-                className={`flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-xs font-bold transition cursor-pointer text-start ${
+                className={`flex w-full items-center justify-between rounded-xl px-3.5 py-2.5 text-sm transition cursor-pointer text-start ${
                   isCurrent
-                    ? "bg-slate-900 text-white dark:bg-white dark:text-slate-950 shadow-2xs"
-                    : "text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-white"
+                    ? "bg-[#4F2396] text-white shadow-sm shadow-[#4F2396]/20 font-bold"
+                    : "text-slate-700 dark:text-slate-300 hover:bg-[#F5F1FC] dark:hover:bg-purple-950/30 hover:text-[#4F2396] dark:hover:text-purple-300 font-semibold"
                 }`}
               >
                 <div className="flex items-center gap-3">
                   <Icon
-                    size={17}
+                    size={18}
                     className={
                       isCurrent
-                        ? "text-white dark:text-slate-950"
+                        ? "text-white"
                         : "text-slate-400 dark:text-slate-500"
                     }
                   />

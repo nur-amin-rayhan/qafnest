@@ -28,14 +28,16 @@ export function PropertiesKpiStrip({
         onClick={() => setStatusFilter("all")}
         className={`h-full flex flex-col justify-between rounded-2xl border p-3.5 sm:p-4 text-start transition cursor-pointer ${
           statusFilter === "all"
-            ? "border-slate-900 dark:border-white bg-slate-50 dark:bg-slate-800/80 shadow-2xs ring-1 ring-slate-900 dark:ring-white"
-            : "border-slate-200 dark:border-slate-800/80 bg-white dark:bg-[#121324] hover:bg-slate-50 dark:hover:bg-slate-800/50"
+            ? "border-[#4F2396] dark:border-purple-400 bg-purple-50/70 dark:bg-purple-950/40 shadow-2xs ring-1 ring-[#4F2396] dark:ring-purple-400"
+            : "border-slate-200/80 dark:border-slate-800/80 bg-white dark:bg-[#12101a] hover:bg-slate-50 dark:hover:bg-slate-800/50"
         }`}
       >
         <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 leading-tight">
           {t("Total Properties", "إجمالي العقارات")}
         </span>
-        <p className="mt-2 text-2xl font-black text-slate-900 dark:text-white">{counts.total}</p>
+        <p className={`mt-2 text-2xl font-black ${statusFilter === "all" ? "text-[#4F2396] dark:text-purple-300" : "text-slate-900 dark:text-white"}`}>
+          {counts.total}
+        </p>
       </button>
 
       <button

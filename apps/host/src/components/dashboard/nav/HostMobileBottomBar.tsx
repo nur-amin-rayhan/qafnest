@@ -1,7 +1,6 @@
 "use client";
 
 import React from "react";
-import Link from "next/link";
 import {
   LayoutDashboard,
   Building2,
@@ -75,10 +74,10 @@ export function HostMobileBottomBar({
   return (
     <nav
       dir={lang === "ar" ? "rtl" : "ltr"}
-      className="xl:hidden fixed bottom-0 inset-x-0 z-40 bg-white/95 dark:bg-[#0c0d1b]/95 backdrop-blur-md border-t border-slate-200/90 dark:border-slate-800/80 shadow-[0_-4px_16px_rgba(0,0,0,0.04)] pb-[env(safe-area-inset-bottom)] transition-colors"
+      className="xl:hidden fixed bottom-0 inset-x-0 z-40 bg-white/95 dark:bg-[#0c0d1b]/95 backdrop-blur-md border-t border-slate-200/90 dark:border-slate-800/80 shadow-[0_-4px_20px_rgba(0,0,0,0.06)] pb-[env(safe-area-inset-bottom)] transition-colors"
       aria-label={t("Mobile Navigation", "التنقل عبر الجوال")}
     >
-      <div className="flex items-center justify-around h-15 max-w-lg mx-auto px-2">
+      <div className="flex items-center justify-center gap-1 sm:gap-3 h-16 max-w-md sm:max-w-lg mx-auto px-3">
         {bottomTabs.map((tab) => {
           const Icon = tab.icon;
           const isCurrent = active === tab.key;
@@ -89,12 +88,12 @@ export function HostMobileBottomBar({
                 key={tab.key}
                 type="button"
                 onClick={onOpenMenu}
-                className="flex flex-col items-center justify-center flex-1 h-full py-1 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition active:scale-95 cursor-pointer"
+                className="flex flex-col items-center justify-center flex-1 h-full py-1 text-slate-500 dark:text-slate-400 hover:text-[#4F2396] dark:hover:text-purple-300 transition active:scale-95 cursor-pointer group"
               >
-                <div className="relative">
-                  <Icon size={20} className="text-slate-500 dark:text-slate-400" />
+                <div className="relative flex items-center justify-center w-10 h-7 rounded-xl text-slate-500 dark:text-slate-400 group-hover:text-[#4F2396] dark:group-hover:text-purple-300 transition-colors">
+                  <Icon size={21} />
                 </div>
-                <span className="mt-1 text-[10px] font-bold text-slate-600 dark:text-slate-400 leading-none">
+                <span className="mt-0.5 text-[11px] sm:text-xs font-bold text-slate-600 dark:text-slate-400 group-hover:text-[#4F2396] dark:group-hover:text-purple-300 leading-none">
                   {tab.label}
                 </span>
               </button>
@@ -102,38 +101,57 @@ export function HostMobileBottomBar({
           }
 
           return (
-            <Link
+            <button
               key={tab.key}
-              href={`/${lang}/app/${tab.key === "overview" ? "overview" : tab.key}`}
-              onClick={(e) => {
-                e.preventDefault();
-                setActive(tab.key as Module);
-              }}
+              type="button"
+              onClick={() => setActive(tab.key as Module)}
               className={`flex flex-col items-center justify-center flex-1 h-full py-1 transition active:scale-95 cursor-pointer ${
-                isCurrent ? "text-slate-900 dark:text-white" : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                isCurrent
+                  ? "text-[#4F2396] dark:text-purple-300"
+                  : "text-slate-500 dark:text-slate-400 hover:text-[#4F2396] dark:hover:text-purple-300"
               }`}
             >
-              <div className="relative">
-                <Icon
-                  size={20}
-                  className={isCurrent ? "text-slate-900 dark:text-white stroke-[2.4]" : "text-slate-400 dark:text-slate-500"}
-                />
+              <div className="relative flex items-center justify-center">
+                <div
+                  className={`flex items-center justify-center w-10 h-7 rounded-xl transition-colors ${
+                    isCurrent
+                      ? "bg-purple-50 dark:bg-purple-950/60 text-[#4F2396] dark:text-purple-300 shadow-2xs"
+                      : "text-slate-400 dark:text-slate-500"
+                  }`}
+                >
+                  <Icon
+                    size={20}
+                    className={
+                      isCurrent
+                        ? "text-[#4F2396] dark:text-purple-300 stroke-[2.4]"
+                        : "text-slate-400 dark:text-slate-500"
+                    }
+                  />
+                </div>
                 {tab.hasAlert ? (
-                  <span className="absolute -top-1 -end-1.5 h-2 w-2 rounded-full bg-rose-500 ring-2 ring-white dark:ring-slate-900 animate-pulse" />
+                  <span className="absolute -top-0.5 -end-0.5 h-2 w-2 rounded-full bg-rose-500 ring-2 ring-white dark:ring-slate-900 animate-pulse" />
                 ) : typeof tab.count === "number" && tab.count > 0 ? (
-                  <span className="absolute -top-1.5 -end-2.5 rounded-full bg-violet-100 dark:bg-violet-900/60 text-violet-800 dark:text-violet-200 text-[8px] font-black px-1 leading-tight border border-violet-200 dark:border-violet-800">
+                  <span
+                    className={`absolute -top-1 -end-2 rounded-full px-1.5 py-0.2 text-[9px] font-black leading-tight border ${
+                      isCurrent
+                        ? "bg-[#4F2396] text-white border-white dark:border-slate-900"
+                        : "bg-purple-100 dark:bg-purple-900/60 text-[#4F2396] dark:text-purple-200 border-purple-200 dark:border-purple-800"
+                    }`}
+                  >
                     {tab.count}
                   </span>
                 ) : null}
               </div>
               <span
-                className={`mt-1 text-[10px] leading-none ${
-                  isCurrent ? "font-black text-slate-900 dark:text-white" : "font-medium text-slate-500 dark:text-slate-400"
+                className={`mt-0.5 text-[11px] sm:text-xs leading-none ${
+                  isCurrent
+                    ? "font-black text-[#4F2396] dark:text-purple-300"
+                    : "font-semibold text-slate-500 dark:text-slate-400"
                 }`}
               >
                 {tab.label}
               </span>
-            </Link>
+            </button>
           );
         })}
       </div>

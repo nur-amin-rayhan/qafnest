@@ -31,20 +31,20 @@ export function OverviewRecentActivity({
 
   const displayReviews = reviews.slice(0, 3);
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
       {/* Panel 1: Latest Bookings */}
-      <div className="rounded-3xl border border-slate-200/90 dark:border-slate-800/80 bg-white dark:bg-[#121324] p-5 sm:p-7 shadow-xs flex flex-col justify-between transition-colors">
+      <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800/80 bg-white dark:bg-[#12101a] p-5 sm:p-6 shadow-xs flex flex-col justify-between transition-colors">
         <div>
           <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800/80 pb-4">
             <div className="flex items-center gap-2.5">
-              <div className="grid h-9 w-9 place-items-center rounded-xl bg-violet-100 dark:bg-violet-950/50 text-violet-700 dark:text-violet-300">
+              <div className="grid h-9 w-9 place-items-center rounded-xl bg-purple-50 dark:bg-purple-950/50 text-[#4F2396] dark:text-purple-300">
                 <CalendarDays size={18} />
               </div>
               <div>
                 <h3 className="text-base font-black text-slate-900 dark:text-white">
                   {t("Recent Guest Bookings", "أحدث حجوزات الضيوف")}
                 </h3>
-                <span className="text-xs text-slate-400 dark:text-slate-500 font-medium">
+                <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">
                   {t("Live reservations from guest app", "الحجوزات المباشرة القادمة والجارية")}
                 </span>
               </div>
@@ -53,7 +53,7 @@ export function OverviewRecentActivity({
             <button
               type="button"
               onClick={() => onNavigateTab("reservations")}
-              className="text-xs font-bold text-slate-900 dark:text-white hover:text-slate-600 dark:hover:text-slate-300 cursor-pointer whitespace-nowrap shrink-0 px-2 py-1"
+              className="text-xs font-bold text-[#4F2396] dark:text-purple-400 hover:underline cursor-pointer whitespace-nowrap shrink-0 px-2 py-1"
             >
               {t("View All", "عرض الكل")}
             </button>
@@ -62,14 +62,14 @@ export function OverviewRecentActivity({
           {/* Bookings List */}
           <div className="mt-4 divide-y divide-slate-100 dark:divide-slate-800/80 space-y-2">
             {displayBookings.length === 0 ? (
-              <div className="py-10 text-center text-xs font-bold text-slate-400 dark:text-slate-500">
+              <div className="py-10 text-center text-xs font-bold text-slate-400 dark:text-slate-400">
                 {t("No guest bookings received yet.", "لا توجد حجوزات ضيوف مسجلة حتى الآن.")}
               </div>
             ) : (
               displayBookings.map((booking) => (
                 <div key={booking.id} className="pt-3 flex items-center justify-between gap-3">
                   <div className="flex items-start gap-3">
-                    <div className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-black text-xs">
+                    <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-purple-50 dark:bg-purple-950/60 text-[#4F2396] dark:text-purple-300 font-black text-xs">
                       {booking.guest[0] || "G"}
                     </div>
                     <div>
@@ -77,7 +77,7 @@ export function OverviewRecentActivity({
                         <span className="text-xs sm:text-sm font-black text-slate-900 dark:text-white">
                           {booking.guest}
                         </span>
-                        <span className="rounded bg-emerald-100 dark:bg-emerald-950/60 px-2 py-0.5 text-[10px] font-black text-emerald-800 dark:text-emerald-300">
+                        <span className="rounded-full bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800/60 px-2 py-0.5 text-[10px] font-bold text-emerald-700 dark:text-emerald-300">
                           {booking.status === "confirmed"
                             ? t("Confirmed", "مؤكد")
                             : booking.status === "cancelled"
@@ -90,7 +90,7 @@ export function OverviewRecentActivity({
                           {booking.property}
                         </p>
                       )}
-                      <span className="text-[11px] font-semibold text-slate-400 dark:text-slate-500">
+                      <span className="text-[11px] font-semibold text-slate-400 dark:text-slate-400">
                         {booking.dates}
                       </span>
                     </div>
@@ -124,18 +124,18 @@ export function OverviewRecentActivity({
       </div>
 
       {/* Panel 2: Guest Reviews */}
-      <div className="rounded-3xl border border-slate-200/90 dark:border-slate-800/80 bg-white dark:bg-[#121324] p-5 sm:p-7 shadow-xs flex flex-col justify-between transition-colors">
+      <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800/80 bg-white dark:bg-[#12101a] p-5 sm:p-6 shadow-xs flex flex-col justify-between transition-colors">
         <div>
           <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800/80 pb-4">
             <div className="flex items-center gap-2.5">
-              <div className="grid h-9 w-9 place-items-center rounded-xl bg-amber-100 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400">
+              <div className="grid h-9 w-9 place-items-center rounded-xl bg-amber-50 dark:bg-amber-950/50 text-amber-500 dark:text-amber-400">
                 <Star size={18} className="fill-amber-400" />
               </div>
               <div>
                 <h3 className="text-base font-black text-slate-900 dark:text-white">
                   {t("Guest Reviews & Feedback", "تقييمات وآراء النزلاء")}
                 </h3>
-                <span className="text-xs text-slate-400 dark:text-slate-500 font-medium">
+                <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">
                   {t("Verified guest experiences", "آراء حقيقية من نزلاء أتموا إقامتهم")}
                 </span>
               </div>
@@ -144,16 +144,16 @@ export function OverviewRecentActivity({
             <button
               type="button"
               onClick={() => onNavigateTab("reviews")}
-              className="text-xs font-bold text-slate-900 dark:text-white hover:text-slate-600 dark:hover:text-slate-300 cursor-pointer whitespace-nowrap shrink-0 px-2 py-1"
+              className="text-xs font-bold text-[#4F2396] dark:text-purple-400 hover:underline cursor-pointer whitespace-nowrap shrink-0 px-2 py-1"
             >
               {t("View All", "عرض الكل")}
             </button>
           </div>
 
           {/* Reviews List */}
-          <div className="mt-4 space-y-3.5">
+          <div className="mt-4 space-y-3">
             {displayReviews.length === 0 ? (
-              <div className="py-10 text-center text-xs font-bold text-slate-400 dark:text-slate-500">
+              <div className="py-10 text-center text-xs font-bold text-slate-400 dark:text-slate-400">
                 {t("No guest reviews submitted yet.", "لا توجد تقييمات من النزلاء حتى الآن.")}
               </div>
             ) : (

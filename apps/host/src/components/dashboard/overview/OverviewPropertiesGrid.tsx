@@ -25,10 +25,10 @@ export function OverviewPropertiesGrid({
   onDeleteProperty,
 }: OverviewPropertiesGridProps) {
   return (
-    <div className="rounded-3xl border border-slate-200/90 dark:border-slate-800/80 bg-white dark:bg-[#121324] p-5 sm:p-8 shadow-xs transition-colors">
+    <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800/80 bg-white dark:bg-[#12101a] p-5 sm:p-7 shadow-xs transition-colors">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 dark:border-slate-800/80 pb-5">
         <div className="flex items-center gap-3">
-          <div className="grid h-10 w-10 place-items-center rounded-2xl bg-violet-100 dark:bg-violet-950/50 text-violet-700 dark:text-violet-300">
+          <div className="grid h-10 w-10 place-items-center rounded-xl bg-purple-50 dark:bg-purple-950/50 text-[#4F2396] dark:text-purple-300">
             <Building2 size={20} />
           </div>
           <div>
@@ -47,15 +47,15 @@ export function OverviewPropertiesGrid({
         <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
           <Link
             href={`/${lang}/properties/new?mode=new`}
-            className="inline-flex min-h-[38px] items-center gap-1.5 rounded-xl bg-slate-900 dark:bg-violet-600 dark:hover:bg-violet-500 hover:bg-slate-800 text-white px-3.5 sm:px-4 py-2 text-xs font-bold shadow-xs transition cursor-pointer"
+            className="inline-flex min-h-[38px] items-center gap-1.5 rounded-xl bg-[#4F2396] hover:bg-[#3D1A78] text-white px-3.5 sm:px-4 py-2 text-xs sm:text-sm font-bold shadow-sm shadow-[#4F2396]/20 transition cursor-pointer active:scale-[0.99]"
           >
-            <Plus size={14} className="stroke-[2.5]" />
+            <Plus size={15} className="stroke-[2.5]" />
             <span>{t("Add Another Property", "إضافة عقار آخر")}</span>
           </Link>
           <button
             type="button"
             onClick={() => onNavigateTab("properties")}
-            className="inline-flex min-h-[38px] items-center gap-1.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 px-3.5 sm:px-4 py-2 text-xs font-bold shadow-2xs transition cursor-pointer"
+            className="inline-flex min-h-[38px] items-center gap-1.5 rounded-xl border border-slate-200/90 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/60 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 px-3.5 sm:px-4 py-2 text-xs sm:text-sm font-semibold shadow-2xs transition cursor-pointer"
           >
             <span>{t("Manage All Properties", "إدارة كافة العقارات")}</span>
           </button>

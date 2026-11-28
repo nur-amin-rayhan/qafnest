@@ -121,11 +121,11 @@ export function OverviewRevenueChart({ bookings = [], lang, t }: OverviewRevenue
   }, [confirmedBookings]);
 
   return (
-    <div className="rounded-3xl border border-slate-200/90 dark:border-slate-800/80 bg-white dark:bg-[#121324] p-5 sm:p-8 shadow-xs transition-colors">
+    <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800/80 bg-white dark:bg-[#12101a] p-5 sm:p-7 shadow-xs transition-colors">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 dark:border-slate-800/80 pb-5">
         <div>
           <div className="flex items-center gap-2">
-            <div className="h-3 w-3 rounded-full bg-violet-600 dark:bg-violet-400" />
+            <div className="h-3 w-3 rounded-full bg-[#4F2396] dark:bg-purple-400" />
             <h2 className="text-lg sm:text-xl font-black text-slate-900 dark:text-white">
               {t("Sales & Revenue Trends", "أداء المبيعات والإيرادات الشهرية")}
             </h2>
@@ -139,7 +139,7 @@ export function OverviewRevenueChart({ bookings = [], lang, t }: OverviewRevenue
         </div>
 
         {/* Timeframe selector */}
-        <div className="flex items-center justify-between sm:justify-start gap-1 bg-slate-100/80 dark:bg-slate-900/60 p-1 rounded-2xl w-full sm:w-auto">
+        <div className="flex items-center justify-between sm:justify-start gap-1 bg-slate-100/90 dark:bg-slate-900/80 p-1 rounded-xl w-full sm:w-auto">
           {[
             { id: "30d", labelAr: "30 يوماً", labelEn: "30 Days" },
             { id: "90d", labelAr: "3 أشهر", labelEn: "Quarter" },
@@ -149,10 +149,10 @@ export function OverviewRevenueChart({ bookings = [], lang, t }: OverviewRevenue
               key={tf.id}
               type="button"
               onClick={() => setChartTimeframe(tf.id as typeof chartTimeframe)}
-              className={`flex-1 sm:flex-initial rounded-xl px-3 py-1.5 text-xs font-bold transition cursor-pointer text-center ${
+              className={`flex-1 sm:flex-initial rounded-lg px-3 py-1.5 text-xs font-bold transition cursor-pointer text-center ${
                 chartTimeframe === tf.id
-                  ? "bg-white dark:bg-slate-800 text-slate-950 dark:text-white shadow-2xs"
-                  : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                  ? "bg-[#4F2396] text-white shadow-xs"
+                  : "text-slate-600 dark:text-slate-300 hover:text-[#4F2396] dark:hover:text-purple-300"
               }`}
             >
               {lang === "ar" ? tf.labelAr : tf.labelEn}
@@ -189,11 +189,11 @@ export function OverviewRevenueChart({ bookings = [], lang, t }: OverviewRevenue
                 >
                   {/* Floating tooltip on hover */}
                   {isHovered && (
-                    <div className="absolute -top-12 z-20 rounded-xl bg-slate-900 dark:bg-slate-100 px-3 py-1.5 text-[11px] font-bold text-white dark:text-slate-950 shadow-xl whitespace-nowrap animate-in fade-in zoom-in-95 duration-150">
+                    <div className="absolute -top-12 z-20 rounded-xl bg-[#4F2396] px-3 py-1.5 text-[11px] font-bold text-white shadow-xl whitespace-nowrap animate-in fade-in zoom-in-95 duration-150">
                       <div>
                         {item.amount.toLocaleString()} {t("SAR", "ر.س")}
                       </div>
-                      <div className="text-[9px] text-slate-300 dark:text-slate-600">
+                      <div className="text-[9px] text-purple-200">
                         {item.bookings} {t("stays", "حجز")}
                       </div>
                     </div>
@@ -203,16 +203,16 @@ export function OverviewRevenueChart({ bookings = [], lang, t }: OverviewRevenue
                   <div
                     className={`w-full max-w-[36px] rounded-t-lg transition-all duration-200 ${
                       heightPercent === 0
-                        ? "bg-slate-200/90 dark:bg-slate-800"
+                        ? "bg-slate-100 dark:bg-slate-800"
                         : isHovered
-                        ? "bg-slate-900 dark:bg-white shadow-sm"
-                        : "bg-slate-700 dark:bg-violet-600 hover:bg-slate-900 dark:hover:bg-violet-500"
+                        ? "bg-[#3D1A78] dark:bg-purple-400 shadow-md"
+                        : "bg-[#4F2396] dark:bg-purple-600 hover:bg-[#3D1A78] dark:hover:bg-purple-500"
                     }`}
                     style={{ height: heightPercent > 0 ? `${heightPercent}%` : "3px" }}
                   />
 
                   {/* X-axis Label */}
-                  <span className="mt-2 text-[10px] sm:text-xs font-semibold text-slate-500 dark:text-slate-400 truncate w-full text-center">
+                  <span className="mt-2 text-[10px] sm:text-xs font-semibold text-slate-600 dark:text-slate-300 truncate w-full text-center">
                     {lang === "ar" ? item.labelAr : item.labelEn}
                   </span>
                 </div>
@@ -223,8 +223,8 @@ export function OverviewRevenueChart({ bookings = [], lang, t }: OverviewRevenue
 
         {/* Quick Insights Row */}
         <div className="mt-6 pt-5 border-t border-slate-100 dark:border-slate-800/80 grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
-          <div className="rounded-2xl bg-slate-50/70 dark:bg-slate-900/40 p-3.5 border border-slate-100 dark:border-slate-800/60">
-            <span className="text-[11px] font-bold text-slate-400 dark:text-slate-500">
+          <div className="rounded-xl bg-slate-50/70 dark:bg-slate-900/40 p-3.5 border border-slate-100 dark:border-slate-800/60">
+            <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400">
               {t("Top Earning Period", "أعلى فترة مبيعاً")}
             </span>
             <p className="mt-1 text-sm font-black text-slate-900 dark:text-white">
@@ -233,16 +233,16 @@ export function OverviewRevenueChart({ bookings = [], lang, t }: OverviewRevenue
                 : t("No earnings yet (0 SAR)", "لا توجد مبيعات بعد (0 ر.س)")}
             </p>
           </div>
-          <div className="rounded-2xl bg-slate-50/70 dark:bg-slate-900/40 p-3.5 border border-slate-100 dark:border-slate-800/60">
-            <span className="text-[11px] font-bold text-slate-400 dark:text-slate-500">
+          <div className="rounded-xl bg-slate-50/70 dark:bg-slate-900/40 p-3.5 border border-slate-100 dark:border-slate-800/60">
+            <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400">
               {t("Average Daily Rate (ADR)", "متوسط سعر الليلة")}
             </span>
-            <p className="mt-1 text-sm font-black text-violet-600 dark:text-violet-400">
+            <p className="mt-1 text-sm font-black text-[#4F2396] dark:text-purple-400">
               {averageDailyRate.toLocaleString()} {t("SAR / night", "ر.س / ليلة")}
             </p>
           </div>
-          <div className="rounded-2xl bg-slate-50/70 dark:bg-slate-900/40 p-3.5 border border-slate-100 dark:border-slate-800/60">
-            <span className="text-[11px] font-bold text-slate-400 dark:text-slate-500">
+          <div className="rounded-xl bg-slate-50/70 dark:bg-slate-900/40 p-3.5 border border-slate-100 dark:border-slate-800/60">
+            <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400">
               {t("Net Payout Schedule", "دورة التحويلات البنكية")}
             </span>
             <p className="mt-1 text-sm font-black text-emerald-600 dark:text-emerald-400">

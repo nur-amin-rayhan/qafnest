@@ -40,12 +40,12 @@ export function BookingCardItem({
 
   return (
     <div
-      className={`relative rounded-2xl border bg-white dark:bg-[#121324] p-5 sm:p-6 transition shadow-xs hover:shadow-md ${
+      className={`relative rounded-2xl border bg-white dark:bg-[#12101a] p-5 sm:p-6 transition shadow-xs hover:border-slate-300 dark:hover:border-slate-700 ${
         isToday
           ? "border-emerald-300 dark:border-emerald-800 ring-1 ring-emerald-200 dark:ring-emerald-900/40 bg-emerald-50/20 dark:bg-emerald-950/20"
           : isPending
           ? "border-amber-200 dark:border-amber-800 bg-amber-50/20 dark:bg-amber-950/20"
-          : "border-slate-200/90 dark:border-slate-800/80"
+          : "border-slate-200/80 dark:border-slate-800/80"
       }`}
     >
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-5">

@@ -145,15 +145,15 @@ export function HostSidebar({
         <div className="pt-4 pb-3">
           <Link
             href={`/${lang}/properties/new?mode=new`}
-            className="flex w-full items-center justify-center gap-2 rounded-xl bg-slate-900 hover:bg-slate-800 dark:bg-violet-600 dark:hover:bg-violet-500 py-2.5 px-4 text-xs font-bold text-white shadow-xs transition-colors cursor-pointer"
+            className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#4F2396] hover:bg-[#3D1A78] text-white py-2.5 px-4 text-sm font-bold shadow-sm shadow-[#4F2396]/20 transition-all cursor-pointer active:scale-[0.99]"
           >
-            <Plus size={15} className="stroke-[2.5]" />
+            <Plus size={16} className="stroke-[2.5]" />
             <span>{t("Add Property", "إضافة عقار جديد")}</span>
           </Link>
         </div>
 
         {/* Navigation List */}
-        <nav className="flex-1 overflow-y-auto no-scrollbar space-y-1 py-1">
+        <nav className="flex-1 overflow-y-auto no-scrollbar space-y-1.5 py-1">
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = active === item.key;
@@ -162,19 +162,19 @@ export function HostSidebar({
                 key={item.key}
                 type="button"
                 onClick={() => setActive(item.key)}
-                className={`flex w-full items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-xs font-bold transition-colors cursor-pointer text-start ${
+                className={`flex w-full items-center justify-between gap-3 rounded-xl px-3.5 py-2.5 text-sm transition-all cursor-pointer text-start ${
                   isActive
-                    ? "bg-slate-900 text-white dark:bg-white dark:text-slate-950 shadow-2xs"
-                    : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/60"
+                    ? "bg-[#4F2396] text-white shadow-sm shadow-[#4F2396]/25 font-bold"
+                    : "text-slate-600 dark:text-slate-400 hover:text-[#4F2396] dark:hover:text-purple-300 hover:bg-[#F5F1FC] dark:hover:bg-purple-950/30 font-semibold"
                 }`}
               >
-                <div className="flex items-center gap-2.5 min-w-0">
+                <div className="flex items-center gap-3 min-w-0">
                   <Icon
-                    size={16}
+                    size={18}
                     className={`shrink-0 ${
                       isActive
-                        ? "text-white dark:text-slate-950"
-                        : "text-slate-400 dark:text-slate-500"
+                        ? "text-white"
+                        : "text-slate-400 dark:text-slate-500 group-hover:text-[#4F2396]"
                     }`}
                   />
                   <span className="truncate">{item.label}</span>
@@ -182,14 +182,14 @@ export function HostSidebar({
 
                 <div className="flex items-center gap-1.5 shrink-0">
                   {item.hasAlert && (
-                    <span className="h-2 w-2 rounded-full bg-amber-500 animate-pulse" />
+                    <span className="h-2 w-2 rounded-full bg-amber-400 animate-pulse" />
                   )}
                   {typeof item.count === "number" && item.count > 0 && (
                     <span
-                      className={`rounded-full px-2 py-0.5 text-[10px] font-black ${
+                      className={`rounded-full px-2 py-0.5 text-[11px] font-black ${
                         isActive
-                          ? "bg-white/20 text-white dark:bg-slate-900/15 dark:text-slate-950"
-                          : "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300"
+                          ? "bg-white/20 text-white"
+                          : "bg-purple-50 text-[#4F2396] dark:bg-purple-950/60 dark:text-purple-300"
                       }`}
                     >
                       {item.count}
@@ -243,8 +243,8 @@ export function HostSidebar({
 
         {/* Host Profile Info & Sign Out */}
         <div className="flex items-center justify-between gap-2.5 rounded-xl bg-slate-50 dark:bg-slate-900/60 p-2.5 border border-slate-100 dark:border-slate-800/80">
-          <div className="flex items-center gap-2 min-w-0">
-            <div className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-950 text-xs font-black">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="grid h-8.5 w-8.5 shrink-0 place-items-center rounded-lg bg-[#4F2396] text-white text-xs font-black shadow-xs">
               {hostInitial}
             </div>
             <div className="min-w-0">
@@ -252,9 +252,9 @@ export function HostSidebar({
                 <span className="text-xs font-bold text-slate-900 dark:text-white truncate">
                   {hostName}
                 </span>
-                <ShieldCheck size={12} className="text-emerald-500 shrink-0" />
+                <ShieldCheck size={13} className="text-emerald-500 shrink-0" />
               </div>
-              <span className="text-[10px] text-slate-400 dark:text-slate-500 truncate block">
+              <span className="text-[10.5px] text-slate-400 dark:text-slate-400 truncate block">
                 {user?.email || t("Verified Host", "مضيف موثق")}
               </span>
             </div>

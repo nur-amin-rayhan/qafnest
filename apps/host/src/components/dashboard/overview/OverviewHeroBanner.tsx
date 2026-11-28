@@ -21,7 +21,7 @@ export function OverviewHeroBanner({
   onNavigateTab,
 }: OverviewHeroBannerProps) {
   return (
-    <div className="relative overflow-hidden rounded-2xl sm:rounded-3xl border border-slate-200/90 dark:border-slate-800/80 bg-white dark:bg-[#121324] p-5 sm:p-7 shadow-xs transition-colors">
+    <div className="relative overflow-hidden rounded-2xl border border-slate-200/80 dark:border-slate-800/80 bg-white dark:bg-[#12101a] p-5 sm:p-6 shadow-xs transition-colors">
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-5">
         <div className="space-y-1.5">
           <div className="flex flex-wrap items-center gap-2">
@@ -52,7 +52,7 @@ export function OverviewHeroBanner({
         <div className="flex flex-wrap items-center gap-2.5 sm:gap-3">
           <Link
             href={`/${lang}/properties/new?mode=new`}
-            className="inline-flex min-h-[42px] items-center justify-center gap-2 rounded-xl bg-slate-900 dark:bg-violet-600 dark:hover:bg-violet-500 hover:bg-slate-800 px-4 sm:px-5 py-2.5 text-xs sm:text-sm font-bold text-white shadow-xs transition-colors cursor-pointer"
+            className="inline-flex min-h-[42px] items-center justify-center gap-2 rounded-xl bg-[#4F2396] hover:bg-[#3D1A78] px-4 sm:px-5 py-2.5 text-xs sm:text-sm font-bold text-white shadow-sm shadow-[#4F2396]/20 transition-all cursor-pointer active:scale-[0.99]"
           >
             <Plus size={16} className="stroke-[2.5]" />
             <span>{t("Add Property", "إضافة عقار")}</span>
@@ -61,7 +61,7 @@ export function OverviewHeroBanner({
           <button
             type="button"
             onClick={() => onNavigateTab("calendar")}
-            className="inline-flex min-h-[42px] items-center justify-center gap-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 hover:bg-slate-50 dark:hover:bg-slate-800 px-3.5 sm:px-4 py-2.5 text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-300 transition-colors cursor-pointer shadow-2xs"
+            className="inline-flex min-h-[42px] items-center justify-center gap-2 rounded-xl border border-slate-200/90 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/60 hover:bg-slate-100 dark:hover:bg-slate-800 px-3.5 sm:px-4 py-2.5 text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-300 transition-colors cursor-pointer shadow-2xs"
           >
             <CalendarDays size={16} className="text-slate-500 dark:text-slate-400" />
             <span>{t("Calendar & Rates", "التقويم والأسعار")}</span>
